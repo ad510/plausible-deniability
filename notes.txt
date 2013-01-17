@@ -24,14 +24,16 @@ for each unit in dict:
   add visiblity to tiles (including on coherence tiles), 1 tile "thick" on side of dict direction
   remove visibility from tiles, 1 tile "thick" on opposite side of dict direction
   if dict time > sim time:
+    if another faction could see unit at prev tile but not this tile:
+      add tile to decoherence queue for other faction
     init list of potential tiles in unit's visibility to cohere
     for each non-visible tile (according to coherence tiles) surrounding this unit:
-      if unit w/ this unit's sight range + 1/2 diagonal tile length is here, remove tiles from list that this "unit" can see part of
-    cohere remaining tiles in list
+      if unit w/ this unit's sight range (+ 1/2 tile length?) is here, remove tiles from list that this "unit" can see
+    cohere remaining tiles in list (unless only remaining tile is the tile the unit is on)
     for each tile removed from:
       if no one in this faction sees this tile anymore:
         lose visibility time = lowest time each of surrounding 3 (up to 5) tiles lost visibility
-        if lose visibility time:
+        if lose visibility time or another faction's unit on this tile:
           lose visibility time += time it takes for light to travel 1 tile
           lose visibility time = max(dict time, lose visibility time)
           add tile to decoherence queue
