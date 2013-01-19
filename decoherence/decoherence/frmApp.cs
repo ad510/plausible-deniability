@@ -115,9 +115,9 @@ namespace Decoherence
         {
             int i;
             modDX.keyboardUpdate();
-            for (i = 0; i < modDX.diKeyState.PressedKeys.Count; i++)
+            for (i = 0; i < modDX.diKeysChanged.Count; i++)
             {
-                if (modDX.diKeyState.PressedKeys[i] == Key.Escape)
+                if (modDX.diKeysChanged[i] == Key.Escape && modDX.diKeyState.IsPressed(modDX.diKeysChanged[i]))
                 {
                     frmApp_KeyDown(this, new System.Windows.Forms.KeyEventArgs(Keys.Escape));
                 }

@@ -15,7 +15,6 @@ using System.Diagnostics;
 using System.Drawing;
 using System.Windows.Forms;
 using SlimDX;
-using SlimDX.D3DCompiler;
 using SlimDX.Direct3D9;
 using SlimDX.Windows;
 using SlimDX.DirectSound;
@@ -110,7 +109,7 @@ static class modDX
     public static Matrix matProj; // projection matrix
     public static KeyboardState diKeyState;
     public static bool[] diLastKeyState = new bool[256];
-    public static Key[] diKeysChanged;
+    public static List<Key> diKeysChanged = new List<Key>();
     public static long timeNow;
     public static long timeLast;
     public static long timeStart;
@@ -446,14 +445,12 @@ static class modDX
     public static bool keyboardUpdate()
     {
         Key a = default(Key);
-        diKeysChanged = new Key[1];
+        diKeysChanged.Clear();
         if (diKeyDevice == null)
-            return false;
-        // just in case
-        if ((diKeyState != null))
+            return false; // just in case
+        if (diKeyState != null)
         {
             // keep earlier keystates up to date
-            // problem: IsPressed only contains newly changed keys
             for (a = 0; a <= (Key)255; a++)
             {
                 diLastKeyState[(int)a] = diKeyState.IsPressed(a);
@@ -462,15 +459,13 @@ static class modDX
         diKeyState = diKeyDevice.GetCurrentState();
         // update new keys
         if (diLastKeyState == null)
-            return false;
-        // if this is the 1st time setting DIkeystate
+            return false; // if this is the 1st time setting DIkeystate
         // check for any changes since last time
         for (a = 0; a <= (Key)255; a++)
         {
             if (diKeyState.IsPressed(a) != diLastKeyState[(int)a])
             {
-                Array.Resize(ref diKeysChanged, diKeysChanged.Length + 1);
-                diKeysChanged[diKeysChanged.Length - 1] = a;
+                diKeysChanged.Add(a);
             }
         }
         return true;
