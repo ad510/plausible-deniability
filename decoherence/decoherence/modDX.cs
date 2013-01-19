@@ -12,16 +12,19 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Data;
 using System.Diagnostics;
-using Drawing = System.Drawing;
-using DirectX = Microsoft.DirectX;
-using Vector3 = Microsoft.DirectX.Vector3;
-using Direct3D = Microsoft.DirectX.Direct3D;
-using DirectSound = Microsoft.DirectX.DirectSound;
-using DirectInput = Microsoft.DirectX.DirectInput;
-
+using System.Drawing;
+using System.Windows.Forms;
+using SlimDX;
+using SlimDX.D3DCompiler;
+using SlimDX.Direct3D9;
+using SlimDX.Windows;
+using SlimDX.DirectSound;
+using SlimDX.DirectInput;
 static class modDX
 {
     //constants
+    public static VertexFormat VertexFmt = (VertexFormat.Position | VertexFormat.Normal | VertexFormat.Texture1 | VertexFormat.Diffuse); //tells about vertex types to D3D
+    public static VertexFormat TLVertexFmt = (VertexFormat.PositionRhw | VertexFormat.Diffuse | VertexFormat.Texture1);
     //# of usual screen resolutions - 1
     public const short NResCommon = 9;
     //# of usual screen bit depths - 1
@@ -34,25 +37,23 @@ static class modDX
     public const int ColRed = 0xff0000;
     public const int ColGreen = 0x1ff00;
     public const int ColBlue = 0x1ff;
-
     public const int ColBlack = 0x0;
+
     //to start directx
     public static string dxErr;
     //makes various DX objects
-    public static Direct3D.D3DX d3dX_;
-    public static Direct3D.Manager d3d;
-    public static Direct3D.Device d3dDevice;
+    //public static D3DX d3dX_;
+    public static Direct3D d3d;
+    public static SlimDX.Direct3D9.Device d3dDevice;
     //current moniter settings
-    public static Direct3D.DisplayMode mode;
+    public static DisplayMode mode;
     //tells how to load 3d device
-    public static Direct3D.PresentParameters d3dPP;
-    //tells about vertex types to D3D
-    public static Direct3D.VertexFormats fvfVertex;
-    public static Direct3D.VertexFormats fvfTL;
-    public static DirectSound.Device ds;
-    public static DirectSound.BufferDescription dsBuf;
-    //Public di As DirectInput.Manager 'problem?: this might cause problems later
-    public static DirectInput.Device diKeyDevice;
+    public static PresentParameters d3dPP;
+    public static Light d3dLight;
+    public static DirectSound ds;
+    public static SoundBufferDescription dsBuf;
+    public static DirectInput di;
+    public static Keyboard diKeyDevice;
     public static int[] sxCommon = new int[NResCommon + 1];
     public static int[] syCommon = new int[NResCommon + 1];
     //possible usual moniter settings
@@ -111,12 +112,12 @@ static class modDX
     //for running loop
     public static Vector3 camSource;
     public static Vector3 camTarget;
-    public static DirectX.Matrix matView;
+    public static Matrix matView;
     //projection matrix
-    public static DirectX.Matrix matProj;
-    public static DirectInput.KeyboardState diKeyState;
+    public static Matrix matProj;
+    public static KeyboardState diKeyState;
     public static bool[] diLastKeyState = new bool[256];
-    public static DirectInput.Key[] diKeysChanged;
+    public static Key[] diKeysChanged;
     public static long timeNow;
     public static long timeLast;
     public static long timeStart;
@@ -166,38 +167,43 @@ static class modDX
 			syCommon[8] = 1440;
 			sxCommon[9] = 2048;
 			syCommon[9] = 1536;
-			//set vertex formats
-			fvfVertex = (Direct3D.VertexFormats.Position | Direct3D.VertexFormats.Normal | Direct3D.VertexFormats.Texture1 | Direct3D.VertexFormats.Diffuse);
-			//tells about vertex types to D3D
-			fvfTL = (Direct3D.VertexFormats.Transformed | Direct3D.VertexFormats.Diffuse | Direct3D.VertexFormats.Texture1);
+            //set d3d object
+            dxErr = "making D3D";
+            d3d = new Direct3D();
+            if (d3d == null) throw new NullReferenceException("d3d is null");
 			//get current and possible resolutions
 			dxErr = "getting possible resolutions";
-			d3dPP = new Direct3D.PresentParameters();
+			d3dPP = new PresentParameters();
 			d3dPP.Windowed = windowed;
-			mode = Direct3D.Manager.Adapters[0].CurrentDisplayMode;
+			mode = d3d.Adapters[0].CurrentDisplayMode;
 			if (windowed == false) {
-				foreach (Direct3D.DisplayMode tempMode in Direct3D.Manager.Adapters[0].SupportedDisplayModes) {
+				foreach (DisplayMode tempMode in d3d.Adapters[0].GetDisplayModes(Format.R5G6B5)) {
 					for (a = 0; a <= NResCommon; a++) {
 						if (tempMode.Width == sxCommon[a] & tempMode.Height == syCommon[a]) {
-							if (tempMode.Format == Direct3D.Format.R5G6B5) {
-								sPossible[a, 0] = true;
-							} else if (tempMode.Format == Direct3D.Format.X8R8G8B8) {
-								sPossible[a, 1] = true;
-							}
+							sPossible[a, 0] = true;
 							break;
 						}
 					}
-				}
+                }
+                foreach (DisplayMode tempMode in d3d.Adapters[0].GetDisplayModes(Format.X8B8G8R8))
+                {
+                    for (a = 0; a <= NResCommon; a++)
+                    {
+                        if (tempMode.Width == sxCommon[a] & tempMode.Height == syCommon[a])
+                        {
+                            sPossible[a, 1] = true;
+                            break;
+                        }
+                    }
+                }
 			}
 			//set up keyboard input (don't acquire it yet)
-			//DXerr = "making DI" 'problem?: this might cause problems later
-			//DI = DX.DirectInputCreate
+			dxErr = "making DI";
+			di = new DirectInput();
 			dxErr = "making keyboard device";
-			diKeyDevice = new DirectInput.Device(DirectInput.SystemGuid.Keyboard);
-			dxErr = "telling device to be a keyboard device";
-			diKeyDevice.SetDataFormat(DirectInput.DeviceDataFormat.Keyboard);
+			diKeyDevice = new Keyboard(di);
 			dxErr = "setting cooperative level of keyboard device";
-			diKeyDevice.SetCooperativeLevel(formHwnd, DirectInput.CooperativeLevelFlags.Background | DirectInput.CooperativeLevelFlags.NonExclusive);
+            diKeyDevice.SetCooperativeLevel(formHwnd, SlimDX.DirectInput.CooperativeLevel.Background | SlimDX.DirectInput.CooperativeLevel.Nonexclusive);
 			dxErr = "";
 		} catch (Exception ex) {
 			dxErr = ex.Message.TrimEnd('.') + " while " + dxErr;
@@ -206,12 +212,11 @@ static class modDX
 		}
 		//set up sound
 		try {
-			ds = new DirectSound.Device();
-			ds.SetCooperativeLevel(formHwnd, DirectSound.CooperativeLevel.Priority);
-			dsBuf = new DirectSound.BufferDescription();
-			dsBuf.Control3D = true;
-			dsBuf.ControlVolume = true;
-			dsBuf.Guid3DAlgorithm = DirectSound.DSoundHelper.Guid3DAlgorithmHrtfLight;
+			ds = new DirectSound();
+			ds.SetCooperativeLevel(formHwnd, SlimDX.DirectSound.CooperativeLevel.Priority);
+			dsBuf = new SoundBufferDescription();
+			dsBuf.Flags = BufferFlags.Control3D | BufferFlags.ControlVolume;
+            dsBuf.AlgorithmFor3D = DirectSound3DAlgorithmGuid.FullHrt3DAlgorithm;
 		//I've got backup in case DS doesn't work, so ignore errors
 		} catch {
 		}
@@ -219,9 +224,9 @@ static class modDX
 	}
 
     //sets up Direct3D device
-    public static bool init3d(out Direct3D.Device d3dLinkDevice, IntPtr drawHwnd, int resX, int resY, Direct3D.Format resFormat, Vector3 camSourceVal, Vector3 camTargetVal, float camWidth, double lookDist)
+    public static bool init3d(out SlimDX.Direct3D9.Device d3dLinkDevice, IntPtr drawHwnd, int resX, int resY, Format resFormat, Vector3 camSourceVal, Vector3 camTargetVal, float camWidth, double lookDist)
     {
-        Direct3D.Material mat = default(Direct3D.Material);
+        Material mat = default(Material);
         d3dLinkDevice = null;
         try
         {
@@ -229,27 +234,30 @@ static class modDX
             //remember screen resolution
             sx = resX;
             sy = resY;
-            mat.Ambient = Drawing.Color.White;
-            mat.Diffuse = Drawing.Color.White;
+            //set up some lighting stuff
+            mat.Ambient = Color.White;
+            mat.Diffuse = Color.White;
+            d3dLight.Type = LightType.Directional;
+            d3dLight.Direction = new Vector3(0, -1, 0);
             //tell how to load 3d device
             d3dPP.BackBufferWidth = sx;
             d3dPP.BackBufferHeight = sy;
             d3dPP.BackBufferFormat = resFormat;
             d3dPP.BackBufferCount = 1;
-            d3dPP.SwapEffect = Direct3D.SwapEffect.Copy;
-            d3dPP.MultiSample = Direct3D.MultiSampleType.None;
+            d3dPP.SwapEffect = SwapEffect.Copy;
+            d3dPP.Multisample = MultisampleType.None;
             d3dPP.EnableAutoDepthStencil = true;
             //enable z-buffering
-            d3dPP.AutoDepthStencilFormat = Direct3D.DepthFormat.D16;
+            d3dPP.AutoDepthStencilFormat = Format.D16;
             //use 16 bit z-buffering
             camSource = camSourceVal;
             camTarget = camTargetVal;
             //set up camera view matrix
             dxErr = "setting up camera view matrix";
-            matView = DirectX.Matrix.LookAtLH(camSource, camTarget, new Vector3(0, 1, 0));
+            matView = Matrix.LookAtLH(camSource, camTarget, new Vector3(0, 1, 0));
             //set up projection matrix (pi/2 = radians)
             dxErr = "setting up projection matrix";
-            matProj = DirectX.Matrix.PerspectiveFovLH(camWidth, Convert.ToSingle(sx / sy), Convert.ToSingle(lookDist / 1000), Convert.ToSingle(lookDist));
+            matProj = Matrix.PerspectiveFovLH(camWidth, Convert.ToSingle(sx / sy), Convert.ToSingle(lookDist / 1000), Convert.ToSingle(lookDist));
             //acquire keyboard
             dxErr = "acquiring keyboard";
             mouseX = sx / 2;
@@ -258,34 +266,32 @@ static class modDX
             //make D3D device
             dxErr = "making D3D device";
             d3dDevice = null;
-            d3dLinkDevice = new Direct3D.Device(0, Direct3D.DeviceType.Hardware, drawHwnd, (Direct3D.CreateFlags)(Direct3D.Manager.GetDeviceCaps(0, Direct3D.DeviceType.Hardware).DeviceCaps.SupportsHardwareTransformAndLight ? Direct3D.CreateFlags.HardwareVertexProcessing : Direct3D.CreateFlags.SoftwareVertexProcessing), d3dPP);
+            d3dLinkDevice = new SlimDX.Direct3D9.Device(d3d, 0, SlimDX.Direct3D9.DeviceType.Hardware, drawHwnd, (d3d.GetDeviceCaps(0, SlimDX.Direct3D9.DeviceType.Hardware).DeviceCaps.HasFlag(DeviceCaps.HWTransformAndLight) ? CreateFlags.HardwareVertexProcessing : CreateFlags.SoftwareVertexProcessing), d3dPP);
             d3dDevice = d3dLinkDevice;
             if (d3dDevice == null)
                 throw new Exception("D3D device is null");
             dxErr = "enabling z-buffering";
-            d3dDevice.RenderState.ZBufferEnable = true;
+            d3dDevice.SetRenderState(RenderState.ZEnable, 1);
             dxErr = "disabling cull mode";
-            d3dDevice.RenderState.CullMode = Direct3D.Cull.None;
+            d3dDevice.SetRenderState(RenderState.CullMode, Cull.None);
             dxErr = "enabling alpha blending";
-            d3dDevice.RenderState.AlphaBlendEnable = true;
+            d3dDevice.SetRenderState(RenderState.AlphaBlendEnable, true);
             //set vertex format
             dxErr = "setting vertex format";
-            d3dDevice.VertexFormat = fvfVertex;
+            d3dDevice.VertexFormat = VertexFmt;
             //use the camera view for the viewport
             dxErr = "using the camera view for the viewport";
-            d3dDevice.SetTransform(Direct3D.TransformType.View, matView);
+            d3dDevice.SetTransform(TransformState.View, matView);
             //tell device to use projection matrix
             dxErr = "telling device to use projection matrix";
-            d3dDevice.SetTransform(Direct3D.TransformType.Projection, matProj);
+            d3dDevice.SetTransform(TransformState.Projection, matProj);
             //tell device to use lighting
             dxErr = "setting material";
             d3dDevice.Material = mat;
             dxErr = "setting light";
-            d3dDevice.Lights[0].Type = Direct3D.LightType.Directional;
-            d3dDevice.Lights[0].Direction = new Vector3(0, -1, 0);
-            d3dDevice.Lights[0].Diffuse = Drawing.Color.Gray;
-            d3dDevice.Lights[0].Ambient = Drawing.Color.Gray;
-            d3dDevice.Lights[0].Enabled = true;
+            setLight(0.5F, 0.5F, 0.5F, 0.5F, 0.5F, 0.5F);
+            dxErr = "enabling light";
+            d3dDevice.EnableLight(0, true);
             //tell device to use linear texture filter
             //dxErr = "setting up linear texture filter"
             //d3dDevice.SamplerState(0).MinFilter = TextureFilter.Linear
@@ -300,12 +306,19 @@ static class modDX
         }
     }
 
+    public static void setLight(float dR, float dG, float dB, float aR, float aG, float aB)
+    {
+        d3dLight.Diffuse = new Color4(dR, dG, dB);
+        d3dLight.Ambient = new Color4(aR, aG, aB);
+        d3dDevice.SetLight(0, d3dLight);
+    }
+
     public static void setCamPos(float pX, float pY, float pZ, float tX, float tY, float tZ)
     {
         camSource = new Vector3(pX, pY, pZ);
         camTarget = new Vector3(tX, tY, tZ);
-        matView = DirectX.Matrix.LookAtLH(camSource, camTarget, new Vector3(0, 1, 0));
-        d3dDevice.SetTransform(Direct3D.TransformType.View, matView);
+        matView = Matrix.LookAtLH(camSource, camTarget, new Vector3(0, 1, 0));
+        d3dDevice.SetTransform(TransformState.View, matView);
     }
 
     public static void setDefaultRes()
@@ -314,7 +327,7 @@ static class modDX
         int b = 0;
         //check if current res is common
         sx = -1;
-        if (mode.Format == Direct3D.Format.R5G6B5 | mode.Format == Direct3D.Format.X8R8G8B8)
+        if (mode.Format == Format.R5G6B5 | mode.Format == Format.X8R8G8B8)
         {
             for (a = 0; a <= NResCommon; a++)
             {
@@ -340,11 +353,11 @@ static class modDX
                         sy = syCommon[NResCommon - a];
                         if (b == 0)
                         {
-                            d3dPP.BackBufferFormat = Direct3D.Format.R5G6B5;
+                            d3dPP.BackBufferFormat = Format.R5G6B5;
                         }
                         else if (b == 1)
                         {
-                            d3dPP.BackBufferFormat = Direct3D.Format.X8R8G8B8;
+                            d3dPP.BackBufferFormat = Format.X8R8G8B8;
                         }
                         break;
                     }
@@ -360,17 +373,17 @@ static class modDX
         }
     }
 
-    public static void textDraw(Direct3D.Font fnt, int col, string text, int left, int top)
+    public static void textDraw(SlimDX.Direct3D9.Font fnt, Color4 col, string text, int left, int top)
     {
-        fnt.DrawText(null, text, new Drawing.Rectangle(left, top, sx, sy), Direct3D.DrawTextFormat.Top | Direct3D.DrawTextFormat.Left, col);
+        fnt.DrawString(null, text, new Rectangle(left, top, sx, sy), DrawTextFormat.Top | DrawTextFormat.Left, col);
     }
 
     public static Vector3 sndTrans(Vector3 vec)
     {
-        Vector3 ret = default(Vector3);
         //translate point for use with default DirectSound camera
         Vector3 camSourceOrig = default(Vector3);
         Vector3 camTargetOrig = default(Vector3);
+        Vector3 ret = default(Vector3);
         //this isn't the fastest way to do this but it works (or at least it should)
         camSourceOrig = camSource;
         //remember original camera
@@ -382,20 +395,20 @@ static class modDX
         ret = vec3Unproject(ret);
         //unproject with directsound camera
         modDX.setCamPos((camSourceOrig.X), (camSourceOrig.Y), (camSourceOrig.Z), (camTargetOrig.X), (camTargetOrig.Y), (camTargetOrig.Z));
-        return ret;
         //restore original camera
+        return ret;
     }
 
     public static Vector3 vec3Project(Vector3 vec)
     {
         //easier to use version of the directx function
-        return Vector3.Project(vec, d3dDevice.Viewport, matProj, matView, DirectX.Matrix.Identity);
+        return Vector3.Project(vec, d3dDevice.Viewport.X, d3dDevice.Viewport.Y, d3dDevice.Viewport.Width, d3dDevice.Viewport.Height, d3dDevice.Viewport.MinZ, d3dDevice.Viewport.MaxZ, Matrix.Identity);
     }
 
     public static Vector3 vec3Unproject(Vector3 vec)
     {
         //easier to use version of the directx function
-        return Vector3.Unproject(vec, d3dDevice.Viewport, matProj, matView, DirectX.Matrix.Identity);
+        return Vector3.Unproject(vec, d3dDevice.Viewport.X, d3dDevice.Viewport.Y, d3dDevice.Viewport.Width, d3dDevice.Viewport.Height, d3dDevice.Viewport.MinZ, d3dDevice.Viewport.MaxZ, Matrix.Identity);
     }
 
     //mouse tracking procedures (for VB mouse tracking)
@@ -446,28 +459,29 @@ static class modDX
 
     public static bool keyboardUpdate()
     {
-        DirectInput.Key a = default(DirectInput.Key);
-        diKeysChanged = new DirectInput.Key[1];
+        Key a = default(Key);
+        diKeysChanged = new Key[1];
         if (diKeyDevice == null)
             return false;
         //just in case
         if ((diKeyState != null))
         {
             //keep earlier keystates up to date
-            for (a = 0; a <= (DirectInput.Key)255; a++)
+            //problem: IsPressed only contains newly changed keys
+            for (a = 0; a <= (Key)255; a++)
             {
-                diLastKeyState[(int)a] = diKeyState[a];
+                diLastKeyState[(int)a] = diKeyState.IsPressed(a);
             }
         }
-        diKeyState = diKeyDevice.GetCurrentKeyboardState();
+        diKeyState = diKeyDevice.GetCurrentState();
         //update new keys
         if (diLastKeyState == null)
             return false;
         //if this is the 1st time setting DIkeystate
         //check for any changes since last time
-        for (a = 0; a <= (DirectInput.Key)255; a++)
+        for (a = 0; a <= (Key)255; a++)
         {
-            if (diKeyState[a] != diLastKeyState[(int)a])
+            if (diKeyState.IsPressed(a) != diLastKeyState[(int)a])
             {
                 Array.Resize(ref diKeysChanged, diKeysChanged.Length + 1);
                 diKeysChanged[diKeysChanged.Length - 1] = a;
@@ -531,53 +545,52 @@ static class modDX
                 diKeyDevice.Unacquire();
                 diKeyDevice = null;
             }
-            ds = null;
-            d3dX_ = null;
-            d3dDevice = null;
-            d3d = null;
+            ds.Dispose();
+            //d3dX_ = null;
+            d3dDevice.Dispose();
+            d3d.Dispose();
         }
         finally
         {
             if (really == true)
-                System.Windows.Forms.Application.Exit();
+                Application.Exit();
         }
     }
 
     public struct Img2D
     {
         //directx objects
-        public Direct3D.Sprite spr;
-        public Direct3D.Texture tex;
+        public Sprite spr;
+        public Texture tex;
         //to draw sprite
-        public Drawing.PointF pos;
-        public Drawing.PointF rotCenter;
-        public Drawing.SizeF drawSize;
+        public Vector3 pos;
+        public Vector3 rotCenter;
+        public SizeF drawSize;
         public float rot;
         public int srcWidth;
         public int srcHeight;
-        public Drawing.Rectangle srcRect;
+        public Rectangle srcRect;
         public int transColor;
 
         public int color;
         public bool open(string path, int transColorVal = 0)
         {
-            Drawing.Image img = default(Drawing.Image);
+            Image img = default(Image);
             if ((spr != null))
                 spr.Dispose();
             //dispose any previously made sprite to avoid crash while program exits
             if (!System.IO.File.Exists(path))
                 return false;
             //get width & height of bitmap
-            img = Drawing.Image.FromFile(path);
+            img = Image.FromFile(path);
             srcWidth = img.Width;
             srcHeight = img.Height;
             //set default rect
-            srcRect = new Drawing.Rectangle(0, 0, srcWidth, srcHeight);
+            srcRect = new Rectangle(0, 0, srcWidth, srcHeight);
             //set sprite and texture objects
             transColor = transColorVal;
-            spr = new Direct3D.Sprite(modDX.d3dDevice);
-            tex = Direct3D.TextureLoader.FromFile(modDX.d3dDevice, path, srcWidth, srcHeight, 1, Direct3D.Usage.None, Direct3D.Format.Unknown, Direct3D.Pool.Managed, Direct3D.Filter.None, Direct3D.Filter.None,
-            transColor);
+            spr = new Sprite(modDX.d3dDevice);
+            tex = Texture.FromFile(modDX.d3dDevice, path, srcWidth, srcHeight, 1, Usage.None, Format.Unknown, Pool.Managed, Filter.None, Filter.None, transColor);
             return true;
         }
 
@@ -592,8 +605,10 @@ static class modDX
         {
             if ((tex != null))
             {
-                spr.Begin(Direct3D.SpriteFlags.AlphaBlend);
-                spr.Draw2D(tex, srcRect, drawSize, rotCenter, rot, pos, color);
+                spr.Begin(SpriteFlags.AlphaBlend);
+                //problem: set spr.transform
+                //.Spr.Draw .Tex, .sprRect, .vecScl, .vecRot, .Rot, .vecPos, .sprColor
+                spr.Draw(tex, srcRect, rotCenter, pos, new Color4(color));
                 //draw
                 spr.End();
             }
@@ -620,9 +635,9 @@ static class modDX
         public PolyV2D[] poly;
         //number of vertices
         public int[] nV;
-        public Direct3D.Texture tex;
+        public Texture tex;
 
-        public Direct3D.PrimitiveType primitiveType;
+        public PrimitiveType primitiveType;
         public void setNPoly(int numPoly)
         {
             nV = new int[numPoly + 1];
@@ -632,12 +647,12 @@ static class modDX
         public void draw()
         {
             int a = 0;
-            modDX.d3dDevice.VertexFormat = modDX.fvfTL;
-            for (a = 0; a < nV.Length; a++)
+            modDX.d3dDevice.VertexFormat = modDX.TLVertexFmt;
+            for (a = 0; a <= nV.Length - 1; a++)
             {
                 modDX.d3dDevice.DrawUserPrimitives(primitiveType, nV[0], poly[a].v);
             }
-            modDX.d3dDevice.VertexFormat = modDX.fvfVertex;
+            modDX.d3dDevice.VertexFormat = modDX.VertexFmt;
         }
     }
 
@@ -720,7 +735,7 @@ static class modDX
                 v = new Vertex[detail * 2 + 2];
                 for (a = 0; a <= detail * 2 + 1; a++)
                 {
-                    xRot = Convert.ToSingle(a / 2 / detail * 2 * Math.PI);
+                    xRot = Convert.ToSingle((a / 2) / detail * 2 * Math.PI);
                     yRot = (a % 2) * height;
                     if (a % 2 == 0)
                     {
@@ -742,7 +757,7 @@ static class modDX
                 v = new Vertex[xDetail * yDetail * 2 + 1];
                 for (a = 1; a <= xDetail * yDetail * 2; a++)
                 {
-                    xRot = a / 2 / xDetail * 2 * Math.PI + 0.5 * Math.PI;
+                    xRot = (a / 2) / xDetail * 2 * Math.PI + 0.5 * Math.PI;
                     yRot = a / 2;
                     if (a % 2 == 1)
                     {
@@ -766,12 +781,12 @@ static class modDX
         //number of vertices
         public int[] nV;
         //store vertices for renderer
-        public Direct3D.VertexBuffer[] polyVB;
-        public Direct3D.Texture tex;
+        public VertexBuffer[] polyVB;
+        public Texture tex;
         public string texPath;
-        public Direct3D.PrimitiveType primitiveType;
+        public PrimitiveType primitive;
         //stores both position & rotation
-        public DirectX.Matrix mat;
+        public Matrix mat;
         public Vector3 pos;
         public Vector3 rot;
         public Vector3 scl;
@@ -784,12 +799,12 @@ static class modDX
         public Vector3 scl2Old;
         public void init(int numPoly = -1000)
         {
-            primitiveType = Direct3D.PrimitiveType.TriangleStrip;
+            primitive = PrimitiveType.TriangleStrip;
             scl = new Vector3(1, 1, 1);
             sclOld = scl;
             scl2 = new Vector3(1, 1, 1);
             scl2Old = scl;
-            mat = DirectX.Matrix.Identity;
+            mat = Matrix.Identity;
             //if you leave matrices alone object won't draw
             if (numPoly != -1000)
                 setNpoly(numPoly);
@@ -799,7 +814,7 @@ static class modDX
         {
             poly = new PolyV3D[numPoly + 1];
             nV = new int[numPoly + 1];
-            polyVB = new Direct3D.VertexBuffer[numPoly + 1];
+            polyVB = new VertexBuffer[numPoly + 1];
         }
 
         //like setNPoly but uses redim preserve
@@ -812,9 +827,9 @@ static class modDX
 
         public bool setBuf(int rangeMin = 0, int rangeMax = -1)
         {
-            bool ret = false;
             int a = 0;
             int b = 0;
+            bool ret = false;
             ret = true;
             if (rangeMax < 0)
                 rangeMax = nV.Length - 1;
@@ -822,23 +837,23 @@ static class modDX
             {
                 try
                 {
-                    if (primitiveType == Direct3D.PrimitiveType.TriangleStrip | primitiveType == Direct3D.PrimitiveType.TriangleList)
+                    if (primitive == PrimitiveType.TriangleStrip | primitive == PrimitiveType.TriangleList)
                     {
                         //figure out triangle normals (for lighting)
-                        for (b = 2; b <= Convert.ToInt32((primitiveType != Direct3D.PrimitiveType.TriangleList ? nV[a] + 1 : nV[a] * 3 - 1)); b++)
+                        for (b = 2; b <= Convert.ToInt32((primitive != PrimitiveType.TriangleList ? nV[a] + 1 : nV[a] * 3 - 1)); b++)
                         {
-                            if (primitiveType != Direct3D.PrimitiveType.TriangleList | b % 3 == 2)
+                            if (primitive != PrimitiveType.TriangleList | b % 3 == 2)
                             {
                                 poly[a].v[b].norm = Vector3.Normalize(Vector3.Cross(Vector3.Subtract(new Vector3(poly[a].v[b - 2].x, poly[a].v[b - 2].y, poly[a].v[b - 2].z), new Vector3(poly[a].v[b - 1].x, poly[a].v[b - 1].y, poly[a].v[b - 1].z)), Vector3.Subtract(new Vector3(poly[a].v[b - 1].x, poly[a].v[b - 1].y, poly[a].v[b - 1].z), new Vector3(poly[a].v[b].x, poly[a].v[b].y, poly[a].v[b].z))));
                                 //the code above only works if triangles are counterclockwise
                                 //but triangle strips usually alternate btwn CW and CCW so fix this
-                                if (primitiveType == Direct3D.PrimitiveType.TriangleStrip & b % 2 == 0)
-                                    poly[a].v[b].norm = Vector3.Scale(poly[a].v[b].norm, -1);
+                                if (primitive == PrimitiveType.TriangleStrip & b % 2 == 0)
+                                    poly[a].v[b].norm = Vector3.Multiply(poly[a].v[b].norm, -1);
                             }
                         }
                         poly[a].v[0].norm = poly[a].v[2].norm;
                         poly[a].v[1].norm = poly[a].v[2].norm;
-                        if (primitiveType == Direct3D.PrimitiveType.TriangleList)
+                        if (primitive == PrimitiveType.TriangleList)
                         {
                             for (b = 1; b <= nV[a] - 1; b++)
                             {
@@ -848,9 +863,13 @@ static class modDX
                         }
                     }
                     //create vertex buffer
-                    polyVB[a] = new Direct3D.VertexBuffer(typeof(Vertex), poly[a].v.Length, modDX.d3dDevice, 0, modDX.fvfVertex, Direct3D.Pool.Default);
+                    polyVB[a] = new VertexBuffer(d3dDevice, System.Runtime.InteropServices.Marshal.SizeOf(poly[a]), 0, modDX.VertexFmt, Pool.Default);
                     if ((polyVB[a] != null))
-                        polyVB[a].SetData(poly[a].v, 0, Direct3D.LockFlags.None);
+                    {
+                        DataStream stream = polyVB[a].Lock(0, 0, SlimDX.Direct3D9.LockFlags.None);
+                        stream.WriteRange(poly[a].v);
+                        polyVB[a].Unlock();
+                    }
                 }
                 catch
                 {
@@ -867,41 +886,41 @@ static class modDX
             //skip if nothing changed
             if (rot.X != rotOld.X | rot.Y != rotOld.Y | rot.Z != rotOld.Z | pos.X != posOld.X | pos.Y != posOld.Y | pos.Z != posOld.Z | scl.X != sclOld.X | scl.Y != sclOld.Y | scl.Z != sclOld.Z | scl2.X != scl2Old.X | scl2.Y != scl2Old.Y | scl2.Z != scl2Old.Z)
             {
-                mat = DirectX.Matrix.Identity;
+                mat = Matrix.Identity;
                 //do matrix scaling
                 if (scl.X != 1 | scl.Y != 1 | scl.Z != 1)
                 {
-                    mat = DirectX.Matrix.Multiply(mat, DirectX.Matrix.Scaling(scl));
+                    mat = Matrix.Multiply(mat, Matrix.Scaling(scl));
                     sclOld = scl;
                 }
                 //do matrix rotation
                 if (rot.X != 0)
-                    mat = DirectX.Matrix.Multiply(mat, DirectX.Matrix.RotationX(rot.X));
+                    mat = Matrix.Multiply(mat, Matrix.RotationX(rot.X));
                 if (rot.Y != 0)
-                    mat = DirectX.Matrix.Multiply(mat, DirectX.Matrix.RotationY(rot.Y));
+                    mat = Matrix.Multiply(mat, Matrix.RotationY(rot.Y));
                 if (rot.Z != 0)
-                    mat = DirectX.Matrix.Multiply(mat, DirectX.Matrix.RotationZ(rot.Z));
+                    mat = Matrix.Multiply(mat, Matrix.RotationZ(rot.Z));
                 rotOld = rot;
                 //do more matrix scaling
                 if (scl2.X != 1 | scl2.Y != 1 | scl2.Z != 1)
                 {
-                    mat = DirectX.Matrix.Multiply(mat, DirectX.Matrix.Scaling(scl2));
+                    mat = Matrix.Multiply(mat, Matrix.Scaling(scl2));
                     scl2Old = scl2;
                 }
                 //do matrix translation
                 if (pos.X != 0 | pos.Y != 0 | pos.Z != 0)
                 {
-                    mat = DirectX.Matrix.Multiply(mat, DirectX.Matrix.Translation(pos));
+                    mat = Matrix.Multiply(mat, Matrix.Translation(pos));
                     posOld = pos;
                 }
             }
             //draw
-            modDX.d3dDevice.SetTransform(Direct3D.TransformType.World, mat);
-            for (a = 0; a < nV.Length; a++)
+            modDX.d3dDevice.SetTransform(TransformState.World, mat);
+            for (a = 0; a <= nV.Length - 1; a++)
             {
-                modDX.d3dDevice.SetStreamSource(0, polyVB[a], 0);
+                modDX.d3dDevice.SetStreamSource(0, polyVB[a], 0, System.Runtime.InteropServices.Marshal.SizeOf(polyVB[a]));
                 //set source vertex buffer
-                modDX.d3dDevice.DrawPrimitives(primitiveType, 0, nV[a]);
+                modDX.d3dDevice.DrawPrimitives(primitive, 0, nV[a]);
                 //draw triangles
                 //d3dDevice.DrawUserPrimitives(primitiveType, nV(a), poly(a).v) 'alternate to 2 lines above that doesn't use vertex buffer
             }
@@ -926,7 +945,7 @@ static class modDX
 					FileSystem.Input(fFile, ref i);
 					FileSystem.Input(fFile, ref si);
 					FileSystem.Input(fFile, ref s);
-					tex = Direct3D.TextureLoader.FromFile(modDX.d3dDevice, System.IO.Path.GetDirectoryName(path) + "\\" + s);
+					tex = Texture.FromFile(modDX.d3dDevice, System.IO.Path.GetDirectoryName(path) + "\\" + s);
 					texPath = s;
 					setNpoly(i - 1);
 					//loop through cubes
@@ -954,10 +973,10 @@ static class modDX
 				} else if (s == "flex") {
 					FileSystem.Input(fFile, ref i);
 					FileSystem.Input(fFile, ref s);
-                    tex = Direct3D.TextureLoader.FromFile(modDX.d3dDevice, System.IO.Path.GetDirectoryName(path) + "\\" + s);
+					tex = Texture.FromFile(modDX.d3dDevice, System.IO.Path.GetDirectoryName(path) + "\\" + s);
 					texPath = s;
 					setNpoly(Convert.ToInt16(i));
-					for (i = 0; i < nV.Length; i++) {
+					for (i = 0; i <= nV.Length - 1; i++) {
 						FileSystem.Input(fFile, ref nV[i]);
 						poly[i].v = new Vertex[nV[i] + 2];
 						for (i2 = 0; i2 <= nV[i] + 1; i2++) {
@@ -966,7 +985,7 @@ static class modDX
 							FileSystem.Input(fFile, ref poly[i].v[i2].z);
 							FileSystem.Input(fFile, ref poly[i].v[i2].u);
                             FileSystem.Input(fFile, ref poly[i].v[i2].v);
-                            poly[i].v[i2].color = Drawing.Color.White.ToArgb();
+                            poly[i].v[i2].color = Color.White.ToArgb();
 						}
 					}
 				}
@@ -986,27 +1005,39 @@ static class modDX
 
     public struct Sound
     {
-        public DirectSound.SecondaryBuffer buf;
-        public DirectSound.Buffer3D buf3D;
+        public SecondarySoundBuffer buf;
+        public SoundBuffer3D buf3D;
 
         public string path;
         public Sound(string pathVal)
         {
             path = pathVal;
             //load sound
+            //sources:
+            //http://code.google.com/p/slimdx/issues/attachmentText?id=481&aid=2971502975668307817&name=DirectSoundWrapper.cs
+            //http://code.google.com/p/slimdx/issues/detail?id=416
+            //http://www.gamedev.net/topic/520834-slimdx-how-to-initialize-secondarysoundbuffer/
+            //http://stackoverflow.com/questions/3877362/playing-sound-with-slimdx-and-directsound-c
             try
             {
-                buf = new DirectSound.SecondaryBuffer(path, modDX.dsBuf, modDX.ds);
-                //load failed, make sure program knows
+                SlimDX.Multimedia.WaveStream wave = new SlimDX.Multimedia.WaveStream(path);
+                SoundBufferDescription bufDesc = new SoundBufferDescription();
+                bufDesc.Format = wave.Format;
+                bufDesc.SizeInBytes = (int)wave.Length;
+                bufDesc.Flags = BufferFlags.Control3D;
+                buf = new SecondarySoundBuffer(ds, bufDesc);
+                byte[] data = new byte[bufDesc.SizeInBytes];
+                wave.Read(data, 0, (int)wave.Length);
+                buf.Write(data, 0, SlimDX.DirectSound.LockFlags.None);
             }
-            catch
+            catch //load failed, make sure program knows
             {
                 buf = null;
                 buf3D = null;
                 return;
             }
             //tell how to play sound
-            buf3D = new DirectSound.Buffer3D(buf);
+            buf3D = new SoundBuffer3D(buf);
             //Buf3D.SetConeAngles(DxVBLibA.CONST_DSOUND.DS3D_MINCONEANGLE, 100, DxVBLibA.CONST_DS3DAPPLYFLAGS.DS3D_IMMEDIATE)
             //Buf3D.ConeAngles(DSoundHelper.MinConeAngle) = 100 'problem: fix this
             buf3D.ConeOutsideVolume = -400;
@@ -1023,16 +1054,16 @@ static class modDX
                     throw new Exception();
                 //stop sound if it's playing already
                 buf.Stop();
-                buf.SetCurrentPosition(0);
+                buf.CurrentPlayPosition = 0;
                 //set position & play sound
                 buf3D.Position = sndPos;
                 if (bLoop)
                 {
-                    buf.Play(0, DirectSound.BufferPlayFlags.Looping);
+                    buf.Play(0, PlayFlags.Looping);
                 }
                 else
                 {
-                    buf.Play(0, DirectSound.BufferPlayFlags.Default);
+                    buf.Play(0, PlayFlags.None);
                 }
             }
             catch

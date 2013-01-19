@@ -1,4 +1,4 @@
-﻿namespace decoherence
+﻿namespace Decoherence
 {
     partial class frmApp
     {
@@ -35,9 +35,17 @@
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(284, 262);
+            this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.None;
             this.Name = "frmApp";
-            this.Text = "Form1";
+            this.StartPosition = System.Windows.Forms.FormStartPosition.Manual;
+            this.Text = "possibly decoherence";
+            this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.frmApp_FormClosing);
             this.Load += new System.EventHandler(this.frmApp_Load);
+            this.KeyDown += new System.Windows.Forms.KeyEventHandler(this.frmApp_KeyDown);
+            this.MouseDoubleClick += new System.Windows.Forms.MouseEventHandler(this.frmApp_MouseDoubleClick);
+            this.MouseDown += new System.Windows.Forms.MouseEventHandler(this.frmApp_MouseDown);
+            this.MouseMove += new System.Windows.Forms.MouseEventHandler(this.frmApp_MouseMove);
+            this.MouseUp += new System.Windows.Forms.MouseEventHandler(this.frmApp_MouseUp);
             this.ResumeLayout(false);
 
         }
