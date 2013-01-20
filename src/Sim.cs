@@ -47,7 +47,7 @@ namespace Decoherence
             public int nMatterT;
             public int nParticleT;
             public MatterType[] matterT;
-            public ParticleType[] unitT;
+            public ParticleType[] particleT;
         }
 
         public struct ParticleMove // particle movement (linearly interpolated between 2 points)

@@ -23,7 +23,7 @@ namespace Decoherence
 {
     public partial class App : Form
     {
-        public const string ErrStr = ".  The program will exit now."; // display this during an initialization or drawing crash
+        public const string ErrStr = ". The program will exit now."; // display this during an initialization or drawing crash
         public const double SelBoxMin = 100;
 
         SlimDX.Direct3D9.Device d3dOriginalDevice;
@@ -39,7 +39,7 @@ namespace Decoherence
         {
             if (!DX.init(this.Handle, true))
             {
-                MessageBox.Show("Couldn't set up DirectX.  Make sure your video and audio drivers are up-to-date" + ErrStr + "\n\nError description: " + DX.dxErr);
+                MessageBox.Show("Couldn't set up DirectX. Make sure your video and audio drivers are up-to-date" + ErrStr + "\n\nError description: " + DX.dxErr);
                 Application.Exit();
                 return;
             }
@@ -50,7 +50,7 @@ namespace Decoherence
             this.Focus();
             if (!DX.init3d(out d3dOriginalDevice, this.Handle, DX.mode.Width, DX.mode.Height, DX.mode.Format, new Vector3(), new Vector3(), (float)(Math.PI / 4), 1000))
             {
-                MessageBox.Show("Couldn't set up Direct3D.  Make sure your video and audio drivers are up-to-date and that no other programs are currently using DirectX" + ErrStr + "\n\nError description: " + DX.dxErr);
+                MessageBox.Show("Couldn't set up Direct3D. Make sure your video and audio drivers are up-to-date and that no other programs are currently using DirectX" + ErrStr + "\n\nError description: " + DX.dxErr);
                 Application.Exit();
                 return;
             }
