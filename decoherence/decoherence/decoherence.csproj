@@ -47,17 +47,19 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="frmApp.cs">
+    <Compile Include="App.cs">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Include="frmApp.Designer.cs">
-      <DependentUpon>frmApp.cs</DependentUpon>
+    <Compile Include="App.Designer.cs">
+      <DependentUpon>App.cs</DependentUpon>
     </Compile>
-    <Compile Include="modDX.cs" />
+    <Compile Include="DX.cs" />
+    <Compile Include="FP.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <EmbeddedResource Include="frmApp.resx">
-      <DependentUpon>frmApp.cs</DependentUpon>
+    <Compile Include="Sim.cs" />
+    <EmbeddedResource Include="App.resx">
+      <DependentUpon>App.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Properties\Resources.resx">
       <Generator>ResXFileCodeGenerator</Generator>

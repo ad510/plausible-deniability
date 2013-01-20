@@ -1,6 +1,6 @@
 ﻿namespace Decoherence
 {
-    partial class frmApp
+    partial class App
     {
         /// <summary>
         /// Required designer variable.
@@ -39,13 +39,13 @@
             this.Name = "frmApp";
             this.StartPosition = System.Windows.Forms.FormStartPosition.Manual;
             this.Text = "possibly decoherence";
-            this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.frmApp_FormClosing);
-            this.Load += new System.EventHandler(this.frmApp_Load);
-            this.KeyDown += new System.Windows.Forms.KeyEventHandler(this.frmApp_KeyDown);
-            this.MouseDoubleClick += new System.Windows.Forms.MouseEventHandler(this.frmApp_MouseDoubleClick);
-            this.MouseDown += new System.Windows.Forms.MouseEventHandler(this.frmApp_MouseDown);
-            this.MouseMove += new System.Windows.Forms.MouseEventHandler(this.frmApp_MouseMove);
-            this.MouseUp += new System.Windows.Forms.MouseEventHandler(this.frmApp_MouseUp);
+            this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.App_FormClosing);
+            this.Load += new System.EventHandler(this.App_Load);
+            this.KeyDown += new System.Windows.Forms.KeyEventHandler(this.App_KeyDown);
+            this.MouseDoubleClick += new System.Windows.Forms.MouseEventHandler(this.App_MouseDoubleClick);
+            this.MouseDown += new System.Windows.Forms.MouseEventHandler(this.App_MouseDown);
+            this.MouseMove += new System.Windows.Forms.MouseEventHandler(this.App_MouseMove);
+            this.MouseUp += new System.Windows.Forms.MouseEventHandler(this.App_MouseUp);
             this.ResumeLayout(false);
 
         }

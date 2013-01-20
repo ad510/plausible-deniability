@@ -4,8 +4,8 @@
 // The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-// last updated 1/18/2013
-// look into comments beginning with "problem: " or "problem?: "
+// last updated 1/19/2013
+// look into comments beginning with "TODO: "
 
 using System;
 using System.Collections;
@@ -20,7 +20,7 @@ using SlimDX.Windows;
 using SlimDX.DirectSound;
 using SlimDX.DirectInput;
 
-static class modDX
+static class DX
 {
     // constants
     public static VertexFormat VertexFmt = (VertexFormat.Position | VertexFormat.Normal | VertexFormat.Texture1 | VertexFormat.Diffuse); // tells about vertex types to D3D
@@ -90,7 +90,7 @@ static class modDX
         public float u;
         public float v;
 
-        public Vertex(float xVal, float yVal, float zVal, float uVal, float vVal, int colorVal = modDX.ColWhite)
+        public Vertex(float xVal, float yVal, float zVal, float uVal, float vVal, int colorVal = DX.ColWhite)
         {
             x = xVal;
             y = yVal;
@@ -375,11 +375,11 @@ static class modDX
         camTargetOrig = camTarget;
         ret = vec3Project(vec);
         // project with original camera
-        modDX.setCamPos(0, 0, 0, 0, 0, 1);
+        DX.setCamPos(0, 0, 0, 0, 0, 1);
         // set to directsound camera
         ret = vec3Unproject(ret);
         // unproject with directsound camera
-        modDX.setCamPos((camSourceOrig.X), (camSourceOrig.Y), (camSourceOrig.Z), (camTargetOrig.X), (camTargetOrig.Y), (camTargetOrig.Z));
+        DX.setCamPos((camSourceOrig.X), (camSourceOrig.Y), (camSourceOrig.Z), (camTargetOrig.X), (camTargetOrig.Y), (camTargetOrig.Z));
         // restore original camera
         return ret;
     }
@@ -570,8 +570,8 @@ static class modDX
             srcRect = new Rectangle(0, 0, srcWidth, srcHeight);
             // set sprite and texture objects
             transColor = transColorVal;
-            spr = new Sprite(modDX.d3dDevice);
-            tex = Texture.FromFile(modDX.d3dDevice, path, srcWidth, srcHeight, 1, Usage.None, Format.Unknown, Pool.Managed, Filter.None, Filter.None, transColor);
+            spr = new Sprite(DX.d3dDevice);
+            tex = Texture.FromFile(DX.d3dDevice, path, srcWidth, srcHeight, 1, Usage.None, Format.Unknown, Pool.Managed, Filter.None, Filter.None, transColor);
             return true;
         }
 
@@ -587,7 +587,7 @@ static class modDX
             if ((tex != null))
             {
                 spr.Begin(SpriteFlags.AlphaBlend);
-                // problem: set spr.transform
+                // TODO: set spr.transform
                 //.Spr.Draw .Tex, .sprRect, .vecScl, .vecRot, .Rot, .vecPos, .sprColor
                 spr.Draw(tex, srcRect, rotCenter, pos, new Color4(color)); // draw
                 spr.End();
@@ -613,7 +613,7 @@ static class modDX
         public PolyV2D[] poly; // store vertices
         public int[] nV; // number of vertices
         public Texture tex;
-        public PrimitiveType primitiveType;
+        public PrimitiveType primitive;
 
         public void setNPoly(int numPoly)
         {
@@ -624,12 +624,12 @@ static class modDX
         public void draw()
         {
             int a = 0;
-            modDX.d3dDevice.VertexFormat = modDX.TLVertexFmt;
+            DX.d3dDevice.VertexFormat = DX.TLVertexFmt;
             for (a = 0; a <= nV.Length - 1; a++)
             {
-                modDX.d3dDevice.DrawUserPrimitives(primitiveType, nV[0], poly[a].v);
+                DX.d3dDevice.DrawUserPrimitives(primitive, nV[0], poly[a].v);
             }
-            modDX.d3dDevice.VertexFormat = modDX.VertexFmt;
+            DX.d3dDevice.VertexFormat = DX.VertexFmt;
         }
     }
 
@@ -637,9 +637,8 @@ static class modDX
     {
         public struct PolyV3D
         {
-
             public Vertex[] v;
-            public void makeRec(float x1, float x2, float y1, float y2, float z1, float z2, byte xyz, int col = modDX.ColWhite)
+            public void makeRec(float x1, float x2, float y1, float y2, float z1, float z2, byte xyz, int col = DX.ColWhite)
             {
                 //Poly.Npoly = 2
                 v = new Vertex[4];
@@ -666,7 +665,7 @@ static class modDX
                 }
             }
 
-            public void makeBox(float x1, float x2, float y1, float y2, float z1, float z2, int col = modDX.ColWhite)
+            public void makeBox(float x1, float x2, float y1, float y2, float z1, float z2, int col = DX.ColWhite)
             {
                 //Call P3SetNpoly(Poly, 0)
                 //Poly.Npoly(0) = 12
@@ -687,7 +686,7 @@ static class modDX
                 v[0] = new Vertex(x2, y1, z2, 1, 1, col);
             }
 
-            public void makeCircle(Vector3 vec, float rad, int detail, int col = modDX.ColWhite)
+            public void makeCircle(Vector3 vec, float rad, int detail, int col = DX.ColWhite)
             {
                 int a = 0;
                 double rot = 0;
@@ -703,7 +702,7 @@ static class modDX
                 }
             }
 
-            public void makeCone(Vector3 vec, float rad1, float rad2, float height, int detail, int col = modDX.ColWhite)
+            public void makeCone(Vector3 vec, float rad1, float rad2, float height, int detail, int col = DX.ColWhite)
             {
                 int a = 0;
                 float xRot = 0;
@@ -726,7 +725,7 @@ static class modDX
                 }
             }
 
-            public void makeSphere(Vector3 vec, float rad, int xDetail, int yDetail, int col = modDX.ColWhite)
+            public void makeSphere(Vector3 vec, float rad, int xDetail, int yDetail, int col = DX.ColWhite)
             {
                 int a = 0;
                 double xRot = 0;
@@ -834,7 +833,7 @@ static class modDX
                         }
                     }
                     // create vertex buffer
-                    polyVB[a] = new VertexBuffer(d3dDevice, System.Runtime.InteropServices.Marshal.SizeOf(poly[a]), 0, modDX.VertexFmt, Pool.Default);
+                    polyVB[a] = new VertexBuffer(d3dDevice, System.Runtime.InteropServices.Marshal.SizeOf(poly[a]), 0, DX.VertexFmt, Pool.Default);
                     if ((polyVB[a] != null))
                     {
                         DataStream stream = polyVB[a].Lock(0, 0, SlimDX.Direct3D9.LockFlags.None);
@@ -886,12 +885,12 @@ static class modDX
                 }
             }
             // draw
-            modDX.d3dDevice.SetTransform(TransformState.World, mat);
+            DX.d3dDevice.SetTransform(TransformState.World, mat);
             for (a = 0; a <= nV.Length - 1; a++)
             {
-                modDX.d3dDevice.SetStreamSource(0, polyVB[a], 0, System.Runtime.InteropServices.Marshal.SizeOf(polyVB[a]));
+                DX.d3dDevice.SetStreamSource(0, polyVB[a], 0, System.Runtime.InteropServices.Marshal.SizeOf(polyVB[a]));
                 // set source vertex buffer
-                modDX.d3dDevice.DrawPrimitives(primitive, 0, nV[a]); // draw triangles
+                DX.d3dDevice.DrawPrimitives(primitive, 0, nV[a]); // draw triangles
                 //d3dDevice.DrawUserPrimitives(primitiveType, nV(a), poly(a).v) 'alternate to 2 lines above that doesn't use vertex buffer
             }
         }
@@ -1009,7 +1008,7 @@ static class modDX
             // tell how to play sound
             buf3D = new SoundBuffer3D(buf);
             //Buf3D.SetConeAngles(DxVBLibA.CONST_DSOUND.DS3D_MINCONEANGLE, 100, DxVBLibA.CONST_DS3DAPPLYFLAGS.DS3D_IMMEDIATE)
-            //Buf3D.ConeAngles(DSoundHelper.MinConeAngle) = 100 'problem: fix this
+            //Buf3D.ConeAngles(DSoundHelper.MinConeAngle) = 100 'TODO: fix this
             buf3D.ConeOutsideVolume = -400;
         }
 
