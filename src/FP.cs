@@ -114,12 +114,12 @@ namespace Decoherence
 
         public static long mul(long left, long right) // fixed point multiplication
         {
-            return (left * right) >> Precision >> Precision;
+            return (left * right) >> Precision;
         }
 
         public static long div(long left, long right) // fixed point division
         {
-            return (left << Precision) / (right << Precision);
+            return (left << Precision) / right;
         }
     }
 }
