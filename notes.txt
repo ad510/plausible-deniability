@@ -27,7 +27,10 @@ for each unit in dict:
     if another faction could see unit at prev tile but not this tile:
       add tile to decoherence queue for other faction
     init list of potential tiles in unit's visibility to cohere
+      (note: doesn't work, some tiles that cohere are not directly visible)
     for each non-visible tile (according to coherence tiles) surrounding this unit:
+      (note: doesn't work, doesn't consider other faction units that are allowed to be slightly more than minimum out of range of this unit's visibility)
+      (note: can use this property to optimize coherence check: if neighboring tile is coherent, then only need to check "new" tiles that could see this tile)
       if unit w/ this unit's sight range (+ 1/2 tile length?) is here, remove tiles from list that this "unit" can see
     cohere remaining tiles in list (unless only remaining tile is the tile the unit is on)
     for each tile removed from:
