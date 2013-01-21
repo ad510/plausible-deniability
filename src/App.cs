@@ -26,9 +26,11 @@ namespace Decoherence
         public const string ErrStr = ". The program will exit now."; // display this during an initialization or drawing crash
         public const double SelBoxMin = 100;
 
+        string appPath;
         SlimDX.Direct3D9.Device d3dOriginalDevice;
         int runMode;
         DX.Poly2D tlPoly;
+        DX.Img2D testImg;
 
         public App()
         {
@@ -37,6 +39,7 @@ namespace Decoherence
 
         private void App_Load(object sender, EventArgs e)
         {
+            appPath = Application.ExecutablePath.Substring(0, Application.ExecutablePath.LastIndexOf("bin\\"));
             if (!DX.init(this.Handle, true))
             {
                 MessageBox.Show("Couldn't set up DirectX. Make sure your video and audio drivers are up-to-date" + ErrStr + "\n\nError description: " + DX.dxErr);
@@ -54,6 +57,13 @@ namespace Decoherence
                 Application.Exit();
                 return;
             }
+            // set up test image
+            testImg.init(new Color4(0.5f, 1f, 1f, 1f).ToArgb());
+            if (!testImg.open(appPath + "test.png", System.Drawing.Color.White.ToArgb())) MessageBox.Show("Warning: Failed to load test.png");
+            testImg.pos.X = DX.sx / 2;
+            testImg.pos.Y = DX.sy / 2;
+            testImg.rotCenter.X = testImg.srcWidth / 2;
+            testImg.rotCenter.Y = testImg.srcHeight / 2;
             runMode = 1;
             gameLoop();
             this.Close();
@@ -126,6 +136,11 @@ namespace Decoherence
             }
             DX.d3dDevice.Clear(ClearFlags.Target | ClearFlags.ZBuffer, new Color4(0, 0, 0), 1, 0);
             DX.d3dDevice.BeginScene();
+            // test image
+            testImg.scl = new Vector3((float)Math.Sin(DX.timeNow / 1000f) * 0.5f + 1);
+            testImg.rot = DX.timeNow / 1000f;
+            testImg.scl2 = new Vector3((float)Math.Sin(DX.timeNow / 2000f) * 0.5f + 1, 1, 0);
+            testImg.draw();
             // select box (if needed)
             if (DX.mouseState[1] > 0 && SelBoxMin <= Math.Pow(DX.mouseDX[1] - DX.mouseX, 2) + Math.Pow(DX.mouseDY[1] - DX.mouseY, 2))
             {

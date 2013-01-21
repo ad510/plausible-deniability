@@ -4,7 +4,7 @@
 // The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-// last updated 1/19/2013
+// last updated 1/20/2013
 // look into comments beginning with "TODO: "
 
 using System;
@@ -53,7 +53,7 @@ static class DX
     public static Keyboard diKeyDevice;
     public static int[] sxCommon = new int[NResCommon + 1];
     public static int[] syCommon = new int[NResCommon + 1];
-    public static bool[,] sPossible = new bool[NResCommon + 1, NDepthCommon + 1]; //possible usual moniter settings
+    public static bool[,] sPossible = new bool[NResCommon + 1, NDepthCommon + 1]; // possible usual monitor settings
     public static int sx; // screen width
     public static int sy; // screen height
 
@@ -546,7 +546,8 @@ static class DX
         // to draw sprite
         public Vector3 pos;
         public Vector3 rotCenter;
-        public SizeF drawSize;
+        public Vector3 scl;
+        public Vector3 scl2;
         public float rot;
         public int srcWidth;
         public int srcHeight;
@@ -575,21 +576,26 @@ static class DX
             return true;
         }
 
-        public void init(int col = -1, float scl = 1)
+        public void init(int col = -1, float scl = 1, float scl2 = 1)
         {
-            drawSize.Width = scl;
-            drawSize.Height = scl;
+            this.scl = new Vector3(scl, scl, 0);
+            this.scl2 = new Vector3(scl2, scl2, 0);
             color = col;
         }
 
         public void draw()
         {
-            if ((tex != null))
+            if (tex != null)
             {
+                // do matrix transforms
+                spr.Transform = Matrix.Identity;
+                if (scl.X != 1 || scl.Y != 1) spr.Transform = Matrix.Multiply(spr.Transform, Matrix.Scaling(scl));
+                if (rot != 0) spr.Transform = Matrix.Multiply(spr.Transform, Matrix.RotationZ(rot));
+                if (scl2.X != 1 || scl2.Y != 1) spr.Transform = Matrix.Multiply(spr.Transform, Matrix.Scaling(scl2));
+                if (pos.X != 0 || pos.Y != 0 || pos.Z != 0) spr.Transform = Matrix.Multiply(spr.Transform, Matrix.Translation(pos));
+                // draw
                 spr.Begin(SpriteFlags.AlphaBlend);
-                // TODO: set spr.transform
-                //.Spr.Draw .Tex, .sprRect, .vecScl, .vecRot, .Rot, .vecPos, .sprColor
-                spr.Draw(tex, srcRect, rotCenter, pos, new Color4(color)); // draw
+                spr.Draw(tex, srcRect, rotCenter, new Vector3(), new Color4(color));
                 spr.End();
             }
         }
