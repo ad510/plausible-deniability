@@ -31,8 +31,9 @@ namespace Decoherence
         SlimDX.Direct3D9.Device d3dOriginalDevice;
         int runMode;
         float winDiag;
-        DX.Poly2D tlPoly;
         DX.Img2D[] imgParticle;
+        DX.Poly2D tlTile;
+        DX.Poly2D tlPoly;
         Random rand;
         int selMatter;
         List<int> selParticles;
@@ -69,14 +70,34 @@ namespace Decoherence
                 return;
             }
             // load scn (hard code for now)
-            Sim.g.mapSize = 5 << FP.Precision;
-            Sim.g.camSpeed = (2 << FP.Precision) / 1000;
+            Sim.g.mapSize = 40 << FP.Precision;
+            Sim.curVis = new List<int>[Sim.tileLen(), Sim.tileLen()];
+            for (i = 0; i < Sim.tileLen(); i++)
+            {
+                for (i2 = 0; i2 < Sim.tileLen(); i2++)
+                {
+                    Sim.curVis[i, i2] = new List<int>();
+                }
+            }
+            tlTile.primitive = PrimitiveType.TriangleList;
+            tlTile.setNPoly(0);
+            tlTile.nV[0] = Sim.tileLen() * Sim.tileLen() * 2;
+            tlTile.poly[0].v = new DX.TLVertex[tlTile.nV[0] * 3];
+            for (i = 0; i < tlTile.poly[0].v.Length; i++)
+            {
+                tlTile.poly[0].v[i].rhw = 1;
+                tlTile.poly[0].v[i].z = 0;
+            }
+            Sim.g.camSpeed = (10 << FP.Precision) / 1000;
             Sim.g.camPos = new FP.Vector(Sim.g.mapSize / 2, Sim.g.mapSize / 2, 0);
-            Sim.g.drawScl = 0.1f;
-            Sim.g.drawSclMin = 0.01f;
-            Sim.g.drawSclMin = 1f;
+            Sim.g.drawScl = 0.02f;
+            Sim.g.drawSclMin = 0.002f;
+            Sim.g.drawSclMin = 0.2f;
             Sim.g.backCol = new Color4(0, 0, 0);
             Sim.g.borderCol = new Color4(1, 0.5f, 0);
+            Sim.g.noVisCol = new Color4(0, 0, 0);
+            Sim.g.visCol = new Color4(0.3f, 0.3f, 0.3f);
+            Sim.g.coherentCol = new Color4(1, 1, 0);
             Sim.g.nMatterT = 2;
             Sim.g.matterT = new Sim.MatterType[Sim.g.nMatterT];
             Sim.g.matterT[0].name = "matter";
@@ -95,7 +116,8 @@ namespace Decoherence
             Sim.g.particleT = new Sim.ParticleType[Sim.g.nParticleT];
             Sim.g.particleT[0].name = "Electron";
             Sim.g.particleT[0].imgPath = "test.png";
-            Sim.g.particleT[0].speed = (1 << FP.Precision) / 1000;
+            Sim.g.particleT[0].speed = (5 << FP.Precision) / 1000;
+            Sim.g.particleT[0].visRadius = 3 << FP.Precision;
             Sim.g.particleT[0].selRadius = 16;
             imgParticle = new DX.Img2D[Sim.g.nParticleT * Sim.g.nMatterT];
             for (i = 0; i < Sim.g.nParticleT; i++)
@@ -116,6 +138,7 @@ namespace Decoherence
                 Sim.p[i] = new Sim.Particle(0, i / (Sim.nParticles / 2), new FP.Vector((long)(rand.NextDouble() * Sim.g.mapSize), (long)(rand.NextDouble() * Sim.g.mapSize)));
             }
             selParticles = new List<int>();
+            Sim.timeSim = -1;
             DX.timeNow = Environment.TickCount;
             DX.timeStart = DX.timeNow;
             /*str = new System.IO.StreamReader(appPath + modPath + "scn.json").ReadToEnd();
@@ -212,6 +235,7 @@ namespace Decoherence
             while (runMode == 1)
             {
                 DX.doEventsX();
+                Sim.initCurVis(DX.timeNow - DX.timeStart);
                 inputHandle();
                 draw();
             }
@@ -259,12 +283,49 @@ namespace Decoherence
 
         private void draw()
         {
-            int i, i2;
             Vector3 vec, vec2;
+            FP.Vector fpVec;
+            int col;
+            int i, i2, tX, tY;
             DX.d3dDevice.Clear(ClearFlags.Target | ClearFlags.ZBuffer, Sim.g.backCol, 1, 0);
             DX.d3dDevice.BeginScene();
-            // map border
             DX.d3dDevice.SetTexture(0, null);
+            // visibility tiles
+            for (tX = 0; tX < Sim.tileLen(); tX++)
+            {
+                for (tY = 0; tY < Sim.tileLen(); tY++)
+                {
+                    vec = simToDrawPos(new FP.Vector(tX << FP.Precision, tY << FP.Precision));
+                    vec2 = simToDrawPos(new FP.Vector((tX + 1) << FP.Precision, (tY + 1) << FP.Precision));
+                    i = (tX * Sim.tileLen() + tY) * 6;
+                    tlTile.poly[0].v[i].x = vec.X;
+                    tlTile.poly[0].v[i].y = vec.Y;
+                    tlTile.poly[0].v[i + 1].x = vec2.X;
+                    tlTile.poly[0].v[i + 1].y = vec2.Y;
+                    tlTile.poly[0].v[i + 2].x = vec2.X;
+                    tlTile.poly[0].v[i + 2].y = vec.Y;
+                    tlTile.poly[0].v[i + 3].x = vec.X;
+                    tlTile.poly[0].v[i + 3].y = vec.Y;
+                    tlTile.poly[0].v[i + 4].x = vec.X;
+                    tlTile.poly[0].v[i + 4].y = vec2.Y;
+                    tlTile.poly[0].v[i + 5].x = vec2.X;
+                    tlTile.poly[0].v[i + 5].y = vec2.Y;
+                    if (Sim.matterCurVis(selMatter, tX, tY))
+                    {
+                        col = Sim.g.visCol.ToArgb();
+                    }
+                    else
+                    {
+                        col = Sim.g.noVisCol.ToArgb();
+                    }
+                    for (i2 = i; i2 < i + 6; i2++)
+                    {
+                        tlTile.poly[0].v[i2].color = col;
+                    }
+                }
+            }
+            tlTile.draw();
+            // map border
             tlPoly.primitive = PrimitiveType.LineStrip;
             tlPoly.setNPoly(0);
             tlPoly.nV[0] = 4;
@@ -293,6 +354,8 @@ namespace Decoherence
             for (i = 0; i < Sim.nParticles; i++)
             {
                 i2 = Sim.p[i].type * Sim.g.nParticleT + Sim.p[i].matter;
+                fpVec = Sim.p[i].calcPos(DX.timeNow - DX.timeStart);
+                if (selMatter != Sim.p[i].matter && !Sim.matterCurVis(selMatter, (int)(fpVec.x >> FP.Precision), (int)(fpVec.y >> FP.Precision))) continue;
                 if (selParticles.Contains(i))
                 {
                     imgParticle[i2].color = -1;
@@ -301,7 +364,7 @@ namespace Decoherence
                 {
                     imgParticle[i2].color = new Color4(0.5f, 1, 1, 1).ToArgb();
                 }
-                imgParticle[i2].pos = simToDrawPos(Sim.p[i].calcPos(DX.timeNow - DX.timeStart));
+                imgParticle[i2].pos = simToDrawPos(fpVec);
                 imgParticle[i2].draw();
             }
             // select box (if needed)

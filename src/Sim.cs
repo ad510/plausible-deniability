@@ -31,6 +31,7 @@ namespace Decoherence
             public string sndAnniCmd;
             public string sndAnnihilate;
             public long speed;
+            public long visRadius;
             public double selRadius;
         }
 
@@ -42,8 +43,11 @@ namespace Decoherence
             public float drawScl;
             public float drawSclMin;
             public float drawSclMax;
-            public SlimDX.Color4 backCol;
-            public SlimDX.Color4 borderCol;
+            public Color4 backCol;
+            public Color4 borderCol;
+            public Color4 noVisCol;
+            public Color4 visCol;
+            public Color4 coherentCol;
             public string music;
             public int nMatterT;
             public int nParticleT;
@@ -141,11 +145,53 @@ namespace Decoherence
         public static int nParticles;
         public static Particle[] p;
 
+        // helper variables
+        public static List<int>[,] curVis;
+        public static long timeSim;
+        public static long timeSimLast;
+
         public static void setNParticles(int newSize)
         {
             nParticles = newSize;
             if (nParticles > p.Length)
                 Array.Resize(ref p, nParticles * 2);
+        }
+
+        public static void initCurVis(long time)
+        {
+            int i, tX, tY;
+            for (tX = 0; tX < tileLen(); tX++)
+            {
+                for (tY = 0; tY < tileLen(); tY++)
+                {
+                    curVis[tX, tY].Clear();
+                }
+            }
+            for (i = 0; i < nParticles; i++)
+            {
+                p[i].pos = p[i].calcPos(time);
+                for (tX = Math.Max(0, (int)((p[i].pos.x - g.particleT[p[i].type].visRadius) >> FP.Precision)); tX <= Math.Min(tileLen() - 1, (int)((p[i].pos.x + g.particleT[p[i].type].visRadius) >> FP.Precision)); tX++)
+                {
+                    for (tY = Math.Max(0, (int)((p[i].pos.y - g.particleT[p[i].type].visRadius) >> FP.Precision)); tY <= Math.Min(tileLen() - 1, (int)((p[i].pos.y + g.particleT[p[i].type].visRadius) >> FP.Precision)); tY++)
+                    {
+                        curVis[tX, tY].Add(i);
+                    }
+                }
+            }
+        }
+
+        public static bool matterCurVis(int matter, int tX, int tY)
+        {
+            for (int i = 0; i < curVis[tX, tY].Count; i++)
+            {
+                if (matter == p[curVis[tX, tY][i]].matter) return true;
+            }
+            return false;
+        }
+
+        public static int tileLen() // TODO: use curVis.GetUpperBound instead of this function
+        {
+            return (int)((g.mapSize >> FP.Precision) + 1);
         }
     }
 }
