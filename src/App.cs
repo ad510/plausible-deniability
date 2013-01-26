@@ -34,6 +34,7 @@ namespace Decoherence
         DX.Poly2D tlPoly;
         DX.Img2D[] imgParticle;
         Random rand;
+        int selMatter;
         List<int> selParticles;
 
         public App()
@@ -43,7 +44,7 @@ namespace Decoherence
 
         private void App_Load(object sender, EventArgs e)
         {
-            int i;
+            int i, i2, i3;
             /*System.Collections.Hashtable jsonObj;
             string str;
             bool b = false;*/
@@ -78,34 +79,41 @@ namespace Decoherence
             Sim.g.borderCol = new Color4(1, 0.5f, 0);
             Sim.g.nMatterT = 2;
             Sim.g.matterT = new Sim.MatterType[Sim.g.nMatterT];
-            Sim.g.matterT[0].name = "System of matter";
+            Sim.g.matterT[0].name = "matter";
             Sim.g.matterT[0].isPlayer = true;
             Sim.g.matterT[0].player = 1;
             Sim.g.matterT[0].annihilates = new bool[Sim.g.nMatterT];
             Sim.g.matterT[0].annihilates[0] = false;
             Sim.g.matterT[0].annihilates[1] = true;
-            Sim.g.matterT[1].name = "System of antimatter";
+            Sim.g.matterT[1].name = "antimatter";
             Sim.g.matterT[1].isPlayer = true;
-            Sim.g.matterT[1].player = 0;
+            Sim.g.matterT[1].player = -1;
             Sim.g.matterT[1].annihilates = new bool[Sim.g.nMatterT];
             Sim.g.matterT[1].annihilates[0] = true;
             Sim.g.matterT[1].annihilates[1] = false;
             Sim.g.nParticleT = 1;
             Sim.g.particleT = new Sim.ParticleType[Sim.g.nParticleT];
-            imgParticle = new DX.Img2D[Sim.g.nParticleT];
             Sim.g.particleT[0].name = "Electron";
             Sim.g.particleT[0].imgPath = "test.png";
             Sim.g.particleT[0].speed = (1 << FP.Precision) / 1000;
             Sim.g.particleT[0].selRadius = 16;
-            imgParticle[0].init();
-            if (!imgParticle[0].open(appPath + modPath + Sim.g.particleT[0].imgPath, Color.White.ToArgb())) MessageBox.Show("Warning: failed to load " + modPath + Sim.g.particleT[0].imgPath);
-            imgParticle[0].rotCenter.X = imgParticle[0].srcWidth / 2;
-            imgParticle[0].rotCenter.Y = imgParticle[0].srcHeight / 2;
-            Sim.nParticles = 5;
+            imgParticle = new DX.Img2D[Sim.g.nParticleT * Sim.g.nMatterT];
+            for (i = 0; i < Sim.g.nParticleT; i++)
+            {
+                for (i2 = 0; i2 < Sim.g.nMatterT; i2++)
+                {
+                    i3 = i * Sim.g.nParticleT + i2;
+                    imgParticle[i3].init();
+                    if (!imgParticle[i3].open(appPath + modPath + Sim.g.matterT[i2].name + '.' + Sim.g.particleT[i].imgPath, Color.White.ToArgb())) MessageBox.Show("Warning: failed to load " + modPath + Sim.g.matterT[i2].name + '.' + Sim.g.particleT[i].imgPath);
+                    imgParticle[i3].rotCenter.X = imgParticle[i3].srcWidth / 2;
+                    imgParticle[i3].rotCenter.Y = imgParticle[i3].srcHeight / 2;
+                }
+            }
+            Sim.nParticles = 10;
             Sim.p = new Sim.Particle[Sim.nParticles];
             for (i = 0; i < Sim.nParticles; i++)
             {
-                Sim.p[i] = new Sim.Particle(0, 0, new FP.Vector((long)(rand.NextDouble() * Sim.g.mapSize), (long)(rand.NextDouble() * Sim.g.mapSize)));
+                Sim.p[i] = new Sim.Particle(0, i / (Sim.nParticles / 2), new FP.Vector((long)(rand.NextDouble() * Sim.g.mapSize), (long)(rand.NextDouble() * Sim.g.mapSize)));
             }
             selParticles = new List<int>();
             DX.timeNow = Environment.TickCount;
@@ -180,7 +188,7 @@ namespace Decoherence
                 selParticles.Clear();
                 for (i = 0; i < Sim.nParticles; i++)
                 {
-                    if ((simToDrawPos(Sim.p[i].calcPos(DX.timeNow - DX.timeStart)) - new Vector3(DX.mouseX, DX.mouseY, 0)).LengthSquared() <= Math.Pow(Sim.g.particleT[Sim.p[i].type].selRadius, 2))
+                    if (selMatter == Sim.p[i].matter && (simToDrawPos(Sim.p[i].calcPos(DX.timeNow - DX.timeStart)) - new Vector3(DX.mouseX, DX.mouseY, 0)).LengthSquared() <= Math.Pow(Sim.g.particleT[Sim.p[i].type].selRadius, 2))
                     {
                         selParticles.Add(i);
                         break;
@@ -220,6 +228,11 @@ namespace Decoherence
                 {
                     App_KeyDown(this, new System.Windows.Forms.KeyEventArgs(Keys.Escape));
                 }
+                else if (DX.diKeysChanged[i] == Key.C && DX.diKeyState.IsPressed(DX.diKeysChanged[i]))
+                {
+                    selMatter = (selMatter + 1) % Sim.g.nMatterT;
+                    selParticles.Clear();
+                }
             }
             // move camera
             if (DX.diKeyState.IsPressed(Key.LeftArrow) || DX.mouseX == 0 || (this.Left > 0 && DX.mouseX <= 15))
@@ -246,7 +259,7 @@ namespace Decoherence
 
         private void draw()
         {
-            int i;
+            int i, i2;
             Vector3 vec, vec2;
             DX.d3dDevice.Clear(ClearFlags.Target | ClearFlags.ZBuffer, Sim.g.backCol, 1, 0);
             DX.d3dDevice.BeginScene();
@@ -279,16 +292,17 @@ namespace Decoherence
             // TODO: setting alpha is temporary hack
             for (i = 0; i < Sim.nParticles; i++)
             {
+                i2 = Sim.p[i].type * Sim.g.nParticleT + Sim.p[i].matter;
                 if (selParticles.Contains(i))
                 {
-                    imgParticle[Sim.p[i].type].color = -1;
+                    imgParticle[i2].color = -1;
                 }
                 else
                 {
-                    imgParticle[Sim.p[i].type].color = new Color4(0.5f, 1, 1, 1).ToArgb();
+                    imgParticle[i2].color = new Color4(0.5f, 1, 1, 1).ToArgb();
                 }
-                imgParticle[Sim.p[i].type].pos = simToDrawPos(Sim.p[i].calcPos(DX.timeNow - DX.timeStart));
-                imgParticle[Sim.p[i].type].draw();
+                imgParticle[i2].pos = simToDrawPos(Sim.p[i].calcPos(DX.timeNow - DX.timeStart));
+                imgParticle[i2].draw();
             }
             // select box (if needed)
             /*if (DX.mouseState[1] > 0 && SelBoxMin <= Math.Pow(DX.mouseDX[1] - DX.mouseX, 2) + Math.Pow(DX.mouseDY[1] - DX.mouseY, 2))
