@@ -32,7 +32,6 @@ namespace Decoherence
         int runMode;
         float winDiag;
         DX.Poly2D tlPoly;
-        DX.Img2D testImg;
         DX.Img2D[] imgParticle;
         Random rand;
         List<int> selParticles;
@@ -126,13 +125,6 @@ namespace Decoherence
                     Sim.g.key = (long)en.Value;
                 }
             }*/
-            // set up test image
-            testImg.init(new Color4(0.5f, 1f, 1f, 1f).ToArgb());
-            if (!testImg.open(appPath + modPath + "test.png", System.Drawing.Color.White.ToArgb())) MessageBox.Show("Warning: Failed to load test.png");
-            testImg.pos.X = DX.sx / 2;
-            testImg.pos.Y = DX.sy / 2;
-            testImg.rotCenter.X = testImg.srcWidth / 2;
-            testImg.rotCenter.Y = testImg.srcHeight / 2;
             runMode = 1;
             gameLoop();
             this.Close();
@@ -258,11 +250,6 @@ namespace Decoherence
             Vector3 vec, vec2;
             DX.d3dDevice.Clear(ClearFlags.Target | ClearFlags.ZBuffer, Sim.g.backCol, 1, 0);
             DX.d3dDevice.BeginScene();
-            // test image
-            testImg.scl = new Vector3((float)Math.Sin(DX.timeNow / 1000f) * 0.5f + 1);
-            testImg.rot = DX.timeNow / 1000f;
-            testImg.scl2 = new Vector3((float)Math.Sin(DX.timeNow / 2000f) * 0.5f + 1, 1, 0);
-            testImg.draw();
             // map border
             DX.d3dDevice.SetTexture(0, null);
             tlPoly.primitive = PrimitiveType.LineStrip;
