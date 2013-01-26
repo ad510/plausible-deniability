@@ -8,6 +8,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using SlimDX;
 
 namespace Decoherence
 {
@@ -36,13 +37,13 @@ namespace Decoherence
         public struct Scenario
         {
             public long mapSize;
+            public long camSpeed;
+            public FP.Vector camPos;
             public float drawScl;
             public float drawSclMin;
             public float drawSclMax;
-            public float camSpeed;
-            public float backColR;
-            public float backColG;
-            public float backColB;
+            public SlimDX.Color4 backCol;
+            public SlimDX.Color4 borderCol;
             public string music;
             public int nMatterT;
             public int nParticleT;
@@ -85,10 +86,24 @@ namespace Decoherence
 
         public struct Particle
         {
+            public int type;
+            public int matter;
             public FP.Vector pos; // current position
             public long tmEnd; // time annihilated
             public int n; // number of moves
             public ParticleMove[] m;
+
+            public Particle(int typeVal, int matterVal, FP.Vector startPos)
+            {
+                type = typeVal;
+                matter = matterVal;
+                pos = startPos;
+                tmEnd = long.MaxValue;
+                n = 1;
+                m = new ParticleMove[n];
+                m[0] = new ParticleMove(0, startPos);
+                pos = startPos;
+            }
 
             public void setN(int newSize)
             {
@@ -115,7 +130,7 @@ namespace Decoherence
 
             public int moveGet(long time)
             {
-                int ret = n;
+                int ret = n - 1;
                 while (ret >= 0 && time < m[ret].tmStart) ret--;
                 return ret;
             }

@@ -11,7 +11,7 @@ using System.Text;
 
 namespace Decoherence
 {
-    class FP
+    public class FP
     {
         public const int Precision = 15; // fixed point bit precision past decimal point
 
@@ -120,6 +120,16 @@ namespace Decoherence
         public static long div(long left, long right) // fixed point division
         {
             return (left << Precision) / right;
+        }
+
+        public static long fromDouble(double from)
+        {
+            return (long)(from * Math.Pow(2, Precision));
+        }
+
+        public static double toDouble(long from)
+        {
+            return (double)from / Math.Pow(2, Precision);
         }
     }
 }

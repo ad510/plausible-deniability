@@ -30,8 +30,10 @@ namespace Decoherence
         string modPath = "mod\\";
         SlimDX.Direct3D9.Device d3dOriginalDevice;
         int runMode;
+        float winDiag;
         DX.Poly2D tlPoly;
         DX.Img2D testImg;
+        DX.Img2D[] imgParticle;
 
         public App()
         {
@@ -40,9 +42,9 @@ namespace Decoherence
 
         private void App_Load(object sender, EventArgs e)
         {
-            System.Collections.Hashtable jsonObj;
+            /*System.Collections.Hashtable jsonObj;
             string str;
-            bool b = false;
+            bool b = false;*/
             appPath = Application.ExecutablePath.Substring(0, Application.ExecutablePath.LastIndexOf("bin\\"));
             if (!DX.init(this.Handle, true))
             {
@@ -53,6 +55,7 @@ namespace Decoherence
             DX.setDefaultRes();
             this.Width = DX.mode.Width;
             this.Height = DX.mode.Height;
+            winDiag = new Vector2(DX.mode.Width, DX.mode.Height).Length();
             this.Show();
             this.Focus();
             if (!DX.init3d(out d3dOriginalDevice, this.Handle, DX.mode.Width, DX.mode.Height, DX.mode.Format, new Vector3(), new Vector3(), (float)(Math.PI / 4), 1000))
@@ -61,8 +64,46 @@ namespace Decoherence
                 Application.Exit();
                 return;
             }
-            // load scn
-            str = new System.IO.StreamReader(appPath + modPath + "scn.json").ReadToEnd();
+            // load scn (hard code for now)
+            Sim.g.mapSize = 5 << FP.Precision;
+            Sim.g.camSpeed = (2 << FP.Precision) / 1000;
+            Sim.g.camPos = new FP.Vector(Sim.g.mapSize / 2, Sim.g.mapSize / 2, 0);
+            Sim.g.drawScl = 0.1f;
+            Sim.g.drawSclMin = 0.01f;
+            Sim.g.drawSclMin = 1f;
+            Sim.g.backCol = new Color4(0, 0, 0);
+            Sim.g.borderCol = new Color4(1, 0.5f, 0);
+            Sim.g.nMatterT = 2;
+            Sim.g.matterT = new Sim.MatterType[Sim.g.nMatterT];
+            Sim.g.matterT[0].name = "System of matter";
+            Sim.g.matterT[0].isPlayer = true;
+            Sim.g.matterT[0].player = 1;
+            Sim.g.matterT[0].annihilates = new bool[Sim.g.nMatterT];
+            Sim.g.matterT[0].annihilates[0] = false;
+            Sim.g.matterT[0].annihilates[1] = true;
+            Sim.g.matterT[1].name = "System of antimatter";
+            Sim.g.matterT[1].isPlayer = true;
+            Sim.g.matterT[1].player = 0;
+            Sim.g.matterT[1].annihilates = new bool[Sim.g.nMatterT];
+            Sim.g.matterT[1].annihilates[0] = true;
+            Sim.g.matterT[1].annihilates[1] = false;
+            Sim.g.nParticleT = 1;
+            Sim.g.particleT = new Sim.ParticleType[Sim.g.nParticleT];
+            imgParticle = new DX.Img2D[Sim.g.nParticleT];
+            Sim.g.particleT[0].name = "Electron";
+            Sim.g.particleT[0].imgPath = "test.png";
+            Sim.g.particleT[0].speed = 1 << FP.Precision;
+            Sim.g.particleT[0].selRadius = 1.0;
+            imgParticle[0].init();
+            if (!imgParticle[0].open(appPath + modPath + Sim.g.particleT[0].imgPath, Color.White.ToArgb())) MessageBox.Show("Warning: failed to load " + modPath + Sim.g.particleT[0].imgPath);
+            imgParticle[0].rotCenter.X = imgParticle[0].srcWidth / 2;
+            imgParticle[0].rotCenter.Y = imgParticle[0].srcHeight / 2;
+            Sim.nParticles = 1;
+            Sim.p = new Sim.Particle[Sim.nParticles];
+            Sim.p[0] = new Sim.Particle(0, 0, new FP.Vector(1 << FP.Precision, 1 << FP.Precision, 1 << FP.Precision));
+            DX.timeNow = Environment.TickCount;
+            DX.timeStart = DX.timeNow;
+            /*str = new System.IO.StreamReader(appPath + modPath + "scn.json").ReadToEnd();
             jsonObj = (System.Collections.Hashtable)Procurios.Public.JSON.JsonDecode(str, ref b);
             if (!b)
             {
@@ -72,46 +113,14 @@ namespace Decoherence
             }
             foreach (System.Collections.DictionaryEntry en in jsonObj)
             {
-                if ((string)en.Key == "mapSize")
+                if ((string)en.Key == "key")
                 {
-                    Sim.g.mapSize = (long)en.Value;
+                    Sim.g.key = (long)en.Value;
                 }
-                else if ((string)en.Key == "drawScl")
-                {
-                    Sim.g.drawScl = (float)en.Value;
-                }
-                else if ((string)en.Key == "drawSclMin")
-                {
-                    Sim.g.drawSclMin = (float)en.Value;
-                }
-                else if ((string)en.Key == "drawSclMax")
-                {
-                    Sim.g.drawSclMax = (float)en.Value;
-                }
-                else if ((string)en.Key == "camSpeed")
-                {
-                    Sim.g.camSpeed = (float)en.Value;
-                }
-                else if ((string)en.Key == "backColR")
-                {
-                    Sim.g.backColR = (float)en.Value;
-                }
-                else if ((string)en.Key == "backColG")
-                {
-                    Sim.g.backColG = (float)en.Value;
-                }
-                else if ((string)en.Key == "backColB")
-                {
-                    Sim.g.backColB = (float)en.Value;
-                }
-                else if ((string)en.Key == "music")
-                {
-                    Sim.g.music = (string)en.Value;
-                }
-            }
+            }*/
             // set up test image
             testImg.init(new Color4(0.5f, 1f, 1f, 1f).ToArgb());
-            if (!testImg.open(appPath + "test.png", System.Drawing.Color.White.ToArgb())) MessageBox.Show("Warning: Failed to load test.png");
+            if (!testImg.open(appPath + modPath + "test.png", System.Drawing.Color.White.ToArgb())) MessageBox.Show("Warning: Failed to load test.png");
             testImg.pos.X = DX.sx / 2;
             testImg.pos.Y = DX.sy / 2;
             testImg.rotCenter.X = testImg.srcWidth / 2;
@@ -171,14 +180,16 @@ namespace Decoherence
             while (runMode == 1)
             {
                 DX.doEventsX();
+                inputHandle();
                 draw();
             }
         }
 
-        private void draw()
+        private void inputHandle()
         {
             int i;
             DX.keyboardUpdate();
+            // handle changed keys
             for (i = 0; i < DX.diKeysChanged.Count; i++)
             {
                 if (DX.diKeysChanged[i] == Key.Escape && DX.diKeyState.IsPressed(DX.diKeysChanged[i]))
@@ -186,13 +197,71 @@ namespace Decoherence
                     App_KeyDown(this, new System.Windows.Forms.KeyEventArgs(Keys.Escape));
                 }
             }
-            DX.d3dDevice.Clear(ClearFlags.Target | ClearFlags.ZBuffer, new Color4(0, 0, 0), 1, 0);
+            // move camera
+            if (DX.diKeyState.IsPressed(Key.LeftArrow) || DX.mouseX == 0 || (this.Left > 0 && DX.mouseX <= 15))
+            {
+                Sim.g.camPos.x -= Sim.g.camSpeed * (DX.timeNow - DX.timeLast);
+                if (Sim.g.camPos.x < 0) Sim.g.camPos.x = 0;
+            }
+            if (DX.diKeyState.IsPressed(Key.RightArrow) || DX.mouseX == DX.sx - 1 || (this.Left + this.Width < Screen.PrimaryScreen.Bounds.Width && DX.mouseX >= DX.sx - 15))
+            {
+                Sim.g.camPos.x += Sim.g.camSpeed * (DX.timeNow - DX.timeLast);
+                if (Sim.g.camPos.x > Sim.g.mapSize) Sim.g.camPos.x = Sim.g.mapSize;
+            }
+            if (DX.diKeyState.IsPressed(Key.UpArrow) || DX.mouseY == 0 || (this.Top > 0 && DX.mouseY <= 15))
+            {
+                Sim.g.camPos.y -= Sim.g.camSpeed * (DX.timeNow - DX.timeLast);
+                if (Sim.g.camPos.y < 0) Sim.g.camPos.y = 0;
+            }
+            if (DX.diKeyState.IsPressed(Key.DownArrow) || DX.mouseY == DX.sy - 1 || (this.Top + this.Height < Screen.PrimaryScreen.Bounds.Height && DX.mouseY >= DX.sy - 15))
+            {
+                Sim.g.camPos.y += Sim.g.camSpeed * (DX.timeNow - DX.timeLast);
+                if (Sim.g.camPos.y > Sim.g.mapSize) Sim.g.camPos.y = Sim.g.mapSize;
+            }
+        }
+
+        private void draw()
+        {
+            int i;
+            Vector3 vec, vec2;
+            DX.d3dDevice.Clear(ClearFlags.Target | ClearFlags.ZBuffer, Sim.g.backCol, 1, 0);
             DX.d3dDevice.BeginScene();
             // test image
             testImg.scl = new Vector3((float)Math.Sin(DX.timeNow / 1000f) * 0.5f + 1);
             testImg.rot = DX.timeNow / 1000f;
             testImg.scl2 = new Vector3((float)Math.Sin(DX.timeNow / 2000f) * 0.5f + 1, 1, 0);
             testImg.draw();
+            // map border
+            DX.d3dDevice.SetTexture(0, null);
+            tlPoly.primitive = PrimitiveType.LineStrip;
+            tlPoly.setNPoly(0);
+            tlPoly.nV[0] = 4;
+            tlPoly.poly[0].v = new DX.TLVertex[tlPoly.nV[0] + 1];
+            for (i = 0; i < 4; i++)
+            {
+                tlPoly.poly[0].v[i].color = Sim.g.borderCol.ToArgb();
+                tlPoly.poly[0].v[i].rhw = 1;
+                tlPoly.poly[0].v[i].z = 0;
+            }
+            vec = simToDrawPos(new FP.Vector());
+            vec2 = simToDrawPos(new FP.Vector(Sim.g.mapSize, Sim.g.mapSize));
+            tlPoly.poly[0].v[0].x = vec.X;
+            tlPoly.poly[0].v[0].y = vec.Y;
+            tlPoly.poly[0].v[1].x = vec2.X;
+            tlPoly.poly[0].v[1].y = vec.Y;
+            tlPoly.poly[0].v[2].x = vec2.X;
+            tlPoly.poly[0].v[2].y = vec2.Y;
+            tlPoly.poly[0].v[3].x = vec.X;
+            tlPoly.poly[0].v[3].y = vec2.Y;
+            tlPoly.poly[0].v[4] = tlPoly.poly[0].v[0];
+            tlPoly.draw();
+            // particles
+            // TODO: scale particle images
+            for (i = 0; i < Sim.nParticles; i++)
+            {
+                imgParticle[Sim.p[i].type].pos = simToDrawPos(Sim.p[i].calcPos(DX.timeNow - DX.timeStart));
+                imgParticle[Sim.p[i].type].draw();
+            }
             // select box (if needed)
             if (DX.mouseState[1] > 0 && SelBoxMin <= Math.Pow(DX.mouseDX[1] - DX.mouseX, 2) + Math.Pow(DX.mouseDY[1] - DX.mouseY, 2))
             {
@@ -230,5 +299,36 @@ namespace Decoherence
                 runMode = 0;
             }
         }
+
+        private float simToDrawScl(long coor)
+        {
+            return (float)(FP.toDouble(coor) * Sim.g.drawScl * winDiag);
+        }
+
+        private long drawToSimScl(float coor)
+        {
+            return FP.fromDouble(coor / winDiag / Sim.g.drawScl);
+        }
+
+        private Vector3 simToDrawScl(FP.Vector vec)
+        {
+            return new Vector3(simToDrawScl(vec.x), simToDrawScl(vec.y), simToDrawScl(vec.z));
+        }
+
+        private FP.Vector drawToSimScl(Vector3 vec)
+        {
+            return new FP.Vector(drawToSimScl(vec.X), drawToSimScl(vec.Y), drawToSimScl(vec.Z));
+        }
+
+        private Vector3 simToDrawPos(FP.Vector vec)
+        {
+            return new Vector3(simToDrawScl(vec.x - Sim.g.camPos.x), simToDrawScl(vec.y - Sim.g.camPos.y), 0f) + new Vector3(DX.sx / 2, DX.sy / 2, 0f);
+        }
+
+        /*private FP.Vector drawToSimPos(Vector3 vec)
+        {
+            Vector3 vecTrans = 
+            return new FP.Vector(drawToSimScl(vec.X), drawToSimScl(vec.Y))
+        }*/
     }
 }
