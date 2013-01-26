@@ -48,3 +48,7 @@ for each entry in decoherence queue (loop through concurrently with loop above):
     decohere tiles, 1 tile "thick" on side of entry direction, with radius of largest unit that faction can't see from here
     push entries into queue for each of the 8 surrounding tiles that are not visible to faction (according to visibility tiles) and can be traveled to
     note: correct to assume that all units can go at speed of light b/c can momentarily turn photon into particle & antiparticle
+
+random notes:
+phrase from AI wisdom: "expand selection by radius"
+CPT level to annihilate the antiproton in negative 10 seconds? (only enable CPT button for this level)
