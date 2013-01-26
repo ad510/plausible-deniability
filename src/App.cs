@@ -34,6 +34,8 @@ namespace Decoherence
         DX.Poly2D tlPoly;
         DX.Img2D testImg;
         DX.Img2D[] imgParticle;
+        Random rand;
+        List<int> selParticles;
 
         public App()
         {
@@ -42,10 +44,12 @@ namespace Decoherence
 
         private void App_Load(object sender, EventArgs e)
         {
+            int i;
             /*System.Collections.Hashtable jsonObj;
             string str;
             bool b = false;*/
             appPath = Application.ExecutablePath.Substring(0, Application.ExecutablePath.LastIndexOf("bin\\"));
+            rand = new Random();
             if (!DX.init(this.Handle, true))
             {
                 MessageBox.Show("Couldn't set up DirectX. Make sure your video and audio drivers are up-to-date" + ErrStr + "\n\nError description: " + DX.dxErr);
@@ -93,14 +97,18 @@ namespace Decoherence
             Sim.g.particleT[0].name = "Electron";
             Sim.g.particleT[0].imgPath = "test.png";
             Sim.g.particleT[0].speed = (1 << FP.Precision) / 1000;
-            Sim.g.particleT[0].selRadius = 1.0;
+            Sim.g.particleT[0].selRadius = 16;
             imgParticle[0].init();
             if (!imgParticle[0].open(appPath + modPath + Sim.g.particleT[0].imgPath, Color.White.ToArgb())) MessageBox.Show("Warning: failed to load " + modPath + Sim.g.particleT[0].imgPath);
             imgParticle[0].rotCenter.X = imgParticle[0].srcWidth / 2;
             imgParticle[0].rotCenter.Y = imgParticle[0].srcHeight / 2;
-            Sim.nParticles = 1;
+            Sim.nParticles = 5;
             Sim.p = new Sim.Particle[Sim.nParticles];
-            Sim.p[0] = new Sim.Particle(0, 0, new FP.Vector(1 << FP.Precision, 1 << FP.Precision, 1 << FP.Precision));
+            for (i = 0; i < Sim.nParticles; i++)
+            {
+                Sim.p[i] = new Sim.Particle(0, 0, new FP.Vector((long)(rand.NextDouble() * Sim.g.mapSize), (long)(rand.NextDouble() * Sim.g.mapSize)));
+            }
+            selParticles = new List<int>();
             DX.timeNow = Environment.TickCount;
             DX.timeStart = DX.timeNow;
             /*str = new System.IO.StreamReader(appPath + modPath + "scn.json").ReadToEnd();
@@ -173,12 +181,28 @@ namespace Decoherence
             int button = (int)e.Button / 0x100000;
             int mousePrevState = DX.mouseState[button];
             FP.Vector mouseSimPos = drawToSimPos(new Vector3(e.X, e.Y, 0));
+            int i;
             DX.mouseUp(button, e.X, e.Y);
-            if (button == 2) // move
+            if (button == 1) // select
+            {
+                selParticles.Clear();
+                for (i = 0; i < Sim.nParticles; i++)
+                {
+                    if ((simToDrawPos(Sim.p[i].calcPos(DX.timeNow - DX.timeStart)) - new Vector3(DX.mouseX, DX.mouseY, 0)).LengthSquared() <= Math.Pow(Sim.g.particleT[Sim.p[i].type].selRadius, 2))
+                    {
+                        selParticles.Add(i);
+                        break;
+                    }
+                }
+            }
+            else if (button == 2) // move
             {
                 if (mouseSimPos.x >= 0 && mouseSimPos.x <= Sim.g.mapSize && mouseSimPos.y >= 0 && mouseSimPos.y <= Sim.g.mapSize)
                 {
-                    Sim.p[0].addMove(Sim.ParticleMove.fromSpeed(DX.timeNow - DX.timeStart, Sim.g.particleT[Sim.p[0].type].speed, Sim.p[0].calcPos(DX.timeNow - DX.timeStart), mouseSimPos));
+                    foreach (int id in selParticles)
+                    {
+                        Sim.p[id].addMove(Sim.ParticleMove.fromSpeed(DX.timeNow - DX.timeStart, Sim.g.particleT[Sim.p[id].type].speed, Sim.p[id].calcPos(DX.timeNow - DX.timeStart), mouseSimPos));
+                    }
                 }
             }
         }
@@ -265,13 +289,22 @@ namespace Decoherence
             tlPoly.draw();
             // particles
             // TODO: scale particle images
+            // TODO: setting alpha is temporary hack
             for (i = 0; i < Sim.nParticles; i++)
             {
+                if (selParticles.Contains(i))
+                {
+                    imgParticle[Sim.p[i].type].color = -1;
+                }
+                else
+                {
+                    imgParticle[Sim.p[i].type].color = new Color4(0.5f, 1, 1, 1).ToArgb();
+                }
                 imgParticle[Sim.p[i].type].pos = simToDrawPos(Sim.p[i].calcPos(DX.timeNow - DX.timeStart));
                 imgParticle[Sim.p[i].type].draw();
             }
             // select box (if needed)
-            if (DX.mouseState[1] > 0 && SelBoxMin <= Math.Pow(DX.mouseDX[1] - DX.mouseX, 2) + Math.Pow(DX.mouseDY[1] - DX.mouseY, 2))
+            /*if (DX.mouseState[1] > 0 && SelBoxMin <= Math.Pow(DX.mouseDX[1] - DX.mouseX, 2) + Math.Pow(DX.mouseDY[1] - DX.mouseY, 2))
             {
                 DX.d3dDevice.SetTexture(0, null);
                 tlPoly.primitive = PrimitiveType.LineStrip;
@@ -294,7 +327,7 @@ namespace Decoherence
                 tlPoly.poly[0].v[3].y = DX.mouseY;
                 tlPoly.poly[0].v[4] = tlPoly.poly[0].v[0];
                 tlPoly.draw();
-            }
+            }*/
             DX.d3dDevice.EndScene();
             DX.d3dDevice.Present();
         }
