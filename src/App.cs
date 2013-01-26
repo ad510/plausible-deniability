@@ -27,6 +27,7 @@ namespace Decoherence
         public const double SelBoxMin = 100;
 
         string appPath;
+        string modPath = "mod\\";
         SlimDX.Direct3D9.Device d3dOriginalDevice;
         int runMode;
         DX.Poly2D tlPoly;
@@ -39,6 +40,9 @@ namespace Decoherence
 
         private void App_Load(object sender, EventArgs e)
         {
+            System.Collections.Hashtable jsonObj;
+            string str;
+            bool b = false;
             appPath = Application.ExecutablePath.Substring(0, Application.ExecutablePath.LastIndexOf("bin\\"));
             if (!DX.init(this.Handle, true))
             {
@@ -56,6 +60,54 @@ namespace Decoherence
                 MessageBox.Show("Couldn't set up Direct3D. Make sure your video and audio drivers are up-to-date and that no other programs are currently using DirectX" + ErrStr + "\n\nError description: " + DX.dxErr);
                 Application.Exit();
                 return;
+            }
+            // load scn
+            str = new System.IO.StreamReader(appPath + modPath + "scn.json").ReadToEnd();
+            jsonObj = (System.Collections.Hashtable)Procurios.Public.JSON.JsonDecode(str, ref b);
+            if (!b)
+            {
+                MessageBox.Show("Scenario failed to load" + ErrStr);
+                this.Close();
+                return;
+            }
+            foreach (System.Collections.DictionaryEntry en in jsonObj)
+            {
+                if ((string)en.Key == "mapSize")
+                {
+                    Sim.g.mapSize = (long)en.Value;
+                }
+                else if ((string)en.Key == "drawScl")
+                {
+                    Sim.g.drawScl = (float)en.Value;
+                }
+                else if ((string)en.Key == "drawSclMin")
+                {
+                    Sim.g.drawSclMin = (float)en.Value;
+                }
+                else if ((string)en.Key == "drawSclMax")
+                {
+                    Sim.g.drawSclMax = (float)en.Value;
+                }
+                else if ((string)en.Key == "camSpeed")
+                {
+                    Sim.g.camSpeed = (float)en.Value;
+                }
+                else if ((string)en.Key == "backColR")
+                {
+                    Sim.g.backColR = (float)en.Value;
+                }
+                else if ((string)en.Key == "backColG")
+                {
+                    Sim.g.backColG = (float)en.Value;
+                }
+                else if ((string)en.Key == "backColB")
+                {
+                    Sim.g.backColB = (float)en.Value;
+                }
+                else if ((string)en.Key == "music")
+                {
+                    Sim.g.music = (string)en.Value;
+                }
             }
             // set up test image
             testImg.init(new Color4(0.5f, 1f, 1f, 1f).ToArgb());

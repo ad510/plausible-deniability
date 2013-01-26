@@ -1,0 +1,11 @@
+{
+  "mapSize": 10,
+  "drawScl": 0.1,
+  "drawSclMin": 0.01,
+  "drawSclMax": 1,
+  "camSpeed": 0.02,
+  "backColR": 0,
+  "backColG": 0,
+  "backColB": 0,
+  "music": ""
+}
