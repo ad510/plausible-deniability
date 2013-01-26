@@ -73,7 +73,7 @@ namespace Decoherence
 
             public static ParticleMove fromSpeed(long tmStartVal, long speed, FP.Vector vecStartVal, FP.Vector vecEndVal)
             {
-                return new ParticleMove(tmStartVal, tmStartVal + FP.div(new FP.Vector(vecEndVal - vecStartVal).length(), speed), vecStartVal, vecEndVal);
+                return new ParticleMove(tmStartVal, tmStartVal + new FP.Vector(vecEndVal - vecStartVal).length() / speed, vecStartVal, vecEndVal);
             }
 
             public FP.Vector calcPos(long time) // returns location at specified time
@@ -108,7 +108,7 @@ namespace Decoherence
             public void setN(int newSize)
             {
                 int i = 0;
-                for (i = n + 1; i < Math.Min(newSize, m.Length); i++)
+                for (i = n; i < Math.Min(newSize, m.Length); i++)
                 {
                     m[i] = new ParticleMove();
                 }
@@ -120,7 +120,7 @@ namespace Decoherence
             public void addMove(ParticleMove newMove)
             {
                 setN(n + 1);
-                m[n] = newMove;
+                m[n - 1] = newMove;
             }
 
             public FP.Vector calcPos(long time)

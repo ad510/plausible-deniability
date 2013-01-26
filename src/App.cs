@@ -92,7 +92,7 @@ namespace Decoherence
             imgParticle = new DX.Img2D[Sim.g.nParticleT];
             Sim.g.particleT[0].name = "Electron";
             Sim.g.particleT[0].imgPath = "test.png";
-            Sim.g.particleT[0].speed = 1 << FP.Precision;
+            Sim.g.particleT[0].speed = (1 << FP.Precision) / 1000;
             Sim.g.particleT[0].selRadius = 1.0;
             imgParticle[0].init();
             if (!imgParticle[0].open(appPath + modPath + Sim.g.particleT[0].imgPath, Color.White.ToArgb())) MessageBox.Show("Warning: failed to load " + modPath + Sim.g.particleT[0].imgPath);
@@ -172,7 +172,15 @@ namespace Decoherence
         {
             int button = (int)e.Button / 0x100000;
             int mousePrevState = DX.mouseState[button];
+            FP.Vector mouseSimPos = drawToSimPos(new Vector3(e.X, e.Y, 0));
             DX.mouseUp(button, e.X, e.Y);
+            if (button == 2) // move
+            {
+                if (mouseSimPos.x >= 0 && mouseSimPos.x <= Sim.g.mapSize && mouseSimPos.y >= 0 && mouseSimPos.y <= Sim.g.mapSize)
+                {
+                    Sim.p[0].addMove(Sim.ParticleMove.fromSpeed(DX.timeNow - DX.timeStart, Sim.g.particleT[Sim.p[0].type].speed, Sim.p[0].calcPos(DX.timeNow - DX.timeStart), mouseSimPos));
+                }
+            }
         }
 
         private void gameLoop()
@@ -325,10 +333,9 @@ namespace Decoherence
             return new Vector3(simToDrawScl(vec.x - Sim.g.camPos.x), simToDrawScl(vec.y - Sim.g.camPos.y), 0f) + new Vector3(DX.sx / 2, DX.sy / 2, 0f);
         }
 
-        /*private FP.Vector drawToSimPos(Vector3 vec)
+        private FP.Vector drawToSimPos(Vector3 vec)
         {
-            Vector3 vecTrans = 
-            return new FP.Vector(drawToSimScl(vec.X), drawToSimScl(vec.Y))
-        }*/
+            return new FP.Vector(drawToSimScl(vec.X - DX.sx / 2), drawToSimScl(vec.Y - DX.sy / 2)) + Sim.g.camPos;
+        }
     }
 }
