@@ -126,11 +126,11 @@ namespace Decoherence
                     imgParticle[i3].rotCenter.Y = imgParticle[i3].srcHeight / 2;
                 }
             }
-            Sim.nParticles = 10;
+            Sim.nParticles = 20;
             Sim.p = new Sim.Particle[Sim.nParticles];
             for (i = 0; i < Sim.nParticles; i++)
             {
-                Sim.p[i] = new Sim.Particle(0, i / (Sim.nParticles / 2), new FP.Vector((long)(rand.NextDouble() * Sim.g.mapSize), (long)(rand.NextDouble() * Sim.g.mapSize)));
+                Sim.p[i] = new Sim.Particle(0, i / (Sim.nParticles / 2), 0, new FP.Vector((long)(rand.NextDouble() * Sim.g.mapSize), (long)(rand.NextDouble() * Sim.g.mapSize)));
             }
             /*str = new System.IO.StreamReader(appPath + modPath + "scn.json").ReadToEnd();
             jsonObj = (System.Collections.Hashtable)Procurios.Public.JSON.JsonDecode(str, ref b);
@@ -172,7 +172,7 @@ namespace Decoherence
                 tlTile.poly[0].v[i].z = 0;
             }
             // start game
-            Sim.timeSim = 0;
+            Sim.timeSim = -1;
             Sim.initVis(0, true);
             DX.timeNow = Environment.TickCount;
             DX.timeStart = DX.timeNow;
@@ -240,11 +240,15 @@ namespace Decoherence
             }
             else if (button == 2) // move
             {
-                if (DX.timeNow - DX.timeStart >= Sim.timeSim && mouseSimPos.x >= 0 && mouseSimPos.x <= Sim.g.mapSize && mouseSimPos.y >= 0 && mouseSimPos.y <= Sim.g.mapSize)
+                if (mouseSimPos.x >= 0 && mouseSimPos.x <= Sim.g.mapSize && mouseSimPos.y >= 0 && mouseSimPos.y <= Sim.g.mapSize)
                 {
                     foreach (int id in selParticles)
                     {
-                        Sim.p[id].addMove(Sim.ParticleMove.fromSpeed(DX.timeNow - DX.timeStart, Sim.g.particleT[Sim.p[id].type].speed, Sim.p[id].calcPos(DX.timeNow - DX.timeStart), mouseSimPos));
+                        if (DX.timeNow - DX.timeStart >= Sim.timeSim || (DX.timeNow - DX.timeStart >= Sim.p[id].tmCohere
+                            && Sim.coherent(selMatter, (int)(Sim.p[id].calcPos(DX.timeNow - DX.timeStart).x >> FP.Precision), (int)(Sim.p[id].calcPos(DX.timeNow - DX.timeStart).y >> FP.Precision), DX.timeNow - DX.timeStart)))
+                        {
+                            Sim.p[id].addMove(Sim.ParticleMove.fromSpeed(DX.timeNow - DX.timeStart, Sim.g.particleT[Sim.p[id].type].speed, Sim.p[id].calcPos(DX.timeNow - DX.timeStart), mouseSimPos));
+                        }
                     }
                 }
             }
@@ -400,6 +404,14 @@ namespace Decoherence
                 i2 = Sim.p[i].type * Sim.g.nParticleT + Sim.p[i].matter;
                 fpVec = Sim.p[i].calcPos(DX.timeNow - DX.timeStart);
                 if (selMatter != Sim.p[i].matter && !Sim.matterVisWhen(selMatter, (int)(fpVec.x >> FP.Precision), (int)(fpVec.y >> FP.Precision), DX.timeNow - DX.timeStart)) continue;
+                if (Sim.p[i].n > Sim.p[i].mLive + 1)
+                {
+                    imgParticle[i2].color = new Color4(0.5f, 1, 1, 1).ToArgb(); // TODO: make transparency amount customizable
+                }
+                else
+                {
+                    imgParticle[i2].color = new Color4(1, 1, 1, 1).ToArgb();
+                }
                 imgParticle[i2].pos = simToDrawPos(fpVec);
                 imgParticle[i2].draw();
                 if (selParticles.Contains(i))

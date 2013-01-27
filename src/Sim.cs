@@ -102,20 +102,24 @@ namespace Decoherence
         {
             public int type;
             public int matter;
+            public long tmCohere; // earliest time at which it's safe to time travel
             public long tmEnd; // time annihilated
             public int n; // number of moves
             public ParticleMove[] m;
+            public int mLive; // index of latest move that was live
             public FP.Vector pos; // current position
             public int tX, tY; // current position on visibility tiles
 
-            public Particle(int typeVal, int matterVal, FP.Vector startPos)
+            public Particle(int typeVal, int matterVal, long startTime, FP.Vector startPos)
             {
                 type = typeVal;
                 matter = matterVal;
+                tmCohere = long.MaxValue;
                 tmEnd = long.MaxValue;
                 n = 1;
                 m = new ParticleMove[n];
-                m[0] = new ParticleMove(0, startPos);
+                m[0] = new ParticleMove(startTime, startPos);
+                mLive = 0;
                 pos = startPos;
                 tX = (int)(pos.x >> FP.Precision);
                 tY = (int)(pos.y >> FP.Precision);
@@ -137,6 +141,7 @@ namespace Decoherence
             {
                 setN(n + 1);
                 m[n - 1] = newMove;
+                if (newMove.tmStart >= timeSim) mLive = n - 1;
             }
 
             public FP.Vector calcPos(long time)
@@ -212,24 +217,30 @@ namespace Decoherence
 
         public static void update(long curTime)
         {
-            Dictionary<long, TileMove> tileMoves = new Dictionary<long,TileMove>();
+            Dictionary<long, TileMove> tileMoves = new Dictionary<long,TileMove>(); // TODO: don't use dictionary b/c it doesn't allow duplicate keys
             int move, moveLast;
             FP.Vector pos, posLast;
             long time;
             int i, i2, tX, tY, id, radius, dir;
             // do timing
-            if (curTime < timeSim) return;
+            if (curTime < timeSim)
+            {
+                updatePast(curTime);
+                return;
+            }
             timeSimLast = timeSim;
             timeSim = curTime;
             // check if particles moved between tiles
             for (i = 0; i < nParticles; i++)
             {
-                moveLast = Math.Max(0, p[i].moveGet(timeSimLast));
+                time = (p[i].mLive < p[i].n - 1) ? p[i].m[p[i].mLive + 1].tmStart : timeSimLast;
+                p[i].mLive = p[i].n - 1; // TODO: set this the moment it goes live?
+                moveLast = Math.Max(0, p[i].moveGet(time));
                 move = p[i].moveGet(timeSim);
                 if (move < 0) continue;
                 for (i2 = moveLast; i2 <= move; i2++)
                 {
-                    posLast = (i2 == moveLast) ? p[i].m[i2].calcPos(timeSimLast) : p[i].m[i2].vecStart;
+                    posLast = (i2 == moveLast) ? p[i].m[i2].calcPos(time) : p[i].m[i2].vecStart;
                     pos = (i2 == move) ? p[i].m[i2].calcPos(timeSim) : p[i].m[i2 + 1].vecStart;
                     if (pos != posLast)
                     {
@@ -258,15 +269,14 @@ namespace Decoherence
             {
                 id = item.Value.particle;
                 radius = (int)(g.particleT[p[id].type].visRadius >> FP.Precision);
+                time = Math.Max(timeSimLast, item.Key);
                 if (item.Value.dir == 0) // +x
                 {
                     p[id].tX = item.Value.tX;
                     for (tY = Math.Max(0, p[id].tY - radius); tY <= Math.Min(tileLen() - 1, p[id].tY + radius); tY++)
                     {
-                        //if (p[id].tX + radius < tileLen()) particleVis[p[id].tX + radius, tY].Add(id);
-                        //if (p[id].tX - radius - 1 >= 0) particleVis[p[id].tX - radius - 1, tY].Remove(id);
-                        visAdd(id, p[id].tX + radius, tY, item.Key);
-                        visRemove(id, p[id].tX - radius - 1, tY, item.Key);
+                        visAdd(id, p[id].tX + radius, tY, time);
+                        visRemove(id, p[id].tX - radius - 1, tY, time);
                     }
                 }
                 else if (item.Value.dir == 1) // +y
@@ -274,10 +284,8 @@ namespace Decoherence
                     p[id].tY = item.Value.tY;
                     for (tX = Math.Max(0, p[id].tX - radius); tX <= Math.Min(tileLen() - 1, p[id].tX + radius); tX++)
                     {
-                        //if (p[id].tY + radius < tileLen()) particleVis[tX, p[id].tY + radius].Add(id);
-                        //if (p[id].tY - radius - 1 >= 0) particleVis[tX, p[id].tY - radius - 1].Remove(id);
-                        visAdd(id, tX, p[id].tY + radius, item.Key);
-                        visRemove(id, tX, p[id].tY - radius - 1, item.Key);
+                        visAdd(id, tX, p[id].tY + radius, time);
+                        visRemove(id, tX, p[id].tY - radius - 1, time);
                     }
                 }
                 else if (item.Value.dir == 2) // -x
@@ -285,10 +293,8 @@ namespace Decoherence
                     p[id].tX = item.Value.tX;
                     for (tY = Math.Max(0, p[id].tY - radius); tY <= Math.Min(tileLen() - 1, p[id].tY + radius); tY++)
                     {
-                        //if (p[id].tX - radius >= 0) particleVis[p[id].tX - radius, tY].Add(id);
-                        //if (p[id].tX + radius + 1 < tileLen()) particleVis[p[id].tX + radius + 1, tY].Remove(id);
-                        visAdd(id, p[id].tX - radius, tY, item.Key);
-                        visRemove(id, p[id].tX + radius + 1, tY, item.Key);
+                        visAdd(id, p[id].tX - radius, tY, time);
+                        visRemove(id, p[id].tX + radius + 1, tY, time);
                     }
                 }
                 else if (item.Value.dir == 3) // -y
@@ -296,11 +302,35 @@ namespace Decoherence
                     p[id].tY = item.Value.tY;
                     for (tX = Math.Max(0, p[id].tX - radius); tX <= Math.Min(tileLen() - 1, p[id].tX + radius); tX++)
                     {
-                        //if (p[id].tY - radius >= 0) particleVis[tX, p[id].tY - radius].Add(id);
-                        //if (p[id].tY + radius + 1 < tileLen()) particleVis[tX, p[id].tY + radius + 1].Remove(id);
-                        visAdd(id, tX, p[id].tY - radius, item.Key);
-                        visRemove(id, tX, p[id].tY + radius + 1, item.Key);
+                        visAdd(id, tX, p[id].tY - radius, time);
+                        visRemove(id, tX, p[id].tY + radius + 1, time);
                     }
+                }
+            }
+            // update earliest times it's safe for each particle to time travel
+            // TODO: choose check state times more intelligently
+            // TODO: actually safe to time travel at earlier times, as long as is at same place when decoheres
+            for (i = 0; i < nParticles; i++)
+            {
+                if ((timeSimLast < p[i].m[0].tmStart || !coherent(p[i].matter, (int)(p[i].calcPos(timeSimLast).x >> FP.Precision), (int)(p[i].calcPos(timeSimLast).y >> FP.Precision), timeSimLast))
+                    && (timeSim >= p[i].m[0].tmStart && coherent(p[i].matter, (int)(p[i].calcPos(timeSim).x >> FP.Precision), (int)(p[i].calcPos(timeSim).y >> FP.Precision), timeSim)))
+                {
+                    p[i].tmCohere = timeSim;
+                }
+            }
+        }
+
+        public static void updatePast(long curTime)
+        {
+            int i;
+            // restore to last coherent/live state if particle moves off coherent area
+            // TODO: choose check state times more intelligently
+            for (i = 0; i < nParticles; i++)
+            {
+                if (curTime >= p[i].tmCohere && p[i].mLive < p[i].n - 1
+                    && !coherent(p[i].matter, (int)(p[i].calcPos(curTime).x >> FP.Precision), (int)(p[i].calcPos(curTime).y >> FP.Precision), curTime))
+                {
+                    p[i].setN(p[i].mLive + 1);
                 }
             }
         }
@@ -346,16 +376,6 @@ namespace Decoherence
         // this isn't really the definition of coherence, but it's close enough for me
         public static bool coherent(int matter, int tileX, int tileY, long time)
         {
-            /* 
-                for (tX = Math.Max(0, (int)((p[i].pos.x >> FP.Precision) - (g.particleT[p[i].type].visRadius >> FP.Precision))); tX <= Math.Min(tileLen() - 1, (int)((p[i].pos.x >> FP.Precision) + (g.particleT[p[i].type].visRadius >> FP.Precision))); tX++)
-                {
-                    for (tY = Math.Max(0, (int)((p[i].pos.y >> FP.Precision) - (g.particleT[p[i].type].visRadius >> FP.Precision))); tY <= Math.Min(tileLen() - 1, (int)((p[i].pos.y >> FP.Precision) + (g.particleT[p[i].type].visRadius >> FP.Precision))); tY++)
-                    {
-                        particleVis[tX, tY].Add(i);
-                        if (initMatterVis && matterVis[p[i].matter, tX, tY].Count == 0) matterVis[p[i].matter, tX, tY].Add(time);
-                    }
-                }
-             */
             int i, tX, tY;
             // check that matter type can see all nearby tiles
             for (tX = Math.Max(0, tileX - (int)(maxVisRadius >> FP.Precision)); tX <= Math.Min(tileLen() - 1, tileX + (int)(maxVisRadius >> FP.Precision)); tX++)
