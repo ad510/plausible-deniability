@@ -4,6 +4,8 @@ decoherence
 
 Overview
 --------
+Full Disclosure: This game has nothing to do with hearts. Despite that, I hearted the game idea so much I decided to make it anyway.
+
 This is a basic prototype of an RTS game that lets you time travel and change what your units did in the past, but only where it is impossible for other players to see you doing so. While time traveling, you can move your units around as long as they remain in a yellow region.
 
 I'm hoping to keep working on this and turn it into a full game. If you want to help, feel free to send pull requests to the GitHub repository at https://github.com/ad510/decoherence , or email questions or comments to me using the link at http://ad510.users.sf.net/.
