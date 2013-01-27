@@ -289,7 +289,7 @@ namespace Decoherence
                 {
                     App_KeyDown(this, new System.Windows.Forms.KeyEventArgs(Keys.Escape));
                 }
-                else if (DX.diKeysChanged[i] == Key.C && DX.diKeyState.IsPressed(DX.diKeysChanged[i]))
+                else if (DX.diKeysChanged[i] == Key.Space && DX.diKeyState.IsPressed(DX.diKeysChanged[i]))
                 {
                     selMatter = (selMatter + 1) % Sim.g.nMatterT;
                     selParticles.Clear();
