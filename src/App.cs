@@ -224,6 +224,7 @@ namespace Decoherence
             int button = (int)e.Button / 0x100000;
             int mousePrevState = DX.mouseState[button];
             FP.Vector mouseSimPos = drawToSimPos(new Vector3(e.X, e.Y, 0));
+            FP.Vector goal;
             int i;
             DX.mouseUp(button, e.X, e.Y);
             if (button == 1) // select
@@ -248,8 +249,12 @@ namespace Decoherence
                         if (DX.timeNow - DX.timeStart >= Sim.timeSim || (DX.timeNow - DX.timeStart >= Sim.p[id].tmCohere
                             && Sim.coherent(selMatter, (int)(Sim.p[id].calcPos(DX.timeNow - DX.timeStart).x >> FP.Precision), (int)(Sim.p[id].calcPos(DX.timeNow - DX.timeStart).y >> FP.Precision), DX.timeNow - DX.timeStart)))
                         {
-                            Sim.p[id].addMove(Sim.ParticleMove.fromSpeed(DX.timeNow - DX.timeStart, Sim.g.particleT[Sim.p[id].type].speed, Sim.p[id].calcPos(DX.timeNow - DX.timeStart),
-                                mouseSimPos + new FP.Vector((i % (int)Math.Ceiling(Math.Sqrt(selParticles.Count))) * Sim.maxVisRadius * 2, (long)Math.Floor(i / Math.Ceiling(Math.Sqrt(selParticles.Count))) * Sim.maxVisRadius * 2)));
+                            goal = mouseSimPos + new FP.Vector((i % (int)Math.Ceiling(Math.Sqrt(selParticles.Count))) * Sim.maxVisRadius * 2, (long)Math.Floor(i / Math.Ceiling(Math.Sqrt(selParticles.Count))) * Sim.maxVisRadius * 2);
+                            if (goal.x < 0) goal.x = 0;
+                            if (goal.x > Sim.g.mapSize) goal.x = Sim.g.mapSize;
+                            if (goal.y < 0) goal.y = 0;
+                            if (goal.y > Sim.g.mapSize) goal.y = Sim.g.mapSize;
+                            Sim.p[id].addMove(Sim.ParticleMove.fromSpeed(DX.timeNow - DX.timeStart, Sim.g.particleT[Sim.p[id].type].speed, Sim.p[id].calcPos(DX.timeNow - DX.timeStart), goal));
                             i++;
                         }
                     }
