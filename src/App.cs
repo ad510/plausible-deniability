@@ -454,7 +454,7 @@ namespace Decoherence
                 tlPoly.draw();
             }*/
             // text
-            if (DX.timeNow - DX.timeStart >= Sim.timeSim) DX.textDraw(fnt, new Color4(1, 1, 1, 1), "LIVE", 0, 0);
+            DX.textDraw(fnt, new Color4(1, 1, 1, 1), (DX.timeNow - DX.timeStart >= Sim.timeSim) ? "LIVE" : "TIME TRAVELING", 0, 0);
             if (paused) DX.textDraw(fnt, new Color4(1, 1, 1, 1), "PAUSED", 0, (int)(DX.sy * FntSize));
             DX.d3dDevice.EndScene();
             DX.d3dDevice.Present();
