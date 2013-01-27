@@ -251,6 +251,7 @@ namespace Decoherence
                     for (tX = (int)(Math.Min(pos.x, posLast.x) >> FP.Precision) + 1; tX <= (int)(Math.Max(pos.x, posLast.x) >> FP.Precision); tX++)
                     {
                         time = p[i].m[i2].timeAtX(tX << FP.Precision);
+                        while (tileMoves.ContainsKey(time)) time++; // TODO: this is a hack to prevent duplicate keys
                         tileMoves.Add(time, new TileMove(i, tX + dir, (int)(p[i].m[i2].calcPos(time).y >> FP.Precision), (dir == 0) ? 0 : 2));
                     }
                     // moving between rows (y)
@@ -258,6 +259,7 @@ namespace Decoherence
                     for (tY = (int)(Math.Min(pos.y, posLast.y) >> FP.Precision) + 1; tY <= (int)(Math.Max(pos.y, posLast.y) >> FP.Precision); tY++)
                     {
                         time = p[i].m[i2].timeAtY(tY << FP.Precision);
+                        while (tileMoves.ContainsKey(time)) time++; // TODO: this is a hack to prevent duplicate keys
                         tileMoves.Add(time, new TileMove(i, (int)(p[i].m[i2].calcPos(time).x >> FP.Precision), tY + dir, (dir == 0) ? 1 : 3));
                     }
                 }

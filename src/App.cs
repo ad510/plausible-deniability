@@ -228,7 +228,7 @@ namespace Decoherence
             DX.mouseUp(button, e.X, e.Y);
             if (button == 1) // select
             {
-                selParticles.Clear();
+                if (!DX.diKeyState.IsPressed(Key.LeftControl) && !DX.diKeyState.IsPressed(Key.LeftShift)) selParticles.Clear();
                 for (i = 0; i < Sim.nParticles; i++)
                 {
                     if (selMatter == Sim.p[i].matter && (simToDrawPos(Sim.p[i].calcPos(DX.timeNow - DX.timeStart)) - new Vector3(DX.mouseX, DX.mouseY, 0)).LengthSquared() <= Math.Pow(Sim.g.particleT[Sim.p[i].type].selRadius, 2))
@@ -242,12 +242,15 @@ namespace Decoherence
             {
                 if (mouseSimPos.x >= 0 && mouseSimPos.x <= Sim.g.mapSize && mouseSimPos.y >= 0 && mouseSimPos.y <= Sim.g.mapSize)
                 {
+                    i = 0;
                     foreach (int id in selParticles)
                     {
                         if (DX.timeNow - DX.timeStart >= Sim.timeSim || (DX.timeNow - DX.timeStart >= Sim.p[id].tmCohere
                             && Sim.coherent(selMatter, (int)(Sim.p[id].calcPos(DX.timeNow - DX.timeStart).x >> FP.Precision), (int)(Sim.p[id].calcPos(DX.timeNow - DX.timeStart).y >> FP.Precision), DX.timeNow - DX.timeStart)))
                         {
-                            Sim.p[id].addMove(Sim.ParticleMove.fromSpeed(DX.timeNow - DX.timeStart, Sim.g.particleT[Sim.p[id].type].speed, Sim.p[id].calcPos(DX.timeNow - DX.timeStart), mouseSimPos));
+                            Sim.p[id].addMove(Sim.ParticleMove.fromSpeed(DX.timeNow - DX.timeStart, Sim.g.particleT[Sim.p[id].type].speed, Sim.p[id].calcPos(DX.timeNow - DX.timeStart),
+                                mouseSimPos + new FP.Vector((i % (int)Math.Ceiling(Math.Sqrt(selParticles.Count))) * Sim.maxVisRadius * 2, (long)Math.Floor(i / Math.Ceiling(Math.Sqrt(selParticles.Count))) * Sim.maxVisRadius * 2)));
+                            i++;
                         }
                     }
                 }
