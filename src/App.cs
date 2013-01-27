@@ -25,6 +25,7 @@ namespace Decoherence
     {
         public const string ErrStr = ". The program will exit now."; // display this during an initialization or drawing crash
         public const double SelBoxMin = 100;
+        public const float FntSize = 1f / 40;
 
         string appPath;
         string modPath = "mod\\";
@@ -34,9 +35,11 @@ namespace Decoherence
         DX.Img2D[] imgParticle;
         DX.Poly2D tlTile;
         DX.Poly2D tlPoly;
+        SlimDX.Direct3D9.Font fnt;
         Random rand;
         int selMatter;
         List<int> selParticles;
+        bool paused;
 
         public App()
         {
@@ -69,6 +72,8 @@ namespace Decoherence
                 Application.Exit();
                 return;
             }
+            // fonts (TODO: make font, size, and color customizable by mod)
+            fnt = new SlimDX.Direct3D9.Font(DX.d3dDevice, new System.Drawing.Font("Arial", DX.sy * FntSize, GraphicsUnit.Pixel));
             // load scn (hard code for now)
             Sim.g.mapSize = 40 << FP.Precision;
             Sim.g.camSpeed = (10 << FP.Precision) / 1000;
@@ -228,7 +233,7 @@ namespace Decoherence
             }
             else if (button == 2) // move
             {
-                if (mouseSimPos.x >= 0 && mouseSimPos.x <= Sim.g.mapSize && mouseSimPos.y >= 0 && mouseSimPos.y <= Sim.g.mapSize)
+                if (DX.timeNow - DX.timeStart >= Sim.timeSim && mouseSimPos.x >= 0 && mouseSimPos.x <= Sim.g.mapSize && mouseSimPos.y >= 0 && mouseSimPos.y <= Sim.g.mapSize)
                 {
                     foreach (int id in selParticles)
                     {
@@ -242,10 +247,23 @@ namespace Decoherence
         {
             while (runMode == 1)
             {
-                DX.doEventsX();
+                updateTime();
                 Sim.update(DX.timeNow - DX.timeStart);
                 inputHandle();
                 draw();
+            }
+        }
+
+        private void updateTime()
+        {
+            DX.doEventsX();
+            if (paused)
+            {
+                DX.timeStart += DX.timeNow - DX.timeLast;
+            }
+            else if (DX.diKeyState != null && DX.diKeyState.IsPressed(Key.R))
+            {
+                DX.timeStart += 2 * (DX.timeNow - DX.timeLast);
             }
         }
 
@@ -264,6 +282,10 @@ namespace Decoherence
                 {
                     selMatter = (selMatter + 1) % Sim.g.nMatterT;
                     selParticles.Clear();
+                }
+                else if (DX.diKeysChanged[i] == Key.P && DX.diKeyState.IsPressed(DX.diKeysChanged[i]))
+                {
+                    paused = !paused;
                 }
             }
             // move camera
@@ -361,6 +383,7 @@ namespace Decoherence
             // TODO: setting alpha is temporary hack
             for (i = 0; i < Sim.nParticles; i++)
             {
+                if (DX.timeNow - DX.timeStart < Sim.p[i].m[0].tmStart) continue;
                 i2 = Sim.p[i].type * Sim.g.nParticleT + Sim.p[i].matter;
                 fpVec = Sim.p[i].calcPos(DX.timeNow - DX.timeStart);
                 if (selMatter != Sim.p[i].matter && !Sim.matterVisWhen(selMatter, (int)(fpVec.x >> FP.Precision), (int)(fpVec.y >> FP.Precision), DX.timeNow - DX.timeStart)) continue;
@@ -400,6 +423,9 @@ namespace Decoherence
                 tlPoly.poly[0].v[4] = tlPoly.poly[0].v[0];
                 tlPoly.draw();
             }*/
+            // text
+            if (DX.timeNow - DX.timeStart >= Sim.timeSim) DX.textDraw(fnt, new Color4(1, 1, 1, 1), "LIVE", 0, 0);
+            if (paused) DX.textDraw(fnt, new Color4(1, 1, 1, 1), "PAUSED", 0, (int)(DX.sy * FntSize));
             DX.d3dDevice.EndScene();
             DX.d3dDevice.Present();
         }
