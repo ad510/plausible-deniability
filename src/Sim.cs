@@ -264,10 +264,6 @@ namespace Decoherence
                 {
                     posLast = (i2 == moveLast) ? p[i].m[i2].calcPos(timeSimLast) : p[i].m[i2].vecStart;
                     pos = (i2 == move) ? p[i].m[i2].calcPos(timeSim) : p[i].m[i2 + 1].vecStart;
-                    if (pos != posLast)
-                    {
-                        dir = 0;
-                    }
                     // moving between columns (x)
                     dir = (pos.x >= posLast.x) ? 0 : -1;
                     for (tX = (int)(Math.Min(pos.x, posLast.x) >> FP.Precision) + 1; tX <= (int)(Math.Max(pos.x, posLast.x) >> FP.Precision); tX++)
