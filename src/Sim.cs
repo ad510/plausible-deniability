@@ -173,7 +173,8 @@ namespace Decoherence
         public static Particle[] p;
 
         // helper variables
-        public static List<int>[,] curVis;
+        public static List<int>[,] particleVis;
+        public static List<long>[,,] matterVis;
         public static long timeSim;
         public static long timeSimLast;
 
@@ -184,14 +185,14 @@ namespace Decoherence
                 Array.Resize(ref p, nParticles * 2);
         }
 
-        public static void initCurVis(long time)
+        public static void initVis(long time, bool initMatterVis)
         {
             int i, tX, tY;
             for (tX = 0; tX < tileLen(); tX++)
             {
                 for (tY = 0; tY < tileLen(); tY++)
                 {
-                    curVis[tX, tY].Clear();
+                    particleVis[tX, tY].Clear();
                 }
             }
             for (i = 0; i < nParticles; i++)
@@ -201,7 +202,8 @@ namespace Decoherence
                 {
                     for (tY = Math.Max(0, (int)((p[i].pos.y >> FP.Precision) - (g.particleT[p[i].type].visRadius >> FP.Precision))); tY <= Math.Min(tileLen() - 1, (int)((p[i].pos.y >> FP.Precision) + (g.particleT[p[i].type].visRadius >> FP.Precision))); tY++)
                     {
-                        curVis[tX, tY].Add(i);
+                        particleVis[tX, tY].Add(i);
+                        if (initMatterVis && matterVis[p[i].matter, tX, tY].Count == 0) matterVis[p[i].matter, tX, tY].Add(time);
                     }
                 }
             }
@@ -260,8 +262,10 @@ namespace Decoherence
                     p[id].tX = item.Value.tX;
                     for (tY = Math.Max(0, p[id].tY - radius); tY <= Math.Min(tileLen() - 1, p[id].tY + radius); tY++)
                     {
-                        if (p[id].tX + radius < tileLen()) curVis[p[id].tX + radius, tY].Add(id);
-                        if (p[id].tX - radius - 1 >= 0) curVis[p[id].tX - radius - 1, tY].Remove(id);
+                        //if (p[id].tX + radius < tileLen()) particleVis[p[id].tX + radius, tY].Add(id);
+                        //if (p[id].tX - radius - 1 >= 0) particleVis[p[id].tX - radius - 1, tY].Remove(id);
+                        visAdd(id, p[id].tX + radius, tY, item.Key);
+                        visRemove(id, p[id].tX - radius - 1, tY, item.Key);
                     }
                 }
                 else if (item.Value.dir == 1) // +y
@@ -269,8 +273,10 @@ namespace Decoherence
                     p[id].tY = item.Value.tY;
                     for (tX = Math.Max(0, p[id].tX - radius); tX <= Math.Min(tileLen() - 1, p[id].tX + radius); tX++)
                     {
-                        if (p[id].tY + radius < tileLen()) curVis[tX, p[id].tY + radius].Add(id);
-                        if (p[id].tY - radius - 1 >= 0) curVis[tX, p[id].tY - radius - 1].Remove(id);
+                        //if (p[id].tY + radius < tileLen()) particleVis[tX, p[id].tY + radius].Add(id);
+                        //if (p[id].tY - radius - 1 >= 0) particleVis[tX, p[id].tY - radius - 1].Remove(id);
+                        visAdd(id, tX, p[id].tY + radius, item.Key);
+                        visRemove(id, tX, p[id].tY - radius - 1, item.Key);
                     }
                 }
                 else if (item.Value.dir == 2) // -x
@@ -278,8 +284,10 @@ namespace Decoherence
                     p[id].tX = item.Value.tX;
                     for (tY = Math.Max(0, p[id].tY - radius); tY <= Math.Min(tileLen() - 1, p[id].tY + radius); tY++)
                     {
-                        if (p[id].tX - radius >= 0) curVis[p[id].tX - radius, tY].Add(id);
-                        if (p[id].tX + radius + 1 < tileLen()) curVis[p[id].tX + radius + 1, tY].Remove(id);
+                        //if (p[id].tX - radius >= 0) particleVis[p[id].tX - radius, tY].Add(id);
+                        //if (p[id].tX + radius + 1 < tileLen()) particleVis[p[id].tX + radius + 1, tY].Remove(id);
+                        visAdd(id, p[id].tX - radius, tY, item.Key);
+                        visRemove(id, p[id].tX + radius + 1, tY, item.Key);
                     }
                 }
                 else if (item.Value.dir == 3) // -y
@@ -287,23 +295,53 @@ namespace Decoherence
                     p[id].tY = item.Value.tY;
                     for (tX = Math.Max(0, p[id].tX - radius); tX <= Math.Min(tileLen() - 1, p[id].tX + radius); tX++)
                     {
-                        if (p[id].tY - radius >= 0) curVis[tX, p[id].tY - radius].Add(id);
-                        if (p[id].tY + radius + 1 < tileLen()) curVis[tX, p[id].tY + radius + 1].Remove(id);
+                        //if (p[id].tY - radius >= 0) particleVis[tX, p[id].tY - radius].Add(id);
+                        //if (p[id].tY + radius + 1 < tileLen()) particleVis[tX, p[id].tY + radius + 1].Remove(id);
+                        visAdd(id, tX, p[id].tY - radius, item.Key);
+                        visRemove(id, tX, p[id].tY + radius + 1, item.Key);
                     }
                 }
             }
         }
 
-        public static bool matterCurVis(int matter, int tX, int tY)
+        public static void visAdd(int particle, int tX, int tY, long time)
         {
-            for (int i = 0; i < curVis[tX, tY].Count; i++)
+            if (tX >= 0 && tX < tileLen() && tY >= 0 && tY < tileLen())
             {
-                if (matter == p[curVis[tX, tY][i]].matter) return true;
+                particleVis[tX, tY].Add(particle);
+                if (matterVis[p[particle].matter, tX, tY].Count % 2 == 0) matterVis[p[particle].matter, tX, tY].Add(time);
+            }
+        }
+
+        public static void visRemove(int particle, int tX, int tY, long time)
+        {
+            if (tX >= 0 && tX < tileLen() && tY >= 0 && tY < tileLen())
+            {
+                particleVis[tX, tY].Remove(particle);
+                // TODO: use smarter matterVis removing algorithm described in notes.txt
+                if (matterVis[p[particle].matter, tX, tY].Count % 2 == 1 && !matterDirectVis(p[particle].matter, tX, tY)) matterVis[p[particle].matter, tX, tY].Add(time);
+            }
+        }
+
+        public static bool matterDirectVis(int matter, int tX, int tY)
+        {
+            for (int i = 0; i < particleVis[tX, tY].Count; i++)
+            {
+                if (matter == p[particleVis[tX, tY][i]].matter) return true;
             }
             return false;
         }
 
-        public static int tileLen() // TODO: use curVis.GetUpperBound instead of this function
+        public static bool matterVisWhen(int matter, int tX, int tY, long time)
+        {
+            for (int i = matterVis[matter, tX, tY].Count - 1; i >= 0; i--)
+            {
+                if (time >= matterVis[matter, tX, tY][i]) return i % 2 == 0;
+            }
+            return false;
+        }
+
+        public static int tileLen() // TODO: use particleVis.GetUpperBound instead of this function
         {
             return (int)((g.mapSize >> FP.Precision) + 1);
         }

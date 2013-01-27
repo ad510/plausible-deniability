@@ -71,23 +71,6 @@ namespace Decoherence
             }
             // load scn (hard code for now)
             Sim.g.mapSize = 40 << FP.Precision;
-            Sim.curVis = new List<int>[Sim.tileLen(), Sim.tileLen()];
-            for (i = 0; i < Sim.tileLen(); i++)
-            {
-                for (i2 = 0; i2 < Sim.tileLen(); i2++)
-                {
-                    Sim.curVis[i, i2] = new List<int>();
-                }
-            }
-            tlTile.primitive = PrimitiveType.TriangleList;
-            tlTile.setNPoly(0);
-            tlTile.nV[0] = Sim.tileLen() * Sim.tileLen() * 2;
-            tlTile.poly[0].v = new DX.TLVertex[tlTile.nV[0] * 3];
-            for (i = 0; i < tlTile.poly[0].v.Length; i++)
-            {
-                tlTile.poly[0].v[i].rhw = 1;
-                tlTile.poly[0].v[i].z = 0;
-            }
             Sim.g.camSpeed = (10 << FP.Precision) / 1000;
             Sim.g.camPos = new FP.Vector(Sim.g.mapSize / 2, Sim.g.mapSize / 2, 0);
             Sim.g.drawScl = 0.02f;
@@ -137,11 +120,6 @@ namespace Decoherence
             {
                 Sim.p[i] = new Sim.Particle(0, i / (Sim.nParticles / 2), new FP.Vector((long)(rand.NextDouble() * Sim.g.mapSize), (long)(rand.NextDouble() * Sim.g.mapSize)));
             }
-            selParticles = new List<int>();
-            Sim.timeSim = 0;
-            Sim.initCurVis(0);
-            DX.timeNow = Environment.TickCount;
-            DX.timeStart = DX.timeNow;
             /*str = new System.IO.StreamReader(appPath + modPath + "scn.json").ReadToEnd();
             jsonObj = (System.Collections.Hashtable)Procurios.Public.JSON.JsonDecode(str, ref b);
             if (!b)
@@ -157,6 +135,35 @@ namespace Decoherence
                     Sim.g.key = (long)en.Value;
                 }
             }*/
+            selParticles = new List<int>();
+            // set up visibility tiles
+            Sim.particleVis = new List<int>[Sim.tileLen(), Sim.tileLen()];
+            Sim.matterVis = new List<long>[Sim.g.nMatterT, Sim.tileLen(), Sim.tileLen()];
+            for (i = 0; i < Sim.tileLen(); i++)
+            {
+                for (i2 = 0; i2 < Sim.tileLen(); i2++)
+                {
+                    Sim.particleVis[i, i2] = new List<int>();
+                    for (i3 = 0; i3 < Sim.g.nMatterT; i3++)
+                    {
+                        Sim.matterVis[i3, i, i2] = new List<long>();
+                    }
+                }
+            }
+            tlTile.primitive = PrimitiveType.TriangleList;
+            tlTile.setNPoly(0);
+            tlTile.nV[0] = Sim.tileLen() * Sim.tileLen() * 2;
+            tlTile.poly[0].v = new DX.TLVertex[tlTile.nV[0] * 3];
+            for (i = 0; i < tlTile.poly[0].v.Length; i++)
+            {
+                tlTile.poly[0].v[i].rhw = 1;
+                tlTile.poly[0].v[i].z = 0;
+            }
+            // start game
+            Sim.timeSim = 0;
+            Sim.initVis(0, true);
+            DX.timeNow = Environment.TickCount;
+            DX.timeStart = DX.timeNow;
             runMode = 1;
             gameLoop();
             this.Close();
@@ -311,7 +318,7 @@ namespace Decoherence
                     tlTile.poly[0].v[i + 4].y = vec2.Y;
                     tlTile.poly[0].v[i + 5].x = vec2.X;
                     tlTile.poly[0].v[i + 5].y = vec2.Y;
-                    if (Sim.matterCurVis(selMatter, tX, tY))
+                    if (Sim.matterVisWhen(selMatter, tX, tY, DX.timeNow - DX.timeStart))
                     {
                         col = Sim.g.visCol.ToArgb();
                     }
@@ -356,7 +363,7 @@ namespace Decoherence
             {
                 i2 = Sim.p[i].type * Sim.g.nParticleT + Sim.p[i].matter;
                 fpVec = Sim.p[i].calcPos(DX.timeNow - DX.timeStart);
-                if (selMatter != Sim.p[i].matter && !Sim.matterCurVis(selMatter, (int)(fpVec.x >> FP.Precision), (int)(fpVec.y >> FP.Precision))) continue;
+                if (selMatter != Sim.p[i].matter && !Sim.matterVisWhen(selMatter, (int)(fpVec.x >> FP.Precision), (int)(fpVec.y >> FP.Precision), DX.timeNow - DX.timeStart)) continue;
                 if (selParticles.Contains(i))
                 {
                     imgParticle[i2].color = -1;
