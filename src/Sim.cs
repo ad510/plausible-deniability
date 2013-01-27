@@ -203,14 +203,21 @@ namespace Decoherence
             }
             for (i = 0; i < nParticles; i++)
             {
-                p[i].pos = p[i].calcPos(time);
-                for (tX = Math.Max(0, (int)((p[i].pos.x >> FP.Precision) - (g.particleT[p[i].type].visRadius >> FP.Precision))); tX <= Math.Min(tileLen() - 1, (int)((p[i].pos.x >> FP.Precision) + (g.particleT[p[i].type].visRadius >> FP.Precision))); tX++)
+                initVis(i, time, initMatterVis);
+            }
+        }
+
+        public static void initVis(int particle, long time, bool initMatterVis)
+        {
+            FP.Vector pos;
+            int tX, tY;
+            pos = p[particle].calcPos(time);
+            for (tX = Math.Max(0, (int)((pos.x >> FP.Precision) - (g.particleT[p[particle].type].visRadius >> FP.Precision))); tX <= Math.Min(tileLen() - 1, (int)((pos.x >> FP.Precision) + (g.particleT[p[particle].type].visRadius >> FP.Precision))); tX++)
+            {
+                for (tY = Math.Max(0, (int)((pos.y >> FP.Precision) - (g.particleT[p[particle].type].visRadius >> FP.Precision))); tY <= Math.Min(tileLen() - 1, (int)((pos.y >> FP.Precision) + (g.particleT[p[particle].type].visRadius >> FP.Precision))); tY++)
                 {
-                    for (tY = Math.Max(0, (int)((p[i].pos.y >> FP.Precision) - (g.particleT[p[i].type].visRadius >> FP.Precision))); tY <= Math.Min(tileLen() - 1, (int)((p[i].pos.y >> FP.Precision) + (g.particleT[p[i].type].visRadius >> FP.Precision))); tY++)
-                    {
-                        particleVis[tX, tY].Add(i);
-                        if (initMatterVis && matterVis[p[i].matter, tX, tY].Count == 0) matterVis[p[i].matter, tX, tY].Add(time);
-                    }
+                    particleVis[tX, tY].Add(particle);
+                    if (initMatterVis && matterVis[p[particle].matter, tX, tY].Count % 2 == 0) matterVis[p[particle].matter, tX, tY].Add(time);
                 }
             }
         }
@@ -230,17 +237,32 @@ namespace Decoherence
             }
             timeSimLast = timeSim;
             timeSim = curTime;
+            // tiles visible at previous latest live move may no longer be visible
+            for (i = 0; i < nParticles; i++)
+            {
+                if (p[i].mLive < p[i].n - 1)
+                {
+                    // TODO: optimize this
+                    for (tX = 0; tX < tileLen(); tX++)
+                    {
+                        for (tY = 0; tY < tileLen(); tY++)
+                        {
+                            if (particleVis[tX, tY].Contains(i)) visRemove(i, tX, tY, timeSimLast);
+                        }
+                    }
+                    initVis(i, timeSimLast, true);
+                }
+            }
             // check if particles moved between tiles
             for (i = 0; i < nParticles; i++)
             {
-                time = (p[i].mLive < p[i].n - 1) ? p[i].m[p[i].mLive + 1].tmStart : timeSimLast;
                 p[i].mLive = p[i].n - 1; // TODO: set this the moment it goes live?
-                moveLast = Math.Max(0, p[i].moveGet(time));
+                moveLast = Math.Max(0, p[i].moveGet(timeSimLast));
                 move = p[i].moveGet(timeSim);
                 if (move < 0) continue;
                 for (i2 = moveLast; i2 <= move; i2++)
                 {
-                    posLast = (i2 == moveLast) ? p[i].m[i2].calcPos(time) : p[i].m[i2].vecStart;
+                    posLast = (i2 == moveLast) ? p[i].m[i2].calcPos(timeSimLast) : p[i].m[i2].vecStart;
                     pos = (i2 == move) ? p[i].m[i2].calcPos(timeSim) : p[i].m[i2 + 1].vecStart;
                     if (pos != posLast)
                     {
@@ -271,14 +293,13 @@ namespace Decoherence
             {
                 id = item.Value.particle;
                 radius = (int)(g.particleT[p[id].type].visRadius >> FP.Precision);
-                time = Math.Max(timeSimLast, item.Key);
                 if (item.Value.dir == 0) // +x
                 {
                     p[id].tX = item.Value.tX;
                     for (tY = Math.Max(0, p[id].tY - radius); tY <= Math.Min(tileLen() - 1, p[id].tY + radius); tY++)
                     {
-                        visAdd(id, p[id].tX + radius, tY, time);
-                        visRemove(id, p[id].tX - radius - 1, tY, time);
+                        visAdd(id, p[id].tX + radius, tY, item.Key);
+                        visRemove(id, p[id].tX - radius - 1, tY, item.Key);
                     }
                 }
                 else if (item.Value.dir == 1) // +y
@@ -286,8 +307,8 @@ namespace Decoherence
                     p[id].tY = item.Value.tY;
                     for (tX = Math.Max(0, p[id].tX - radius); tX <= Math.Min(tileLen() - 1, p[id].tX + radius); tX++)
                     {
-                        visAdd(id, tX, p[id].tY + radius, time);
-                        visRemove(id, tX, p[id].tY - radius - 1, time);
+                        visAdd(id, tX, p[id].tY + radius, item.Key);
+                        visRemove(id, tX, p[id].tY - radius - 1, item.Key);
                     }
                 }
                 else if (item.Value.dir == 2) // -x
@@ -295,8 +316,8 @@ namespace Decoherence
                     p[id].tX = item.Value.tX;
                     for (tY = Math.Max(0, p[id].tY - radius); tY <= Math.Min(tileLen() - 1, p[id].tY + radius); tY++)
                     {
-                        visAdd(id, p[id].tX - radius, tY, time);
-                        visRemove(id, p[id].tX + radius + 1, tY, time);
+                        visAdd(id, p[id].tX - radius, tY, item.Key);
+                        visRemove(id, p[id].tX + radius + 1, tY, item.Key);
                     }
                 }
                 else if (item.Value.dir == 3) // -y
@@ -304,8 +325,8 @@ namespace Decoherence
                     p[id].tY = item.Value.tY;
                     for (tX = Math.Max(0, p[id].tX - radius); tX <= Math.Min(tileLen() - 1, p[id].tX + radius); tX++)
                     {
-                        visAdd(id, tX, p[id].tY - radius, time);
-                        visRemove(id, tX, p[id].tY + radius + 1, time);
+                        visAdd(id, tX, p[id].tY - radius, item.Key);
+                        visRemove(id, tX, p[id].tY + radius + 1, item.Key);
                     }
                 }
             }
