@@ -412,7 +412,7 @@ namespace Decoherence
                 i2 = Sim.p[i].type * Sim.g.nParticleT + Sim.p[i].matter;
                 fpVec = Sim.p[i].calcPos(DX.timeNow - DX.timeStart);
                 if (selMatter != Sim.p[i].matter && !Sim.matterVisWhen(selMatter, (int)(fpVec.x >> FP.Precision), (int)(fpVec.y >> FP.Precision), DX.timeNow - DX.timeStart)) continue;
-                if (Sim.p[i].n > Sim.p[i].mLive + 1)
+                if (Sim.p[i].n > Sim.p[i].mLive + 1 && DX.timeNow - DX.timeStart >= Sim.p[i].m[Sim.p[i].mLive + 1].tmStart)
                 {
                     imgParticle[i2].color = new Color4(0.5f, 1, 1, 1).ToArgb(); // TODO: make transparency amount customizable
                 }
