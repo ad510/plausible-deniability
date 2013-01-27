@@ -1,4 +1,6 @@
 todo:
+readme
+upload to jam website & update description
 circular visibility
 initialize tiles
 pathfinding
