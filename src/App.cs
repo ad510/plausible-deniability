@@ -138,7 +138,8 @@ namespace Decoherence
                 Sim.p[i] = new Sim.Particle(0, i / (Sim.nParticles / 2), new FP.Vector((long)(rand.NextDouble() * Sim.g.mapSize), (long)(rand.NextDouble() * Sim.g.mapSize)));
             }
             selParticles = new List<int>();
-            Sim.timeSim = -1;
+            Sim.timeSim = 0;
+            Sim.initCurVis(0);
             DX.timeNow = Environment.TickCount;
             DX.timeStart = DX.timeNow;
             /*str = new System.IO.StreamReader(appPath + modPath + "scn.json").ReadToEnd();
@@ -235,7 +236,7 @@ namespace Decoherence
             while (runMode == 1)
             {
                 DX.doEventsX();
-                Sim.initCurVis(DX.timeNow - DX.timeStart);
+                Sim.update(DX.timeNow - DX.timeStart);
                 inputHandle();
                 draw();
             }
