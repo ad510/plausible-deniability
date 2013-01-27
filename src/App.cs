@@ -225,6 +225,7 @@ namespace Decoherence
             int mousePrevState = DX.mouseState[button];
             FP.Vector mouseSimPos = drawToSimPos(new Vector3(e.X, e.Y, 0));
             FP.Vector goal;
+            Vector3 curPos;
             long spacing;
             int i;
             DX.mouseUp(button, e.X, e.Y);
@@ -233,10 +234,24 @@ namespace Decoherence
                 if (!DX.diKeyState.IsPressed(Key.LeftControl) && !DX.diKeyState.IsPressed(Key.LeftShift)) selParticles.Clear();
                 for (i = 0; i < Sim.nParticles; i++)
                 {
-                    if (selMatter == Sim.p[i].matter && (simToDrawPos(Sim.p[i].calcPos(DX.timeNow - DX.timeStart)) - new Vector3(DX.mouseX, DX.mouseY, 0)).LengthSquared() <= Math.Pow(Sim.g.particleT[Sim.p[i].type].selRadius, 2))
+                    if (selMatter == Sim.p[i].matter)
                     {
-                        selParticles.Add(i);
-                        break;
+                        curPos = simToDrawPos(Sim.p[i].calcPos(DX.timeNow - DX.timeStart));
+                        if (curPos.X + Sim.g.particleT[Sim.p[i].type].selRadius >= Math.Min(DX.mouseDX[1], DX.mouseX)
+                            && curPos.X - Sim.g.particleT[Sim.p[i].type].selRadius <= Math.Max(DX.mouseDX[1], DX.mouseX)
+                            && curPos.Y + Sim.g.particleT[Sim.p[i].type].selRadius >= Math.Min(DX.mouseDY[1], DX.mouseY)
+                            && curPos.Y - Sim.g.particleT[Sim.p[i].type].selRadius <= Math.Max(DX.mouseDY[1], DX.mouseY))
+                        {
+                            if (selParticles.Contains(i))
+                            {
+                                selParticles.Remove(i);
+                            }
+                            else
+                            {
+                                selParticles.Add(i);
+                            }
+                            if (SelBoxMin > Math.Pow(DX.mouseDX[1] - DX.mouseX, 2) + Math.Pow(DX.mouseDY[1] - DX.mouseY, 2)) break;
+                        }
                     }
                 }
             }
@@ -440,7 +455,7 @@ namespace Decoherence
                 }
             }
             // select box (if needed)
-            /*if (DX.mouseState[1] > 0 && SelBoxMin <= Math.Pow(DX.mouseDX[1] - DX.mouseX, 2) + Math.Pow(DX.mouseDY[1] - DX.mouseY, 2))
+            if (DX.mouseState[1] > 0 && SelBoxMin <= Math.Pow(DX.mouseDX[1] - DX.mouseX, 2) + Math.Pow(DX.mouseDY[1] - DX.mouseY, 2))
             {
                 DX.d3dDevice.SetTexture(0, null);
                 tlPoly.primitive = PrimitiveType.LineStrip;
@@ -463,7 +478,7 @@ namespace Decoherence
                 tlPoly.poly[0].v[3].y = DX.mouseY;
                 tlPoly.poly[0].v[4] = tlPoly.poly[0].v[0];
                 tlPoly.draw();
-            }*/
+            }
             // text
             DX.textDraw(fnt, new Color4(1, 1, 1, 1), (DX.timeNow - DX.timeStart >= Sim.timeSim) ? "LIVE" : "TIME TRAVELING", 0, 0);
             if (paused) DX.textDraw(fnt, new Color4(1, 1, 1, 1), "PAUSED", 0, (int)(DX.sy * FntSize));

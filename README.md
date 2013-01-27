@@ -23,8 +23,7 @@ Controls
 --------
 - esc = exit
 - arrow keys/move mouse to edge of screen = move view
-- left click = select particles
-- ctrl + left click = select multiple particles
+- (ctrl/shift) left click/drag = select particles
 - right click = move selected particles in tight formation
 - ctrl + right click = move selected particles in loose formation
 - spacebar = change selected player
