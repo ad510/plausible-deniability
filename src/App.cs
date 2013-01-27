@@ -225,6 +225,7 @@ namespace Decoherence
             int mousePrevState = DX.mouseState[button];
             FP.Vector mouseSimPos = drawToSimPos(new Vector3(e.X, e.Y, 0));
             FP.Vector goal;
+            long spacing;
             int i;
             DX.mouseUp(button, e.X, e.Y);
             if (button == 1) // select
@@ -250,7 +251,15 @@ namespace Decoherence
                             && Sim.coherent(selMatter, (int)(Sim.p[id].calcPos(DX.timeNow - DX.timeStart).x >> FP.Precision), (int)(Sim.p[id].calcPos(DX.timeNow - DX.timeStart).y >> FP.Precision), DX.timeNow - DX.timeStart)))
                         {
                             // TODO: instead of using maxVisRadius, should use smallest radius of selected particles
-                            goal = mouseSimPos + new FP.Vector((i % (int)Math.Ceiling(Math.Sqrt(selParticles.Count))) * Sim.maxVisRadius * 2, (long)Math.Floor(i / Math.Ceiling(Math.Sqrt(selParticles.Count))) * Sim.maxVisRadius * 2);
+                            if (DX.diKeyState.IsPressed(Key.LeftControl))
+                            {
+                                spacing = Sim.maxVisRadius * 2;
+                            }
+                            else
+                            {
+                                spacing = 1 << FP.Precision;
+                            }
+                            goal = mouseSimPos + new FP.Vector((i % (int)Math.Ceiling(Math.Sqrt(selParticles.Count))) * spacing, (long)Math.Floor(i / Math.Ceiling(Math.Sqrt(selParticles.Count))) * spacing);
                             if (goal.x < 0) goal.x = 0;
                             if (goal.x > Sim.g.mapSize) goal.x = Sim.g.mapSize;
                             if (goal.y < 0) goal.y = 0;
