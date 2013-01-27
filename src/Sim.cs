@@ -26,10 +26,10 @@ namespace Decoherence
         {
             public string name;
             public string imgPath;
-            public string sndSelect;
+            /*public string sndSelect;
             public string sndMove;
             public string sndAnniCmd;
-            public string sndAnnihilate;
+            public string sndAnnihilate;*/
             public long speed;
             public long visRadius;
             public double selRadius;
@@ -175,6 +175,7 @@ namespace Decoherence
         // helper variables
         public static List<int>[,] particleVis;
         public static List<long>[,,] matterVis;
+        public static long maxVisRadius;
         public static long timeSim;
         public static long timeSimLast;
 
@@ -339,6 +340,37 @@ namespace Decoherence
                 if (time >= matterVis[matter, tX, tY][i]) return i % 2 == 0;
             }
             return false;
+        }
+
+        // returns if it is impossible for other matter's particles to see this location
+        // this isn't really the definition of coherence, but it's close enough for me
+        public static bool coherent(int matter, int tileX, int tileY, long time)
+        {
+            /* 
+                for (tX = Math.Max(0, (int)((p[i].pos.x >> FP.Precision) - (g.particleT[p[i].type].visRadius >> FP.Precision))); tX <= Math.Min(tileLen() - 1, (int)((p[i].pos.x >> FP.Precision) + (g.particleT[p[i].type].visRadius >> FP.Precision))); tX++)
+                {
+                    for (tY = Math.Max(0, (int)((p[i].pos.y >> FP.Precision) - (g.particleT[p[i].type].visRadius >> FP.Precision))); tY <= Math.Min(tileLen() - 1, (int)((p[i].pos.y >> FP.Precision) + (g.particleT[p[i].type].visRadius >> FP.Precision))); tY++)
+                    {
+                        particleVis[tX, tY].Add(i);
+                        if (initMatterVis && matterVis[p[i].matter, tX, tY].Count == 0) matterVis[p[i].matter, tX, tY].Add(time);
+                    }
+                }
+             */
+            int i, tX, tY;
+            // check that matter type can see all nearby tiles
+            for (tX = Math.Max(0, tileX - (int)(maxVisRadius >> FP.Precision)); tX <= Math.Min(tileLen() - 1, tileX + (int)(maxVisRadius >> FP.Precision)); tX++)
+            {
+                for (tY = Math.Max(0, tileY - (int)(maxVisRadius >> FP.Precision)); tY <= Math.Min(tileLen() - 1, tileY + (int)(maxVisRadius >> FP.Precision)); tY++)
+                {
+                    if (!matterVisWhen(matter, tX, tY, time)) return false;
+                }
+            }
+            // check that no particles of different matter can see this tile
+            for (i = 0; i < g.nMatterT; i++)
+            {
+                if (i != matter && matterVisWhen(i, tileX, tileY, time)) return false;
+            }
+            return true;
         }
 
         public static int tileLen() // TODO: use particleVis.GetUpperBound instead of this function

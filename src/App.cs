@@ -80,7 +80,7 @@ namespace Decoherence
             Sim.g.camPos = new FP.Vector(Sim.g.mapSize / 2, Sim.g.mapSize / 2, 0);
             Sim.g.drawScl = 0.02f;
             Sim.g.drawSclMin = 0.002f;
-            Sim.g.drawSclMin = 0.2f;
+            Sim.g.drawSclMax = 0.2f;
             Sim.g.backCol = new Color4(0, 0, 0);
             Sim.g.borderCol = new Color4(1, 0.5f, 0);
             Sim.g.noVisCol = new Color4(0, 0, 0);
@@ -104,9 +104,10 @@ namespace Decoherence
             Sim.g.particleT = new Sim.ParticleType[Sim.g.nParticleT];
             Sim.g.particleT[0].name = "Electron";
             Sim.g.particleT[0].imgPath = "test.png";
-            Sim.g.particleT[0].speed = (5 << FP.Precision) / 1000;
+            Sim.g.particleT[0].speed = (3 << FP.Precision) / 1000;
             Sim.g.particleT[0].visRadius = 3 << FP.Precision;
             Sim.g.particleT[0].selRadius = 16;
+            Sim.maxVisRadius = Sim.g.particleT[0].visRadius;
             imgParticle = new DX.Img2D[Sim.g.nParticleT * Sim.g.nMatterT];
             for (i = 0; i < Sim.g.nParticleT; i++)
             {
@@ -342,7 +343,14 @@ namespace Decoherence
                     tlTile.poly[0].v[i + 5].y = vec2.Y;
                     if (Sim.matterVisWhen(selMatter, tX, tY, DX.timeNow - DX.timeStart))
                     {
-                        col = Sim.g.visCol.ToArgb();
+                        if (Sim.coherent(selMatter, tX, tY, DX.timeNow - DX.timeStart))
+                        {
+                            col = Sim.g.coherentCol.ToArgb();
+                        }
+                        else
+                        {
+                            col = Sim.g.visCol.ToArgb();
+                        }
                     }
                     else
                     {
