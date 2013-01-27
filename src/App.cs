@@ -32,6 +32,7 @@ namespace Decoherence
         SlimDX.Direct3D9.Device d3dOriginalDevice;
         int runMode;
         float winDiag;
+        DX.Img2D imgSelect;
         DX.Img2D[] imgParticle;
         DX.Poly2D tlTile;
         DX.Poly2D tlPoly;
@@ -74,6 +75,11 @@ namespace Decoherence
             }
             // fonts (TODO: make font, size, and color customizable by mod)
             fnt = new SlimDX.Direct3D9.Font(DX.d3dDevice, new System.Drawing.Font("Arial", DX.sy * FntSize, GraphicsUnit.Pixel));
+            // selected particle image (TODO: make this customizable by mod)
+            imgSelect.init();
+            if (!imgSelect.open(appPath + modPath + "select.png", Color.White.ToArgb())) MessageBox.Show("Warning: failed to load " + modPath + "select.png");
+            imgSelect.rotCenter.X = imgSelect.srcWidth / 2;
+            imgSelect.rotCenter.Y = imgSelect.srcHeight / 2;
             // load scn (hard code for now)
             Sim.g.mapSize = 40 << FP.Precision;
             Sim.g.camSpeed = (10 << FP.Precision) / 1000;
@@ -388,23 +394,19 @@ namespace Decoherence
             tlPoly.draw();
             // particles
             // TODO: scale particle images
-            // TODO: setting alpha is temporary hack
             for (i = 0; i < Sim.nParticles; i++)
             {
                 if (DX.timeNow - DX.timeStart < Sim.p[i].m[0].tmStart) continue;
                 i2 = Sim.p[i].type * Sim.g.nParticleT + Sim.p[i].matter;
                 fpVec = Sim.p[i].calcPos(DX.timeNow - DX.timeStart);
                 if (selMatter != Sim.p[i].matter && !Sim.matterVisWhen(selMatter, (int)(fpVec.x >> FP.Precision), (int)(fpVec.y >> FP.Precision), DX.timeNow - DX.timeStart)) continue;
-                if (selParticles.Contains(i))
-                {
-                    imgParticle[i2].color = -1;
-                }
-                else
-                {
-                    imgParticle[i2].color = new Color4(0.5f, 1, 1, 1).ToArgb();
-                }
                 imgParticle[i2].pos = simToDrawPos(fpVec);
                 imgParticle[i2].draw();
+                if (selParticles.Contains(i))
+                {
+                    imgSelect.pos = imgParticle[i2].pos;
+                    imgSelect.draw();
+                }
             }
             // select box (if needed)
             /*if (DX.mouseState[1] > 0 && SelBoxMin <= Math.Pow(DX.mouseDX[1] - DX.mouseX, 2) + Math.Pow(DX.mouseDY[1] - DX.mouseY, 2))
