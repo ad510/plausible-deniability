@@ -328,7 +328,7 @@ namespace Decoherence
             }
             // update earliest times it's safe for each particle to time travel
             // TODO: choose check state times more intelligently
-            // TODO: actually safe to time travel at earlier times, as long as is at same place when decoheres
+            // TODO: actually safe to time travel at earlier times, as long as particle of same type is at same place when decoheres
             for (i = 0; i < nParticles; i++)
             {
                 if ((timeSimLast < p[i].m[0].tmStart || !coherent(p[i].matter, (int)(p[i].calcPos(timeSimLast).x >> FP.Precision), (int)(p[i].calcPos(timeSimLast).y >> FP.Precision), timeSimLast))

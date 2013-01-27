@@ -80,7 +80,7 @@ namespace Decoherence
             if (!imgSelect.open(appPath + modPath + "select.png", Color.White.ToArgb())) MessageBox.Show("Warning: failed to load " + modPath + "select.png");
             imgSelect.rotCenter.X = imgSelect.srcWidth / 2;
             imgSelect.rotCenter.Y = imgSelect.srcHeight / 2;
-            // load scn (hard code for now)
+            // load scn (TODO: load from file in the future)
             Sim.g.mapSize = 40 << FP.Precision;
             Sim.g.camSpeed = (10 << FP.Precision) / 1000;
             Sim.g.camPos = new FP.Vector(Sim.g.mapSize / 2, Sim.g.mapSize / 2, 0);
@@ -249,6 +249,7 @@ namespace Decoherence
                         if (DX.timeNow - DX.timeStart >= Sim.timeSim || (DX.timeNow - DX.timeStart >= Sim.p[id].tmCohere
                             && Sim.coherent(selMatter, (int)(Sim.p[id].calcPos(DX.timeNow - DX.timeStart).x >> FP.Precision), (int)(Sim.p[id].calcPos(DX.timeNow - DX.timeStart).y >> FP.Precision), DX.timeNow - DX.timeStart)))
                         {
+                            // TODO: instead of using maxVisRadius, should use smallest radius of selected particles
                             goal = mouseSimPos + new FP.Vector((i % (int)Math.Ceiling(Math.Sqrt(selParticles.Count))) * Sim.maxVisRadius * 2, (long)Math.Floor(i / Math.Ceiling(Math.Sqrt(selParticles.Count))) * Sim.maxVisRadius * 2);
                             if (goal.x < 0) goal.x = 0;
                             if (goal.x > Sim.g.mapSize) goal.x = Sim.g.mapSize;
@@ -284,6 +285,7 @@ namespace Decoherence
             {
                 DX.timeStart += 2 * (DX.timeNow - DX.timeLast);
             }
+            // TODO: cap time difference to a max amount
         }
 
         private void inputHandle()
