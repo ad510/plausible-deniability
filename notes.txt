@@ -1,10 +1,3 @@
-global game jam todo:
-rename readme to .txt
-Full Disclosure: This game has nothing to do with hearts. Despite that, I hearted the game idea so much I decided to make it anyway.
-remove json class
-CC licensing
-upload to jam website & update description
-
 todo:
 add link & description to andrewd.50webs.com
 circular visibility
