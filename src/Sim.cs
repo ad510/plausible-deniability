@@ -48,7 +48,7 @@ namespace Decoherence
             public Color4 noVisCol;
             public Color4 visCol;
             public Color4 coherentCol;
-            public string music;
+            //public string music;
             public int nMatterT;
             public int nParticleT;
             public MatterType[] matterT;

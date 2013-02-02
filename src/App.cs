@@ -50,9 +50,10 @@ namespace Decoherence
         private void App_Load(object sender, EventArgs e)
         {
             int i, i2, i3;
-            /*System.Collections.Hashtable jsonObj;
+            System.Collections.Hashtable json;
+            System.Collections.ArrayList jsonA;
             string str;
-            bool b = false;*/
+            bool b = false;
             appPath = Application.ExecutablePath.Substring(0, Application.ExecutablePath.LastIndexOf("bin\\"));
             rand = new Random();
             if (!DX.init(this.Handle, true))
@@ -80,40 +81,59 @@ namespace Decoherence
             if (!imgSelect.open(appPath + modPath + "select.png", Color.White.ToArgb())) MessageBox.Show("Warning: failed to load " + modPath + "select.png");
             imgSelect.rotCenter.X = imgSelect.srcWidth / 2;
             imgSelect.rotCenter.Y = imgSelect.srcHeight / 2;
-            // load scn (TODO: load from file in the future)
-            Sim.g.mapSize = 40 << FP.Precision;
-            Sim.g.camSpeed = (10 << FP.Precision) / 1000;
-            Sim.g.camPos = new FP.Vector(Sim.g.mapSize / 2, Sim.g.mapSize / 2, 0);
-            Sim.g.drawScl = 0.02f;
-            Sim.g.drawSclMin = 0.002f;
-            Sim.g.drawSclMax = 0.2f;
-            Sim.g.backCol = new Color4(0, 0, 0);
-            Sim.g.borderCol = new Color4(1, 0.5f, 0);
-            Sim.g.noVisCol = new Color4(0, 0, 0);
-            Sim.g.visCol = new Color4(0.3f, 0.3f, 0.3f);
-            Sim.g.coherentCol = new Color4(1, 1, 0);
-            Sim.g.nMatterT = 2;
-            Sim.g.matterT = new Sim.MatterType[Sim.g.nMatterT];
-            Sim.g.matterT[0].name = "matter";
-            Sim.g.matterT[0].isPlayer = true;
-            Sim.g.matterT[0].player = 1;
-            Sim.g.matterT[0].annihilates = new bool[Sim.g.nMatterT];
-            Sim.g.matterT[0].annihilates[0] = false;
-            Sim.g.matterT[0].annihilates[1] = true;
-            Sim.g.matterT[1].name = "antimatter";
-            Sim.g.matterT[1].isPlayer = true;
-            Sim.g.matterT[1].player = -1;
-            Sim.g.matterT[1].annihilates = new bool[Sim.g.nMatterT];
-            Sim.g.matterT[1].annihilates[0] = true;
-            Sim.g.matterT[1].annihilates[1] = false;
-            Sim.g.nParticleT = 1;
-            Sim.g.particleT = new Sim.ParticleType[Sim.g.nParticleT];
-            Sim.g.particleT[0].name = "Electron";
-            Sim.g.particleT[0].imgPath = "test.png";
-            Sim.g.particleT[0].speed = (3 << FP.Precision) / 1000;
-            Sim.g.particleT[0].visRadius = 3 << FP.Precision;
-            Sim.g.particleT[0].selRadius = 16;
-            Sim.maxVisRadius = Sim.g.particleT[0].visRadius;
+            // load scenario from file
+            // if this ever supports multiplayer games, host should load file & send data to other players, otherwise json double parsing may not match
+            str = new System.IO.StreamReader(appPath + modPath + "scn.json").ReadToEnd();
+            json = (System.Collections.Hashtable)Procurios.Public.JSON.JsonDecode(str, ref b);
+            if (!b)
+            {
+                MessageBox.Show("Scenario failed to load" + ErrStr);
+                this.Close();
+                return;
+            }
+            Sim.g.mapSize = FP.fromDouble(jsonDouble(json, "mapSize"));
+            Sim.g.camSpeed = FP.fromDouble(jsonDouble(json, "camSpeed"));
+            Sim.g.camPos = jsonFPVector(json, "camPos", new FP.Vector(Sim.g.mapSize / 2, Sim.g.mapSize / 2));
+            Sim.g.drawScl = (float)jsonDouble(json, "drawScl");
+            Sim.g.drawSclMin = (float)jsonDouble(json, "drawSclMin");
+            Sim.g.drawSclMax = (float)jsonDouble(json, "drawSclMax");
+            Sim.g.backCol = jsonColor4(json, "backCol");
+            Sim.g.borderCol = jsonColor4(json, "borderCol");
+            Sim.g.noVisCol = jsonColor4(json, "noVisCol");
+            Sim.g.visCol = jsonColor4(json, "visCol");
+            Sim.g.coherentCol = jsonColor4(json, "coherentCol");
+            //Sim.g.music = jsonString(json, "music");
+            jsonA = jsonArray(json, "matterTypes");
+            if (jsonA != null)
+            {
+                foreach (System.Collections.Hashtable jsonO in jsonA)
+                {
+                    Sim.MatterType matterT = new Sim.MatterType();
+                    matterT.name = jsonString(jsonO, "name");
+                    matterT.isPlayer = jsonBool(jsonO, "isPlayer");
+                    matterT.player = (short)jsonDouble(jsonO, "player");
+                    Sim.g.nMatterT++;
+                    Array.Resize(ref Sim.g.matterT, Sim.g.nMatterT);
+                    Sim.g.matterT[Sim.g.nMatterT - 1] = matterT;
+                }
+            }
+            jsonA = jsonArray(json, "particleTypes");
+            if (jsonA != null)
+            {
+                foreach (System.Collections.Hashtable jsonO in jsonA)
+                {
+                    Sim.ParticleType particleT = new Sim.ParticleType();
+                    particleT.name = jsonString(jsonO, "name");
+                    particleT.imgPath = jsonString(jsonO, "imgPath");
+                    particleT.speed = FP.fromDouble(jsonDouble(jsonO, "speed"));
+                    particleT.visRadius = FP.fromDouble(jsonDouble(jsonO, "visRadius"));
+                    particleT.selRadius = jsonDouble(jsonO, "selRadius");
+                    if (particleT.visRadius > Sim.maxVisRadius) Sim.maxVisRadius = particleT.visRadius;
+                    Sim.g.nParticleT++;
+                    Array.Resize(ref Sim.g.particleT, Sim.g.nParticleT);
+                    Sim.g.particleT[Sim.g.nParticleT - 1] = particleT;
+                }
+            }
             imgParticle = new DX.Img2D[Sim.g.nParticleT * Sim.g.nMatterT];
             for (i = 0; i < Sim.g.nParticleT; i++)
             {
@@ -126,27 +146,13 @@ namespace Decoherence
                     imgParticle[i3].rotCenter.Y = imgParticle[i3].srcHeight / 2;
                 }
             }
+            // TODO: load particles from file too
             Sim.nParticles = 20;
             Sim.p = new Sim.Particle[Sim.nParticles];
             for (i = 0; i < Sim.nParticles; i++)
             {
                 Sim.p[i] = new Sim.Particle(0, i / (Sim.nParticles / 2), 0, new FP.Vector((long)(rand.NextDouble() * Sim.g.mapSize), (long)(rand.NextDouble() * Sim.g.mapSize)));
             }
-            /*str = new System.IO.StreamReader(appPath + modPath + "scn.json").ReadToEnd();
-            jsonObj = (System.Collections.Hashtable)Procurios.Public.JSON.JsonDecode(str, ref b);
-            if (!b)
-            {
-                MessageBox.Show("Scenario failed to load" + ErrStr);
-                this.Close();
-                return;
-            }
-            foreach (System.Collections.DictionaryEntry en in jsonObj)
-            {
-                if ((string)en.Key == "key")
-                {
-                    Sim.g.key = (long)en.Value;
-                }
-            }*/
             selParticles = new List<int>();
             // set up visibility tiles
             Sim.particleVis = new List<int>[Sim.tileLen(), Sim.tileLen()];
@@ -455,6 +461,7 @@ namespace Decoherence
                 }
             }
             // select box (if needed)
+            // TODO: make color customizable by mod?
             if (DX.mouseState[1] > 0 && SelBoxMin <= Math.Pow(DX.mouseDX[1] - DX.mouseX, 2) + Math.Pow(DX.mouseDY[1] - DX.mouseY, 2))
             {
                 DX.d3dDevice.SetTexture(0, null);
@@ -493,6 +500,59 @@ namespace Decoherence
             {
                 runMode = 0;
             }
+        }
+
+        private string jsonString(System.Collections.Hashtable json, string key, string defaultVal = "")
+        {
+            if (json.ContainsKey(key) && json[key] is string) return (string)json[key];
+            return defaultVal;
+        }
+
+        private double jsonDouble(System.Collections.Hashtable json, string key, double defaultVal = 0)
+        {
+            if (json.ContainsKey(key) && json[key] is double) return (double)json[key];
+            return defaultVal;
+        }
+
+        private bool jsonBool(System.Collections.Hashtable json, string key, bool defaultVal = false)
+        {
+            if (json.ContainsKey(key) && json[key] is bool) return (bool)json[key];
+            return defaultVal;
+        }
+
+        private System.Collections.Hashtable jsonObject(System.Collections.Hashtable json, string key)
+        {
+            if (json.ContainsKey(key) && json[key] is System.Collections.Hashtable) return (System.Collections.Hashtable)json[key];
+            return null;
+        }
+
+        private System.Collections.ArrayList jsonArray(System.Collections.Hashtable json, string key)
+        {
+            if (json.ContainsKey(key) && json[key] is System.Collections.ArrayList) return (System.Collections.ArrayList)json[key];
+            return null;
+        }
+
+        private FP.Vector jsonFPVector(System.Collections.Hashtable json, string key, FP.Vector defaultVal = new FP.Vector())
+        {
+            if (json.ContainsKey(key) && json[key] is System.Collections.Hashtable)
+            {
+                return new FP.Vector(FP.fromDouble(jsonDouble((System.Collections.Hashtable)json[key], "x", defaultVal.x)),
+                    FP.fromDouble(jsonDouble((System.Collections.Hashtable)json[key], "y", defaultVal.y)),
+                    FP.fromDouble(jsonDouble((System.Collections.Hashtable)json[key], "z", defaultVal.z)));
+            }
+            return defaultVal;
+        }
+
+        private Color4 jsonColor4(System.Collections.Hashtable json, string key)
+        {
+            if (json.ContainsKey(key) && json[key] is System.Collections.Hashtable)
+            {
+                return new Color4((float)jsonDouble((System.Collections.Hashtable)json[key], "a", 1),
+                    (float)jsonDouble((System.Collections.Hashtable)json[key], "r", 0),
+                    (float)jsonDouble((System.Collections.Hashtable)json[key], "g", 0),
+                    (float)jsonDouble((System.Collections.Hashtable)json[key], "b", 0));
+            }
+            return new Color4();
         }
 
         private float simToDrawScl(long coor)

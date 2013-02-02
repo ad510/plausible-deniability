@@ -1,0 +1,35 @@
+{
+  "mapSize": 40,
+  "camSpeed": 0.01,
+  "drawScl": 0.02,
+  "drawSclMin": 0.002,
+  "drawSclMax": 0.2,
+  "backCol": {"r": 0, "g": 0, "b": 0},
+  "borderCol": {"r": 1, "g": 0.5, "b": 0},
+  "noVisCol": {"r": 0, "g": 0, "b": 0},
+  "coherentCol": {"r": 1, "g": 1, "b": 0},
+  "music": "",
+  "matterTypes":
+  [
+    {
+      "name": "matter",
+      "isPlayer": true,
+      "player": 1
+    },
+    {
+      "name": "antimatter",
+      "isPlayer": true,
+      "player": -1
+    }
+  ],
+  "particleTypes":
+  [
+    {
+      "name": "electron",
+      "imgPath": "test.png",
+      "speed": 0.003,
+      "visRadius": 3,
+      "selRadius": 16
+    }
+  ]
+}
