@@ -81,27 +81,27 @@ namespace Decoherence
             if (!imgSelect.open(appPath + modPath + "select.png", Color.White.ToArgb())) MessageBox.Show("Warning: failed to load " + modPath + "select.png");
             imgSelect.rotCenter.X = imgSelect.srcWidth / 2;
             imgSelect.rotCenter.Y = imgSelect.srcHeight / 2;
-            // load scenario from file
+            // load universe from file
             // if this ever supports multiplayer games, host should load file & send data to other players, otherwise json double parsing may not match
-            str = new System.IO.StreamReader(appPath + modPath + "scn.json").ReadToEnd();
+            str = new System.IO.StreamReader(appPath + modPath + "univ.json").ReadToEnd();
             json = (System.Collections.Hashtable)Procurios.Public.JSON.JsonDecode(str, ref b);
             if (!b)
             {
-                MessageBox.Show("Scenario failed to load" + ErrStr);
+                MessageBox.Show("Universe failed to load" + ErrStr);
                 this.Close();
                 return;
             }
-            Sim.g.mapSize = FP.fromDouble(jsonDouble(json, "mapSize"));
-            Sim.g.camSpeed = FP.fromDouble(jsonDouble(json, "camSpeed"));
-            Sim.g.camPos = jsonFPVector(json, "camPos", new FP.Vector(Sim.g.mapSize / 2, Sim.g.mapSize / 2));
-            Sim.g.drawScl = (float)jsonDouble(json, "drawScl");
-            Sim.g.drawSclMin = (float)jsonDouble(json, "drawSclMin");
-            Sim.g.drawSclMax = (float)jsonDouble(json, "drawSclMax");
-            Sim.g.backCol = jsonColor4(json, "backCol");
-            Sim.g.borderCol = jsonColor4(json, "borderCol");
-            Sim.g.noVisCol = jsonColor4(json, "noVisCol");
-            Sim.g.visCol = jsonColor4(json, "visCol");
-            Sim.g.coherentCol = jsonColor4(json, "coherentCol");
+            Sim.u.mapSize = FP.fromDouble(jsonDouble(json, "mapSize"));
+            Sim.u.camSpeed = FP.fromDouble(jsonDouble(json, "camSpeed"));
+            Sim.u.camPos = jsonFPVector(json, "camPos", new FP.Vector(Sim.u.mapSize / 2, Sim.u.mapSize / 2));
+            Sim.u.drawScl = (float)jsonDouble(json, "drawScl");
+            Sim.u.drawSclMin = (float)jsonDouble(json, "drawSclMin");
+            Sim.u.drawSclMax = (float)jsonDouble(json, "drawSclMax");
+            Sim.u.backCol = jsonColor4(json, "backCol");
+            Sim.u.borderCol = jsonColor4(json, "borderCol");
+            Sim.u.noVisCol = jsonColor4(json, "noVisCol");
+            Sim.u.visCol = jsonColor4(json, "visCol");
+            Sim.u.coherentCol = jsonColor4(json, "coherentCol");
             //Sim.g.music = jsonString(json, "music");
             jsonA = jsonArray(json, "matterTypes");
             if (jsonA != null)
@@ -112,9 +112,9 @@ namespace Decoherence
                     matterT.name = jsonString(jsonO, "name");
                     matterT.isPlayer = jsonBool(jsonO, "isPlayer");
                     matterT.player = (short)jsonDouble(jsonO, "player");
-                    Sim.g.nMatterT++;
-                    Array.Resize(ref Sim.g.matterT, Sim.g.nMatterT);
-                    Sim.g.matterT[Sim.g.nMatterT - 1] = matterT;
+                    Sim.u.nMatterT++;
+                    Array.Resize(ref Sim.u.matterT, Sim.u.nMatterT);
+                    Sim.u.matterT[Sim.u.nMatterT - 1] = matterT;
                 }
             }
             jsonA = jsonArray(json, "particleTypes");
@@ -129,19 +129,19 @@ namespace Decoherence
                     particleT.visRadius = FP.fromDouble(jsonDouble(jsonO, "visRadius"));
                     particleT.selRadius = jsonDouble(jsonO, "selRadius");
                     if (particleT.visRadius > Sim.maxVisRadius) Sim.maxVisRadius = particleT.visRadius;
-                    Sim.g.nParticleT++;
-                    Array.Resize(ref Sim.g.particleT, Sim.g.nParticleT);
-                    Sim.g.particleT[Sim.g.nParticleT - 1] = particleT;
+                    Sim.u.nParticleT++;
+                    Array.Resize(ref Sim.u.particleT, Sim.u.nParticleT);
+                    Sim.u.particleT[Sim.u.nParticleT - 1] = particleT;
                 }
             }
-            imgParticle = new DX.Img2D[Sim.g.nParticleT * Sim.g.nMatterT];
-            for (i = 0; i < Sim.g.nParticleT; i++)
+            imgParticle = new DX.Img2D[Sim.u.nParticleT * Sim.u.nMatterT];
+            for (i = 0; i < Sim.u.nParticleT; i++)
             {
-                for (i2 = 0; i2 < Sim.g.nMatterT; i2++)
+                for (i2 = 0; i2 < Sim.u.nMatterT; i2++)
                 {
-                    i3 = i * Sim.g.nParticleT + i2;
+                    i3 = i * Sim.u.nParticleT + i2;
                     imgParticle[i3].init();
-                    if (!imgParticle[i3].open(appPath + modPath + Sim.g.matterT[i2].name + '.' + Sim.g.particleT[i].imgPath, Color.White.ToArgb())) MessageBox.Show("Warning: failed to load " + modPath + Sim.g.matterT[i2].name + '.' + Sim.g.particleT[i].imgPath);
+                    if (!imgParticle[i3].open(appPath + modPath + Sim.u.matterT[i2].name + '.' + Sim.u.particleT[i].imgPath, Color.White.ToArgb())) MessageBox.Show("Warning: failed to load " + modPath + Sim.u.matterT[i2].name + '.' + Sim.u.particleT[i].imgPath);
                     imgParticle[i3].rotCenter.X = imgParticle[i3].srcWidth / 2;
                     imgParticle[i3].rotCenter.Y = imgParticle[i3].srcHeight / 2;
                 }
@@ -151,18 +151,18 @@ namespace Decoherence
             Sim.p = new Sim.Particle[Sim.nParticles];
             for (i = 0; i < Sim.nParticles; i++)
             {
-                Sim.p[i] = new Sim.Particle(0, i / (Sim.nParticles / 2), 0, new FP.Vector((long)(rand.NextDouble() * Sim.g.mapSize), (long)(rand.NextDouble() * Sim.g.mapSize)));
+                Sim.p[i] = new Sim.Particle(0, i / (Sim.nParticles / 2), 0, new FP.Vector((long)(rand.NextDouble() * Sim.u.mapSize), (long)(rand.NextDouble() * Sim.u.mapSize)));
             }
             selParticles = new List<int>();
             // set up visibility tiles
             Sim.particleVis = new List<int>[Sim.tileLen(), Sim.tileLen()];
-            Sim.matterVis = new List<long>[Sim.g.nMatterT, Sim.tileLen(), Sim.tileLen()];
+            Sim.matterVis = new List<long>[Sim.u.nMatterT, Sim.tileLen(), Sim.tileLen()];
             for (i = 0; i < Sim.tileLen(); i++)
             {
                 for (i2 = 0; i2 < Sim.tileLen(); i2++)
                 {
                     Sim.particleVis[i, i2] = new List<int>();
-                    for (i3 = 0; i3 < Sim.g.nMatterT; i3++)
+                    for (i3 = 0; i3 < Sim.u.nMatterT; i3++)
                     {
                         Sim.matterVis[i3, i, i2] = new List<long>();
                     }
@@ -243,10 +243,10 @@ namespace Decoherence
                     if (selMatter == Sim.p[i].matter)
                     {
                         curPos = simToDrawPos(Sim.p[i].calcPos(DX.timeNow - DX.timeStart));
-                        if (curPos.X + Sim.g.particleT[Sim.p[i].type].selRadius >= Math.Min(DX.mouseDX[1], DX.mouseX)
-                            && curPos.X - Sim.g.particleT[Sim.p[i].type].selRadius <= Math.Max(DX.mouseDX[1], DX.mouseX)
-                            && curPos.Y + Sim.g.particleT[Sim.p[i].type].selRadius >= Math.Min(DX.mouseDY[1], DX.mouseY)
-                            && curPos.Y - Sim.g.particleT[Sim.p[i].type].selRadius <= Math.Max(DX.mouseDY[1], DX.mouseY))
+                        if (curPos.X + Sim.u.particleT[Sim.p[i].type].selRadius >= Math.Min(DX.mouseDX[1], DX.mouseX)
+                            && curPos.X - Sim.u.particleT[Sim.p[i].type].selRadius <= Math.Max(DX.mouseDX[1], DX.mouseX)
+                            && curPos.Y + Sim.u.particleT[Sim.p[i].type].selRadius >= Math.Min(DX.mouseDY[1], DX.mouseY)
+                            && curPos.Y - Sim.u.particleT[Sim.p[i].type].selRadius <= Math.Max(DX.mouseDY[1], DX.mouseY))
                         {
                             if (selParticles.Contains(i))
                             {
@@ -263,7 +263,7 @@ namespace Decoherence
             }
             else if (button == 2) // move
             {
-                if (mouseSimPos.x >= 0 && mouseSimPos.x <= Sim.g.mapSize && mouseSimPos.y >= 0 && mouseSimPos.y <= Sim.g.mapSize)
+                if (mouseSimPos.x >= 0 && mouseSimPos.x <= Sim.u.mapSize && mouseSimPos.y >= 0 && mouseSimPos.y <= Sim.u.mapSize)
                 {
                     i = 0;
                     foreach (int id in selParticles)
@@ -282,10 +282,10 @@ namespace Decoherence
                             }
                             goal = mouseSimPos + new FP.Vector((i % (int)Math.Ceiling(Math.Sqrt(selParticles.Count))) * spacing, (long)Math.Floor(i / Math.Ceiling(Math.Sqrt(selParticles.Count))) * spacing);
                             if (goal.x < 0) goal.x = 0;
-                            if (goal.x > Sim.g.mapSize) goal.x = Sim.g.mapSize;
+                            if (goal.x > Sim.u.mapSize) goal.x = Sim.u.mapSize;
                             if (goal.y < 0) goal.y = 0;
-                            if (goal.y > Sim.g.mapSize) goal.y = Sim.g.mapSize;
-                            Sim.p[id].addMove(Sim.ParticleMove.fromSpeed(DX.timeNow - DX.timeStart, Sim.g.particleT[Sim.p[id].type].speed, Sim.p[id].calcPos(DX.timeNow - DX.timeStart), goal));
+                            if (goal.y > Sim.u.mapSize) goal.y = Sim.u.mapSize;
+                            Sim.p[id].addMove(Sim.ParticleMove.fromSpeed(DX.timeNow - DX.timeStart, Sim.u.particleT[Sim.p[id].type].speed, Sim.p[id].calcPos(DX.timeNow - DX.timeStart), goal));
                             i++;
                         }
                     }
@@ -331,7 +331,7 @@ namespace Decoherence
                 }
                 else if (DX.diKeysChanged[i] == Key.Space && DX.diKeyState.IsPressed(DX.diKeysChanged[i]))
                 {
-                    selMatter = (selMatter + 1) % Sim.g.nMatterT;
+                    selMatter = (selMatter + 1) % Sim.u.nMatterT;
                     selParticles.Clear();
                 }
                 else if (DX.diKeysChanged[i] == Key.P && DX.diKeyState.IsPressed(DX.diKeysChanged[i]))
@@ -342,23 +342,23 @@ namespace Decoherence
             // move camera
             if (DX.diKeyState.IsPressed(Key.LeftArrow) || DX.mouseX == 0 || (this.Left > 0 && DX.mouseX <= 15))
             {
-                Sim.g.camPos.x -= Sim.g.camSpeed * (DX.timeNow - DX.timeLast);
-                if (Sim.g.camPos.x < 0) Sim.g.camPos.x = 0;
+                Sim.u.camPos.x -= Sim.u.camSpeed * (DX.timeNow - DX.timeLast);
+                if (Sim.u.camPos.x < 0) Sim.u.camPos.x = 0;
             }
             if (DX.diKeyState.IsPressed(Key.RightArrow) || DX.mouseX == DX.sx - 1 || (this.Left + this.Width < Screen.PrimaryScreen.Bounds.Width && DX.mouseX >= DX.sx - 15))
             {
-                Sim.g.camPos.x += Sim.g.camSpeed * (DX.timeNow - DX.timeLast);
-                if (Sim.g.camPos.x > Sim.g.mapSize) Sim.g.camPos.x = Sim.g.mapSize;
+                Sim.u.camPos.x += Sim.u.camSpeed * (DX.timeNow - DX.timeLast);
+                if (Sim.u.camPos.x > Sim.u.mapSize) Sim.u.camPos.x = Sim.u.mapSize;
             }
             if (DX.diKeyState.IsPressed(Key.UpArrow) || DX.mouseY == 0 || (this.Top > 0 && DX.mouseY <= 15))
             {
-                Sim.g.camPos.y -= Sim.g.camSpeed * (DX.timeNow - DX.timeLast);
-                if (Sim.g.camPos.y < 0) Sim.g.camPos.y = 0;
+                Sim.u.camPos.y -= Sim.u.camSpeed * (DX.timeNow - DX.timeLast);
+                if (Sim.u.camPos.y < 0) Sim.u.camPos.y = 0;
             }
             if (DX.diKeyState.IsPressed(Key.DownArrow) || DX.mouseY == DX.sy - 1 || (this.Top + this.Height < Screen.PrimaryScreen.Bounds.Height && DX.mouseY >= DX.sy - 15))
             {
-                Sim.g.camPos.y += Sim.g.camSpeed * (DX.timeNow - DX.timeLast);
-                if (Sim.g.camPos.y > Sim.g.mapSize) Sim.g.camPos.y = Sim.g.mapSize;
+                Sim.u.camPos.y += Sim.u.camSpeed * (DX.timeNow - DX.timeLast);
+                if (Sim.u.camPos.y > Sim.u.mapSize) Sim.u.camPos.y = Sim.u.mapSize;
             }
         }
 
@@ -368,7 +368,7 @@ namespace Decoherence
             FP.Vector fpVec;
             int col;
             int i, i2, tX, tY;
-            DX.d3dDevice.Clear(ClearFlags.Target | ClearFlags.ZBuffer, Sim.g.backCol, 1, 0);
+            DX.d3dDevice.Clear(ClearFlags.Target | ClearFlags.ZBuffer, Sim.u.backCol, 1, 0);
             DX.d3dDevice.BeginScene();
             DX.d3dDevice.SetTexture(0, null);
             // visibility tiles
@@ -395,16 +395,16 @@ namespace Decoherence
                     {
                         if (Sim.coherent(selMatter, tX, tY, DX.timeNow - DX.timeStart))
                         {
-                            col = Sim.g.coherentCol.ToArgb();
+                            col = Sim.u.coherentCol.ToArgb();
                         }
                         else
                         {
-                            col = Sim.g.visCol.ToArgb();
+                            col = Sim.u.visCol.ToArgb();
                         }
                     }
                     else
                     {
-                        col = Sim.g.noVisCol.ToArgb();
+                        col = Sim.u.noVisCol.ToArgb();
                     }
                     for (i2 = i; i2 < i + 6; i2++)
                     {
@@ -420,12 +420,12 @@ namespace Decoherence
             tlPoly.poly[0].v = new DX.TLVertex[tlPoly.nV[0] + 1];
             for (i = 0; i < 4; i++)
             {
-                tlPoly.poly[0].v[i].color = Sim.g.borderCol.ToArgb();
+                tlPoly.poly[0].v[i].color = Sim.u.borderCol.ToArgb();
                 tlPoly.poly[0].v[i].rhw = 1;
                 tlPoly.poly[0].v[i].z = 0;
             }
             vec = simToDrawPos(new FP.Vector());
-            vec2 = simToDrawPos(new FP.Vector(Sim.g.mapSize, Sim.g.mapSize));
+            vec2 = simToDrawPos(new FP.Vector(Sim.u.mapSize, Sim.u.mapSize));
             tlPoly.poly[0].v[0].x = vec.X;
             tlPoly.poly[0].v[0].y = vec.Y;
             tlPoly.poly[0].v[1].x = vec2.X;
@@ -441,7 +441,7 @@ namespace Decoherence
             for (i = 0; i < Sim.nParticles; i++)
             {
                 if (DX.timeNow - DX.timeStart < Sim.p[i].m[0].tmStart) continue;
-                i2 = Sim.p[i].type * Sim.g.nParticleT + Sim.p[i].matter;
+                i2 = Sim.p[i].type * Sim.u.nParticleT + Sim.p[i].matter;
                 fpVec = Sim.p[i].calcPos(DX.timeNow - DX.timeStart);
                 if (selMatter != Sim.p[i].matter && !Sim.matterVisWhen(selMatter, (int)(fpVec.x >> FP.Precision), (int)(fpVec.y >> FP.Precision), DX.timeNow - DX.timeStart)) continue;
                 if (Sim.p[i].n > Sim.p[i].mLive + 1 && DX.timeNow - DX.timeStart >= Sim.p[i].m[Sim.p[i].mLive + 1].tmStart)
@@ -557,12 +557,12 @@ namespace Decoherence
 
         private float simToDrawScl(long coor)
         {
-            return (float)(FP.toDouble(coor) * Sim.g.drawScl * winDiag);
+            return (float)(FP.toDouble(coor) * Sim.u.drawScl * winDiag);
         }
 
         private long drawToSimScl(float coor)
         {
-            return FP.fromDouble(coor / winDiag / Sim.g.drawScl);
+            return FP.fromDouble(coor / winDiag / Sim.u.drawScl);
         }
 
         private Vector3 simToDrawScl(FP.Vector vec)
@@ -577,12 +577,12 @@ namespace Decoherence
 
         private Vector3 simToDrawPos(FP.Vector vec)
         {
-            return new Vector3(simToDrawScl(vec.x - Sim.g.camPos.x), simToDrawScl(vec.y - Sim.g.camPos.y), 0f) + new Vector3(DX.sx / 2, DX.sy / 2, 0f);
+            return new Vector3(simToDrawScl(vec.x - Sim.u.camPos.x), simToDrawScl(vec.y - Sim.u.camPos.y), 0f) + new Vector3(DX.sx / 2, DX.sy / 2, 0f);
         }
 
         private FP.Vector drawToSimPos(Vector3 vec)
         {
-            return new FP.Vector(drawToSimScl(vec.X - DX.sx / 2), drawToSimScl(vec.Y - DX.sy / 2)) + Sim.g.camPos;
+            return new FP.Vector(drawToSimScl(vec.X - DX.sx / 2), drawToSimScl(vec.Y - DX.sy / 2)) + Sim.u.camPos;
         }
     }
 }

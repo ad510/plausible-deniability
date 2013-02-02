@@ -35,7 +35,7 @@ namespace Decoherence
             public double selRadius;
         }
 
-        public struct Scenario
+        public struct Universe
         {
             public long mapSize;
             public long camSpeed;
@@ -172,8 +172,8 @@ namespace Decoherence
             }
         }
 
-        // game variables
-        public static Scenario g;
+        // universe variables
+        public static Universe u;
         public static int nParticles;
         public static Particle[] p;
 
@@ -212,9 +212,9 @@ namespace Decoherence
             FP.Vector pos;
             int tX, tY;
             pos = p[particle].calcPos(time);
-            for (tX = Math.Max(0, (int)((pos.x >> FP.Precision) - (g.particleT[p[particle].type].visRadius >> FP.Precision))); tX <= Math.Min(tileLen() - 1, (int)((pos.x >> FP.Precision) + (g.particleT[p[particle].type].visRadius >> FP.Precision))); tX++)
+            for (tX = Math.Max(0, (int)((pos.x >> FP.Precision) - (u.particleT[p[particle].type].visRadius >> FP.Precision))); tX <= Math.Min(tileLen() - 1, (int)((pos.x >> FP.Precision) + (u.particleT[p[particle].type].visRadius >> FP.Precision))); tX++)
             {
-                for (tY = Math.Max(0, (int)((pos.y >> FP.Precision) - (g.particleT[p[particle].type].visRadius >> FP.Precision))); tY <= Math.Min(tileLen() - 1, (int)((pos.y >> FP.Precision) + (g.particleT[p[particle].type].visRadius >> FP.Precision))); tY++)
+                for (tY = Math.Max(0, (int)((pos.y >> FP.Precision) - (u.particleT[p[particle].type].visRadius >> FP.Precision))); tY <= Math.Min(tileLen() - 1, (int)((pos.y >> FP.Precision) + (u.particleT[p[particle].type].visRadius >> FP.Precision))); tY++)
                 {
                     particleVis[tX, tY].Add(particle);
                     if (initMatterVis && matterVis[p[particle].matter, tX, tY].Count % 2 == 0) matterVis[p[particle].matter, tX, tY].Add(time);
@@ -288,7 +288,7 @@ namespace Decoherence
             foreach (KeyValuePair<long, TileMove> item in tileMoves)
             {
                 id = item.Value.particle;
-                radius = (int)(g.particleT[p[id].type].visRadius >> FP.Precision);
+                radius = (int)(u.particleT[p[id].type].visRadius >> FP.Precision);
                 if (item.Value.dir == 0) // +x
                 {
                     p[id].tX = item.Value.tX;
@@ -405,7 +405,7 @@ namespace Decoherence
                 }
             }
             // check that no particles of different matter can see this tile
-            for (i = 0; i < g.nMatterT; i++)
+            for (i = 0; i < u.nMatterT; i++)
             {
                 if (i != matter && matterVisWhen(i, tileX, tileY, time)) return false;
             }
@@ -414,7 +414,7 @@ namespace Decoherence
 
         public static int tileLen() // TODO: use particleVis.GetUpperBound instead of this function
         {
-            return (int)((g.mapSize >> FP.Precision) + 1);
+            return (int)((u.mapSize >> FP.Precision) + 1);
         }
 
         public static long lineCalcX(FP.Vector p1, FP.Vector p2, long y)
