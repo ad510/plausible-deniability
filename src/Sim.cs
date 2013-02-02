@@ -207,7 +207,7 @@ namespace Decoherence
             }
         }
 
-        public static void initVis(int particle, long time, bool initMatterVis)
+        private static void initVis(int particle, long time, bool initMatterVis)
         {
             FP.Vector pos;
             int tX, tY;
@@ -354,7 +354,7 @@ namespace Decoherence
             }
         }
 
-        public static void visAdd(int particle, int tX, int tY, long time)
+        private static void visAdd(int particle, int tX, int tY, long time)
         {
             if (tX >= 0 && tX < tileLen() && tY >= 0 && tY < tileLen())
             {
@@ -363,7 +363,7 @@ namespace Decoherence
             }
         }
 
-        public static void visRemove(int particle, int tX, int tY, long time)
+        private static void visRemove(int particle, int tX, int tY, long time)
         {
             if (tX >= 0 && tX < tileLen() && tY >= 0 && tY < tileLen())
             {

@@ -372,6 +372,7 @@ namespace Decoherence
             DX.d3dDevice.BeginScene();
             DX.d3dDevice.SetTexture(0, null);
             // visibility tiles
+            // TODO: don't draw tiles off map
             for (tX = 0; tX < Sim.tileLen(); tX++)
             {
                 for (tY = 0; tY < Sim.tileLen(); tY++)
