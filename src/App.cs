@@ -91,8 +91,8 @@ namespace Decoherence
                 this.Close();
                 return;
             }
-            Sim.u.mapSize = FP.fromDouble(jsonDouble(json, "mapSize"));
-            Sim.u.camSpeed = FP.fromDouble(jsonDouble(json, "camSpeed"));
+            Sim.u.mapSize = jsonFP(json, "mapSize");
+            Sim.u.camSpeed = jsonFP(json, "camSpeed");
             Sim.u.camPos = jsonFPVector(json, "camPos", new FP.Vector(Sim.u.mapSize / 2, Sim.u.mapSize / 2));
             Sim.u.drawScl = (float)jsonDouble(json, "drawScl");
             Sim.u.drawSclMin = (float)jsonDouble(json, "drawSclMin");
@@ -125,8 +125,8 @@ namespace Decoherence
                     Sim.ParticleType particleT = new Sim.ParticleType();
                     particleT.name = jsonString(jsonO, "name");
                     particleT.imgPath = jsonString(jsonO, "imgPath");
-                    particleT.speed = FP.fromDouble(jsonDouble(jsonO, "speed"));
-                    particleT.visRadius = FP.fromDouble(jsonDouble(jsonO, "visRadius"));
+                    particleT.speed = jsonFP(jsonO, "speed");
+                    particleT.visRadius = jsonFP(jsonO, "visRadius");
                     particleT.selRadius = jsonDouble(jsonO, "selRadius");
                     if (particleT.visRadius > Sim.maxVisRadius) Sim.maxVisRadius = particleT.visRadius;
                     Sim.u.nParticleT++;
@@ -521,6 +521,26 @@ namespace Decoherence
             return defaultVal;
         }
 
+        private long jsonFP(System.Collections.Hashtable json, string key, long defaultVal = 0)
+        {
+            if (json.ContainsKey(key))
+            {
+                if (json[key] is double) return FP.fromDouble((double)json[key]);
+                if (json[key] is string)
+                {
+                    // parse as hex string, so no rounding errors when converting from double
+                    // allow beginning string with '-' to specify negative number, as alternative to prepending with f's
+                    long ret;
+                    if (long.TryParse(((string)json[key]).TrimStart('-'), System.Globalization.NumberStyles.HexNumber, null, out ret))
+                    {
+                        return ((string)json[key])[0] == '-' ? -ret : ret;
+                    }
+                    return defaultVal;
+                }
+            }
+            return defaultVal;
+        }
+
         private System.Collections.Hashtable jsonObject(System.Collections.Hashtable json, string key)
         {
             if (json.ContainsKey(key) && json[key] is System.Collections.Hashtable) return (System.Collections.Hashtable)json[key];
@@ -537,9 +557,9 @@ namespace Decoherence
         {
             if (json.ContainsKey(key) && json[key] is System.Collections.Hashtable)
             {
-                return new FP.Vector(FP.fromDouble(jsonDouble((System.Collections.Hashtable)json[key], "x", defaultVal.x)),
-                    FP.fromDouble(jsonDouble((System.Collections.Hashtable)json[key], "y", defaultVal.y)),
-                    FP.fromDouble(jsonDouble((System.Collections.Hashtable)json[key], "z", defaultVal.z)));
+                return new FP.Vector(jsonFP((System.Collections.Hashtable)json[key], "x", defaultVal.x),
+                    jsonFP((System.Collections.Hashtable)json[key], "y", defaultVal.y),
+                    jsonFP((System.Collections.Hashtable)json[key], "z", defaultVal.z));
             }
             return defaultVal;
         }

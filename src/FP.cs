@@ -13,7 +13,7 @@ namespace Decoherence
 {
     public class FP
     {
-        public const int Precision = 15; // fixed point bit precision past decimal point
+        public const int Precision = 16; // fixed point bit precision past decimal point
 
         public struct Vector // fixed point vector
         {
