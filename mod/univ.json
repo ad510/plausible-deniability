@@ -7,6 +7,7 @@
   "backCol": {"r": 0, "g": 0, "b": 0},
   "borderCol": {"r": 1, "g": 0.5, "b": 0},
   "noVisCol": {"r": 0, "g": 0, "b": 0},
+  "visCol": {"r": 0.3, "g": 0.3, "b": 0.3},
   "coherentCol": {"r": 1, "g": 1, "b": 0},
   "music": "",
   "matterTypes":

@@ -1,5 +1,4 @@
 todo:
-add link & description to andrewd.50webs.com
 circular visibility
 initialize tiles
 pathfinding
