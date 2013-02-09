@@ -107,7 +107,7 @@ namespace Decoherence
             public int n; // number of moves
             public ParticleMove[] m;
             public int mLive; // index of latest move that was live
-            public FP.Vector pos; // current position
+            //public FP.Vector pos; // current position
             public int tX, tY; // current position on visibility tiles
 
             public Particle(int typeVal, int matterVal, long startTime, FP.Vector startPos)
@@ -120,9 +120,9 @@ namespace Decoherence
                 m = new ParticleMove[n];
                 m[0] = new ParticleMove(startTime, startPos);
                 mLive = 0;
-                pos = startPos;
-                tX = (int)(pos.x >> FP.Precision);
-                tY = (int)(pos.y >> FP.Precision);
+                //pos = startPos;
+                tX = (int)(startPos.x >> FP.Precision);
+                tY = (int)(startPos.y >> FP.Precision);
             }
 
             public void setN(int newSize)
@@ -213,6 +213,8 @@ namespace Decoherence
             FP.Vector pos;
             int tX, tY;
             pos = p[particle].calcPos(time);
+            p[particle].tX = (int)(pos.x >> FP.Precision);
+            p[particle].tY = (int)(pos.y >> FP.Precision);
             for (tX = Math.Max(0, (int)((pos.x >> FP.Precision) - (u.particleT[p[particle].type].visRadius >> FP.Precision))); tX <= Math.Min(tileLen() - 1, (int)((pos.x >> FP.Precision) + (u.particleT[p[particle].type].visRadius >> FP.Precision))); tX++)
             {
                 for (tY = Math.Max(0, (int)((pos.y >> FP.Precision) - (u.particleT[p[particle].type].visRadius >> FP.Precision))); tY <= Math.Min(tileLen() - 1, (int)((pos.y >> FP.Precision) + (u.particleT[p[particle].type].visRadius >> FP.Precision))); tY++)
