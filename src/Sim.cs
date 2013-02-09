@@ -161,14 +161,15 @@ namespace Decoherence
         {
             public int particle;
             public int tX, tY;
-            public int dir; // 0 = +x, 1 = +y, 2 = -x, 3 = -y
+            public int dirX, dirY;
 
-            public TileMove(int particleVal, int tXVal, int tYVal, int dirVal)
+            public TileMove(int particleVal, int tXVal, int tYVal, int dirXVal, int dirYVal)
             {
                 particle = particleVal;
                 tX = tXVal;
                 tY = tYVal;
-                dir = dirVal;
+                dirX = dirXVal;
+                dirY = dirYVal;
             }
         }
 
@@ -216,8 +217,11 @@ namespace Decoherence
             {
                 for (tY = Math.Max(0, (int)((pos.y >> FP.Precision) - (u.particleT[p[particle].type].visRadius >> FP.Precision))); tY <= Math.Min(tileLen() - 1, (int)((pos.y >> FP.Precision) + (u.particleT[p[particle].type].visRadius >> FP.Precision))); tY++)
                 {
-                    particleVis[tX, tY].Add(particle);
-                    if (initMatterVis && matterVis[p[particle].matter, tX, tY].Count % 2 == 0) matterVis[p[particle].matter, tX, tY].Add(time);
+                    if (inVis(tX - (int)(pos.x >> FP.Precision), tY - (int)(pos.y >> FP.Precision), u.particleT[p[particle].type].visRadius))
+                    {
+                        particleVis[tX, tY].Add(particle);
+                        if (initMatterVis && matterVis[p[particle].matter, tX, tY].Count % 2 == 0) matterVis[p[particle].matter, tX, tY].Add(time);
+                    }
                 }
             }
         }
@@ -270,7 +274,7 @@ namespace Decoherence
                     {
                         time = p[i].m[i2].timeAtX(tX << FP.Precision);
                         while (tileMoves.ContainsKey(time)) time++; // TODO: this is a hack to prevent duplicate keys
-                        tileMoves.Add(time, new TileMove(i, tX + dir, (int)(p[i].m[i2].calcPos(time).y >> FP.Precision), (dir == 0) ? 0 : 2));
+                        tileMoves.Add(time, new TileMove(i, tX + dir, (int)(p[i].m[i2].calcPos(time).y >> FP.Precision), (dir == 0) ? 1 : -1, 0));
                     }
                     // moving between rows (y)
                     dir = (pos.y >= posLast.y) ? 0 : -1;
@@ -278,7 +282,7 @@ namespace Decoherence
                     {
                         time = p[i].m[i2].timeAtY(tY << FP.Precision);
                         while (tileMoves.ContainsKey(time)) time++; // TODO: this is a hack to prevent duplicate keys
-                        tileMoves.Add(time, new TileMove(i, (int)(p[i].m[i2].calcPos(time).x >> FP.Precision), tY + dir, (dir == 0) ? 1 : 3));
+                        tileMoves.Add(time, new TileMove(i, (int)(p[i].m[i2].calcPos(time).x >> FP.Precision), tY + dir, 0, (dir == 0) ? 1 : -1));
                     }
                 }
             }
@@ -289,40 +293,20 @@ namespace Decoherence
             {
                 id = item.Value.particle;
                 radius = (int)(u.particleT[p[id].type].visRadius >> FP.Precision);
-                if (item.Value.dir == 0) // +x
+                if (item.Value.dirX != 0) p[id].tX = item.Value.tX;
+                if (item.Value.dirY != 0) p[id].tY = item.Value.tY;
+                for (tX = p[id].tX - radius - Math.Max(item.Value.dirX, 0); tX <= p[id].tX + radius - Math.Min(item.Value.dirX, 0); tX++)
                 {
-                    p[id].tX = item.Value.tX;
-                    for (tY = Math.Max(0, p[id].tY - radius); tY <= Math.Min(tileLen() - 1, p[id].tY + radius); tY++)
+                    for (tY = p[id].tY - radius - Math.Max(item.Value.dirY, 0); tY <= p[id].tY + radius - Math.Min(item.Value.dirY, 0); tY++)
                     {
-                        visAdd(id, p[id].tX + radius, tY, item.Key);
-                        visRemove(id, p[id].tX - radius - 1, tY, item.Key);
-                    }
-                }
-                else if (item.Value.dir == 1) // +y
-                {
-                    p[id].tY = item.Value.tY;
-                    for (tX = Math.Max(0, p[id].tX - radius); tX <= Math.Min(tileLen() - 1, p[id].tX + radius); tX++)
-                    {
-                        visAdd(id, tX, p[id].tY + radius, item.Key);
-                        visRemove(id, tX, p[id].tY - radius - 1, item.Key);
-                    }
-                }
-                else if (item.Value.dir == 2) // -x
-                {
-                    p[id].tX = item.Value.tX;
-                    for (tY = Math.Max(0, p[id].tY - radius); tY <= Math.Min(tileLen() - 1, p[id].tY + radius); tY++)
-                    {
-                        visAdd(id, p[id].tX - radius, tY, item.Key);
-                        visRemove(id, p[id].tX + radius + 1, tY, item.Key);
-                    }
-                }
-                else if (item.Value.dir == 3) // -y
-                {
-                    p[id].tY = item.Value.tY;
-                    for (tX = Math.Max(0, p[id].tX - radius); tX <= Math.Min(tileLen() - 1, p[id].tX + radius); tX++)
-                    {
-                        visAdd(id, tX, p[id].tY - radius, item.Key);
-                        visRemove(id, tX, p[id].tY + radius + 1, item.Key);
+                        if (inVis(tX - p[id].tX, tY - p[id].tY, u.particleT[p[id].type].visRadius) && !inVis(tX - p[id].tX + item.Value.dirX, tY - p[id].tY + item.Value.dirY, u.particleT[p[id].type].visRadius))
+                        {
+                            visAdd(id, tX, tY, item.Key);
+                        }
+                        else if (!inVis(tX - p[id].tX, tY - p[id].tY, u.particleT[p[id].type].visRadius) && inVis(tX - p[id].tX + item.Value.dirX, tY - p[id].tY + item.Value.dirY, u.particleT[p[id].type].visRadius))
+                        {
+                            visRemove(id, tX, tY, item.Key);
+                        }
                     }
                 }
             }
@@ -401,7 +385,7 @@ namespace Decoherence
             {
                 for (tY = Math.Max(0, tileY - (int)(maxVisRadius >> FP.Precision)); tY <= Math.Min(tileLen() - 1, tileY + (int)(maxVisRadius >> FP.Precision)); tY++)
                 {
-                    if (!matterVisWhen(matter, tX, tY, time)) return false;
+                    if (inVis(tX - tileX, tY - tileY, maxVisRadius) && !matterVisWhen(matter, tX, tY, time)) return false;
                 }
             }
             // check that no particles of different matter can see this tile
@@ -410,6 +394,11 @@ namespace Decoherence
                 if (i != matter && matterVisWhen(i, tileX, tileY, time)) return false;
             }
             return true;
+        }
+
+        public static bool inVis(long tX, long tY, long visRadius)
+        {
+            return new FP.Vector(tX << FP.Precision, tY << FP.Precision).lengthSq() <= visRadius * visRadius;
         }
 
         public static int tileLen() // TODO: use particleVis.GetUpperBound instead of this function

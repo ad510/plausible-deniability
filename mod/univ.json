@@ -29,7 +29,7 @@
       "name": "electron",
       "imgPath": "test.png",
       "speed": 0.003,
-      "visRadius": 3,
+      "visRadius": 4,
       "selRadius": 16
     }
   ]

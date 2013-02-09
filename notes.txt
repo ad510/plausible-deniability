@@ -1,5 +1,4 @@
 todo:
-circular visibility
 initialize tiles
 pathfinding
 

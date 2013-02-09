@@ -274,7 +274,7 @@ namespace Decoherence
                             // TODO: instead of using maxVisRadius, should use smallest radius of selected particles
                             if (DX.diKeyState.IsPressed(Key.LeftControl))
                             {
-                                spacing = Sim.maxVisRadius * 2;
+                                spacing = FP.mul(Sim.maxVisRadius, FP.fromDouble(Math.Sqrt(2))) >> FP.Precision << FP.Precision;
                             }
                             else
                             {
