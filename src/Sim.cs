@@ -159,15 +159,16 @@ namespace Decoherence
 
         public struct TileMove
         {
+            public long time;
             public int particle;
-            public int tX, tY;
+            public int tileCoor;
             public int dirX, dirY;
 
-            public TileMove(int particleVal, int tXVal, int tYVal, int dirXVal, int dirYVal)
+            public TileMove(long timeVal, int particleVal, int tileCoorVal, int dirXVal, int dirYVal)
             {
+                time = timeVal;
                 particle = particleVal;
-                tX = tXVal;
-                tY = tYVal;
+                tileCoor = tileCoorVal;
                 dirX = dirXVal;
                 dirY = dirYVal;
             }
@@ -230,11 +231,11 @@ namespace Decoherence
 
         public static void update(long curTime)
         {
-            Dictionary<long, TileMove> tileMoves = new Dictionary<long,TileMove>(); // TODO: don't use dictionary b/c it doesn't allow duplicate keys
+            List<TileMove> tileMoves = new List<TileMove>();
             int move, moveLast;
             FP.Vector pos, posLast;
             long time;
-            int i, i2, tX, tY, id, radius, dir;
+            int i, i2, tX, tY, id, radius, dir, ins;
             // do timing
             if (curTime < timeSim)
             {
@@ -275,39 +276,37 @@ namespace Decoherence
                     for (tX = (int)(Math.Min(pos.x, posLast.x) >> FP.Precision) + 1; tX <= (int)(Math.Max(pos.x, posLast.x) >> FP.Precision); tX++)
                     {
                         time = p[i].m[i2].timeAtX(tX << FP.Precision);
-                        while (tileMoves.ContainsKey(time)) time++; // TODO: this is a hack to prevent duplicate keys
-                        tileMoves.Add(time, new TileMove(i, tX + dir, (int)(p[i].m[i2].calcPos(time).y >> FP.Precision), (dir == 0) ? 1 : -1, 0));
+                        for (ins = tileMoves.Count; ins >= 1 && time < tileMoves[ins - 1].time; ins--);
+                        tileMoves.Insert(ins, new TileMove(time, i, tX + dir, (dir == 0) ? 1 : -1, 0));
                     }
                     // moving between rows (y)
                     dir = (pos.y >= posLast.y) ? 0 : -1;
                     for (tY = (int)(Math.Min(pos.y, posLast.y) >> FP.Precision) + 1; tY <= (int)(Math.Max(pos.y, posLast.y) >> FP.Precision); tY++)
                     {
                         time = p[i].m[i2].timeAtY(tY << FP.Precision);
-                        while (tileMoves.ContainsKey(time)) time++; // TODO: this is a hack to prevent duplicate keys
-                        tileMoves.Add(time, new TileMove(i, (int)(p[i].m[i2].calcPos(time).x >> FP.Precision), tY + dir, 0, (dir == 0) ? 1 : -1));
+                        for (ins = tileMoves.Count; ins >= 1 && time < tileMoves[ins - 1].time; ins--);
+                        tileMoves.Insert(ins, new TileMove(time, i, tY + dir, 0, (dir == 0) ? 1 : -1));
                     }
                 }
             }
             // add and remove particles from visibility tiles
-            // TODO: still has some problems, use this line to see them:
-            // if (DX.timeNow - DX.timeStart >= Sim.timeSim + 1000) Sim.update(DX.timeNow - DX.timeStart);
-            foreach (KeyValuePair<long, TileMove> item in tileMoves)
+            for (i = 0; i < tileMoves.Count; i++)
             {
-                id = item.Value.particle;
+                id = tileMoves[i].particle;
                 radius = (int)(u.particleT[p[id].type].visRadius >> FP.Precision);
-                if (item.Value.dirX != 0) p[id].tX = item.Value.tX;
-                if (item.Value.dirY != 0) p[id].tY = item.Value.tY;
-                for (tX = p[id].tX - radius - Math.Max(item.Value.dirX, 0); tX <= p[id].tX + radius - Math.Min(item.Value.dirX, 0); tX++)
+                if (tileMoves[i].dirX != 0) p[id].tX = tileMoves[i].tileCoor;
+                if (tileMoves[i].dirY != 0) p[id].tY = tileMoves[i].tileCoor;
+                for (tX = p[id].tX - radius - Math.Max(tileMoves[i].dirX, 0); tX <= p[id].tX + radius - Math.Min(tileMoves[i].dirX, 0); tX++)
                 {
-                    for (tY = p[id].tY - radius - Math.Max(item.Value.dirY, 0); tY <= p[id].tY + radius - Math.Min(item.Value.dirY, 0); tY++)
+                    for (tY = p[id].tY - radius - Math.Max(tileMoves[i].dirY, 0); tY <= p[id].tY + radius - Math.Min(tileMoves[i].dirY, 0); tY++)
                     {
-                        if (inVis(tX - p[id].tX, tY - p[id].tY, u.particleT[p[id].type].visRadius) && !inVis(tX - p[id].tX + item.Value.dirX, tY - p[id].tY + item.Value.dirY, u.particleT[p[id].type].visRadius))
+                        if (inVis(tX - p[id].tX, tY - p[id].tY, u.particleT[p[id].type].visRadius) && !inVis(tX - p[id].tX + tileMoves[i].dirX, tY - p[id].tY + tileMoves[i].dirY, u.particleT[p[id].type].visRadius))
                         {
-                            visAdd(id, tX, tY, item.Key);
+                            visAdd(id, tX, tY, tileMoves[i].time);
                         }
-                        else if (!inVis(tX - p[id].tX, tY - p[id].tY, u.particleT[p[id].type].visRadius) && inVis(tX - p[id].tX + item.Value.dirX, tY - p[id].tY + item.Value.dirY, u.particleT[p[id].type].visRadius))
+                        else if (!inVis(tX - p[id].tX, tY - p[id].tY, u.particleT[p[id].type].visRadius) && inVis(tX - p[id].tX + tileMoves[i].dirX, tY - p[id].tY + tileMoves[i].dirY, u.particleT[p[id].type].visRadius))
                         {
-                            visRemove(id, tX, tY, item.Key);
+                            visRemove(id, tX, tY, tileMoves[i].time);
                         }
                     }
                 }
