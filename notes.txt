@@ -1,4 +1,5 @@
 todo:
+triangular loose formation
 initialize tiles
 pathfinding
 
@@ -48,6 +49,15 @@ for each entry in decoherence queue (loop through concurrently with loop above):
     decohere tiles, 1 tile "thick" on side of entry direction, with radius of largest unit that faction can't see from here
     push entries into queue for each of the 8 surrounding tiles that are not visible to faction (according to visibility tiles) and can be traveled to
     note: correct to assume that all units can go at speed of light b/c can momentarily turn photon into particle & antiparticle
+
+pathfinding:
+tile-based fog of war good?
+path smoothing
+would graph be too big?
+
+other questions:
+puzzle brainstorming
+work on game in summer with Matthew and/or Zach, then email TJ when further along?
 
 random notes:
 phrase from AI wisdom: "expand selection by radius"
