@@ -52,6 +52,7 @@ for each entry in decoherence queue (loop through concurrently with loop above):
 
 pathfinding:
 tile-based fog of war good?
+find disconnected regions
 path smoothing
 would graph be too big?
 
