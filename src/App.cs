@@ -179,7 +179,6 @@ namespace Decoherence
             }
             // start game
             Sim.timeSim = -1;
-            Sim.initVis(0, true);
             DX.timeNow = Environment.TickCount;
             DX.timeStart = DX.timeNow;
             runMode = 1;

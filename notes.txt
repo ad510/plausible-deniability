@@ -1,6 +1,5 @@
 todo:
 triangular loose formation
-initialize tiles
 pathfinding
 
 global variables:

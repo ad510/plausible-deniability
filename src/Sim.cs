@@ -83,9 +83,8 @@ namespace Decoherence
 
             public FP.Vector calcPos(long time) // returns location at specified time
             {
-                if (time >= timeEnd)
-                    return vecEnd;
-                return vecStart + (vecEnd - vecStart) * FP.div((time - timeStart), (timeEnd - timeStart));
+                if (time >= timeEnd) return vecEnd;
+                return vecStart + (vecEnd - vecStart) * FP.div(time - timeStart, timeEnd - timeStart);
             }
 
             public long timeAtX(long x)
@@ -109,7 +108,7 @@ namespace Decoherence
             public ParticleMove[] m;
             public int mLive; // index of latest move that was live
             //public FP.Vector pos; // current position
-            public int tX, tY; // current position on visibility tiles
+            public int tileX, tileY; // current position on visibility tiles
 
             public Particle(int typeVal, int matterVal, long startTime, FP.Vector startPos)
             {
@@ -122,8 +121,8 @@ namespace Decoherence
                 m[0] = new ParticleMove(startTime, startPos);
                 mLive = 0;
                 //pos = startPos;
-                tX = (int)(startPos.x >> FP.Precision);
-                tY = (int)(startPos.y >> FP.Precision);
+                tileX = int.MinValue;
+                tileY = int.MinValue;
             }
 
             public void setN(int newSize)
@@ -161,28 +160,31 @@ namespace Decoherence
             {
                 int move, moveLast;
                 FP.Vector pos, posLast;
-                long time;
-                int i2, tX, tY, dir;
-                moveLast = Math.Max(0, getMove(timeMin));
+                int i, tX, tY, dir;
+                if (timeMax < m[0].timeStart) return;
+                moveLast = getMove(timeMin);
                 move = getMove(timeMax);
-                if (move < 0) return;
-                for (i2 = moveLast; i2 <= move; i2++)
+                if (moveLast < 0)
                 {
-                    posLast = (i2 == moveLast) ? m[i2].calcPos(timeMin) : m[i2].vecStart;
-                    pos = (i2 == move) ? m[i2].calcPos(timeMax) : m[i2 + 1].vecStart;
+                    // put particle on visibility tiles for the first time
+                    events.add(new MoveEvt(m[0].timeStart, id, (int)(m[0].vecStart.x >> FP.Precision), (int)(m[0].vecStart.y >> FP.Precision)));
+                    moveLast = 0;
+                }
+                for (i = moveLast; i <= move; i++)
+                {
+                    posLast = (i == moveLast) ? m[i].calcPos(Math.Max(timeMin, m[0].timeStart)) : m[i].vecStart;
+                    pos = (i == move) ? m[i].calcPos(timeMax) : m[i + 1].vecStart;
                     // moving between columns (x)
                     dir = (pos.x >= posLast.x) ? 0 : -1;
                     for (tX = (int)(Math.Min(pos.x, posLast.x) >> FP.Precision) + 1; tX <= (int)(Math.Max(pos.x, posLast.x) >> FP.Precision); tX++)
                     {
-                        time = m[i2].timeAtX(tX << FP.Precision);
-                        events.add(new MoveEvt(time, id, tX + dir, (dir == 0) ? 1 : -1, 0));
+                        events.add(new MoveEvt(m[i].timeAtX(tX << FP.Precision), id, tX + dir, int.MinValue));
                     }
                     // moving between rows (y)
                     dir = (pos.y >= posLast.y) ? 0 : -1;
                     for (tY = (int)(Math.Min(pos.y, posLast.y) >> FP.Precision) + 1; tY <= (int)(Math.Max(pos.y, posLast.y) >> FP.Precision); tY++)
                     {
-                        time = m[i2].timeAtY(tY << FP.Precision);
-                        events.add(new MoveEvt(time, id, tY + dir, 0, (dir == 0) ? 1 : -1));
+                        events.add(new MoveEvt(m[i].timeAtY(tY << FP.Precision), id, int.MinValue, tY + dir));
                     }
                 }
             }
@@ -221,41 +223,72 @@ namespace Decoherence
             }
         }
 
-        public class MoveEvt : SimEvt // event in which particle moves between tiles
+        public class MoveEvt : SimEvt // event in which particle moves between visibility tiles
         {
             public int particle;
-            public int tileCoor;
-            public int dirX, dirY;
+            public int tileX, tileY; // new tile position, set to int.MinValue to keep current value
 
-            public MoveEvt(long timeVal, int particleVal, int tileCoorVal, int dirXVal, int dirYVal)
+            public MoveEvt(long timeVal, int particleVal, int tileXVal, int tileYVal)
             {
                 time = timeVal;
                 particle = particleVal;
-                tileCoor = tileCoorVal;
-                dirX = dirXVal;
-                dirY = dirYVal;
+                tileX = tileXVal;
+                tileY = tileYVal;
             }
 
             public override void apply()
             {
                 int tX, tY, radius;
                 radius = (int)(u.particleT[p[particle].type].visRadius >> FP.Precision);
-                if (dirX != 0) p[particle].tX = tileCoor;
-                if (dirY != 0) p[particle].tY = tileCoor;
-                for (tX = p[particle].tX - radius - Math.Max(dirX, 0); tX <= p[particle].tX + radius - Math.Min(dirX, 0); tX++)
+                if (tileX == int.MinValue) tileX = p[particle].tileX;
+                if (tileY == int.MinValue) tileY = p[particle].tileY;
+                if (tileX + radius < p[particle].tileX - radius || tileX - radius > p[particle].tileX + radius
+                    || tileY + radius < p[particle].tileY - radius || tileY - radius > p[particle].tileY + radius)
                 {
-                    for (tY = p[particle].tY - radius - Math.Max(dirY, 0); tY <= p[particle].tY + radius - Math.Min(dirY, 0); tY++)
+                    // old and new tiles do not overlap
+                    for (tX = p[particle].tileX - radius; tX <= p[particle].tileX + radius; tX++)
                     {
-                        if (inVis(tX - p[particle].tX, tY - p[particle].tY, u.particleT[p[particle].type].visRadius) && !inVis(tX - p[particle].tX + dirX, tY - p[particle].tY + dirY, u.particleT[p[particle].type].visRadius))
+                        for (tY = p[particle].tileY - radius; tY <= p[particle].tileY + radius; tY++)
                         {
-                            visAdd(particle, tX, tY, time);
+                            if (inVis(tX - p[particle].tileX, tY - p[particle].tileY, u.particleT[p[particle].type].visRadius))
+                            {
+                                visRemove(particle, tX, tY, time);
+                            }
                         }
-                        else if (!inVis(tX - p[particle].tX, tY - p[particle].tY, u.particleT[p[particle].type].visRadius) && inVis(tX - p[particle].tX + dirX, tY - p[particle].tY + dirY, u.particleT[p[particle].type].visRadius))
+                    }
+                    for (tX = tileX - radius; tX <= tileX + radius; tX++)
+                    {
+                        for (tY = tileY - radius; tY <= tileY + radius; tY++)
                         {
-                            visRemove(particle, tX, tY, time);
+                            if (inVis(tX - tileX, tY - tileY, u.particleT[p[particle].type].visRadius))
+                            {
+                                visAdd(particle, tX, tY, time);
+                            }
                         }
                     }
                 }
+                else
+                {
+                    // old and new tiles overlap
+                    for (tX = Math.Min(p[particle].tileX, tileX) - radius; tX <= Math.Max(p[particle].tileX, tileX) + radius; tX++)
+                    {
+                        for (tY = Math.Min(p[particle].tileY, tileY) - radius; tY <= Math.Max(p[particle].tileY, tileY) + radius; tY++)
+                        {
+                            if (inVis(tX - p[particle].tileX, tY - p[particle].tileY, u.particleT[p[particle].type].visRadius)
+                                && !inVis(tX - tileX, tY - tileY, u.particleT[p[particle].type].visRadius))
+                            {
+                                visRemove(particle, tX, tY, time);
+                            }
+                            else if (!inVis(tX - p[particle].tileX, tY - p[particle].tileY, u.particleT[p[particle].type].visRadius)
+                                && inVis(tX - tileX, tY - tileY, u.particleT[p[particle].type].visRadius))
+                            {
+                                visAdd(particle, tX, tY, time);
+                            }
+                        }
+                    }
+                }
+                p[particle].tileX = tileX;
+                p[particle].tileY = tileY;
             }
         }
 
@@ -278,47 +311,12 @@ namespace Decoherence
                 Array.Resize(ref p, nParticles * 2);
         }
 
-        public static void initVis(long time, bool initMatterVis)
-        {
-            int i, tX, tY;
-            for (tX = 0; tX < tileLen(); tX++)
-            {
-                for (tY = 0; tY < tileLen(); tY++)
-                {
-                    particleVis[tX, tY].Clear();
-                }
-            }
-            for (i = 0; i < nParticles; i++)
-            {
-                initVis(i, time, initMatterVis);
-            }
-        }
-
-        private static void initVis(int particle, long time, bool initMatterVis)
-        {
-            FP.Vector pos;
-            int tX, tY;
-            pos = p[particle].calcPos(time);
-            p[particle].tX = (int)(pos.x >> FP.Precision);
-            p[particle].tY = (int)(pos.y >> FP.Precision);
-            for (tX = Math.Max(0, (int)((pos.x >> FP.Precision) - (u.particleT[p[particle].type].visRadius >> FP.Precision))); tX <= Math.Min(tileLen() - 1, (int)((pos.x >> FP.Precision) + (u.particleT[p[particle].type].visRadius >> FP.Precision))); tX++)
-            {
-                for (tY = Math.Max(0, (int)((pos.y >> FP.Precision) - (u.particleT[p[particle].type].visRadius >> FP.Precision))); tY <= Math.Min(tileLen() - 1, (int)((pos.y >> FP.Precision) + (u.particleT[p[particle].type].visRadius >> FP.Precision))); tY++)
-                {
-                    if (inVis(tX - (int)(pos.x >> FP.Precision), tY - (int)(pos.y >> FP.Precision), u.particleT[p[particle].type].visRadius))
-                    {
-                        particleVis[tX, tY].Add(particle);
-                        if (initMatterVis && matterVis[p[particle].matter, tX, tY].Count % 2 == 0) matterVis[p[particle].matter, tX, tY].Add(time);
-                    }
-                }
-            }
-        }
-
         public static void update(long curTime)
         {
             SimEvtList events = new SimEvtList();
             SimEvt evt;
-            int i, tX, tY;
+            FP.Vector pos;
+            int i;
             // do timing
             if (curTime < timeSim)
             {
@@ -332,21 +330,14 @@ namespace Decoherence
             {
                 if (p[i].mLive < p[i].n - 1)
                 {
-                    // TODO: optimize this
-                    for (tX = 0; tX < tileLen(); tX++)
-                    {
-                        for (tY = 0; tY < tileLen(); tY++)
-                        {
-                            if (particleVis[tX, tY].Contains(i)) visRemove(i, tX, tY, timeSimLast);
-                        }
-                    }
-                    initVis(i, timeSimLast, true);
+                    p[i].mLive = p[i].n - 1;
+                    pos = p[i].calcPos(timeSimLast);
+                    events.add(new MoveEvt(timeSimLast, i, (int)(pos.x >> FP.Precision), (int)(pos.y >> FP.Precision)));
                 }
             }
             // check if particles moved between tiles
             for (i = 0; i < nParticles; i++)
             {
-                p[i].mLive = p[i].n - 1; // TODO: set this the moment it goes live?
                 p[i].addMoveEvts(ref events, i, timeSimLast, timeSim);
             }
             // apply simulation events
