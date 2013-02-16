@@ -268,7 +268,7 @@ namespace Decoherence
                     i = 0;
                     foreach (int id in selParticles)
                     {
-                        if (DX.timeNow - DX.timeStart >= Sim.timeSim || (DX.timeNow - DX.timeStart >= Sim.p[id].tmCohere
+                        if (DX.timeNow - DX.timeStart >= Sim.timeSim || (DX.timeNow - DX.timeStart >= Sim.p[id].timeCohere
                             && Sim.coherent(selMatter, (int)(Sim.p[id].calcPos(DX.timeNow - DX.timeStart).x >> FP.Precision), (int)(Sim.p[id].calcPos(DX.timeNow - DX.timeStart).y >> FP.Precision), DX.timeNow - DX.timeStart)))
                         {
                             // TODO: instead of using maxVisRadius, should use smallest radius of selected particles
@@ -441,11 +441,11 @@ namespace Decoherence
             // TODO: scale particle images
             for (i = 0; i < Sim.nParticles; i++)
             {
-                if (DX.timeNow - DX.timeStart < Sim.p[i].m[0].tmStart) continue;
+                if (DX.timeNow - DX.timeStart < Sim.p[i].m[0].timeStart) continue;
                 i2 = Sim.p[i].type * Sim.u.nParticleT + Sim.p[i].matter;
                 fpVec = Sim.p[i].calcPos(DX.timeNow - DX.timeStart);
                 if (selMatter != Sim.p[i].matter && !Sim.matterVisWhen(selMatter, (int)(fpVec.x >> FP.Precision), (int)(fpVec.y >> FP.Precision), DX.timeNow - DX.timeStart)) continue;
-                if (Sim.p[i].n > Sim.p[i].mLive + 1 && DX.timeNow - DX.timeStart >= Sim.p[i].m[Sim.p[i].mLive + 1].tmStart)
+                if (Sim.p[i].n > Sim.p[i].mLive + 1 && DX.timeNow - DX.timeStart >= Sim.p[i].m[Sim.p[i].mLive + 1].timeStart)
                 {
                     imgParticle[i2].color = new Color4(0.5f, 1, 1, 1).ToArgb(); // TODO: make transparency amount customizable
                 }

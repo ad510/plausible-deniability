@@ -14,6 +14,7 @@ namespace Decoherence
 {
     class Sim
     {
+        // universe structures
         public struct MatterType
         {
             public string name;
@@ -57,44 +58,44 @@ namespace Decoherence
 
         public struct ParticleMove // particle movement (linearly interpolated between 2 points)
         {
-            public long tmStart; // time when starts moving
-            public long tmEnd; // time when finishes moving
+            public long timeStart; // time when starts moving
+            public long timeEnd; // time when finishes moving
             public FP.Vector vecStart; // z indicates rotation
             public FP.Vector vecEnd;
 
-            public ParticleMove(long tmStartVal, long tmEndVal, FP.Vector vecStartVal, FP.Vector vecEndVal)
+            public ParticleMove(long timeStartVal, long timeEndVal, FP.Vector vecStartVal, FP.Vector vecEndVal)
             {
-                tmStart = tmStartVal;
-                tmEnd = tmEndVal;
+                timeStart = timeStartVal;
+                timeEnd = timeEndVal;
                 vecStart = vecStartVal;
                 vecEnd = vecEndVal;
             }
 
-            public ParticleMove(long tmVal, FP.Vector vecVal)
-                : this(tmVal, tmVal + 1, vecVal, vecVal)
+            public ParticleMove(long timeVal, FP.Vector vecVal)
+                : this(timeVal, timeVal + 1, vecVal, vecVal)
             {
             }
 
-            public static ParticleMove fromSpeed(long tmStartVal, long speed, FP.Vector vecStartVal, FP.Vector vecEndVal)
+            public static ParticleMove fromSpeed(long timeStartVal, long speed, FP.Vector vecStartVal, FP.Vector vecEndVal)
             {
-                return new ParticleMove(tmStartVal, tmStartVal + new FP.Vector(vecEndVal - vecStartVal).length() / speed, vecStartVal, vecEndVal);
+                return new ParticleMove(timeStartVal, timeStartVal + new FP.Vector(vecEndVal - vecStartVal).length() / speed, vecStartVal, vecEndVal);
             }
 
             public FP.Vector calcPos(long time) // returns location at specified time
             {
-                if (time >= tmEnd)
+                if (time >= timeEnd)
                     return vecEnd;
-                return vecStart + (vecEnd - vecStart) * FP.div((time - tmStart), (tmEnd - tmStart));
+                return vecStart + (vecEnd - vecStart) * FP.div((time - timeStart), (timeEnd - timeStart));
             }
 
             public long timeAtX(long x)
             {
-                return lineCalcX(new FP.Vector(tmStart, vecStart.x), new FP.Vector(tmEnd, vecEnd.x), x);
+                return lineCalcX(new FP.Vector(timeStart, vecStart.x), new FP.Vector(timeEnd, vecEnd.x), x);
             }
 
             public long timeAtY(long y)
             {
-                return lineCalcX(new FP.Vector(tmStart, vecStart.y), new FP.Vector(tmEnd, vecEnd.y), y);
+                return lineCalcX(new FP.Vector(timeStart, vecStart.y), new FP.Vector(timeEnd, vecEnd.y), y);
             }
         }
 
@@ -102,8 +103,8 @@ namespace Decoherence
         {
             public int type;
             public int matter;
-            public long tmCohere; // earliest time at which it's safe to time travel
-            public long tmEnd; // time annihilated
+            public long timeCohere; // earliest time at which it's safe to time travel
+            public long timeEnd; // time annihilated
             public int n; // number of moves
             public ParticleMove[] m;
             public int mLive; // index of latest move that was live
@@ -114,8 +115,8 @@ namespace Decoherence
             {
                 type = typeVal;
                 matter = matterVal;
-                tmCohere = long.MaxValue;
-                tmEnd = long.MaxValue;
+                timeCohere = long.MaxValue;
+                timeEnd = long.MaxValue;
                 n = 1;
                 m = new ParticleMove[n];
                 m[0] = new ParticleMove(startTime, startPos);
@@ -141,36 +142,120 @@ namespace Decoherence
             {
                 setN(n + 1);
                 m[n - 1] = newMove;
-                if (newMove.tmStart >= timeSim) mLive = n - 1;
+                if (newMove.timeStart >= timeSim) mLive = n - 1;
             }
 
             public FP.Vector calcPos(long time)
             {
-                return m[moveGet(time)].calcPos(time);
+                return m[getMove(time)].calcPos(time);
             }
 
-            public int moveGet(long time)
+            public int getMove(long time)
             {
                 int ret = n - 1;
-                while (ret >= 0 && time < m[ret].tmStart) ret--;
+                while (ret >= 0 && time < m[ret].timeStart) ret--;
+                return ret;
+            }
+
+            public void addMoveEvts(ref SimEvtList events, int id, long timeMin, long timeMax)
+            {
+                int move, moveLast;
+                FP.Vector pos, posLast;
+                long time;
+                int i2, tX, tY, dir;
+                moveLast = Math.Max(0, getMove(timeMin));
+                move = getMove(timeMax);
+                if (move < 0) return;
+                for (i2 = moveLast; i2 <= move; i2++)
+                {
+                    posLast = (i2 == moveLast) ? m[i2].calcPos(timeMin) : m[i2].vecStart;
+                    pos = (i2 == move) ? m[i2].calcPos(timeMax) : m[i2 + 1].vecStart;
+                    // moving between columns (x)
+                    dir = (pos.x >= posLast.x) ? 0 : -1;
+                    for (tX = (int)(Math.Min(pos.x, posLast.x) >> FP.Precision) + 1; tX <= (int)(Math.Max(pos.x, posLast.x) >> FP.Precision); tX++)
+                    {
+                        time = m[i2].timeAtX(tX << FP.Precision);
+                        events.add(new MoveEvt(time, id, tX + dir, (dir == 0) ? 1 : -1, 0));
+                    }
+                    // moving between rows (y)
+                    dir = (pos.y >= posLast.y) ? 0 : -1;
+                    for (tY = (int)(Math.Min(pos.y, posLast.y) >> FP.Precision) + 1; tY <= (int)(Math.Max(pos.y, posLast.y) >> FP.Precision); tY++)
+                    {
+                        time = m[i2].timeAtY(tY << FP.Precision);
+                        events.add(new MoveEvt(time, id, tY + dir, 0, (dir == 0) ? 1 : -1));
+                    }
+                }
+            }
+        }
+
+        // simulation events
+        public abstract class SimEvt // base class for simulation events
+        {
+            public long time;
+
+            public abstract void apply();
+        }
+
+        public class SimEvtList
+        {
+            private List<SimEvt> events;
+
+            public SimEvtList()
+            {
+                events = new List<SimEvt>();
+            }
+
+            public void add(SimEvt evt)
+            {
+                int ins;
+                for (ins = events.Count; ins >= 1 && evt.time < events[ins - 1].time; ins--) ;
+                events.Insert(ins, evt);
+            }
+
+            public SimEvt pop()
+            {
+                if (events.Count == 0) return null;
+                SimEvt ret = events[0];
+                events.RemoveAt(0);
                 return ret;
             }
         }
 
-        public struct TileMove
+        public class MoveEvt : SimEvt // event in which particle moves between tiles
         {
-            public long time;
             public int particle;
             public int tileCoor;
             public int dirX, dirY;
 
-            public TileMove(long timeVal, int particleVal, int tileCoorVal, int dirXVal, int dirYVal)
+            public MoveEvt(long timeVal, int particleVal, int tileCoorVal, int dirXVal, int dirYVal)
             {
                 time = timeVal;
                 particle = particleVal;
                 tileCoor = tileCoorVal;
                 dirX = dirXVal;
                 dirY = dirYVal;
+            }
+
+            public override void apply()
+            {
+                int tX, tY, radius;
+                radius = (int)(u.particleT[p[particle].type].visRadius >> FP.Precision);
+                if (dirX != 0) p[particle].tX = tileCoor;
+                if (dirY != 0) p[particle].tY = tileCoor;
+                for (tX = p[particle].tX - radius - Math.Max(dirX, 0); tX <= p[particle].tX + radius - Math.Min(dirX, 0); tX++)
+                {
+                    for (tY = p[particle].tY - radius - Math.Max(dirY, 0); tY <= p[particle].tY + radius - Math.Min(dirY, 0); tY++)
+                    {
+                        if (inVis(tX - p[particle].tX, tY - p[particle].tY, u.particleT[p[particle].type].visRadius) && !inVis(tX - p[particle].tX + dirX, tY - p[particle].tY + dirY, u.particleT[p[particle].type].visRadius))
+                        {
+                            visAdd(particle, tX, tY, time);
+                        }
+                        else if (!inVis(tX - p[particle].tX, tY - p[particle].tY, u.particleT[p[particle].type].visRadius) && inVis(tX - p[particle].tX + dirX, tY - p[particle].tY + dirY, u.particleT[p[particle].type].visRadius))
+                        {
+                            visRemove(particle, tX, tY, time);
+                        }
+                    }
+                }
             }
         }
 
@@ -231,11 +316,9 @@ namespace Decoherence
 
         public static void update(long curTime)
         {
-            List<TileMove> tileMoves = new List<TileMove>();
-            int move, moveLast;
-            FP.Vector pos, posLast;
-            long time;
-            int i, i2, tX, tY, id, radius, dir, ins;
+            SimEvtList events = new SimEvtList();
+            SimEvt evt;
+            int i, tX, tY;
             // do timing
             if (curTime < timeSim)
             {
@@ -264,62 +347,22 @@ namespace Decoherence
             for (i = 0; i < nParticles; i++)
             {
                 p[i].mLive = p[i].n - 1; // TODO: set this the moment it goes live?
-                moveLast = Math.Max(0, p[i].moveGet(timeSimLast));
-                move = p[i].moveGet(timeSim);
-                if (move < 0) continue;
-                for (i2 = moveLast; i2 <= move; i2++)
-                {
-                    posLast = (i2 == moveLast) ? p[i].m[i2].calcPos(timeSimLast) : p[i].m[i2].vecStart;
-                    pos = (i2 == move) ? p[i].m[i2].calcPos(timeSim) : p[i].m[i2 + 1].vecStart;
-                    // moving between columns (x)
-                    dir = (pos.x >= posLast.x) ? 0 : -1;
-                    for (tX = (int)(Math.Min(pos.x, posLast.x) >> FP.Precision) + 1; tX <= (int)(Math.Max(pos.x, posLast.x) >> FP.Precision); tX++)
-                    {
-                        time = p[i].m[i2].timeAtX(tX << FP.Precision);
-                        for (ins = tileMoves.Count; ins >= 1 && time < tileMoves[ins - 1].time; ins--);
-                        tileMoves.Insert(ins, new TileMove(time, i, tX + dir, (dir == 0) ? 1 : -1, 0));
-                    }
-                    // moving between rows (y)
-                    dir = (pos.y >= posLast.y) ? 0 : -1;
-                    for (tY = (int)(Math.Min(pos.y, posLast.y) >> FP.Precision) + 1; tY <= (int)(Math.Max(pos.y, posLast.y) >> FP.Precision); tY++)
-                    {
-                        time = p[i].m[i2].timeAtY(tY << FP.Precision);
-                        for (ins = tileMoves.Count; ins >= 1 && time < tileMoves[ins - 1].time; ins--);
-                        tileMoves.Insert(ins, new TileMove(time, i, tY + dir, 0, (dir == 0) ? 1 : -1));
-                    }
-                }
+                p[i].addMoveEvts(ref events, i, timeSimLast, timeSim);
             }
-            // add and remove particles from visibility tiles
-            for (i = 0; i < tileMoves.Count; i++)
+            // apply simulation events
+            while ((evt = events.pop()) != null)
             {
-                id = tileMoves[i].particle;
-                radius = (int)(u.particleT[p[id].type].visRadius >> FP.Precision);
-                if (tileMoves[i].dirX != 0) p[id].tX = tileMoves[i].tileCoor;
-                if (tileMoves[i].dirY != 0) p[id].tY = tileMoves[i].tileCoor;
-                for (tX = p[id].tX - radius - Math.Max(tileMoves[i].dirX, 0); tX <= p[id].tX + radius - Math.Min(tileMoves[i].dirX, 0); tX++)
-                {
-                    for (tY = p[id].tY - radius - Math.Max(tileMoves[i].dirY, 0); tY <= p[id].tY + radius - Math.Min(tileMoves[i].dirY, 0); tY++)
-                    {
-                        if (inVis(tX - p[id].tX, tY - p[id].tY, u.particleT[p[id].type].visRadius) && !inVis(tX - p[id].tX + tileMoves[i].dirX, tY - p[id].tY + tileMoves[i].dirY, u.particleT[p[id].type].visRadius))
-                        {
-                            visAdd(id, tX, tY, tileMoves[i].time);
-                        }
-                        else if (!inVis(tX - p[id].tX, tY - p[id].tY, u.particleT[p[id].type].visRadius) && inVis(tX - p[id].tX + tileMoves[i].dirX, tY - p[id].tY + tileMoves[i].dirY, u.particleT[p[id].type].visRadius))
-                        {
-                            visRemove(id, tX, tY, tileMoves[i].time);
-                        }
-                    }
-                }
+                evt.apply();
             }
             // update earliest times it's safe for each particle to time travel
             // TODO: choose check state times more intelligently
             // TODO: actually safe to time travel at earlier times, as long as particle of same type is at same place when decoheres
             for (i = 0; i < nParticles; i++)
             {
-                if ((timeSimLast < p[i].m[0].tmStart || !coherent(p[i].matter, (int)(p[i].calcPos(timeSimLast).x >> FP.Precision), (int)(p[i].calcPos(timeSimLast).y >> FP.Precision), timeSimLast))
-                    && (timeSim >= p[i].m[0].tmStart && coherent(p[i].matter, (int)(p[i].calcPos(timeSim).x >> FP.Precision), (int)(p[i].calcPos(timeSim).y >> FP.Precision), timeSim)))
+                if ((timeSimLast < p[i].m[0].timeStart || !coherent(p[i].matter, (int)(p[i].calcPos(timeSimLast).x >> FP.Precision), (int)(p[i].calcPos(timeSimLast).y >> FP.Precision), timeSimLast))
+                    && (timeSim >= p[i].m[0].timeStart && coherent(p[i].matter, (int)(p[i].calcPos(timeSim).x >> FP.Precision), (int)(p[i].calcPos(timeSim).y >> FP.Precision), timeSim)))
                 {
-                    p[i].tmCohere = timeSim;
+                    p[i].timeCohere = timeSim;
                 }
             }
         }
@@ -331,7 +374,7 @@ namespace Decoherence
             // TODO: choose check state times more intelligently
             for (i = 0; i < nParticles; i++)
             {
-                if (curTime >= p[i].tmCohere && p[i].mLive < p[i].n - 1
+                if (curTime >= p[i].timeCohere && p[i].mLive < p[i].n - 1
                     && !coherent(p[i].matter, (int)(p[i].calcPos(curTime).x >> FP.Precision), (int)(p[i].calcPos(curTime).y >> FP.Precision), curTime))
                 {
                     p[i].setN(p[i].mLive + 1);
