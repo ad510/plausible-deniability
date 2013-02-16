@@ -318,7 +318,7 @@ namespace Decoherence
             FP.Vector pos;
             int i;
             // do timing
-            if (curTime < timeSim)
+            if (curTime <= timeSim)
             {
                 updatePast(curTime);
                 return;
@@ -331,8 +331,8 @@ namespace Decoherence
                 if (p[i].mLive < p[i].n - 1)
                 {
                     p[i].mLive = p[i].n - 1;
-                    pos = p[i].calcPos(timeSimLast);
-                    events.add(new MoveEvt(timeSimLast, i, (int)(pos.x >> FP.Precision), (int)(pos.y >> FP.Precision)));
+                    pos = p[i].calcPos(timeSimLast + 1);
+                    events.add(new MoveEvt(timeSimLast + 1, i, (int)(pos.x >> FP.Precision), (int)(pos.y >> FP.Precision)));
                 }
             }
             // check if particles moved between tiles
