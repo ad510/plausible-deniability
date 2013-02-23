@@ -242,48 +242,25 @@ namespace Decoherence
                 radius = (int)(u.particleT[p[particle].type].visRadius >> FP.Precision);
                 if (tileX == int.MinValue) tileX = p[particle].tileX;
                 if (tileY == int.MinValue) tileY = p[particle].tileY;
-                if (tileX + radius < p[particle].tileX - radius || tileX - radius > p[particle].tileX + radius
-                    || tileY + radius < p[particle].tileY - radius || tileY - radius > p[particle].tileY + radius)
+                for (tX = p[particle].tileX - radius; tX <= p[particle].tileX + radius; tX++)
                 {
-                    // old and new tiles do not overlap
-                    for (tX = p[particle].tileX - radius; tX <= p[particle].tileX + radius; tX++)
+                    for (tY = p[particle].tileY - radius; tY <= p[particle].tileY + radius; tY++)
                     {
-                        for (tY = p[particle].tileY - radius; tY <= p[particle].tileY + radius; tY++)
+                        if (inVis(tX - p[particle].tileX, tY - p[particle].tileY, u.particleT[p[particle].type].visRadius)
+                            && !inVis(tX - tileX, tY - tileY, u.particleT[p[particle].type].visRadius))
                         {
-                            if (inVis(tX - p[particle].tileX, tY - p[particle].tileY, u.particleT[p[particle].type].visRadius))
-                            {
-                                visRemove(particle, tX, tY, time);
-                            }
-                        }
-                    }
-                    for (tX = tileX - radius; tX <= tileX + radius; tX++)
-                    {
-                        for (tY = tileY - radius; tY <= tileY + radius; tY++)
-                        {
-                            if (inVis(tX - tileX, tY - tileY, u.particleT[p[particle].type].visRadius))
-                            {
-                                visAdd(particle, tX, tY, time);
-                            }
+                            visRemove(particle, tX, tY, time);
                         }
                     }
                 }
-                else
+                for (tX = tileX - radius; tX <= tileX + radius; tX++)
                 {
-                    // old and new tiles overlap
-                    for (tX = Math.Min(p[particle].tileX, tileX) - radius; tX <= Math.Max(p[particle].tileX, tileX) + radius; tX++)
+                    for (tY = tileY - radius; tY <= tileY + radius; tY++)
                     {
-                        for (tY = Math.Min(p[particle].tileY, tileY) - radius; tY <= Math.Max(p[particle].tileY, tileY) + radius; tY++)
+                        if (!inVis(tX - p[particle].tileX, tY - p[particle].tileY, u.particleT[p[particle].type].visRadius)
+                            && inVis(tX - tileX, tY - tileY, u.particleT[p[particle].type].visRadius))
                         {
-                            if (inVis(tX - p[particle].tileX, tY - p[particle].tileY, u.particleT[p[particle].type].visRadius)
-                                && !inVis(tX - tileX, tY - tileY, u.particleT[p[particle].type].visRadius))
-                            {
-                                visRemove(particle, tX, tY, time);
-                            }
-                            else if (!inVis(tX - p[particle].tileX, tY - p[particle].tileY, u.particleT[p[particle].type].visRadius)
-                                && inVis(tX - tileX, tY - tileY, u.particleT[p[particle].type].visRadius))
-                            {
-                                visAdd(particle, tX, tY, time);
-                            }
+                            visAdd(particle, tX, tY, time);
                         }
                     }
                 }
