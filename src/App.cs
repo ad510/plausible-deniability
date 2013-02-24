@@ -154,9 +154,10 @@ namespace Decoherence
                 Sim.p[i] = new Sim.Particle(0, i / (Sim.nParticles / 2), 0, new FP.Vector((long)(rand.NextDouble() * Sim.u.mapSize), (long)(rand.NextDouble() * Sim.u.mapSize)));
             }
             selParticles = new List<int>();
-            // set up visibility tiles
+            // set up visibility and coherence tiles
             Sim.particleVis = new List<int>[Sim.tileLen(), Sim.tileLen()];
             Sim.matterVis = new List<long>[Sim.u.nMatterT, Sim.tileLen(), Sim.tileLen()];
+            Sim.coherence = new List<long>[Sim.u.nMatterT, Sim.tileLen(), Sim.tileLen()];
             for (i = 0; i < Sim.tileLen(); i++)
             {
                 for (i2 = 0; i2 < Sim.tileLen(); i2++)
@@ -165,6 +166,7 @@ namespace Decoherence
                     for (i3 = 0; i3 < Sim.u.nMatterT; i3++)
                     {
                         Sim.matterVis[i3, i, i2] = new List<long>();
+                        Sim.coherence[i3, i, i2] = new List<long>();
                     }
                 }
             }
