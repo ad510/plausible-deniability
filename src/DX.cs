@@ -254,7 +254,7 @@ static class DX
             d3dLinkDevice = new SlimDX.Direct3D9.Device(d3d, 0, SlimDX.Direct3D9.DeviceType.Hardware, drawHwnd, (d3d.GetDeviceCaps(0, SlimDX.Direct3D9.DeviceType.Hardware).DeviceCaps.HasFlag(DeviceCaps.HWTransformAndLight) ? CreateFlags.HardwareVertexProcessing : CreateFlags.SoftwareVertexProcessing), d3dPP);
             d3dDevice = d3dLinkDevice;
             if (d3dDevice == null)
-                throw new Exception("D3D device is null");
+                throw new NullReferenceException("D3D device is null");
             dxErr = "enabling z-buffering";
             d3dDevice.SetRenderState(RenderState.ZEnable, 1);
             dxErr = "disabling cull mode";
@@ -1026,7 +1026,7 @@ static class DX
             try
             {
                 if (buf == null)
-                    throw new Exception();
+                    throw new NullReferenceException("buffer is null");
                 // stop sound if it's playing already
                 buf.Stop();
                 buf.CurrentPlayPosition = 0;
