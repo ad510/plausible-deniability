@@ -91,6 +91,9 @@ namespace Decoherence
                 this.Close();
                 return;
             }
+            Sim.events = new Sim.SimEvtList();
+            Sim.maxSpeed = 0;
+            Sim.maxVisRadius = 0;
             Sim.u.mapSize = jsonFP(json, "mapSize");
             Sim.u.camSpeed = jsonFP(json, "camSpeed");
             Sim.u.camPos = jsonFPVector(json, "camPos", new FP.Vector(Sim.u.mapSize / 2, Sim.u.mapSize / 2));
@@ -100,7 +103,8 @@ namespace Decoherence
             Sim.u.backCol = jsonColor4(json, "backCol");
             Sim.u.borderCol = jsonColor4(json, "borderCol");
             Sim.u.noVisCol = jsonColor4(json, "noVisCol");
-            Sim.u.visCol = jsonColor4(json, "visCol");
+            Sim.u.matterVisCol = jsonColor4(json, "matterVisCol");
+            Sim.u.particleVisCol = jsonColor4(json, "particleVisCol");
             Sim.u.coherentCol = jsonColor4(json, "coherentCol");
             //Sim.g.music = jsonString(json, "music");
             jsonA = jsonArray(json, "matterTypes");
@@ -128,6 +132,7 @@ namespace Decoherence
                     particleT.speed = jsonFP(jsonO, "speed");
                     particleT.visRadius = jsonFP(jsonO, "visRadius");
                     particleT.selRadius = jsonDouble(jsonO, "selRadius");
+                    if (particleT.speed > Sim.maxSpeed) Sim.maxSpeed = particleT.speed;
                     if (particleT.visRadius > Sim.maxVisRadius) Sim.maxVisRadius = particleT.visRadius;
                     Sim.u.nParticleT++;
                     Array.Resize(ref Sim.u.particleT, Sim.u.nParticleT);
@@ -273,6 +278,7 @@ namespace Decoherence
                             && Sim.coherent(selMatter, (int)(Sim.p[id].calcPos(DX.timeNow - DX.timeStart).x >> FP.Precision), (int)(Sim.p[id].calcPos(DX.timeNow - DX.timeStart).y >> FP.Precision), DX.timeNow - DX.timeStart)))
                         {
                             // TODO: instead of using maxVisRadius, should use smallest radius of selected particles
+                            // TODO: loose formation should be triangular
                             if (DX.diKeyState.IsPressed(Key.LeftControl))
                             {
                                 spacing = FP.mul(Sim.maxVisRadius, FP.fromDouble(Math.Sqrt(2))) >> FP.Precision << FP.Precision;
@@ -367,7 +373,7 @@ namespace Decoherence
         {
             Vector3 vec, vec2;
             FP.Vector fpVec;
-            int col;
+            Color4 col;
             int i, i2, tX, tY;
             DX.d3dDevice.Clear(ClearFlags.Target | ClearFlags.ZBuffer, Sim.u.backCol, 1, 0);
             DX.d3dDevice.BeginScene();
@@ -393,24 +399,17 @@ namespace Decoherence
                     tlTile.poly[0].v[i + 4].y = vec2.Y;
                     tlTile.poly[0].v[i + 5].x = vec2.X;
                     tlTile.poly[0].v[i + 5].y = vec2.Y;
+                    col = Sim.u.noVisCol;
                     if (Sim.matterVisWhen(selMatter, tX, tY, DX.timeNow - DX.timeStart))
                     {
-                        if (Sim.coherent(selMatter, tX, tY, DX.timeNow - DX.timeStart))
-                        {
-                            col = Sim.u.coherentCol.ToArgb();
-                        }
-                        else
-                        {
-                            col = Sim.u.visCol.ToArgb();
-                        }
-                    }
-                    else
-                    {
-                        col = Sim.u.noVisCol.ToArgb();
+                        col += Sim.u.matterVisCol;
+                        // TODO: particle visibility not updated when time traveling
+                        if (Sim.matterDirectVis(selMatter, tX, tY)) col += Sim.u.particleVisCol;
+                        if (Sim.coherent(selMatter, tX, tY, DX.timeNow - DX.timeStart)) col += Sim.u.coherentCol;
                     }
                     for (i2 = i; i2 < i + 6; i2++)
                     {
-                        tlTile.poly[0].v[i2].color = col;
+                        tlTile.poly[0].v[i2].color = col.ToArgb();
                     }
                 }
             }
