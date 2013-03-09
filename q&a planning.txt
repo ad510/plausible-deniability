@@ -1,0 +1,35 @@
+NOTE: If you are not Andrew, you will probably have no clue what I'm rambling about in this file. Don't worry about it; I'm not even sure I'll use most of the stuff here anyway.
+
+not q&a but still good wording:
+- Now we know that by any reasonable set of rules I won't be able to complete this level in X seconds. But does my opponent know that?
+- amplitude: the moment another player sees one, that's the one that happens
+
+UI:
+have visibility circle (like in menu), when hovering over Q&A box all of it becomes visible
+after pressing continue button, nothing changes but moving mouse away shows level map/menu
+
+Q: Can *real* particles change what they did in the past?
+
+Well, just like none of the antimatter particles "saw" you changing anything in the past, we've never seen a particle in real life change what it did in the past. But we have seen real life particles do some *very strange* things, and soon you will learn how to do some very strange things too. ;)
+
+(note: relativity)
+
+(note: matter-antimatter artificial decoherence boundary/system)
+
+Q: ...
+
+...
+
+That said, through careful experimentation, we can say with quite some confidence that at least one of the following is true (note: check with physicist):
+
+1. Particles do not have a well defined position until you measure them. (This would be like if your proton was smeared out across all of the yellow areas until the antiproton "saw" it.)
+2. Particles can teleport. (This would be like if you teleported the proton over to the other group of electrons instead of changing what it did in the past.)
+3. Particles can change what they did in the past.
+
+Q: How can you tell that someone can do something like time travel if you never saw it happening?
+
+Suppose you were controlling the antimatter. Every time when the level starts, you flip a coin and put the antiproton on one of the sides of the map depending on whether you got heads or tails. (Or better yet, you wait several seconds before flipping the coin so you know that the person controlling the matter didn't just know the initial result of the coin flip. It's not like you have to make up your mind right away, since the matter can't see where the antiproton is until it moves across half of the map.) Since the side you put the antiproton on is a completely random choice, you'd expect that the other player can complete the level within the time limit about half of the time, at most. So wouldn't you be a little suspicious if the other player did that 10 times in a row? Or 100? Or 1000?
+
+Notice you could do that without ever seeing the other player time travel. But that means they have an excuse for their apparent "cheating." Maybe they were just very lucky. So if you play this game against someone who doesn't know you can time travel and they accuse you of cheating, show them the replay and say that you were just lucky. And if they accuse you of seeing the entire map, show them all of the situations in the replay where your units were at all the right places before the other player even started moving their units there (since you changed where your units went in the past after you knew where their units would be). You'd have to be very lucky for *that* to happen, wouldn't you? Maybe they should play you again and you might not be so lucky next time? Or maybe you're just psychic. (note: maybe move this section to a later level's Q&A, maybe with the question: Time traveling and using amplitudes is fun, but if I play against someone who doesn't know this game lets you do that, wouldn't they still get suspicious that I'm "cheating?")
+
+(note: experiment to detect in real physics more complicated due to additional restrictions from prev answer, but used for particle physics "discoveries" such as higgs)

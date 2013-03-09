@@ -1,5 +1,5 @@
 todo:
-triangular loose formation
+doxygen-style comments
 pathfinding
 
 global variables:
@@ -59,6 +59,28 @@ other questions:
 puzzle brainstorming
 work on game in summer with Matthew and/or Zach, then email TJ when further along?
 
+changing the past and wavefunctions levels:
+- what they didn't see
+- better than a coin flip
+- spreading coherence (objective is to see the entire map)
+  - user controls electrons, but some antiprotons on map
+  - in q&a explain how nature controls/sees everything (1 player game) & how we measure it, interpretations of quantum mechanics
+- retroactive coherence
+...
+- qubits? (might not need this level)
+- lucky number computing
+  - must introduce "waking up" concept before this level
+- CPT level to annihilate the antiproton in negative 10 seconds (only enable CPT button for this level)
+- thinking in the present
+
+amplitudes levels: (find better synonym for "part 2" such as redux?)
+- better than a coin flip, part 2
+- spreading coherence, part 2
+- retroactive coherence, part 2
+
 random notes:
 phrase from AI wisdom: "expand selection by radius"
-CPT level to annihilate the antiproton in negative 10 seconds? (only enable CPT button for this level)
+flip/mirror map for some players in multiplayer game
+
+links:
+play ogg: http://christophermpark.blogspot.com/2009/06/how-to-stream-ogg-file-using.html
