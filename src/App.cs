@@ -396,8 +396,7 @@ namespace Decoherence
                     if (Sim.tiles[tX, tY].matterVisWhen(selMatter, DX.timeNow - DX.timeStart))
                     {
                         col += Sim.u.matterVisCol;
-                        // TODO: particle visibility not updated when time traveling
-                        if (Sim.tiles[tX, tY].matterDirectVis(selMatter)) col += Sim.u.particleVisCol;
+                        if (Sim.tiles[tX, tY].matterDirectVisWhen(selMatter, DX.timeNow - DX.timeStart)) col += Sim.u.particleVisCol;
                         if (Sim.tiles[tX, tY].coherentWhen(selMatter, DX.timeNow - DX.timeStart)) col += Sim.u.coherentCol;
                     }
                     for (i2 = i; i2 < i + 6; i2++)
