@@ -160,19 +160,12 @@ namespace Decoherence
             }
             selParticles = new List<int>();
             // set up visibility and coherence tiles
-            Sim.particleVis = new List<int>[Sim.tileLen(), Sim.tileLen()];
-            Sim.matterVis = new List<long>[Sim.u.nMatterT, Sim.tileLen(), Sim.tileLen()];
-            Sim.coherence = new List<long>[Sim.u.nMatterT, Sim.tileLen(), Sim.tileLen()];
+            Sim.tiles = new Sim.Tile[Sim.tileLen(), Sim.tileLen()];
             for (i = 0; i < Sim.tileLen(); i++)
             {
                 for (i2 = 0; i2 < Sim.tileLen(); i2++)
                 {
-                    Sim.particleVis[i, i2] = new List<int>();
-                    for (i3 = 0; i3 < Sim.u.nMatterT; i3++)
-                    {
-                        Sim.matterVis[i3, i, i2] = new List<long>();
-                        Sim.coherence[i3, i, i2] = new List<long>();
-                    }
+                    Sim.tiles[i, i2] = new Sim.Tile();
                 }
             }
             tlTile.primitive = PrimitiveType.TriangleList;
@@ -275,7 +268,7 @@ namespace Decoherence
                     foreach (int id in selParticles)
                     {
                         if (DX.timeNow - DX.timeStart >= Sim.timeSim || (DX.timeNow - DX.timeStart >= Sim.p[id].timeCohere
-                            && Sim.coherent(selMatter, (int)(Sim.p[id].calcPos(DX.timeNow - DX.timeStart).x >> FP.Precision), (int)(Sim.p[id].calcPos(DX.timeNow - DX.timeStart).y >> FP.Precision), DX.timeNow - DX.timeStart)))
+                            && Sim.tileAt(Sim.p[id].calcPos(DX.timeNow - DX.timeStart)).coherentWhen(selMatter, DX.timeNow - DX.timeStart)))
                         {
                             // TODO: instead of using maxVisRadius, should use smallest radius of selected particles
                             // TODO: loose formation should be triangular
@@ -400,12 +393,12 @@ namespace Decoherence
                     tlTile.poly[0].v[i + 5].x = vec2.X;
                     tlTile.poly[0].v[i + 5].y = vec2.Y;
                     col = Sim.u.noVisCol;
-                    if (Sim.matterVisWhen(selMatter, tX, tY, DX.timeNow - DX.timeStart))
+                    if (Sim.tiles[tX, tY].matterVisWhen(selMatter, DX.timeNow - DX.timeStart))
                     {
                         col += Sim.u.matterVisCol;
                         // TODO: particle visibility not updated when time traveling
-                        if (Sim.matterDirectVis(selMatter, tX, tY)) col += Sim.u.particleVisCol;
-                        if (Sim.coherent(selMatter, tX, tY, DX.timeNow - DX.timeStart)) col += Sim.u.coherentCol;
+                        if (Sim.tiles[tX, tY].matterDirectVis(selMatter)) col += Sim.u.particleVisCol;
+                        if (Sim.tiles[tX, tY].coherentWhen(selMatter, DX.timeNow - DX.timeStart)) col += Sim.u.coherentCol;
                     }
                     for (i2 = i; i2 < i + 6; i2++)
                     {
@@ -444,7 +437,7 @@ namespace Decoherence
                 if (DX.timeNow - DX.timeStart < Sim.p[i].m[0].timeStart) continue;
                 i2 = Sim.p[i].type * Sim.u.nParticleT + Sim.p[i].matter;
                 fpVec = Sim.p[i].calcPos(DX.timeNow - DX.timeStart);
-                if (selMatter != Sim.p[i].matter && !Sim.matterVisWhen(selMatter, (int)(fpVec.x >> FP.Precision), (int)(fpVec.y >> FP.Precision), DX.timeNow - DX.timeStart)) continue;
+                if (selMatter != Sim.p[i].matter && !Sim.tileAt(fpVec).matterVisWhen(selMatter, DX.timeNow - DX.timeStart)) continue;
                 if (Sim.p[i].n > Sim.p[i].mLive + 1 && DX.timeNow - DX.timeStart >= Sim.p[i].m[Sim.p[i].mLive + 1].timeStart)
                 {
                     imgParticle[i2].color = new Color4(0.5f, 1, 1, 1).ToArgb(); // TODO: make transparency amount customizable

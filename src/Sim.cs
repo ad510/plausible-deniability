@@ -193,6 +193,69 @@ namespace Decoherence
             }
         }
 
+        public class Tile
+        {
+            public List<int> particleVis;
+            public List<long>[] matterVis;
+            public List<long>[] coherence;
+
+            public Tile()
+            {
+                particleVis = new List<int>();
+                matterVis = new List<long>[u.nMatterT];
+                coherence = new List<long>[u.nMatterT];
+                for (int i = 0; i < u.nMatterT; i++)
+                {
+                    matterVis[i] = new List<long>();
+                    coherence[i] = new List<long>();
+                }
+            }
+
+            // returns if the specified tile is in the direct line of sight of a particle of specified matter type
+            public bool matterDirectVis(int matter)
+            {
+                for (int i = 0; i < particleVis.Count; i++)
+                {
+                    if (matter == p[particleVis[i]].matter) return true;
+                }
+                return false;
+            }
+
+            // returns if the specified tile is either in the direct line of sight for specified matter type at latest time,
+            // or if matter type can infer that particles of other matter types aren't in specified tile at latest time
+            public bool matterVisLatest(int matter)
+            {
+                return matterVis[matter].Count % 2 == 1;
+            }
+
+            // returns if the specified tile is either in the direct line of sight for specified matter type at specified time,
+            // or if matter type can infer that particles of other matter types aren't in specified tile at specified time
+            public bool matterVisWhen(int matter, long time)
+            {
+                for (int i = matterVis[matter].Count - 1; i >= 0; i--)
+                {
+                    if (time >= matterVis[matter][i]) return i % 2 == 0;
+                }
+                return false;
+            }
+
+            public bool coherentLatest(int matter)
+            {
+                return coherence[matter].Count % 2 == 1;
+            }
+
+            // returns if it is impossible for other matter's particles to see this location
+            // this isn't quite the actual definition of coherence, but this is an important concept in the game and I need a name for it
+            public bool coherentWhen(int matter, long time)
+            {
+                for (int i = coherence[matter].Count - 1; i >= 0; i--)
+                {
+                    if (time >= coherence[matter][i]) return i % 2 == 0;
+                }
+                return false;
+            }
+        }
+
         // simulation events
         public abstract class SimEvt // base class for simulation events
         {
@@ -280,7 +343,7 @@ namespace Decoherence
                     }
                 }
                 // update whether this particle may time travel
-                if (coherent(p[particle].matter, tileX, tileY, time) != p[particle].coherent)
+                if (tiles[tileX, tileY].coherentWhen(p[particle].matter, time) != p[particle].coherent)
                 {
                     p[particle].coherent = !p[particle].coherent;
                     p[particle].timeCohere = p[particle].coherent ? time : long.MaxValue;
@@ -291,7 +354,7 @@ namespace Decoherence
                 {
                     for (i = 0; i < u.nMatterT; i++)
                     {
-                        if (i != p[particle].matter && matterDirectVis(i, tXPrev, tYPrev) && !matterDirectVis(i, tileX, tileY))
+                        if (i != p[particle].matter && tiles[tXPrev, tYPrev].matterDirectVis(i) && !tiles[tileX, tileY].matterDirectVis(i))
                         {
                             for (tX = Math.Max(0, tileX - 1); tX <= Math.Min(tileLen() - 1, tileX + 1); tX++)
                             {
@@ -329,7 +392,7 @@ namespace Decoherence
                 {
                     for (tY = Math.Max(0, tileY - 1); tY <= Math.Min(tileLen() - 1, tileY + 1); tY++)
                     {
-                        if ((tX != tileX || tY != tileY) && matterVis[matter, tX, tY].Count % 2 == 0)
+                        if ((tX != tileX || tY != tileY) && !tiles[tX, tY].matterVisLatest(matter))
                         {
                             // TODO: use more accurate time
                             events.add(new MatterVisAddEvt(time - (1 << FP.Precision) / maxSpeed, matter, tX, tY));
@@ -355,9 +418,9 @@ namespace Decoherence
             public override void apply()
             {
                 int i, tX, tY;
-                if (matterVis[matter, tileX, tileY].Count % 2 == 1 && !matterDirectVis(matter, tileX, tileY))
+                if (tiles[tileX, tileY].matterVisLatest(matter) && !tiles[tileX, tileY].matterDirectVis(matter))
                 {
-                    matterVis[matter, tileX, tileY].Add(time);
+                    tiles[tileX, tileY].matterVis[matter].Add(time);
                     // check if a tile decohered for this matter type, or cohered for another matter type
                     for (i = 0; i < u.nMatterT; i++)
                     {
@@ -365,11 +428,11 @@ namespace Decoherence
                         {
                             for (tY = Math.Max(0, tileY - (int)(maxVisRadius >> FP.Precision)); tY <= Math.Min(tileLen() - 1, tileY + (int)(maxVisRadius >> FP.Precision)); tY++)
                             {
-                                if (i == matter && coherence[i, tX, tY].Count % 2 == 1 && !calcCoherent(i, tX, tY, time))
+                                if (i == matter && tiles[tX, tY].coherentLatest(i) && !calcCoherent(i, tX, tY, time))
                                 {
                                     coherenceRemove(i, tX, tY, time);
                                 }
-                                else if (i != matter && coherence[i, tX, tY].Count % 2 == 0 && calcCoherent(i, tX, tY, time))
+                                else if (i != matter && !tiles[tX, tY].coherentLatest(i) && calcCoherent(i, tX, tY, time))
                                 {
                                     coherenceAdd(i, tX, tY, time);
                                 }
@@ -381,7 +444,7 @@ namespace Decoherence
                     {
                         for (tY = Math.Max(0, tileY - 1); tY <= Math.Min(tileLen() - 1, tileY + 1); tY++)
                         {
-                            if ((tX != tileX || tY != tileY) && matterVis[matter, tX, tY].Count % 2 == 1)
+                            if ((tX != tileX || tY != tileY) && tiles[tX, tY].matterVisLatest(matter))
                             {
                                 // TODO: use more accurate time
                                 events.add(new MatterVisRemoveEvt(time + (1 << FP.Precision) / maxSpeed, matter, tX, tY));
@@ -398,10 +461,8 @@ namespace Decoherence
         public static Particle[] p;
 
         // helper variables
+        public static Tile[,] tiles;
         public static SimEvtList events;
-        public static List<int>[,] particleVis;
-        public static List<long>[, ,] matterVis;
-        public static List<long>[, ,] coherence;
         public static long maxSpeed;
         public static long maxVisRadius;
         public static long timeSim;
@@ -456,7 +517,7 @@ namespace Decoherence
             for (i = 0; i < nParticles; i++)
             {
                 if (curTime >= p[i].timeCohere && p[i].mLive < p[i].n - 1
-                    && !coherent(p[i].matter, (int)(p[i].calcPos(curTime).x >> FP.Precision), (int)(p[i].calcPos(curTime).y >> FP.Precision), curTime))
+                    && !tileAt(p[i].calcPos(curTime)).coherentWhen(p[i].matter, curTime))
                 {
                     p[i].setN(p[i].mLive + 1);
                 }
@@ -470,11 +531,11 @@ namespace Decoherence
             if (tileX >= 0 && tileX < tileLen() && tileY >= 0 && tileY < tileLen())
             {
                 // add particle to particle visibility tile
-                particleVis[tileX, tileY].Add(particle);
+                tiles[tileX, tileY].particleVis.Add(particle);
                 // TODO: use smarter matterVis adding algorithm (requires matterDirectVis to work in past)
-                if (matterVis[p[particle].matter, tileX, tileY].Count % 2 == 0)
+                if (!tiles[tileX, tileY].matterVisLatest(p[particle].matter))
                 {
-                    matterVis[p[particle].matter, tileX, tileY].Add(time);
+                    tiles[tileX, tileY].matterVis[p[particle].matter].Add(time);
                     // check if a tile cohered for this matter type, or decohered for another matter type
                     for (i = 0; i < u.nMatterT; i++)
                     {
@@ -482,11 +543,11 @@ namespace Decoherence
                         {
                             for (tY = Math.Max(0, tileY - (int)(maxVisRadius >> FP.Precision)); tY <= Math.Min(tileLen() - 1, tileY + (int)(maxVisRadius >> FP.Precision)); tY++)
                             {
-                                if (i == p[particle].matter && coherence[i, tX, tY].Count % 2 == 0 && calcCoherent(i, tX, tY, time))
+                                if (i == p[particle].matter && !tiles[tX, tY].coherentLatest(i) && calcCoherent(i, tX, tY, time))
                                 {
                                     coherenceAdd(i, tX, tY, time);
                                 }
-                                else if (i != p[particle].matter && coherence[i, tX, tY].Count % 2 == 1 && !calcCoherent(i, tX, tY, time))
+                                else if (i != p[particle].matter && tiles[tX, tY].coherentLatest(i) && !calcCoherent(i, tX, tY, time))
                                 {
                                     coherenceRemove(i, tX, tY, time);
                                 }
@@ -497,7 +558,7 @@ namespace Decoherence
                     {
                         for (tY = Math.Max(0, tileY - 1); tY <= Math.Min(tileLen() - 1, tileY + 1); tY++)
                         {
-                            if (matterVis[p[particle].matter, tileX, tileY].Count % 2 == 0) filled = false;
+                            if (!tiles[tileX, tileY].matterVisLatest(p[particle].matter)) filled = false;
                         }
                     }
                     //if (filled) events.add(new MatterVisAddEvt(time, p[particle].matter, tileX, tileY));
@@ -512,24 +573,24 @@ namespace Decoherence
             if (tileX >= 0 && tileX < tileLen() && tileY >= 0 && tileY < tileLen())
             {
                 // remove particle from particle visibility tile
-                particleVis[tileX, tileY].Remove(particle);
+                tiles[tileX, tileY].particleVis.Remove(particle);
                 // check if particle's matter type can't directly see this tile anymore
-                if (matterVis[p[particle].matter, tileX, tileY].Count % 2 == 1 && !matterDirectVis(p[particle].matter, tileX, tileY))
+                if (tiles[tileX, tileY].matterVisLatest(p[particle].matter) && !tiles[tileX, tileY].matterDirectVis(p[particle].matter))
                 {
                     // find lowest time that surrounding tiles lost visibility
                     for (tX = Math.Max(0, tileX - 1); tX <= Math.Min(tileLen() - 1, tileX + 1); tX++)
                     {
                         for (tY = Math.Max(0, tileY - 1); tY <= Math.Min(tileLen() - 1, tileY + 1); tY++)
                         {
-                            if ((tX != tileX || tY != tileY) && matterVis[p[particle].matter, tX, tY].Count % 2 == 0)
+                            if ((tX != tileX || tY != tileY) && !tiles[tX, tY].matterVisLatest(p[particle].matter))
                             {
-                                if (matterVis[p[particle].matter, tX, tY].Count == 0)
+                                if (tiles[tX, tY].matterVis[p[particle].matter].Count == 0)
                                 {
                                     timeMatterVis = long.MinValue;
                                 }
-                                else if (matterVis[p[particle].matter, tX, tY][matterVis[p[particle].matter, tX, tY].Count - 1] < timeMatterVis)
+                                else if (tiles[tX, tY].matterVis[p[particle].matter][tiles[tX, tY].matterVis[p[particle].matter].Count - 1] < timeMatterVis)
                                 {
-                                    timeMatterVis = matterVis[p[particle].matter, tX, tY][matterVis[p[particle].matter, tX, tY].Count - 1];
+                                    timeMatterVis = tiles[tX, tY].matterVis[p[particle].matter][tiles[tX, tY].matterVis[p[particle].matter].Count - 1];
                                 }
                             }
                         }
@@ -547,9 +608,9 @@ namespace Decoherence
 
         private static void coherenceAdd(int matter, int tX, int tY, long time)
         {
-            if (coherence[matter, tX, tY].Count % 2 == 0)
+            if (!tiles[tX, tY].coherentLatest(matter))
             {
-                coherence[matter, tX, tY].Add(time);
+                tiles[tX, tY].coherence[matter].Add(time);
                 // particles of this matter type on this tile may time travel starting now
                 // TODO: actually safe to time travel at earlier times, as long as particle of same type is at same place when decoheres
                 for (int i = 0; i < nParticles; i++)
@@ -569,9 +630,9 @@ namespace Decoherence
 
         private static void coherenceRemove(int matter, int tX, int tY, long time)
         {
-            if (coherence[matter, tX, tY].Count % 2 == 1)
+            if (tiles[tX, tY].coherentLatest(matter))
             {
-                coherence[matter, tX, tY].Add(time);
+                tiles[tX, tY].coherence[matter].Add(time);
                 // particles of this matter type on this tile may not time travel starting now
                 for (int i = 0; i < nParticles; i++)
                 {
@@ -588,38 +649,6 @@ namespace Decoherence
             }
         }
 
-        // returns if the specified tile is in the direct line of sight of a particle of specified matter type
-        public static bool matterDirectVis(int matter, int tX, int tY)
-        {
-            for (int i = 0; i < particleVis[tX, tY].Count; i++)
-            {
-                if (matter == p[particleVis[tX, tY][i]].matter) return true;
-            }
-            return false;
-        }
-
-        // returns if the specified tile is either in the direct line of sight for specified matter type at specified time,
-        // or if matter type can infer that particles of other matter types aren't in specified tile at specified time
-        public static bool matterVisWhen(int matter, int tX, int tY, long time)
-        {
-            for (int i = matterVis[matter, tX, tY].Count - 1; i >= 0; i--)
-            {
-                if (time >= matterVis[matter, tX, tY][i]) return i % 2 == 0;
-            }
-            return false;
-        }
-
-        // returns if it is impossible for other matter's particles to see this location
-        // this isn't quite the actual definition of coherence, but this is an important concept in the game and I need a name for it
-        public static bool coherent(int matter, int tX, int tY, long time)
-        {
-            for (int i = coherence[matter, tX, tY].Count - 1; i >= 0; i--)
-            {
-                if (time >= coherence[matter, tX, tY][i]) return i % 2 == 0;
-            }
-            return false;
-        }
-
         // calculates from matter visibility tiles if it is impossible for other matter's particles to see this location
         public static bool calcCoherent(int matter, int tileX, int tileY, long time)
         {
@@ -629,13 +658,13 @@ namespace Decoherence
             {
                 for (tY = Math.Max(0, tileY - (int)(maxVisRadius >> FP.Precision)); tY <= Math.Min(tileLen() - 1, tileY + (int)(maxVisRadius >> FP.Precision)); tY++)
                 {
-                    if (inVis(tX - tileX, tY - tileY, maxVisRadius) && !matterVisWhen(matter, tX, tY, time)) return false;
+                    if (inVis(tX - tileX, tY - tileY, maxVisRadius) && !tiles[tX, tY].matterVisWhen(matter, time)) return false;
                 }
             }
             // check that no particles of different matter can see this tile
             for (i = 0; i < u.nMatterT; i++)
             {
-                if (i != matter && matterVisWhen(i, tileX, tileY, time)) return false;
+                if (i != matter && tiles[tileX, tileY].matterVisWhen(i, time)) return false;
             }
             return true;
         }
@@ -644,6 +673,11 @@ namespace Decoherence
         {
             //return Math.Max(Math.Abs(tX), Math.Abs(tY)) <= (int)(visRadius >> FP.Precision);
             return new FP.Vector(tX << FP.Precision, tY << FP.Precision).lengthSq() <= visRadius * visRadius;
+        }
+
+        public static Tile tileAt(FP.Vector pos)
+        {
+            return tiles[pos.x >> FP.Precision, pos.y >> FP.Precision];
         }
 
         public static int tileLen() // TODO: use particleVis.GetUpperBound instead of this function
