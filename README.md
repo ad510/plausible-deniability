@@ -1,12 +1,11 @@
 decoherence
 ===========
-*because nothing really happens until there's decoherence...*
 
 Overview
 --------
-This is a basic prototype of an RTS game that lets you time travel and change what your units did in the past, but only where it is impossible for other players to see you doing so. While time traveling, you can move your units around as long as they remain in a yellow region.
+My eventual hope for this game is to make a multiplayer RTS in which both players can do things that would normally be considered "cheating," but neither player can prove that the other player cheated, even after watching the replay. This is possible because  nothing that a player does *really* happens until another player sees it.
 
-I'm hoping to keep working on this and turn it into a full game. If you want to help, feel free to send pull requests to the GitHub repository at https://github.com/ad510/decoherence , or email questions or comments to me using the link at http://ad510.users.sf.net/.
+Currently this is just a technical proof of concept that lets you move around units, rewind time by holding down R, then change where your units went in the past as long as they stay in a yellow region (which are guaranteed to be impossible for other players to see). However, I also have other game mechanics in mind, and I'm hoping to keep working on this and turn it into a full game. If you want to help, feel free to send pull requests to the GitHub repository at https://github.com/ad510/decoherence , or email questions or comments to me using the link at http://ad510.users.sf.net/.
 
 System Requirements
 -------------------

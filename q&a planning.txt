@@ -3,6 +3,7 @@ NOTE: If you are not Andrew, you will probably have no clue what I'm rambling ab
 not q&a but still good wording:
 - Now we know that by any reasonable set of rules I won't be able to complete this level in X seconds. But does my opponent know that?
 - amplitude: the moment another player sees one, that's the one that happens
+- physicists wouldn't like it if I answer with "kind of" because physics is a precise science and "kind of" is an imprecise answer
 
 UI:
 have visibility circle (like in menu), when hovering over Q&A box all of it becomes visible
@@ -13,6 +14,8 @@ Q: Can *real* particles change what they did in the past?
 Well, just like none of the antimatter particles "saw" you changing anything in the past, we've never seen a particle in real life change what it did in the past. But we have seen real life particles do some *very strange* things, and soon you will learn how to do some very strange things too. ;)
 
 (note: relativity)
+
+(note: what happens after particles annihilate)
 
 (note: matter-antimatter artificial decoherence boundary/system)
 

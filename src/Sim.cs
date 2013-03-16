@@ -266,7 +266,7 @@ namespace Decoherence
             }
 
             // returns if it is impossible for other matter's particles to see this location
-            // this isn't quite the actual definition of coherence, but this is an important concept in the game and I need a name for it
+            // this isn't the actual definition of coherence, but this is an important concept in the game and I need a name for it
             public bool coherentWhen(int matter, long time)
             {
                 return visWhen(coherence[matter], time);
@@ -671,7 +671,7 @@ namespace Decoherence
         }
 
         // calculates from matter visibility tiles if it is impossible for other matter's particles to see this location
-        public static bool calcCoherent(int matter, int tileX, int tileY, long time)
+        private static bool calcCoherent(int matter, int tileX, int tileY, long time)
         {
             int i, tX, tY;
             // check that matter type can see all nearby tiles

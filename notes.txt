@@ -1,5 +1,7 @@
 todo:
 doxygen-style comments
+replace Sim.cs structs with classes? (should Universe data be directly in Sim class?)
+allow moving particles in past even if they decohere later (higher priority than retroactive visibility)
 pathfinding
 
 global variables:
@@ -49,6 +51,38 @@ for each entry in decoherence queue (loop through concurrently with loop above):
     push entries into queue for each of the 8 surrounding tiles that are not visible to faction (according to visibility tiles) and can be traveled to
     note: correct to assume that all units can go at speed of light b/c can momentarily turn photon into particle & antiparticle
 
+retroactive visibility temporary data:
+"add vis" list item format:
+  tile
+  whether considered
+  time neighboring tile gained visibility
+"vis time" list item format: (note that items in this list already gained visibility at the correct time)
+  tile
+  time this tile gained visibility
+
+retroactive visibility algorithm:
+(might want to start making levels before implementing this)
+(don't need global events for tile adds, since it all happens in 1 go)
+add relevant tile to "add vis" list
+while there's an unconsidered tile in "add vis" list:
+  get tile w/ latest gain visibility time from list
+  "gain visibility time" = latest time this tile gained visibility (using toggle visibility time is ok) that is <= list item time
+  if all surrounding tiles are visible at gain visiblity time + 1 ("considered" tiles count as visible):
+    (note: there's either a problem on above line or when adding original tile to list; if you quickly close "mouth" from back to front then current algorithm won't detect that more of "mouth" should be visible earlier; reminder to compare to losing visibility algorithm b/c that one is correct)
+    // this tile should be visible earlier
+    mark tile as "considered"
+    add 8 surrounding tiles to "add vis" list, time being "gain visibility time"
+    // note that we don't yet know whether surrounding tiles should be on "add vis" list or "vis time" list b/c must look at tiles in order
+  else:
+    // this tile shouldn't be visible earlier
+    add to "vis time" list, time being "gain visibility time"
+    remove from "add vis" list
+while "vis time" list isn't empty:
+  pop tile w/ earliest gain visibility time from list
+  for each adjacent tile in "add vis" list:
+    this tile gains visibility at time it takes to get between tiles
+    add this tile to "vis time" list
+
 pathfinding:
 tile-based fog of war good?
 find disconnected regions
@@ -66,12 +100,17 @@ changing the past and wavefunctions levels:
   - user controls electrons, but some antiprotons on map
   - in q&a explain how nature controls/sees everything (1 player game) & how we measure it, interpretations of quantum mechanics
 - retroactive coherence
+- do I need another level to show applications of switching particles, or does 1st level show this well enough?
+- somehow show how particle can be "coherent" even if not in yellow region
+- make levels introducing economic parts of game after making sure they play well in multiplayer
 ...
 - qubits? (might not need this level)
 - lucky number computing
   - must introduce "waking up" concept before this level
 - CPT level to annihilate the antiproton in negative 10 seconds (only enable CPT button for this level)
 - thinking in the present
+  - put introduction text in "what they didn't see" repeat
+  - initially show detailed animation for each move command, then short animation retracing particle's movement every time after that
 
 amplitudes levels: (find better synonym for "part 2" such as redux?)
 - better than a coin flip, part 2
@@ -79,8 +118,10 @@ amplitudes levels: (find better synonym for "part 2" such as redux?)
 - retroactive coherence, part 2
 
 random notes:
-phrase from AI wisdom: "expand selection by radius"
-flip/mirror map for some players in multiplayer game
+- phrase from AI wisdom: "expand selection by radius"
+- flip/mirror map for some players in multiplayer game
+- only share amplitudes if option is checked for a selection of units (don't want units randomly disappearing out of nowhere)
+  - if some wavefunctions don't overlap yet, send amplitudes going between those units
 
 links:
 play ogg: http://christophermpark.blogspot.com/2009/06/how-to-stream-ogg-file-using.html
