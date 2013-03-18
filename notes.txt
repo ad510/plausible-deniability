@@ -1,7 +1,7 @@
 todo:
+force all units to have same seeing radius in engine (amplitudes cause complications)
 doxygen-style comments
 replace Sim.cs structs with classes? (should Universe data be directly in Sim class?)
-allow moving particles in past even if they decohere later (higher priority than retroactive visibility)
 pathfinding
 
 global variables:
@@ -95,6 +95,7 @@ work on game in summer with Matthew and/or Zach, then email TJ when further alon
 
 changing the past and wavefunctions levels:
 - what they didn't see
+  - Matthew's 3/17/2013 email has alternate idea for 1st level
 - better than a coin flip
 - spreading coherence (objective is to see the entire map)
   - user controls electrons, but some antiprotons on map
@@ -122,6 +123,30 @@ random notes:
 - flip/mirror map for some players in multiplayer game
 - only share amplitudes if option is checked for a selection of units (don't want units randomly disappearing out of nowhere)
   - if some wavefunctions don't overlap yet, send amplitudes going between those units
+- after implementing amplitudes, fog of war would need nonstandard behavior if different units have different seeing radii
+  - so engine (not just mod file) might as well give all units the same seeing radius
+- don't bother with fastest unit going at light speed, so don't need to have relativity
+  - if need it for 1 q&a video, use command line or mod option to enable it
+- population limit? (or just make units expensive enough that you can't make too many)
+- if 1 amplitude mining & 1 amplitude scouting and use miner's money to make a fighter and fighter decoheres, then miner must have been mining (not scouting)
+- introduce amplitudes 1st, then introduce wavefunctions as amplitudes that go everywhere in a region? (skipping manual time travel)
+  - but manual time travel is nice though
+  - keep in mind hard to force using time travel in levels if can do amplitudes
+- Matthew says have story or something to make game interesting for people not interested in "physics" q&a's
+- unit type ideas (Matthew says using real life particles is bad idea)
+  - don't need too many unit types b/c time travel & amplitudes already make the game interesting
+  - can have ranged laser units as long as you can only see laser where it hits
+    - or you can see laser path, but opponents only see explosions/damage that laser makes
+  - have few increments of health, so easier to switch with someone with same health
+    - having a healer unit also makes switching units easier
+  - can't have mines (they'd have to be visible to the opponent when in seeing range)
+  - sniper unit that shoots further than visibility range (but can shoot units that other units see)
+    - which sniper shot it?
+    - reload slowly so not too powerful?
+  - Matthew's unit images can be pixellated to keep them simple
+  - workers/miners with low/0 attack (use as "helpers" in levels)
+    - make more interesting name for them?
+  - marines (generic shooting unit)
 
 links:
 play ogg: http://christophermpark.blogspot.com/2009/06/how-to-stream-ogg-file-using.html
