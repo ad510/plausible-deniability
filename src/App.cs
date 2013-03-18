@@ -93,7 +93,6 @@ namespace Decoherence
             }
             Sim.events = new Sim.SimEvtList();
             Sim.maxSpeed = 0;
-            Sim.maxVisRadius = 0;
             Sim.u.mapSize = jsonFP(json, "mapSize");
             Sim.u.camSpeed = jsonFP(json, "camSpeed");
             Sim.u.camPos = jsonFPVector(json, "camPos", new FP.Vector(Sim.u.mapSize / 2, Sim.u.mapSize / 2));
@@ -107,6 +106,7 @@ namespace Decoherence
             Sim.u.particleVisCol = jsonColor4(json, "particleVisCol");
             Sim.u.coherentCol = jsonColor4(json, "coherentCol");
             //Sim.g.music = jsonString(json, "music");
+            Sim.u.visRadius = jsonFP(json, "visRadius");
             jsonA = jsonArray(json, "matterTypes");
             if (jsonA != null)
             {
@@ -130,10 +130,8 @@ namespace Decoherence
                     particleT.name = jsonString(jsonO, "name");
                     particleT.imgPath = jsonString(jsonO, "imgPath");
                     particleT.speed = jsonFP(jsonO, "speed");
-                    particleT.visRadius = jsonFP(jsonO, "visRadius");
                     particleT.selRadius = jsonDouble(jsonO, "selRadius");
                     if (particleT.speed > Sim.maxSpeed) Sim.maxSpeed = particleT.speed;
-                    if (particleT.visRadius > Sim.maxVisRadius) Sim.maxVisRadius = particleT.visRadius;
                     Sim.u.nParticleT++;
                     Array.Resize(ref Sim.u.particleT, Sim.u.nParticleT);
                     Sim.u.particleT[Sim.u.nParticleT - 1] = particleT;
@@ -270,11 +268,10 @@ namespace Decoherence
                         if (DX.timeNow - DX.timeStart >= Sim.timeSim || (DX.timeNow - DX.timeStart >= Sim.p[id].timeCohere
                             && Sim.tileAt(Sim.p[id].calcPos(DX.timeNow - DX.timeStart)).coherentWhen(selMatter, DX.timeNow - DX.timeStart)))
                         {
-                            // TODO: instead of using maxVisRadius, should use smallest radius of selected particles
                             // TODO: loose formation should be triangular
                             if (DX.diKeyState.IsPressed(Key.LeftControl))
                             {
-                                spacing = FP.mul(Sim.maxVisRadius, FP.fromDouble(Math.Sqrt(2))) >> FP.Precision << FP.Precision;
+                                spacing = FP.mul(Sim.u.visRadius, FP.fromDouble(Math.Sqrt(2))) >> FP.Precision << FP.Precision;
                             }
                             else
                             {

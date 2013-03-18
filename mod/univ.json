@@ -11,6 +11,7 @@
   "particleVisCol": {"r": 0.2, "g": 0.2, "b": 0.2},
   "coherentCol": {"r": 0.2, "g": 0.2, "b": -0.3},
   "music": "",
+  "visRadius": 4,
   "matterTypes":
   [
     {
@@ -30,7 +31,6 @@
       "name": "electron",
       "imgPath": "test.png",
       "speed": 0.003,
-      "visRadius": 4,
       "selRadius": 16
     }
   ]
