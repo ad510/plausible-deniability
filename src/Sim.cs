@@ -376,10 +376,10 @@ namespace Decoherence
                     p[particle].coherent = !p[particle].coherent;
                     p[particle].timeCohere = p[particle].coherent ? time : long.MaxValue;
                 }
-                // if this particle moved out of another matter type's visibility, remove that matter type's visibility here
                 if (tXPrev >= 0 && tXPrev < tileLen() && tYPrev >= 0 && tYPrev < tileLen()
                     && tileX >= 0 && tileX < tileLen() && tileY >= 0 && tileY < tileLen())
                 {
+                    // if this particle moved out of another matter type's visibility, remove that matter type's visibility here
                     for (i = 0; i < u.nMatterT; i++)
                     {
                         if (i != p[particle].matter && tiles[tXPrev, tYPrev].matterDirectVisLatest(i) && !tiles[tileX, tileY].matterDirectVisLatest(i))
@@ -390,6 +390,21 @@ namespace Decoherence
                                 {
                                     // TODO: use more accurate time at tiles other than (tileX, tileY)
                                     events.add(new MatterVisRemoveEvt(time, i, tX, tY));
+                                }
+                            }
+                        }
+                    }
+                    // if this matter type can no longer directly see another matter type's particle, remove this matter type's visibility there
+                    foreach (int i2 in tiles[tXPrev, tYPrev].particleVis.Keys)
+                    {
+                        if (p[i2].matter != p[particle].matter && inVis(p[i2].tileX - tXPrev, p[i2].tileY - tYPrev) && !tiles[p[i2].tileX, p[i2].tileY].matterDirectVisLatest(p[particle].matter))
+                        {
+                            for (tX = Math.Max(0, p[i2].tileX - 1); tX <= Math.Min(tileLen() - 1, p[i2].tileX + 1); tX++)
+                            {
+                                for (tY = Math.Max(0, p[i2].tileY - 1); tY <= Math.Min(tileLen() - 1, p[i2].tileY + 1); tY++)
+                                {
+                                    // TODO: use more accurate time at tiles other than (p[i2].tileX, p[i2].tileY)
+                                    events.add(new MatterVisRemoveEvt(time, p[particle].matter, tX, tY));
                                 }
                             }
                         }
@@ -541,6 +556,7 @@ namespace Decoherence
             int i;
             // restore to last coherent/live state if particle moves off coherent area
             // TODO: choose check state times more intelligently
+            // (how do I do that in multiplayer, when time traveling at same time as updating present?)
             for (i = 0; i < nParticles; i++)
             {
                 if (curTime >= p[i].timeCohere && p[i].mLive < p[i].n - 1
