@@ -7,25 +7,25 @@
   "backCol": {"r": 0, "g": 0, "b": 0},
   "borderCol": {"r": 1, "g": 0.5, "b": 0},
   "noVisCol": {"r": 0, "g": 0, "b": 0},
-  "matterVisCol": {"r": 0.3, "g": 0.3, "b": 0.3},
-  "particleVisCol": {"r": 0.2, "g": 0.2, "b": 0.2},
+  "playerVisCol": {"r": 0.3, "g": 0.3, "b": 0.3},
+  "unitVisCol": {"r": 0.2, "g": 0.2, "b": 0.2},
   "coherentCol": {"r": 0.2, "g": 0.2, "b": -0.3},
   "music": "",
   "visRadius": 4,
-  "matterTypes":
+  "players":
   [
     {
       "name": "matter",
-      "isPlayer": true,
-      "player": 1
+      "isUser": true,
+      "user": 1
     },
     {
       "name": "antimatter",
-      "isPlayer": true,
-      "player": -1
+      "isUser": true,
+      "user": -1
     }
   ],
-  "particleTypes":
+  "unitTypes":
   [
     {
       "name": "electron",

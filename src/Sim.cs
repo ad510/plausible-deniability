@@ -1,4 +1,4 @@
-﻿// particles engine
+﻿// game simulation
 // Copyright (c) 2013 Andrew Downing
 // Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 // The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
@@ -14,16 +14,16 @@ namespace Decoherence
 {
     class Sim
     {
-        // universe structures
-        public struct MatterType
+        // game structures
+        public struct Player
         {
             public string name;
-            public bool isPlayer;
-            public short player; // -1 = nobody, 0 = computer, 1+ = human
-            public bool[] annihilates; // if particles of this matter type annihilate particles from each matter type
+            public bool isUser; // whether actively controlled by either a human or AI
+            public short user; // -1 = nobody, 0 = computer, 1+ = human
+            public bool[] annihilates; // if units of this player annihilate units from each player
         }
 
-        public struct ParticleType
+        public struct UnitType
         {
             public string name;
             public string imgPath;
@@ -35,7 +35,7 @@ namespace Decoherence
             public double selRadius;
         }
 
-        public struct Universe
+        public struct Scenario
         {
             public long mapSize;
             public long camSpeed;
@@ -46,25 +46,25 @@ namespace Decoherence
             public Color4 backCol;
             public Color4 borderCol;
             public Color4 noVisCol;
-            public Color4 matterVisCol;
-            public Color4 particleVisCol;
+            public Color4 playerVisCol;
+            public Color4 unitVisCol;
             public Color4 coherentCol;
             //public string music;
             public long visRadius;
-            public int nMatterT;
-            public int nParticleT;
-            public MatterType[] matterT;
-            public ParticleType[] particleT;
+            public int nPlayers;
+            public int nUnitT;
+            public Player[] players;
+            public UnitType[] unitT;
         }
 
-        public struct ParticleMove // particle movement (linearly interpolated between 2 points)
+        public struct UnitMove // unit movement (linearly interpolated between 2 points)
         {
             public long timeStart; // time when starts moving
             public long timeEnd; // time when finishes moving
             public FP.Vector vecStart; // z indicates rotation
             public FP.Vector vecEnd;
 
-            public ParticleMove(long timeStartVal, long timeEndVal, FP.Vector vecStartVal, FP.Vector vecEndVal)
+            public UnitMove(long timeStartVal, long timeEndVal, FP.Vector vecStartVal, FP.Vector vecEndVal)
             {
                 timeStart = timeStartVal;
                 timeEnd = timeEndVal;
@@ -72,14 +72,14 @@ namespace Decoherence
                 vecEnd = vecEndVal;
             }
 
-            public ParticleMove(long timeVal, FP.Vector vecVal)
+            public UnitMove(long timeVal, FP.Vector vecVal)
                 : this(timeVal, timeVal + 1, vecVal, vecVal)
             {
             }
 
-            public static ParticleMove fromSpeed(long timeStartVal, long speed, FP.Vector vecStartVal, FP.Vector vecEndVal)
+            public static UnitMove fromSpeed(long timeStartVal, long speed, FP.Vector vecStartVal, FP.Vector vecEndVal)
             {
-                return new ParticleMove(timeStartVal, timeStartVal + new FP.Vector(vecEndVal - vecStartVal).length() / speed, vecStartVal, vecEndVal);
+                return new UnitMove(timeStartVal, timeStartVal + new FP.Vector(vecEndVal - vecStartVal).length() / speed, vecStartVal, vecEndVal);
             }
 
             public FP.Vector calcPos(long time) // returns location at specified time
@@ -99,28 +99,28 @@ namespace Decoherence
             }
         }
 
-        public struct Particle
+        public struct Unit
         {
             public int type;
-            public int matter;
+            public int player;
             public long timeCohere; // earliest time at which it's safe to time travel
             public long timeEnd; // time annihilated
             public int n; // number of moves
-            public ParticleMove[] m;
+            public UnitMove[] m;
             public int mLive; // index of latest move that was live
             //public FP.Vector pos; // current position
             public int tileX, tileY; // current position on visibility tiles
             public bool coherent; // whether safe to time travel at simulation time
 
-            public Particle(int typeVal, int matterVal, long startTime, FP.Vector startPos)
+            public Unit(int typeVal, int playerVal, long startTime, FP.Vector startPos)
             {
                 type = typeVal;
-                matter = matterVal;
+                player = playerVal;
                 timeCohere = long.MaxValue;
                 timeEnd = long.MaxValue;
                 n = 1;
-                m = new ParticleMove[n];
-                m[0] = new ParticleMove(startTime, startPos);
+                m = new UnitMove[n];
+                m[0] = new UnitMove(startTime, startPos);
                 mLive = 0;
                 //pos = startPos;
                 tileX = -10000; // don't set to int.MinValue so doesn't overflow in inVis()
@@ -133,14 +133,14 @@ namespace Decoherence
                 int i = 0;
                 for (i = n; i < Math.Min(newSize, m.Length); i++)
                 {
-                    m[i] = new ParticleMove();
+                    m[i] = new UnitMove();
                 }
                 n = newSize;
                 if (n > m.Length)
                     Array.Resize(ref m, n * 2);
             }
 
-            public void addMove(ParticleMove newMove)
+            public void addMove(UnitMove newMove)
             {
                 setN(n + 1);
                 m[n - 1] = newMove;
@@ -169,7 +169,7 @@ namespace Decoherence
                 move = getMove(timeMax);
                 if (moveLast < 0)
                 {
-                    // put particle on visibility tiles for the first time
+                    // put unit on visibility tiles for the first time
                     events.add(new MoveEvt(m[0].timeStart, id, (int)(m[0].vecStart.x >> FP.Precision), (int)(m[0].vecStart.y >> FP.Precision)));
                     moveLast = 0;
                 }
@@ -195,81 +195,81 @@ namespace Decoherence
 
         public class Tile
         {
-            public Dictionary<int, List<long>> particleVis;
-            public List<long>[] matterVis;
+            public Dictionary<int, List<long>> unitVis;
+            public List<long>[] playerVis;
             public List<long>[] coherence;
 
             public Tile()
             {
-                particleVis = new Dictionary<int,List<long>>();
-                matterVis = new List<long>[u.nMatterT];
-                coherence = new List<long>[u.nMatterT];
-                for (int i = 0; i < u.nMatterT; i++)
+                unitVis = new Dictionary<int,List<long>>();
+                playerVis = new List<long>[g.nPlayers];
+                coherence = new List<long>[g.nPlayers];
+                for (int i = 0; i < g.nPlayers; i++)
                 {
-                    matterVis[i] = new List<long>();
+                    playerVis[i] = new List<long>();
                     coherence[i] = new List<long>();
                 }
             }
 
-            public void particleVisToggle(int particle, long time)
+            public void unitVisToggle(int unit, long time)
             {
-                if (!particleVis.ContainsKey(particle)) particleVis.Add(particle, new List<long>());
-                particleVis[particle].Add(time);
+                if (!unitVis.ContainsKey(unit)) unitVis.Add(unit, new List<long>());
+                unitVis[unit].Add(time);
             }
 
-            public bool particleVisLatest(int particle)
+            public bool unitVisLatest(int unit)
             {
-                return particleVis.ContainsKey(particle) && visLatest(particleVis[particle]);
+                return unitVis.ContainsKey(unit) && visLatest(unitVis[unit]);
             }
 
-            public bool particleVisWhen(int particle, long time)
+            public bool unitVisWhen(int unit, long time)
             {
-                return particleVis.ContainsKey(particle) && visWhen(particleVis[particle], time);
+                return unitVis.ContainsKey(unit) && visWhen(unitVis[unit], time);
             }
 
-            // returns if the specified tile is in the direct line of sight of a particle of specified matter type
-            public bool matterDirectVisLatest(int matter)
+            // returns if the specified tile is in the direct line of sight of a unit of specified player
+            public bool playerDirectVisLatest(int player)
             {
-                foreach (int i in particleVis.Keys)
+                foreach (int i in unitVis.Keys)
                 {
-                    if (matter == p[i].matter && visLatest(particleVis[i])) return true;
+                    if (player == u[i].player && visLatest(unitVis[i])) return true;
                 }
                 return false;
             }
 
-            public bool matterDirectVisWhen(int matter, long time)
+            public bool playerDirectVisWhen(int player, long time)
             {
-                foreach (int i in particleVis.Keys)
+                foreach (int i in unitVis.Keys)
                 {
-                    if (matter == p[i].matter && visWhen(particleVis[i], time)) return true;
+                    if (player == u[i].player && visWhen(unitVis[i], time)) return true;
                 }
                 return false;
             }
 
-            // returns if the specified tile is either in the direct line of sight for specified matter type at latest time,
-            // or if matter type can infer that particles of other matter types aren't in specified tile at latest time
-            public bool matterVisLatest(int matter)
+            // returns if the specified tile is either in the direct line of sight for specified player at latest time,
+            // or if player can infer that other players' units aren't in specified tile at latest time
+            public bool playerVisLatest(int player)
             {
-                return visLatest(matterVis[matter]);
+                return visLatest(playerVis[player]);
             }
 
-            // returns if the specified tile is either in the direct line of sight for specified matter type at specified time,
-            // or if matter type can infer that particles of other matter types aren't in specified tile at specified time
-            public bool matterVisWhen(int matter, long time)
+            // returns if the specified tile is either in the direct line of sight for specified player at specified time,
+            // or if player can infer that other players' units aren't in specified tile at specified time
+            public bool playerVisWhen(int player, long time)
             {
-                return visWhen(matterVis[matter], time);
+                return visWhen(playerVis[player], time);
             }
 
-            public bool coherentLatest(int matter)
+            public bool coherentLatest(int player)
             {
-                return visLatest(coherence[matter]);
+                return visLatest(coherence[player]);
             }
 
-            // returns if it is impossible for other matter's particles to see this location
+            // returns if it is impossible for other players' units to see this location
             // this isn't the actual definition of coherence, but this is an important concept in the game and I need a name for it
-            public bool coherentWhen(int matter, long time)
+            public bool coherentWhen(int player, long time)
             {
-                return visWhen(coherence[matter], time);
+                return visWhen(coherence[player], time);
             }
 
             private static bool visLatest(List<long> vis)
@@ -326,15 +326,15 @@ namespace Decoherence
             }
         }
 
-        public class MoveEvt : SimEvt // event in which particle moves between visibility tiles
+        public class MoveEvt : SimEvt // event in which unit moves between visibility tiles
         {
-            public int particle;
+            public int unit;
             public int tileX, tileY; // new tile position, set to int.MinValue to keep current value
 
-            public MoveEvt(long timeVal, int particleVal, int tileXVal, int tileYVal)
+            public MoveEvt(long timeVal, int unitVal, int tileXVal, int tileYVal)
             {
                 time = timeVal;
-                particle = particleVal;
+                unit = unitVal;
                 tileX = tileXVal;
                 tileY = tileYVal;
             }
@@ -342,69 +342,69 @@ namespace Decoherence
             public override void apply()
             {
                 int i, tXPrev, tYPrev, tX, tY;
-                if (tileX == int.MinValue) tileX = p[particle].tileX;
-                if (tileY == int.MinValue) tileY = p[particle].tileY;
-                tXPrev = p[particle].tileX;
-                tYPrev = p[particle].tileY;
-                p[particle].tileX = tileX;
-                p[particle].tileY = tileY;
-                // add particle to visibility tiles
+                if (tileX == int.MinValue) tileX = u[unit].tileX;
+                if (tileY == int.MinValue) tileY = u[unit].tileY;
+                tXPrev = u[unit].tileX;
+                tYPrev = u[unit].tileY;
+                u[unit].tileX = tileX;
+                u[unit].tileY = tileY;
+                // add unit to visibility tiles
                 for (tX = tileX - tileVisRadius(); tX <= tileX + tileVisRadius(); tX++)
                 {
                     for (tY = tileY - tileVisRadius(); tY <= tileY + tileVisRadius(); tY++)
                     {
                         if (!inVis(tX - tXPrev, tY - tYPrev) && inVis(tX - tileX, tY - tileY))
                         {
-                            visAdd(particle, tX, tY, time);
+                            visAdd(unit, tX, tY, time);
                         }
                     }
                 }
-                // remove particle from visibility tiles
+                // remove unit from visibility tiles
                 for (tX = tXPrev - tileVisRadius(); tX <= tXPrev + tileVisRadius(); tX++)
                 {
                     for (tY = tYPrev - tileVisRadius(); tY <= tYPrev + tileVisRadius(); tY++)
                     {
                         if (inVis(tX - tXPrev, tY - tYPrev) && !inVis(tX - tileX, tY - tileY))
                         {
-                            visRemove(particle, tX, tY, time);
+                            visRemove(unit, tX, tY, time);
                         }
                     }
                 }
-                // update whether this particle may time travel
-                if (tiles[tileX, tileY].coherentWhen(p[particle].matter, time) != p[particle].coherent)
+                // update whether this unit may time travel
+                if (tiles[tileX, tileY].coherentWhen(u[unit].player, time) != u[unit].coherent)
                 {
-                    p[particle].coherent = !p[particle].coherent;
-                    p[particle].timeCohere = p[particle].coherent ? time : long.MaxValue;
+                    u[unit].coherent = !u[unit].coherent;
+                    u[unit].timeCohere = u[unit].coherent ? time : long.MaxValue;
                 }
                 if (tXPrev >= 0 && tXPrev < tileLen() && tYPrev >= 0 && tYPrev < tileLen()
                     && tileX >= 0 && tileX < tileLen() && tileY >= 0 && tileY < tileLen())
                 {
-                    // if this particle moved out of another matter type's visibility, remove that matter type's visibility here
-                    for (i = 0; i < u.nMatterT; i++)
+                    // if this unit moved out of another player's visibility, remove that player's visibility here
+                    for (i = 0; i < g.nPlayers; i++)
                     {
-                        if (i != p[particle].matter && tiles[tXPrev, tYPrev].matterDirectVisLatest(i) && !tiles[tileX, tileY].matterDirectVisLatest(i))
+                        if (i != u[unit].player && tiles[tXPrev, tYPrev].playerDirectVisLatest(i) && !tiles[tileX, tileY].playerDirectVisLatest(i))
                         {
                             for (tX = Math.Max(0, tileX - 1); tX <= Math.Min(tileLen() - 1, tileX + 1); tX++)
                             {
                                 for (tY = Math.Max(0, tileY - 1); tY <= Math.Min(tileLen() - 1, tileY + 1); tY++)
                                 {
                                     // TODO: use more accurate time at tiles other than (tileX, tileY)
-                                    events.add(new MatterVisRemoveEvt(time, i, tX, tY));
+                                    events.add(new PlayerVisRemoveEvt(time, i, tX, tY));
                                 }
                             }
                         }
                     }
-                    // if this matter type can no longer directly see another matter type's particle, remove this matter type's visibility there
-                    foreach (int i2 in tiles[tXPrev, tYPrev].particleVis.Keys)
+                    // if this player can no longer directly see another player's unit, remove this player's visibility there
+                    foreach (int i2 in tiles[tXPrev, tYPrev].unitVis.Keys)
                     {
-                        if (p[i2].matter != p[particle].matter && inVis(p[i2].tileX - tXPrev, p[i2].tileY - tYPrev) && !tiles[p[i2].tileX, p[i2].tileY].matterDirectVisLatest(p[particle].matter))
+                        if (u[i2].player != u[unit].player && inVis(u[i2].tileX - tXPrev, u[i2].tileY - tYPrev) && !tiles[u[i2].tileX, u[i2].tileY].playerDirectVisLatest(u[unit].player))
                         {
-                            for (tX = Math.Max(0, p[i2].tileX - 1); tX <= Math.Min(tileLen() - 1, p[i2].tileX + 1); tX++)
+                            for (tX = Math.Max(0, u[i2].tileX - 1); tX <= Math.Min(tileLen() - 1, u[i2].tileX + 1); tX++)
                             {
-                                for (tY = Math.Max(0, p[i2].tileY - 1); tY <= Math.Min(tileLen() - 1, p[i2].tileY + 1); tY++)
+                                for (tY = Math.Max(0, u[i2].tileY - 1); tY <= Math.Min(tileLen() - 1, u[i2].tileY + 1); tY++)
                                 {
                                     // TODO: use more accurate time at tiles other than (p[i2].tileX, p[i2].tileY)
-                                    events.add(new MatterVisRemoveEvt(time, p[particle].matter, tX, tY));
+                                    events.add(new PlayerVisRemoveEvt(time, u[unit].player, tX, tY));
                                 }
                             }
                         }
@@ -413,15 +413,15 @@ namespace Decoherence
             }
         }
 
-        public class MatterVisAddEvt : SimEvt // event in which matter type starts seeing a tile
+        public class PlayerVisAddEvt : SimEvt // event in which a player starts seeing a tile
         {
-            public int matter;
+            public int player;
             public int tileX, tileY;
 
-            public MatterVisAddEvt(long timeVal, int matterVal, int tileXVal, int tileYVal)
+            public PlayerVisAddEvt(long timeVal, int playerVal, int tileXVal, int tileYVal)
             {
                 time = timeVal;
-                matter = matterVal;
+                player = playerVal;
                 tileX = tileXVal;
                 tileY = tileYVal;
             }
@@ -435,25 +435,25 @@ namespace Decoherence
                 {
                     for (tY = Math.Max(0, tileY - 1); tY <= Math.Min(tileLen() - 1, tileY + 1); tY++)
                     {
-                        if ((tX != tileX || tY != tileY) && !tiles[tX, tY].matterVisLatest(matter))
+                        if ((tX != tileX || tY != tileY) && !tiles[tX, tY].playerVisLatest(player))
                         {
                             // TODO: use more accurate time
-                            events.add(new MatterVisAddEvt(time - (1 << FP.Precision) / maxSpeed, matter, tX, tY));
+                            events.add(new PlayerVisAddEvt(time - (1 << FP.Precision) / maxSpeed, player, tX, tY));
                         }
                     }
                 }
             }
         }
 
-        public class MatterVisRemoveEvt : SimEvt // event in which matter type stops seeing a tile
+        public class PlayerVisRemoveEvt : SimEvt // event in which a player stops seeing a tile
         {
-            public int matter;
+            public int player;
             public int tileX, tileY;
 
-            public MatterVisRemoveEvt(long timeVal, int matterVal, int tileXVal, int tileYVal)
+            public PlayerVisRemoveEvt(long timeVal, int playerVal, int tileXVal, int tileYVal)
             {
                 time = timeVal;
-                matter = matterVal;
+                player = playerVal;
                 tileX = tileXVal;
                 tileY = tileYVal;
             }
@@ -461,21 +461,21 @@ namespace Decoherence
             public override void apply()
             {
                 int i, tX, tY;
-                if (tiles[tileX, tileY].matterVisLatest(matter) && !tiles[tileX, tileY].matterDirectVisLatest(matter))
+                if (tiles[tileX, tileY].playerVisLatest(player) && !tiles[tileX, tileY].playerDirectVisLatest(player))
                 {
-                    tiles[tileX, tileY].matterVis[matter].Add(time);
-                    // check if a tile decohered for this matter type, or cohered for another matter type
-                    for (i = 0; i < u.nMatterT; i++)
+                    tiles[tileX, tileY].playerVis[player].Add(time);
+                    // check if a tile decohered for this player, or cohered for another player
+                    for (i = 0; i < g.nPlayers; i++)
                     {
                         for (tX = Math.Max(0, tileX - tileVisRadius()); tX <= Math.Min(tileLen() - 1, tileX + tileVisRadius()); tX++)
                         {
                             for (tY = Math.Max(0, tileY - tileVisRadius()); tY <= Math.Min(tileLen() - 1, tileY + tileVisRadius()); tY++)
                             {
-                                if (i == matter && tiles[tX, tY].coherentLatest(i) && !calcCoherent(i, tX, tY, time))
+                                if (i == player && tiles[tX, tY].coherentLatest(i) && !calcCoherent(i, tX, tY, time))
                                 {
                                     coherenceRemove(i, tX, tY, time);
                                 }
-                                else if (i != matter && !tiles[tX, tY].coherentLatest(i) && calcCoherent(i, tX, tY, time))
+                                else if (i != player && !tiles[tX, tY].coherentLatest(i) && calcCoherent(i, tX, tY, time))
                                 {
                                     coherenceAdd(i, tX, tY, time);
                                 }
@@ -487,10 +487,10 @@ namespace Decoherence
                     {
                         for (tY = Math.Max(0, tileY - 1); tY <= Math.Min(tileLen() - 1, tileY + 1); tY++)
                         {
-                            if ((tX != tileX || tY != tileY) && tiles[tX, tY].matterVisLatest(matter))
+                            if ((tX != tileX || tY != tileY) && tiles[tX, tY].playerVisLatest(player))
                             {
                                 // TODO: use more accurate time
-                                events.add(new MatterVisRemoveEvt(time + (1 << FP.Precision) / maxSpeed, matter, tX, tY));
+                                events.add(new PlayerVisRemoveEvt(time + (1 << FP.Precision) / maxSpeed, player, tX, tY));
                             }
                         }
                     }
@@ -498,10 +498,10 @@ namespace Decoherence
             }
         }
 
-        // universe variables
-        public static Universe u;
-        public static int nParticles;
-        public static Particle[] p;
+        // game variables
+        public static Scenario g;
+        public static int nUnits;
+        public static Unit[] u;
 
         // helper variables
         public static Tile[,] tiles;
@@ -510,11 +510,11 @@ namespace Decoherence
         public static long timeSim;
         public static long timeSimLast;
 
-        public static void setNParticles(int newSize)
+        public static void setNUnits(int newSize)
         {
-            nParticles = newSize;
-            if (nParticles > p.Length)
-                Array.Resize(ref p, nParticles * 2);
+            nUnits = newSize;
+            if (nUnits > u.Length)
+                Array.Resize(ref u, nUnits * 2);
         }
 
         public static void update(long curTime)
@@ -530,19 +530,19 @@ namespace Decoherence
             timeSimLast = timeSim;
             timeSim = curTime;
             // tiles visible at previous latest live move may no longer be visible
-            for (i = 0; i < nParticles; i++)
+            for (i = 0; i < nUnits; i++)
             {
-                if (p[i].mLive < p[i].n - 1)
+                if (u[i].mLive < u[i].n - 1)
                 {
-                    p[i].mLive = p[i].n - 1;
-                    pos = p[i].calcPos(timeSimLast + 1);
+                    u[i].mLive = u[i].n - 1;
+                    pos = u[i].calcPos(timeSimLast + 1);
                     events.add(new MoveEvt(timeSimLast + 1, i, (int)(pos.x >> FP.Precision), (int)(pos.y >> FP.Precision)));
                 }
             }
-            // check if particles moved between tiles
-            for (i = 0; i < nParticles; i++)
+            // check if units moved between tiles
+            for (i = 0; i < nUnits; i++)
             {
-                p[i].addMoveEvts(ref events, i, timeSimLast, timeSim);
+                u[i].addMoveEvts(ref events, i, timeSimLast, timeSim);
             }
             // apply simulation events
             while (events.peekTime() <= timeSim)
@@ -554,45 +554,45 @@ namespace Decoherence
         public static void updatePast(long curTime)
         {
             int i;
-            // restore to last coherent/live state if particle moves off coherent area
+            // restore to last coherent/live state if unit moves off coherent area
             // TODO: choose check state times more intelligently
             // (how do I do that in multiplayer, when time traveling at same time as updating present?)
-            for (i = 0; i < nParticles; i++)
+            for (i = 0; i < nUnits; i++)
             {
-                if (curTime >= p[i].timeCohere && p[i].mLive < p[i].n - 1
-                    && !tileAt(p[i].calcPos(curTime)).coherentWhen(p[i].matter, curTime))
+                if (curTime >= u[i].timeCohere && u[i].mLive < u[i].n - 1
+                    && !tileAt(u[i].calcPos(curTime)).coherentWhen(u[i].player, curTime))
                 {
-                    p[i].setN(p[i].mLive + 1);
+                    u[i].setN(u[i].mLive + 1);
                 }
             }
         }
 
-        private static void visAdd(int particle, int tileX, int tileY, long time)
+        private static void visAdd(int unit, int tileX, int tileY, long time)
         {
             int i, tX, tY;
             bool filled = true;
             if (tileX >= 0 && tileX < tileLen() && tileY >= 0 && tileY < tileLen())
             {
-                if (tiles[tileX, tileY].particleVisLatest(particle)) throw new InvalidOperationException("particle " + particle + " already sees tile (" + tileX + ", " + tileY + ")");
-                // add particle to particle visibility tile
-                tiles[tileX, tileY].particleVisToggle(particle, time);
-                // TODO: use smarter matterVis adding algorithm
-                // also, if opponent particle that can't make anything enters then exits region previously indirectly visible, should use smarter matterVis adding algorithm there
-                if (!tiles[tileX, tileY].matterVisLatest(p[particle].matter))
+                if (tiles[tileX, tileY].unitVisLatest(unit)) throw new InvalidOperationException("unit " + unit + " already sees tile (" + tileX + ", " + tileY + ")");
+                // add unit to unit visibility tile
+                tiles[tileX, tileY].unitVisToggle(unit, time);
+                // TODO: use smarter playerVis adding algorithm
+                // also, if opponent unit that can't make anything enters then exits region previously indirectly visible, should use smarter playerVis adding algorithm there
+                if (!tiles[tileX, tileY].playerVisLatest(u[unit].player))
                 {
-                    tiles[tileX, tileY].matterVis[p[particle].matter].Add(time);
-                    // check if a tile cohered for this matter type, or decohered for another matter type
-                    for (i = 0; i < u.nMatterT; i++)
+                    tiles[tileX, tileY].playerVis[u[unit].player].Add(time);
+                    // check if a tile cohered for this player, or decohered for another player
+                    for (i = 0; i < g.nPlayers; i++)
                     {
                         for (tX = Math.Max(0, tileX - tileVisRadius()); tX <= Math.Min(tileLen() - 1, tileX + tileVisRadius()); tX++)
                         {
                             for (tY = Math.Max(0, tileY - tileVisRadius()); tY <= Math.Min(tileLen() - 1, tileY + tileVisRadius()); tY++)
                             {
-                                if (i == p[particle].matter && !tiles[tX, tY].coherentLatest(i) && calcCoherent(i, tX, tY, time))
+                                if (i == u[unit].player && !tiles[tX, tY].coherentLatest(i) && calcCoherent(i, tX, tY, time))
                                 {
                                     coherenceAdd(i, tX, tY, time);
                                 }
-                                else if (i != p[particle].matter && tiles[tX, tY].coherentLatest(i) && !calcCoherent(i, tX, tY, time))
+                                else if (i != u[unit].player && tiles[tX, tY].coherentLatest(i) && !calcCoherent(i, tX, tY, time))
                                 {
                                     coherenceRemove(i, tX, tY, time);
                                 }
@@ -603,102 +603,102 @@ namespace Decoherence
                     {
                         for (tY = Math.Max(0, tileY - 1); tY <= Math.Min(tileLen() - 1, tileY + 1); tY++)
                         {
-                            if (!tiles[tileX, tileY].matterVisLatest(p[particle].matter)) filled = false;
+                            if (!tiles[tileX, tileY].playerVisLatest(u[unit].player)) filled = false;
                         }
                     }
-                    //if (filled) events.add(new MatterVisAddEvt(time, p[particle].matter, tileX, tileY));
+                    //if (filled) events.add(new PlayerVisAddEvt(time, u[unit].player, tileX, tileY));
                 }
             }
         }
 
-        private static void visRemove(int particle, int tileX, int tileY, long time)
+        private static void visRemove(int unit, int tileX, int tileY, long time)
         {
             int tX, tY;
-            long timeMatterVis = long.MaxValue;
+            long timePlayerVis = long.MaxValue;
             if (tileX >= 0 && tileX < tileLen() && tileY >= 0 && tileY < tileLen())
             {
-                if (!tiles[tileX, tileY].particleVisLatest(particle)) throw new InvalidOperationException("particle " + particle + " already doesn't see tile (" + tileX + ", " + tileY + ")");
-                // remove particle from particle visibility tile
-                tiles[tileX, tileY].particleVisToggle(particle, time);
-                // check if particle's matter type can't directly see this tile anymore
-                if (tiles[tileX, tileY].matterVisLatest(p[particle].matter) && !tiles[tileX, tileY].matterDirectVisLatest(p[particle].matter))
+                if (!tiles[tileX, tileY].unitVisLatest(unit)) throw new InvalidOperationException("unit " + unit + " already doesn't see tile (" + tileX + ", " + tileY + ")");
+                // remove unit from unit visibility tile
+                tiles[tileX, tileY].unitVisToggle(unit, time);
+                // check if player can't directly see this tile anymore
+                if (tiles[tileX, tileY].playerVisLatest(u[unit].player) && !tiles[tileX, tileY].playerDirectVisLatest(u[unit].player))
                 {
                     // find lowest time that surrounding tiles lost visibility
                     for (tX = Math.Max(0, tileX - 1); tX <= Math.Min(tileLen() - 1, tileX + 1); tX++)
                     {
                         for (tY = Math.Max(0, tileY - 1); tY <= Math.Min(tileLen() - 1, tileY + 1); tY++)
                         {
-                            if ((tX != tileX || tY != tileY) && !tiles[tX, tY].matterVisLatest(p[particle].matter))
+                            if ((tX != tileX || tY != tileY) && !tiles[tX, tY].playerVisLatest(u[unit].player))
                             {
-                                if (tiles[tX, tY].matterVis[p[particle].matter].Count == 0)
+                                if (tiles[tX, tY].playerVis[u[unit].player].Count == 0)
                                 {
-                                    timeMatterVis = long.MinValue;
+                                    timePlayerVis = long.MinValue;
                                 }
-                                else if (tiles[tX, tY].matterVis[p[particle].matter][tiles[tX, tY].matterVis[p[particle].matter].Count - 1] < timeMatterVis)
+                                else if (tiles[tX, tY].playerVis[u[unit].player][tiles[tX, tY].playerVis[u[unit].player].Count - 1] < timePlayerVis)
                                 {
-                                    timeMatterVis = tiles[tX, tY].matterVis[p[particle].matter][tiles[tX, tY].matterVis[p[particle].matter].Count - 1];
+                                    timePlayerVis = tiles[tX, tY].playerVis[u[unit].player][tiles[tX, tY].playerVis[u[unit].player].Count - 1];
                                 }
                             }
                         }
                     }
-                    // if matter type can't see all neighboring tiles, they won't be able to tell if another player's particle moves into this tile
-                    // so remove this tile's visibility for this matter type
-                    if (timeMatterVis != long.MaxValue)
+                    // if player can't see all neighboring tiles, they won't be able to tell if another player's unit moves into this tile
+                    // so remove this tile's visibility for this player
+                    if (timePlayerVis != long.MaxValue)
                     {
-                        timeMatterVis = Math.Max(time, timeMatterVis + (1 << FP.Precision) / maxSpeed); // TODO: use more accurate time
-                        events.add(new MatterVisRemoveEvt(timeMatterVis, p[particle].matter, tileX, tileY));
+                        timePlayerVis = Math.Max(time, timePlayerVis + (1 << FP.Precision) / maxSpeed); // TODO: use more accurate time
+                        events.add(new PlayerVisRemoveEvt(timePlayerVis, u[unit].player, tileX, tileY));
                     }
                 }
             }
         }
 
-        private static void coherenceAdd(int matter, int tX, int tY, long time)
+        private static void coherenceAdd(int player, int tX, int tY, long time)
         {
-            if (tiles[tX, tY].coherentLatest(matter)) throw new InvalidOperationException("tile (" + tX + ", " + tY + ") is already coherent");
-            tiles[tX, tY].coherence[matter].Add(time);
-            // particles of this matter type on this tile may time travel starting now
-            // TODO: actually safe to time travel at earlier times, as long as particle of same type is at same place when decoheres
-            for (int i = 0; i < nParticles; i++)
+            if (tiles[tX, tY].coherentLatest(player)) throw new InvalidOperationException("tile (" + tX + ", " + tY + ") is already coherent");
+            tiles[tX, tY].coherence[player].Add(time);
+            // this player's units that are on this tile may time travel starting now
+            // TODO: actually safe to time travel at earlier times, as long as unit of same type is at same place when decoheres
+            for (int i = 0; i < nUnits; i++)
             {
-                if (matter == p[i].matter && tX == p[i].tileX && tY == p[i].tileY && !p[i].coherent)
+                if (player == u[i].player && tX == u[i].tileX && tY == u[i].tileY && !u[i].coherent)
                 {
-                    p[i].coherent = true;
-                    p[i].timeCohere = time;
+                    u[i].coherent = true;
+                    u[i].timeCohere = time;
                 }
             }
         }
 
-        private static void coherenceRemove(int matter, int tX, int tY, long time)
+        private static void coherenceRemove(int player, int tX, int tY, long time)
         {
-            if (!tiles[tX, tY].coherentLatest(matter)) throw new InvalidOperationException("tile (" + tX + ", " + tY + ") is already not coherent");
-            tiles[tX, tY].coherence[matter].Add(time);
-            // particles of this matter type on this tile may not time travel starting now
-            for (int i = 0; i < nParticles; i++)
+            if (!tiles[tX, tY].coherentLatest(player)) throw new InvalidOperationException("tile (" + tX + ", " + tY + ") is already not coherent");
+            tiles[tX, tY].coherence[player].Add(time);
+            // this player's units that are on this tile may not time travel starting now
+            for (int i = 0; i < nUnits; i++)
             {
-                if (matter == p[i].matter && tX == p[i].tileX && tY == p[i].tileY && p[i].coherent)
+                if (player == u[i].player && tX == u[i].tileX && tY == u[i].tileY && u[i].coherent)
                 {
-                    p[i].coherent = false;
-                    p[i].timeCohere = long.MaxValue;
+                    u[i].coherent = false;
+                    u[i].timeCohere = long.MaxValue;
                 }
             }
         }
 
-        // calculates from matter visibility tiles if it is impossible for other matter's particles to see this location
-        private static bool calcCoherent(int matter, int tileX, int tileY, long time)
+        // calculates from player visibility tiles if it is impossible for other players' units to see this location
+        private static bool calcCoherent(int player, int tileX, int tileY, long time)
         {
             int i, tX, tY;
-            // check that matter type can see all nearby tiles
+            // check that this player can see all nearby tiles
             for (tX = Math.Max(0, tileX - tileVisRadius()); tX <= Math.Min(tileLen() - 1, tileX + tileVisRadius()); tX++)
             {
                 for (tY = Math.Max(0, tileY - tileVisRadius()); tY <= Math.Min(tileLen() - 1, tileY + tileVisRadius()); tY++)
                 {
-                    if (inVis(tX - tileX, tY - tileY) && !tiles[tX, tY].matterVisWhen(matter, time)) return false;
+                    if (inVis(tX - tileX, tY - tileY) && !tiles[tX, tY].playerVisWhen(player, time)) return false;
                 }
             }
-            // check that no particles of different matter can see this tile
-            for (i = 0; i < u.nMatterT; i++)
+            // check that no other players can see this tile
+            for (i = 0; i < g.nPlayers; i++)
             {
-                if (i != matter && tiles[tileX, tileY].matterVisWhen(i, time)) return false;
+                if (i != player && tiles[tileX, tileY].playerVisWhen(i, time)) return false;
             }
             return true;
         }
@@ -706,12 +706,12 @@ namespace Decoherence
         public static bool inVis(long tX, long tY)
         {
             //return Math.Max(Math.Abs(tX), Math.Abs(tY)) <= (int)(visRadius >> FP.Precision);
-            return new FP.Vector(tX << FP.Precision, tY << FP.Precision).lengthSq() <= u.visRadius * u.visRadius;
+            return new FP.Vector(tX << FP.Precision, tY << FP.Precision).lengthSq() <= g.visRadius * g.visRadius;
         }
 
         public static int tileVisRadius()
         {
-            return (int)(u.visRadius >> FP.Precision); // adding "+ 1" to this actually doesn't make a difference
+            return (int)(g.visRadius >> FP.Precision); // adding "+ 1" to this actually doesn't make a difference
         }
 
         public static Tile tileAt(FP.Vector pos)
@@ -719,9 +719,9 @@ namespace Decoherence
             return tiles[pos.x >> FP.Precision, pos.y >> FP.Precision];
         }
 
-        public static int tileLen() // TODO: use particleVis.GetUpperBound instead of this function
+        public static int tileLen() // TODO: use unitVis.GetUpperBound instead of this function
         {
-            return (int)((u.mapSize >> FP.Precision) + 1);
+            return (int)((g.mapSize >> FP.Precision) + 1);
         }
 
         public static long lineCalcX(FP.Vector p1, FP.Vector p2, long y)

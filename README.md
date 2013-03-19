@@ -22,9 +22,9 @@ Controls
 --------
 - esc = exit
 - arrow keys/move mouse to edge of screen = move view
-- (ctrl/shift) left click/drag = select particles
-- right click = move selected particles in tight formation
-- ctrl + right click = move selected particles in loose formation
+- (ctrl/shift) left click/drag = select units
+- right click = move selected units in tight formation
+- ctrl + right click = move selected units in loose formation
 - spacebar = change selected player
 - p = pause/resume
 - r = go backwards in time
