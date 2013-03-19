@@ -52,6 +52,7 @@ namespace Decoherence
             public Color4 playerVisCol;
             public Color4 unitVisCol;
             public Color4 coherentCol;
+            public Color4 amplitudeCol;
             //public string music;
             public long visRadius;
             public int nPlayers;

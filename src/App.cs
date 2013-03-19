@@ -106,6 +106,7 @@ namespace Decoherence
             Sim.g.playerVisCol = jsonColor4(json, "playerVisCol");
             Sim.g.unitVisCol = jsonColor4(json, "unitVisCol");
             Sim.g.coherentCol = jsonColor4(json, "coherentCol");
+            Sim.g.amplitudeCol = jsonColor4(json, "amplitudeCol");
             //Sim.g.music = jsonString(json, "music");
             Sim.g.visRadius = jsonFP(json, "visRadius");
             jsonA = jsonArray(json, "players");
@@ -455,6 +456,17 @@ namespace Decoherence
                 fpVec = Sim.u[i].calcPos(DX.timeNow - DX.timeStart);
                 if (fpVec.x <= Sim.OffMap << FP.Precision) continue;
                 if (selPlayer != Sim.u[i].player && !Sim.tileAt(fpVec).playerVisWhen(selPlayer, DX.timeNow - DX.timeStart)) continue;
+                if (Sim.u[i].parentAmp >= 0 && DX.timeNow - DX.timeStart >= Sim.u[Sim.u[i].parentAmp].m[0].timeStart)
+                {
+                    DX.d3dDevice.SetTexture(0, null);
+                    tlPoly.primitive = PrimitiveType.LineStrip;
+                    tlPoly.setNPoly(0);
+                    tlPoly.nV[0] = 1;
+                    tlPoly.poly[0].v = new DX.TLVertex[tlPoly.nV[0] + 1];
+                    tlPoly.poly[0].v[0] = new DX.TLVertex(simToDrawPos(fpVec), Sim.g.amplitudeCol.ToArgb(), 0, 0);
+                    tlPoly.poly[0].v[1] = new DX.TLVertex(simToDrawPos(Sim.u[Sim.u[i].parentAmp].calcPos(DX.timeNow - DX.timeStart)), Sim.g.amplitudeCol.ToArgb(), 0, 0);
+                    tlPoly.draw();
+                }
                 if (Sim.u[i].n > Sim.u[i].mLive + 1 && DX.timeNow - DX.timeStart >= Sim.u[i].m[Sim.u[i].mLive + 1].timeStart)
                 {
                     imgUnit[i2].color = new Color4(0.5f, 1, 1, 1).ToArgb(); // TODO: make transparency amount customizable

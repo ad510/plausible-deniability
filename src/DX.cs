@@ -78,6 +78,11 @@ static class DX
             u = uVal;
             v = vVal;
         }
+
+        public TLVertex(Vector3 vec, int colorVal, float uVal, float vVal)
+            : this(vec.X, vec.Y, vec.Z, colorVal, uVal, vVal)
+        {
+        }
     }
 
     public struct Vertex
