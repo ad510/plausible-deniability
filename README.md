@@ -28,6 +28,7 @@ Controls
 - spacebar = change selected player
 - p = pause/resume
 - r = go backwards in time
+- a = create amplitudes from selected units
 
 License
 -------

@@ -14,6 +14,9 @@ namespace Decoherence
 {
     class Sim
     {
+        // constants
+        public const int OffMap = -10000; // don't set to int.MinValue so doesn't overflow in inVis()
+
         // game structures
         public struct Player
         {
@@ -103,8 +106,10 @@ namespace Decoherence
         {
             public int type;
             public int player;
+            public int parentAmp; // unit which this unit split off from to form an amplitude (set to <0 if none)
+            public int nChildAmps;
+            public int[] childAmps; // unit amplitudes which split off from this unit
             public long timeCohere; // earliest time at which it's safe to time travel
-            public long timeEnd; // time annihilated
             public int n; // number of moves
             public UnitMove[] m;
             public int mLive; // index of latest move that was live
@@ -112,20 +117,29 @@ namespace Decoherence
             public int tileX, tileY; // current position on visibility tiles
             public bool coherent; // whether safe to time travel at simulation time
 
-            public Unit(int typeVal, int playerVal, long startTime, FP.Vector startPos)
+            public Unit(int typeVal, int playerVal, long startTime, FP.Vector startPos, int parentAmpVal = -1)
             {
                 type = typeVal;
                 player = playerVal;
-                timeCohere = long.MaxValue;
-                timeEnd = long.MaxValue;
+                parentAmp = parentAmpVal;
+                nChildAmps = 0;
+                childAmps = new int[nChildAmps];
                 n = 1;
                 m = new UnitMove[n];
                 m[0] = new UnitMove(startTime, startPos);
                 mLive = 0;
                 //pos = startPos;
-                tileX = -10000; // don't set to int.MinValue so doesn't overflow in inVis()
-                tileY = -10000;
-                coherent = false;
+                tileX = OffMap;
+                tileY = OffMap;
+                coherent = tileAt(startPos).coherentWhen(player, startTime);
+                timeCohere = coherent ? startTime : long.MaxValue;
+            }
+
+            public void setNChildAmps(int newSize)
+            {
+                nChildAmps = newSize;
+                if (nChildAmps > childAmps.Length)
+                    Array.Resize(ref childAmps, nChildAmps * 2);
             }
 
             public void setN(int newSize)
@@ -190,6 +204,39 @@ namespace Decoherence
                         events.add(new MoveEvt(m[i].timeAtY(tY << FP.Precision), id, int.MinValue, tY + dir));
                     }
                 }
+            }
+
+            public void cohere(int id, long time)
+            {
+                coherent = true;
+                timeCohere = time;
+            }
+
+            public void decohere(int id, long time)
+            {
+                int i;
+                coherent = false;
+                timeCohere = long.MaxValue;
+                deleteChildAmps();
+                // if have a parent amplitude, copy moves to parent
+                if (parentAmp >= 0)
+                {
+                    for (i = 0; i < n; i++)
+                    {
+                        u[parentAmp].addMove(m[i]);
+                    }
+                    addMove(new UnitMove(long.MinValue, new FP.Vector(OffMap << FP.Precision, OffMap << FP.Precision)));
+                }
+            }
+
+            private void deleteChildAmps()
+            {
+                for (int i = 0; i < nChildAmps; i++)
+                {
+                    u[childAmps[i]].addMove(new UnitMove(long.MinValue, new FP.Vector(OffMap << FP.Precision, OffMap << FP.Precision)));
+                    u[childAmps[i]].deleteChildAmps();
+                }
+                nChildAmps = 0;
             }
         }
 
@@ -370,41 +417,46 @@ namespace Decoherence
                         }
                     }
                 }
-                // update whether this unit may time travel
-                if (tiles[tileX, tileY].coherentWhen(u[unit].player, time) != u[unit].coherent)
+                if (tileX >= 0 && tileX < tileLen() && tileY >= 0 && tileY < tileLen())
                 {
-                    u[unit].coherent = !u[unit].coherent;
-                    u[unit].timeCohere = u[unit].coherent ? time : long.MaxValue;
-                }
-                if (tXPrev >= 0 && tXPrev < tileLen() && tYPrev >= 0 && tYPrev < tileLen()
-                    && tileX >= 0 && tileX < tileLen() && tileY >= 0 && tileY < tileLen())
-                {
-                    // if this unit moved out of another player's visibility, remove that player's visibility here
-                    for (i = 0; i < g.nPlayers; i++)
+                    // update whether this unit may time travel
+                    if (!u[unit].coherent && tiles[tileX, tileY].coherentWhen(u[unit].player, time))
                     {
-                        if (i != u[unit].player && tiles[tXPrev, tYPrev].playerDirectVisLatest(i) && !tiles[tileX, tileY].playerDirectVisLatest(i))
+                        u[unit].cohere(unit, time);
+                    }
+                    else if (u[unit].coherent && !tiles[tileX, tileY].coherentWhen(u[unit].player, time))
+                    {
+                        u[unit].decohere(unit, time);
+                    }
+                    if (tXPrev >= 0 && tXPrev < tileLen() && tYPrev >= 0 && tYPrev < tileLen())
+                    {
+                        // if this unit moved out of another player's visibility, remove that player's visibility here
+                        for (i = 0; i < g.nPlayers; i++)
                         {
-                            for (tX = Math.Max(0, tileX - 1); tX <= Math.Min(tileLen() - 1, tileX + 1); tX++)
+                            if (i != u[unit].player && tiles[tXPrev, tYPrev].playerDirectVisLatest(i) && !tiles[tileX, tileY].playerDirectVisLatest(i))
                             {
-                                for (tY = Math.Max(0, tileY - 1); tY <= Math.Min(tileLen() - 1, tileY + 1); tY++)
+                                for (tX = Math.Max(0, tileX - 1); tX <= Math.Min(tileLen() - 1, tileX + 1); tX++)
                                 {
-                                    // TODO: use more accurate time at tiles other than (tileX, tileY)
-                                    events.add(new PlayerVisRemoveEvt(time, i, tX, tY));
+                                    for (tY = Math.Max(0, tileY - 1); tY <= Math.Min(tileLen() - 1, tileY + 1); tY++)
+                                    {
+                                        // TODO: use more accurate time at tiles other than (tileX, tileY)
+                                        events.add(new PlayerVisRemoveEvt(time, i, tX, tY));
+                                    }
                                 }
                             }
                         }
-                    }
-                    // if this player can no longer directly see another player's unit, remove this player's visibility there
-                    foreach (int i2 in tiles[tXPrev, tYPrev].unitVis.Keys)
-                    {
-                        if (u[i2].player != u[unit].player && inVis(u[i2].tileX - tXPrev, u[i2].tileY - tYPrev) && !tiles[u[i2].tileX, u[i2].tileY].playerDirectVisLatest(u[unit].player))
+                        // if this player can no longer directly see another player's unit, remove this player's visibility there
+                        foreach (int i2 in tiles[tXPrev, tYPrev].unitVis.Keys)
                         {
-                            for (tX = Math.Max(0, u[i2].tileX - 1); tX <= Math.Min(tileLen() - 1, u[i2].tileX + 1); tX++)
+                            if (u[i2].player != u[unit].player && inVis(u[i2].tileX - tXPrev, u[i2].tileY - tYPrev) && !tiles[u[i2].tileX, u[i2].tileY].playerDirectVisLatest(u[unit].player))
                             {
-                                for (tY = Math.Max(0, u[i2].tileY - 1); tY <= Math.Min(tileLen() - 1, u[i2].tileY + 1); tY++)
+                                for (tX = Math.Max(0, u[i2].tileX - 1); tX <= Math.Min(tileLen() - 1, u[i2].tileX + 1); tX++)
                                 {
-                                    // TODO: use more accurate time at tiles other than (p[i2].tileX, p[i2].tileY)
-                                    events.add(new PlayerVisRemoveEvt(time, u[unit].player, tX, tY));
+                                    for (tY = Math.Max(0, u[i2].tileY - 1); tY <= Math.Min(tileLen() - 1, u[i2].tileY + 1); tY++)
+                                    {
+                                        // TODO: use more accurate time at tiles other than (p[i2].tileX, p[i2].tileY)
+                                        events.add(new PlayerVisRemoveEvt(time, u[unit].player, tX, tY));
+                                    }
                                 }
                             }
                         }
@@ -567,6 +619,22 @@ namespace Decoherence
             }
         }
 
+        // TODO: handle if amplitude was created while time traveling
+        public static bool makeAmp(int unit, long time)
+        {
+            if (u[unit].coherent && (time > timeSim || time >= u[unit].timeCohere))
+            {
+                FP.Vector pos = u[unit].calcPos(time);
+                if (pos.x <= OffMap << FP.Precision) return false;
+                setNUnits(nUnits + 1);
+                u[nUnits - 1] = new Sim.Unit(u[unit].type, u[unit].player, time, pos, unit);
+                u[unit].setNChildAmps(u[unit].nChildAmps + 1);
+                u[unit].childAmps[u[unit].nChildAmps - 1] = nUnits - 1;
+                return true;
+            }
+            return false;
+        }
+
         private static void visAdd(int unit, int tileX, int tileY, long time)
         {
             int i, tX, tY;
@@ -662,8 +730,7 @@ namespace Decoherence
             {
                 if (player == u[i].player && tX == u[i].tileX && tY == u[i].tileY && !u[i].coherent)
                 {
-                    u[i].coherent = true;
-                    u[i].timeCohere = time;
+                    u[i].cohere(i, time);
                 }
             }
         }
@@ -677,8 +744,7 @@ namespace Decoherence
             {
                 if (player == u[i].player && tX == u[i].tileX && tY == u[i].tileY && u[i].coherent)
                 {
-                    u[i].coherent = false;
-                    u[i].timeCohere = long.MaxValue;
+                    u[i].decohere(i, time);
                 }
             }
         }

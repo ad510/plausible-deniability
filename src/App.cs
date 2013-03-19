@@ -149,15 +149,6 @@ namespace Decoherence
                     imgUnit[i3].rotCenter.Y = imgUnit[i3].srcHeight / 2;
                 }
             }
-            // TODO: load units from file too
-            Sim.nUnits = 20;
-            Sim.u = new Sim.Unit[Sim.nUnits];
-            for (i = 0; i < Sim.nUnits; i++)
-            {
-                Sim.u[i] = new Sim.Unit(0, i / (Sim.nUnits / 2), 0, new FP.Vector((long)(rand.NextDouble() * Sim.g.mapSize), (long)(rand.NextDouble() * Sim.g.mapSize)));
-            }
-            selUnits = new List<int>();
-            // set up visibility and coherence tiles
             Sim.tiles = new Sim.Tile[Sim.tileLen(), Sim.tileLen()];
             for (i = 0; i < Sim.tileLen(); i++)
             {
@@ -166,6 +157,14 @@ namespace Decoherence
                     Sim.tiles[i, i2] = new Sim.Tile();
                 }
             }
+            // TODO: load units from file too
+            Sim.nUnits = 20;
+            Sim.u = new Sim.Unit[Sim.nUnits];
+            for (i = 0; i < Sim.nUnits; i++)
+            {
+                Sim.u[i] = new Sim.Unit(0, i / (Sim.nUnits / 2), 0, new FP.Vector((long)(rand.NextDouble() * Sim.g.mapSize), (long)(rand.NextDouble() * Sim.g.mapSize)));
+            }
+            selUnits = new List<int>();
             tlTile.primitive = PrimitiveType.TriangleList;
             tlTile.setNPoly(0);
             tlTile.nV[0] = Sim.tileLen() * Sim.tileLen() * 2;
@@ -227,8 +226,8 @@ namespace Decoherence
             int button = (int)e.Button / 0x100000;
             int mousePrevState = DX.mouseState[button];
             FP.Vector mouseSimPos = drawToSimPos(new Vector3(e.X, e.Y, 0));
-            FP.Vector goal;
-            Vector3 curPos;
+            FP.Vector curPos, goal;
+            Vector3 drawPos;
             long spacing;
             int i;
             DX.mouseUp(button, e.X, e.Y);
@@ -239,11 +238,11 @@ namespace Decoherence
                 {
                     if (selPlayer == Sim.u[i].player)
                     {
-                        curPos = simToDrawPos(Sim.u[i].calcPos(DX.timeNow - DX.timeStart));
-                        if (curPos.X + Sim.g.unitT[Sim.u[i].type].selRadius >= Math.Min(DX.mouseDX[1], DX.mouseX)
-                            && curPos.X - Sim.g.unitT[Sim.u[i].type].selRadius <= Math.Max(DX.mouseDX[1], DX.mouseX)
-                            && curPos.Y + Sim.g.unitT[Sim.u[i].type].selRadius >= Math.Min(DX.mouseDY[1], DX.mouseY)
-                            && curPos.Y - Sim.g.unitT[Sim.u[i].type].selRadius <= Math.Max(DX.mouseDY[1], DX.mouseY))
+                        drawPos = simToDrawPos(Sim.u[i].calcPos(DX.timeNow - DX.timeStart));
+                        if (drawPos.X + Sim.g.unitT[Sim.u[i].type].selRadius >= Math.Min(DX.mouseDX[1], DX.mouseX)
+                            && drawPos.X - Sim.g.unitT[Sim.u[i].type].selRadius <= Math.Max(DX.mouseDX[1], DX.mouseX)
+                            && drawPos.Y + Sim.g.unitT[Sim.u[i].type].selRadius >= Math.Min(DX.mouseDY[1], DX.mouseY)
+                            && drawPos.Y - Sim.g.unitT[Sim.u[i].type].selRadius <= Math.Max(DX.mouseDY[1], DX.mouseY))
                         {
                             if (selUnits.Contains(i))
                             {
@@ -263,11 +262,12 @@ namespace Decoherence
                 if (mouseSimPos.x >= 0 && mouseSimPos.x <= Sim.g.mapSize && mouseSimPos.y >= 0 && mouseSimPos.y <= Sim.g.mapSize)
                 {
                     i = 0;
-                    foreach (int id in selUnits)
+                    foreach (int unit in selUnits)
                     {
-                        if (DX.timeNow - DX.timeStart >= Sim.timeSim || (DX.timeNow - DX.timeStart >= Sim.u[id].timeCohere
-                            && Sim.tileAt(Sim.u[id].calcPos(DX.timeNow - DX.timeStart)).coherentWhen(selPlayer, DX.timeNow - DX.timeStart)))
+                        if (DX.timeNow - DX.timeStart >= Sim.timeSim || (DX.timeNow - DX.timeStart >= Sim.u[unit].timeCohere && Sim.u[unit].coherent))
                         {
+                            curPos = Sim.u[unit].calcPos(DX.timeNow - DX.timeStart);
+                            if (curPos.x <= Sim.OffMap << FP.Precision) continue;
                             // TODO: loose formation should be triangular
                             if (DX.diKeyState.IsPressed(Key.LeftControl))
                             {
@@ -282,7 +282,7 @@ namespace Decoherence
                             if (goal.x > Sim.g.mapSize) goal.x = Sim.g.mapSize;
                             if (goal.y < 0) goal.y = 0;
                             if (goal.y > Sim.g.mapSize) goal.y = Sim.g.mapSize;
-                            Sim.u[id].addMove(Sim.UnitMove.fromSpeed(DX.timeNow - DX.timeStart, Sim.g.unitT[Sim.u[id].type].speed, Sim.u[id].calcPos(DX.timeNow - DX.timeStart), goal));
+                            Sim.u[unit].addMove(Sim.UnitMove.fromSpeed(DX.timeNow - DX.timeStart, Sim.g.unitT[Sim.u[unit].type].speed, curPos, goal));
                             i++;
                         }
                     }
@@ -296,7 +296,7 @@ namespace Decoherence
             {
                 updateTime();
                 Sim.update(DX.timeNow - DX.timeStart);
-                inputHandle();
+                updateInput();
                 draw();
             }
         }
@@ -315,7 +315,7 @@ namespace Decoherence
             // TODO: cap time difference to a max amount
         }
 
-        private void inputHandle()
+        private void updateInput()
         {
             int i;
             DX.keyboardUpdate();
@@ -324,16 +324,27 @@ namespace Decoherence
             {
                 if (DX.diKeysChanged[i] == Key.Escape && DX.diKeyState.IsPressed(DX.diKeysChanged[i]))
                 {
+                    // exit (esc)
                     App_KeyDown(this, new System.Windows.Forms.KeyEventArgs(Keys.Escape));
-                }
-                else if (DX.diKeysChanged[i] == Key.Space && DX.diKeyState.IsPressed(DX.diKeysChanged[i]))
-                {
-                    selPlayer = (selPlayer + 1) % Sim.g.nPlayers;
-                    selUnits.Clear();
                 }
                 else if (DX.diKeysChanged[i] == Key.P && DX.diKeyState.IsPressed(DX.diKeysChanged[i]))
                 {
+                    // pause (p)
                     paused = !paused;
+                }
+                else if (DX.diKeysChanged[i] == Key.Space && DX.diKeyState.IsPressed(DX.diKeysChanged[i]))
+                {
+                    // change selected player (spacebar)
+                    selPlayer = (selPlayer + 1) % Sim.g.nPlayers;
+                    selUnits.Clear();
+                }
+                else if (DX.diKeysChanged[i] == Key.A && DX.diKeyState.IsPressed(DX.diKeysChanged[i]))
+                {
+                    // create amplitudes from selected units (a)
+                    foreach (int unit in selUnits)
+                    {
+                        Sim.makeAmp(unit, DX.timeNow - DX.timeStart + 1);
+                    }
                 }
             }
             // move camera
@@ -433,6 +444,7 @@ namespace Decoherence
                 if (DX.timeNow - DX.timeStart < Sim.u[i].m[0].timeStart) continue;
                 i2 = Sim.u[i].type * Sim.g.nUnitT + Sim.u[i].player;
                 fpVec = Sim.u[i].calcPos(DX.timeNow - DX.timeStart);
+                if (fpVec.x <= Sim.OffMap << FP.Precision) continue;
                 if (selPlayer != Sim.u[i].player && !Sim.tileAt(fpVec).playerVisWhen(selPlayer, DX.timeNow - DX.timeStart)) continue;
                 if (Sim.u[i].n > Sim.u[i].mLive + 1 && DX.timeNow - DX.timeStart >= Sim.u[i].m[Sim.u[i].mLive + 1].timeStart)
                 {
