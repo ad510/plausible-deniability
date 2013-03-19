@@ -91,6 +91,7 @@ namespace Decoherence
                 this.Close();
                 return;
             }
+            Sim.g = new Sim.Scenario();
             Sim.events = new Sim.SimEvtList();
             Sim.maxSpeed = 0;
             Sim.g.mapSize = jsonFP(json, "mapSize");
@@ -236,7 +237,7 @@ namespace Decoherence
                 if (!DX.diKeyState.IsPressed(Key.LeftControl) && !DX.diKeyState.IsPressed(Key.LeftShift)) selUnits.Clear();
                 for (i = 0; i < Sim.nUnits; i++)
                 {
-                    if (selPlayer == Sim.u[i].player)
+                    if (selPlayer == Sim.u[i].player && DX.timeNow - DX.timeStart >= Sim.u[i].m[0].timeStart)
                     {
                         drawPos = simToDrawPos(Sim.u[i].calcPos(DX.timeNow - DX.timeStart));
                         if (drawPos.X + Sim.g.unitT[Sim.u[i].type].selRadius >= Math.Min(DX.mouseDX[1], DX.mouseX)
@@ -343,7 +344,15 @@ namespace Decoherence
                     // create amplitudes from selected units (a)
                     foreach (int unit in selUnits)
                     {
-                        Sim.makeAmp(unit, DX.timeNow - DX.timeStart + 1);
+                        Sim.u[unit].makeChildAmp(unit, DX.timeNow - DX.timeStart + 1);
+                    }
+                }
+                else if (DX.diKeysChanged[i] == Key.Delete && DX.diKeyState.IsPressed(DX.diKeysChanged[i]))
+                {
+                    // delete selected amplitudes
+                    foreach (int unit in selUnits)
+                    {
+                        Sim.u[unit].deleteAmp(unit);
                     }
                 }
             }

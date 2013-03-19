@@ -29,6 +29,7 @@ Controls
 - p = pause/resume
 - r = go backwards in time
 - a = create amplitudes from selected units
+- delete = delete selected amplitudes
 
 License
 -------

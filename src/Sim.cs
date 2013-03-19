@@ -17,8 +17,8 @@ namespace Decoherence
         // constants
         public const int OffMap = -10000; // don't set to int.MinValue so doesn't overflow in inVis()
 
-        // game structures
-        public struct Player
+        // game classes
+        public class Player
         {
             public string name;
             public bool isUser; // whether actively controlled by either a human or AI
@@ -26,7 +26,7 @@ namespace Decoherence
             public bool[] annihilates; // if units of this player annihilate units from each player
         }
 
-        public struct UnitType
+        public class UnitType
         {
             public string name;
             public string imgPath;
@@ -38,7 +38,7 @@ namespace Decoherence
             public double selRadius;
         }
 
-        public struct Scenario
+        public class Scenario
         {
             public long mapSize;
             public long camSpeed;
@@ -60,7 +60,7 @@ namespace Decoherence
             public UnitType[] unitT;
         }
 
-        public struct UnitMove // unit movement (linearly interpolated between 2 points)
+        public class UnitMove // unit movement (linearly interpolated between 2 points)
         {
             public long timeStart; // time when starts moving
             public long timeEnd; // time when finishes moving
@@ -102,7 +102,7 @@ namespace Decoherence
             }
         }
 
-        public struct Unit
+        public class Unit
         {
             public int type;
             public int player;
@@ -127,7 +127,7 @@ namespace Decoherence
                 n = 1;
                 m = new UnitMove[n];
                 m[0] = new UnitMove(startTime, startPos);
-                mLive = 0;
+                mLive = (startTime > timeSim) ? 0 : -1;
                 //pos = startPos;
                 tileX = OffMap;
                 tileY = OffMap;
@@ -135,19 +135,12 @@ namespace Decoherence
                 timeCohere = coherent ? startTime : long.MaxValue;
             }
 
-            public void setNChildAmps(int newSize)
-            {
-                nChildAmps = newSize;
-                if (nChildAmps > childAmps.Length)
-                    Array.Resize(ref childAmps, nChildAmps * 2);
-            }
-
             public void setN(int newSize)
             {
                 int i = 0;
                 for (i = n; i < Math.Min(newSize, m.Length); i++)
                 {
-                    m[i] = new UnitMove();
+                    m[i] = new UnitMove(long.MaxValue, new FP.Vector());
                 }
                 n = newSize;
                 if (n > m.Length)
@@ -214,29 +207,86 @@ namespace Decoherence
 
             public void decohere(int id, long time)
             {
-                int i;
                 coherent = false;
                 timeCohere = long.MaxValue;
-                deleteChildAmps();
-                // if have a parent amplitude, copy moves to parent
-                if (parentAmp >= 0)
-                {
-                    for (i = 0; i < n; i++)
-                    {
-                        u[parentAmp].addMove(m[i]);
-                    }
-                    addMove(new UnitMove(long.MinValue, new FP.Vector(OffMap << FP.Precision, OffMap << FP.Precision)));
-                }
+                deleteAllChildAmps();
+                if (parentAmp >= 0) moveToParentAmp(id);
             }
 
-            private void deleteChildAmps()
+            // if this unit is an amplitude, delete it and return true, otherwise return false
+            public bool deleteAmp(int id)
+            {
+                if (nChildAmps > 0)
+                {
+                    // become the last child amplitude (overwriting our current amplitude in the process)
+                    u[childAmps[nChildAmps - 1]].moveToParentAmp(childAmps[nChildAmps - 1]);
+                    return true;
+                }
+                if (parentAmp >= 0)
+                {
+                    // if we don't have a child amplitude but have a parent amplitude, delete this unit completely
+                    u[parentAmp].deleteChildAmp(id);
+                    return true;
+                }
+                return false; // this unit is not an amplitude
+            }
+
+            public bool makeChildAmp(int id, long time)
+            {
+                if (coherent && (time > timeSim || time >= timeCohere))
+                {
+                    // check that unit is currently on map
+                    FP.Vector pos = calcPos(time);
+                    if (pos.x <= OffMap << FP.Precision) return false;
+                    // make unit amplitude
+                    setNUnits(nUnits + 1);
+                    u[nUnits - 1] = new Sim.Unit(type, player, time, pos, id);
+                    // add it to child amplitude list
+                    nChildAmps++;
+                    if (nChildAmps > childAmps.Length)
+                        Array.Resize(ref childAmps, nChildAmps * 2);
+                    childAmps[nChildAmps - 1] = nUnits - 1;
+                    return true;
+                }
+                return false;
+            }
+
+            public void deleteChildAmp(int unit)
+            {
+                int index;
+                for (index = 0; index < nChildAmps && childAmps[index] != unit; index++) ;
+                if (index == nChildAmps) throw new ArgumentException("unit " + unit + " is not a child amplitude");
+                // remove child amplitude from list
+                for (int i = index; i < nChildAmps - 1; i++)
+                {
+                    childAmps[i] = childAmps[i + 1];
+                }
+                nChildAmps--;
+                // delete child amplitude
+                u[unit].addMove(new UnitMove(long.MinValue, new FP.Vector(OffMap << FP.Precision, 0)));
+                u[unit].parentAmp = -1;
+            }
+
+            // recursively delete all child amplitudes
+            private void deleteAllChildAmps()
             {
                 for (int i = 0; i < nChildAmps; i++)
                 {
-                    u[childAmps[i]].addMove(new UnitMove(long.MinValue, new FP.Vector(OffMap << FP.Precision, OffMap << FP.Precision)));
-                    u[childAmps[i]].deleteChildAmps();
+                    u[childAmps[i]].addMove(new UnitMove(long.MinValue, new FP.Vector(OffMap << FP.Precision, 0)));
+                    u[childAmps[i]].parentAmp = -1;
+                    u[childAmps[i]].deleteAllChildAmps();
                 }
                 nChildAmps = 0;
+            }
+
+            // move all moves to parent amplitude (so parent amplitude becomes us)
+            public void moveToParentAmp(int id)
+            {
+                for (int i = 0; i < n; i++)
+                {
+                    u[parentAmp].addMove(m[i]);
+                }
+                u[parentAmp].deleteChildAmp(id);
             }
         }
 
@@ -605,34 +655,23 @@ namespace Decoherence
 
         public static void updatePast(long curTime)
         {
+            FP.Vector pos;
             int i;
             // restore to last coherent/live state if unit moves off coherent area
             // TODO: choose check state times more intelligently
             // (how do I do that in multiplayer, when time traveling at same time as updating present?)
             for (i = 0; i < nUnits; i++)
             {
-                if (curTime >= u[i].timeCohere && u[i].mLive < u[i].n - 1
-                    && !tileAt(u[i].calcPos(curTime)).coherentWhen(u[i].player, curTime))
+                if (curTime >= u[i].timeCohere && u[i].mLive < u[i].n - 1)
                 {
-                    u[i].setN(u[i].mLive + 1);
+                    pos = u[i].calcPos(curTime);
+                    if (pos.x >= 0 && !tileAt(pos).coherentWhen(u[i].player, curTime))
+                    {
+                        // if this is an amplitude then delete it, otherwise restore to previous state that was live
+                        if (!u[i].deleteAmp(i)) u[i].setN(u[i].mLive + 1);
+                    }
                 }
             }
-        }
-
-        // TODO: handle if amplitude was created while time traveling
-        public static bool makeAmp(int unit, long time)
-        {
-            if (u[unit].coherent && (time > timeSim || time >= u[unit].timeCohere))
-            {
-                FP.Vector pos = u[unit].calcPos(time);
-                if (pos.x <= OffMap << FP.Precision) return false;
-                setNUnits(nUnits + 1);
-                u[nUnits - 1] = new Sim.Unit(u[unit].type, u[unit].player, time, pos, unit);
-                u[unit].setNChildAmps(u[unit].nChildAmps + 1);
-                u[unit].childAmps[u[unit].nChildAmps - 1] = nUnits - 1;
-                return true;
-            }
-            return false;
         }
 
         private static void visAdd(int unit, int tileX, int tileY, long time)
