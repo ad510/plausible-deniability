@@ -1,8 +1,8 @@
 todo:
-force all units to have same seeing radius in engine (amplitudes cause complications)
 doxygen-style comments
-replace Sim.cs structs with classes? (should Universe data be directly in Sim class?)
+should Universe data be directly in Sim class?
 pathfinding
+darker gray tiles should act more conventionally
 
 global variables:
 visibility tiles = 2d array of:
@@ -117,6 +117,7 @@ amplitudes levels: (find better synonym for "part 2" such as redux?)
 - better than a coin flip, part 2
 - spreading coherence, part 2
 - retroactive coherence, part 2
+- snipers
 
 random notes:
 - phrase from AI wisdom: "expand selection by radius"
@@ -135,14 +136,16 @@ random notes:
 - Matthew says have story or something to make game interesting for people not interested in "physics" q&a's
 - unit type ideas (Matthew says using real life particles is bad idea)
   - don't need too many unit types b/c time travel & amplitudes already make the game interesting
-  - can have ranged laser units as long as you can only see laser where it hits
-    - or you can see laser path, but opponents only see explosions/damage that laser makes
+  - can have ranged units with visible laser paths
+    - except can only see own snipers' laser paths (from all possible snipers)
+    - other units' range is less than vis radius, so would have decohered by the time they shoot (so ok for anyone to see laser path)
   - have few increments of health, so easier to switch with someone with same health
     - having a healer unit also makes switching units easier
   - can't have mines (they'd have to be visible to the opponent when in seeing range)
   - sniper unit that shoots further than visibility range (but can shoot units that other units see)
     - which sniper shot it?
     - reload slowly so not too powerful?
+    - have checkbox to automatically delete amplitude if another player gets too close, so can surround snipers with worker amplitudes
   - Matthew's unit images can be pixellated to keep them simple
   - workers/miners with low/0 attack (use as "helpers" in levels)
     - make more interesting name for them?

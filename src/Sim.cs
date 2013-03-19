@@ -489,7 +489,7 @@ namespace Decoherence
                                 {
                                     for (tY = Math.Max(0, tileY - 1); tY <= Math.Min(tileLen() - 1, tileY + 1); tY++)
                                     {
-                                        // TODO: use more accurate time at tiles other than (tileX, tileY)
+                                        // TODO?: use more accurate time at tiles other than (tileX, tileY)
                                         events.add(new PlayerVisRemoveEvt(time, i, tX, tY));
                                     }
                                 }
@@ -504,7 +504,7 @@ namespace Decoherence
                                 {
                                     for (tY = Math.Max(0, u[i2].tileY - 1); tY <= Math.Min(tileLen() - 1, u[i2].tileY + 1); tY++)
                                     {
-                                        // TODO: use more accurate time at tiles other than (p[i2].tileX, p[i2].tileY)
+                                        // TODO?: use more accurate time at tiles other than (p[i2].tileX, p[i2].tileY)
                                         events.add(new PlayerVisRemoveEvt(time, u[unit].player, tX, tY));
                                     }
                                 }
@@ -684,7 +684,7 @@ namespace Decoherence
                 // add unit to unit visibility tile
                 tiles[tileX, tileY].unitVisToggle(unit, time);
                 // TODO: use smarter playerVis adding algorithm
-                // also, if opponent unit that can't make anything enters then exits region previously indirectly visible, should use smarter playerVis adding algorithm there
+                // also, if opponent units that can't make anything enter then exit region previously indirectly visible, should use smarter playerVis adding algorithm where last one exited
                 if (!tiles[tileX, tileY].playerVisLatest(u[unit].player))
                 {
                     tiles[tileX, tileY].playerVis[u[unit].player].Add(time);
