@@ -1,4 +1,5 @@
 todo:
+dead units don't lose visibility if they were killed without ever moving
 create & delete amplitude should be events
 ring formation
 doxygen-style comments

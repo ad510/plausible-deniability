@@ -188,7 +188,7 @@ namespace Decoherence
             Sim.u = new Sim.Unit[Sim.nUnits];
             for (i = 0; i < Sim.nUnits; i++)
             {
-                Sim.u[i] = new Sim.Unit(0, 0, 0, new FP.Vector((long)(rand.NextDouble() * Sim.g.mapSize), (long)(rand.NextDouble() * Sim.g.mapSize)));
+                Sim.u[i] = new Sim.Unit(0, i / (Sim.nUnits / 2), 0, new FP.Vector((long)(rand.NextDouble() * Sim.g.mapSize), (long)(rand.NextDouble() * Sim.g.mapSize)));
             }
             selUnits = new List<int>();
             tlTile.primitive = PrimitiveType.TriangleList;
