@@ -93,6 +93,7 @@ namespace Decoherence
             }
             Sim.g = new Sim.Scenario();
             Sim.events = new Sim.SimEvtList();
+            Sim.cmdHistory = new Sim.SimEvtList();
             Sim.maxSpeed = 0;
             Sim.g.mapSize = jsonFP(json, "mapSize");
             Sim.g.camSpeed = jsonFP(json, "camSpeed");
@@ -228,9 +229,7 @@ namespace Decoherence
             int button = (int)e.Button / 0x100000;
             int mousePrevState = DX.mouseState[button];
             FP.Vector mouseSimPos = drawToSimPos(new Vector3(e.X, e.Y, 0));
-            FP.Vector curPos, goal;
             Vector3 drawPos;
-            long spacing;
             int i;
             DX.mouseUp(button, e.X, e.Y);
             if (button == 1) // select
@@ -261,34 +260,7 @@ namespace Decoherence
             }
             else if (button == 2) // move
             {
-                if (mouseSimPos.x >= 0 && mouseSimPos.x <= Sim.g.mapSize && mouseSimPos.y >= 0 && mouseSimPos.y <= Sim.g.mapSize)
-                {
-                    i = 0;
-                    foreach (int unit in selUnits)
-                    {
-                        if (DX.timeNow - DX.timeStart >= Sim.timeSim || (DX.timeNow - DX.timeStart >= Sim.u[unit].timeCohere && Sim.u[unit].coherent))
-                        {
-                            curPos = Sim.u[unit].calcPos(DX.timeNow - DX.timeStart);
-                            if (curPos.x <= Sim.OffMap << FP.Precision) continue;
-                            // TODO: loose formation should be triangular
-                            if (DX.diKeyState.IsPressed(Key.LeftControl))
-                            {
-                                spacing = FP.mul(Sim.g.visRadius, FP.fromDouble(Math.Sqrt(2))) >> FP.Precision << FP.Precision;
-                            }
-                            else
-                            {
-                                spacing = 1 << FP.Precision;
-                            }
-                            goal = mouseSimPos + new FP.Vector((i % (int)Math.Ceiling(Math.Sqrt(selUnits.Count))) * spacing, (long)Math.Floor(i / Math.Ceiling(Math.Sqrt(selUnits.Count))) * spacing);
-                            if (goal.x < 0) goal.x = 0;
-                            if (goal.x > Sim.g.mapSize) goal.x = Sim.g.mapSize;
-                            if (goal.y < 0) goal.y = 0;
-                            if (goal.y > Sim.g.mapSize) goal.y = Sim.g.mapSize;
-                            Sim.u[unit].addMove(Sim.UnitMove.fromSpeed(DX.timeNow - DX.timeStart, Sim.g.unitT[Sim.u[unit].type].speed, curPos, goal));
-                            i++;
-                        }
-                    }
-                }
+                Sim.events.add(new Sim.CmdMoveEvt(Sim.timeSim, DX.timeNow - DX.timeStart + 1, selUnits.ToArray(), mouseSimPos, DX.diKeyState.IsPressed(Key.LeftControl) ? Sim.Formation.Loose : Sim.Formation.Tight));
             }
         }
 

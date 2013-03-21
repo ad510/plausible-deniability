@@ -17,7 +17,7 @@ namespace Decoherence
         // constants
         public const int OffMap = -10000; // don't set to int.MinValue so doesn't overflow in inVis()
 
-        // game classes
+        // game objects
         public class Player
         {
             public string name;
@@ -141,7 +141,7 @@ namespace Decoherence
                 int i = 0;
                 for (i = n; i < Math.Min(newSize, m.Length); i++)
                 {
-                    m[i] = new UnitMove(long.MaxValue, new FP.Vector());
+                    m[i] = new UnitMove(0, new FP.Vector());
                 }
                 n = newSize;
                 if (n > m.Length)
@@ -178,7 +178,7 @@ namespace Decoherence
                 if (moveLast < 0)
                 {
                     // put unit on visibility tiles for the first time
-                    events.add(new MoveEvt(m[0].timeStart, id, (int)(m[0].vecStart.x >> FP.Precision), (int)(m[0].vecStart.y >> FP.Precision)));
+                    events.add(new TileMoveEvt(m[0].timeStart, id, (int)(m[0].vecStart.x >> FP.Precision), (int)(m[0].vecStart.y >> FP.Precision)));
                     moveLast = 0;
                 }
                 for (i = moveLast; i <= move; i++)
@@ -189,13 +189,13 @@ namespace Decoherence
                     dir = (pos.x >= posLast.x) ? 0 : -1;
                     for (tX = (int)(Math.Min(pos.x, posLast.x) >> FP.Precision) + 1; tX <= (int)(Math.Max(pos.x, posLast.x) >> FP.Precision); tX++)
                     {
-                        events.add(new MoveEvt(m[i].timeAtX(tX << FP.Precision), id, tX + dir, int.MinValue));
+                        events.add(new TileMoveEvt(m[i].timeAtX(tX << FP.Precision), id, tX + dir, int.MinValue));
                     }
                     // moving between rows (y)
                     dir = (pos.y >= posLast.y) ? 0 : -1;
                     for (tY = (int)(Math.Min(pos.y, posLast.y) >> FP.Precision) + 1; tY <= (int)(Math.Max(pos.y, posLast.y) >> FP.Precision); tY++)
                     {
-                        events.add(new MoveEvt(m[i].timeAtY(tY << FP.Precision), id, int.MinValue, tY + dir));
+                        events.add(new TileMoveEvt(m[i].timeAtY(tY << FP.Precision), id, int.MinValue, tY + dir));
                     }
                 }
             }
@@ -241,7 +241,7 @@ namespace Decoherence
                     if (pos.x <= OffMap << FP.Precision) return false;
                     // make unit amplitude
                     setNUnits(nUnits + 1);
-                    u[nUnits - 1] = new Sim.Unit(type, player, time, pos, id);
+                    u[nUnits - 1] = new Unit(type, player, time, pos, id);
                     // add it to child amplitude list
                     nChildAmps++;
                     if (nChildAmps > childAmps.Length)
@@ -424,12 +424,82 @@ namespace Decoherence
             }
         }
 
-        public class MoveEvt : SimEvt // event in which unit moves between visibility tiles
+        public enum Formation : byte { Tight, Loose };
+
+        public class CmdMoveEvt : SimEvt // command to move unit(s)
+        {
+            public long moveTime; // time is latest simulation time when command is given, moveTime is when units told to move (may be in past)
+            public int[] units;
+            public FP.Vector pos; // where to move to
+            public Formation formation;
+
+            public CmdMoveEvt(long timeVal, long moveTimeVal, int[] unitsVal, FP.Vector posVal, Formation formationVal)
+            {
+                time = timeVal;
+                moveTime = moveTimeVal;
+                units = unitsVal;
+                pos = posVal;
+                formation = formationVal;
+            }
+
+            public override void apply()
+            {
+                FP.Vector curPos, goal;
+                long spacing;
+                FP.Vector rows, offset;
+                int count = 0, i = 0;
+                // copy event to command history list (it should've already been popped from event list)
+                cmdHistory.add(this);
+                // count number of units able to move
+                foreach (int unit in units)
+                {
+                    if ((moveTime > timeSimLast || (moveTime >= u[unit].timeCohere && u[unit].coherent)) && u[unit].calcPos(moveTime).x > OffMap << FP.Precision) count++;
+                }
+                if (count == 0) return;
+                // calculate spacing
+                // TODO: loose formation should be triangular
+                // TODO: tight formation spacing should be customizable
+                if (formation == Formation.Loose)
+                {
+                    spacing = FP.mul(g.visRadius, FP.fromDouble(Math.Sqrt(2))) >> FP.Precision << FP.Precision;
+                }
+                else
+                {
+                    spacing = 1 << FP.Precision;
+                }
+                rows.x = (int)Math.Ceiling(Math.Sqrt(count)); // TODO: don't use sqrt
+                rows.y = (count - 1) / rows.x + 1;
+                rows.z = 0;
+                offset = (rows - new FP.Vector(1, 1)) * spacing / 2;
+                if (pos.x < offset.x) pos.x = offset.x;
+                if (pos.x > g.mapSize - offset.x) pos.x = g.mapSize - offset.x;
+                if (pos.y < offset.y) pos.y = offset.y;
+                if (pos.y > g.mapSize - offset.y) pos.y = g.mapSize - offset.y;
+                // move units
+                foreach (int unit in units)
+                {
+                    if (moveTime > timeSimLast || (moveTime >= u[unit].timeCohere && u[unit].coherent))
+                    {
+                        curPos = u[unit].calcPos(moveTime);
+                        if (curPos.x <= OffMap << FP.Precision) continue;
+                        goal = pos + new FP.Vector((i % rows.x) * spacing - offset.x, i / rows.x * spacing - offset.y);
+                        if (goal.x < 0) goal.x = 0;
+                        if (goal.x > g.mapSize) goal.x = g.mapSize;
+                        if (goal.y < 0) goal.y = 0;
+                        if (goal.y > g.mapSize) goal.y = g.mapSize;
+                        u[unit].addMove(UnitMove.fromSpeed(moveTime, g.unitT[u[unit].type].speed, curPos, goal));
+                        i++;
+                    }
+                }
+            }
+        }
+
+        public class TileMoveEvt : SimEvt // event in which unit moves between visibility tiles
         {
             public int unit;
             public int tileX, tileY; // new tile position, set to int.MinValue to keep current value
 
-            public MoveEvt(long timeVal, int unitVal, int tileXVal, int tileYVal)
+            public TileMoveEvt(long timeVal, int unitVal, int tileXVal, int tileYVal)
             {
                 time = timeVal;
                 unit = unitVal;
@@ -516,7 +586,7 @@ namespace Decoherence
             }
         }
 
-        public class PlayerVisAddEvt : SimEvt // event in which a player starts seeing a tile
+        public class PlayerVisAddEvt : SimEvt // event in which a player starts seeing a tile (incomplete)
         {
             public int player;
             public int tileX, tileY;
@@ -609,6 +679,7 @@ namespace Decoherence
         // helper variables
         public static Tile[,] tiles;
         public static SimEvtList events;
+        public static SimEvtList cmdHistory;
         public static long maxSpeed;
         public static long timeSim;
         public static long timeSimLast;
@@ -639,7 +710,7 @@ namespace Decoherence
                 {
                     u[i].mLive = u[i].n - 1;
                     pos = u[i].calcPos(timeSimLast + 1);
-                    events.add(new MoveEvt(timeSimLast + 1, i, (int)(pos.x >> FP.Precision), (int)(pos.y >> FP.Precision)));
+                    events.add(new TileMoveEvt(timeSimLast + 1, i, (int)(pos.x >> FP.Precision), (int)(pos.y >> FP.Precision)));
                 }
             }
             // check if units moved between tiles
@@ -658,6 +729,11 @@ namespace Decoherence
         {
             FP.Vector pos;
             int i;
+            // apply simulation events
+            while (events.peekTime() <= timeSim)
+            {
+                events.pop().apply();
+            }
             // restore to last coherent/live state if unit moves off coherent area
             // TODO: choose check state times more intelligently
             // (how do I do that in multiplayer, when time traveling at same time as updating present?)
