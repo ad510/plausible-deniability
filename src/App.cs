@@ -5,6 +5,7 @@
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
@@ -30,7 +31,7 @@ namespace Decoherence
         string appPath;
         string modPath = "mod\\";
         SlimDX.Direct3D9.Device d3dOriginalDevice;
-        int runMode;
+        int runMode; // TODO: should this be enum?
         float winDiag;
         DX.Img2D imgSelect;
         DX.Img2D[] imgUnit;
@@ -50,8 +51,8 @@ namespace Decoherence
         private void App_Load(object sender, EventArgs e)
         {
             int i, i2, i3;
-            System.Collections.Hashtable json;
-            System.Collections.ArrayList jsonA;
+            Hashtable json;
+            ArrayList jsonA;
             string str;
             bool b = false;
             appPath = Application.ExecutablePath.Substring(0, Application.ExecutablePath.LastIndexOf("bin\\"));
@@ -84,7 +85,7 @@ namespace Decoherence
             // load scenario from file
             // if this ever supports multiplayer games, host should load file & send data to other players, otherwise json double parsing may not match
             str = new System.IO.StreamReader(appPath + modPath + "scn.json").ReadToEnd();
-            json = (System.Collections.Hashtable)Procurios.Public.JSON.JsonDecode(str, ref b);
+            json = (Hashtable)Procurios.Public.JSON.JsonDecode(str, ref b);
             if (!b)
             {
                 MessageBox.Show("Scenario failed to load" + ErrStr);
@@ -113,7 +114,7 @@ namespace Decoherence
             jsonA = jsonArray(json, "players");
             if (jsonA != null)
             {
-                foreach (System.Collections.Hashtable jsonO in jsonA)
+                foreach (Hashtable jsonO in jsonA)
                 {
                     Sim.Player player = new Sim.Player();
                     player.name = jsonString(jsonO, "name");
@@ -123,21 +124,44 @@ namespace Decoherence
                     Array.Resize(ref Sim.g.players, Sim.g.nPlayers);
                     Sim.g.players[Sim.g.nPlayers - 1] = player;
                 }
+                foreach (Hashtable jsonO in jsonA)
+                {
+                    Hashtable jsonO2 = jsonObject(jsonO, "mayAttack");
+                    i = Sim.g.playerNamed(jsonString(jsonO, "name"));
+                    Sim.g.players[i].mayAttack = new bool[Sim.g.nPlayers];
+                    for (i2 = 0; i2 < Sim.g.nPlayers; i2++)
+                    {
+                        Sim.g.players[i].mayAttack[i2] = jsonBool(jsonO2, Sim.g.players[i2].name);
+                    }
+                }
             }
             jsonA = jsonArray(json, "unitTypes");
             if (jsonA != null)
             {
-                foreach (System.Collections.Hashtable jsonO in jsonA)
+                foreach (Hashtable jsonO in jsonA)
                 {
                     Sim.UnitType unitT = new Sim.UnitType();
                     unitT.name = jsonString(jsonO, "name");
                     unitT.imgPath = jsonString(jsonO, "imgPath");
+                    unitT.maxHealth = (int)jsonDouble(jsonO, "maxHealth");
                     unitT.speed = jsonFP(jsonO, "speed");
+                    unitT.reload = (long)jsonDouble(jsonO, "reload");
+                    unitT.range = jsonFP(jsonO, "range");
                     unitT.selRadius = jsonDouble(jsonO, "selRadius");
                     if (unitT.speed > Sim.maxSpeed) Sim.maxSpeed = unitT.speed;
                     Sim.g.nUnitT++;
                     Array.Resize(ref Sim.g.unitT, Sim.g.nUnitT);
                     Sim.g.unitT[Sim.g.nUnitT - 1] = unitT;
+                }
+                foreach (Hashtable jsonO in jsonA)
+                {
+                    Hashtable jsonO2 = jsonObject(jsonO, "damage");
+                    i = Sim.g.unitTypeNamed(jsonString(jsonO, "name"));
+                    Sim.g.unitT[i].damage = new int[Sim.g.nUnitT];
+                    for (i2 = 0; i2 < Sim.g.nUnitT; i2++)
+                    {
+                        Sim.g.unitT[i].damage[i2] = (int)jsonDouble(jsonO2, Sim.g.unitT[i2].name);
+                    }
                 }
             }
             imgUnit = new DX.Img2D[Sim.g.nUnitT * Sim.g.nPlayers];
@@ -179,6 +203,7 @@ namespace Decoherence
             }
             // start game
             Sim.timeSim = -1;
+            Sim.events.add(new Sim.AttackEvt(0));
             DX.timeNow = Environment.TickCount;
             DX.timeStart = DX.timeNow;
             runMode = 1;
@@ -298,23 +323,23 @@ namespace Decoherence
             {
                 if (DX.diKeysChanged[i] == Key.Escape && DX.diKeyState.IsPressed(DX.diKeysChanged[i]))
                 {
-                    // exit (esc)
+                    // exit
                     App_KeyDown(this, new System.Windows.Forms.KeyEventArgs(Keys.Escape));
                 }
                 else if (DX.diKeysChanged[i] == Key.P && DX.diKeyState.IsPressed(DX.diKeysChanged[i]))
                 {
-                    // pause (p)
+                    // pause/resume
                     paused = !paused;
                 }
                 else if (DX.diKeysChanged[i] == Key.Space && DX.diKeyState.IsPressed(DX.diKeysChanged[i]))
                 {
-                    // change selected player (spacebar)
+                    // change selected player
                     selPlayer = (selPlayer + 1) % Sim.g.nPlayers;
                     selUnits.Clear();
                 }
                 else if (DX.diKeysChanged[i] == Key.A && DX.diKeyState.IsPressed(DX.diKeysChanged[i]))
                 {
-                    // create amplitudes from selected units (a)
+                    // create amplitudes from selected units
                     foreach (int unit in selUnits)
                     {
                         Sim.u[unit].makeChildAmp(unit, DX.timeNow - DX.timeStart + 1);
@@ -452,7 +477,7 @@ namespace Decoherence
                 if (selUnits.Contains(i))
                 {
                     imgSelect.pos = imgUnit[i2].pos;
-                    imgSelect.draw();
+                    imgSelect.draw(); // TODO: draw health bar instead
                 }
             }
             // select box (if needed)
@@ -497,25 +522,25 @@ namespace Decoherence
             }
         }
 
-        private string jsonString(System.Collections.Hashtable json, string key, string defaultVal = "")
+        private string jsonString(Hashtable json, string key, string defaultVal = "")
         {
             if (json.ContainsKey(key) && json[key] is string) return (string)json[key];
             return defaultVal;
         }
 
-        private double jsonDouble(System.Collections.Hashtable json, string key, double defaultVal = 0)
+        private double jsonDouble(Hashtable json, string key, double defaultVal = 0)
         {
             if (json.ContainsKey(key) && json[key] is double) return (double)json[key];
             return defaultVal;
         }
 
-        private bool jsonBool(System.Collections.Hashtable json, string key, bool defaultVal = false)
+        private bool jsonBool(Hashtable json, string key, bool defaultVal = false)
         {
             if (json.ContainsKey(key) && json[key] is bool) return (bool)json[key];
             return defaultVal;
         }
 
-        private long jsonFP(System.Collections.Hashtable json, string key, long defaultVal = 0)
+        private long jsonFP(Hashtable json, string key, long defaultVal = 0)
         {
             if (json.ContainsKey(key))
             {
@@ -535,37 +560,37 @@ namespace Decoherence
             return defaultVal;
         }
 
-        private System.Collections.Hashtable jsonObject(System.Collections.Hashtable json, string key)
+        private Hashtable jsonObject(Hashtable json, string key)
         {
-            if (json.ContainsKey(key) && json[key] is System.Collections.Hashtable) return (System.Collections.Hashtable)json[key];
+            if (json.ContainsKey(key) && json[key] is Hashtable) return (Hashtable)json[key];
             return null;
         }
 
-        private System.Collections.ArrayList jsonArray(System.Collections.Hashtable json, string key)
+        private ArrayList jsonArray(Hashtable json, string key)
         {
-            if (json.ContainsKey(key) && json[key] is System.Collections.ArrayList) return (System.Collections.ArrayList)json[key];
+            if (json.ContainsKey(key) && json[key] is ArrayList) return (ArrayList)json[key];
             return null;
         }
 
-        private FP.Vector jsonFPVector(System.Collections.Hashtable json, string key, FP.Vector defaultVal = new FP.Vector())
+        private FP.Vector jsonFPVector(Hashtable json, string key, FP.Vector defaultVal = new FP.Vector())
         {
-            if (json.ContainsKey(key) && json[key] is System.Collections.Hashtable)
+            if (json.ContainsKey(key) && json[key] is Hashtable)
             {
-                return new FP.Vector(jsonFP((System.Collections.Hashtable)json[key], "x", defaultVal.x),
-                    jsonFP((System.Collections.Hashtable)json[key], "y", defaultVal.y),
-                    jsonFP((System.Collections.Hashtable)json[key], "z", defaultVal.z));
+                return new FP.Vector(jsonFP((Hashtable)json[key], "x", defaultVal.x),
+                    jsonFP((Hashtable)json[key], "y", defaultVal.y),
+                    jsonFP((Hashtable)json[key], "z", defaultVal.z));
             }
             return defaultVal;
         }
 
-        private Color4 jsonColor4(System.Collections.Hashtable json, string key)
+        private Color4 jsonColor4(Hashtable json, string key)
         {
-            if (json.ContainsKey(key) && json[key] is System.Collections.Hashtable)
+            if (json.ContainsKey(key) && json[key] is Hashtable)
             {
-                return new Color4((float)jsonDouble((System.Collections.Hashtable)json[key], "a", 1),
-                    (float)jsonDouble((System.Collections.Hashtable)json[key], "r", 0),
-                    (float)jsonDouble((System.Collections.Hashtable)json[key], "g", 0),
-                    (float)jsonDouble((System.Collections.Hashtable)json[key], "b", 0));
+                return new Color4((float)jsonDouble((Hashtable)json[key], "a", 1),
+                    (float)jsonDouble((Hashtable)json[key], "r", 0),
+                    (float)jsonDouble((Hashtable)json[key], "g", 0),
+                    (float)jsonDouble((Hashtable)json[key], "b", 0));
             }
             return new Color4();
         }

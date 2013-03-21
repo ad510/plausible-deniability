@@ -16,22 +16,39 @@
   "players":
   [
     {
-      "name": "matter",
+      "name": "good",
       "isUser": true,
-      "user": 1
+      "user": 1,
+      "mayAttack":
+      {
+        "good": false,
+        "evil": true
+      }
     },
     {
-      "name": "antimatter",
+      "name": "evil",
       "isUser": true,
-      "user": -1
+      "user": -1,
+      "mayAttack":
+      {
+        "good": true,
+        "evil": false
+      }
     }
   ],
   "unitTypes":
   [
     {
-      "name": "electron",
+      "name": "marine",
       "imgPath": "test.png",
+      "maxHealth": 5,
       "speed": 0.003,
+      "damage":
+      {
+        "marine": 1
+      }
+      "reload": 1000,
+      "range": 3,
       "selRadius": 16
     }
   ]

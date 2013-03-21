@@ -23,7 +23,7 @@ namespace Decoherence
             public string name;
             public bool isUser; // whether actively controlled by either a human or AI
             public short user; // -1 = nobody, 0 = computer, 1+ = human
-            public bool[] annihilates; // if units of this player annihilate units from each player
+            public bool[] mayAttack; // if this player's units may attack each other player's units
         }
 
         public class UnitType
@@ -34,7 +34,11 @@ namespace Decoherence
             public string sndMove;
             public string sndAnniCmd;
             public string sndAnnihilate;*/
+            public int maxHealth;
             public long speed;
+            public int[] damage; // damage done per attack to each unit type
+            public long reload; // time needed to reload
+            public long range; // range of attack
             public double selRadius;
         }
 
@@ -59,6 +63,26 @@ namespace Decoherence
             public int nUnitT;
             public Player[] players;
             public UnitType[] unitT;
+
+            // returns index of player with specified name, or -1 if no such player
+            public int playerNamed(string name)
+            {
+                for (int i = 0; i < nPlayers; i++)
+                {
+                    if (name == players[i].name) return i;
+                }
+                return -1;
+            }
+
+            // returns index of unit type with specified name, or -1 if no such unit type
+            public int unitTypeNamed(string name)
+            {
+                for (int i = 0; i < nUnitT; i++)
+                {
+                    if (name == unitT[i].name) return i;
+                }
+                return -1;
+            }
         }
 
         public class UnitMove // unit movement (linearly interpolated between 2 points)
@@ -107,24 +131,24 @@ namespace Decoherence
         {
             public int type;
             public int player;
-            public int parentAmp; // unit which this unit split off from to form an amplitude (set to <0 if none)
-            public int nChildAmps;
-            public int[] childAmps; // unit amplitudes which split off from this unit
-            public long timeCohere; // earliest time at which it's safe to time travel
             public int n; // number of moves
             public UnitMove[] m;
             public int mLive; // index of latest move that was live
             //public FP.Vector pos; // current position
             public int tileX, tileY; // current position on visibility tiles
+            public int nTimeHealth;
+            public long[] timeHealth; // times at which each health increment is removed
+            public long timeAttack; // latest time that attacked a unit
             public bool coherent; // whether safe to time travel at simulation time
+            public long timeCohere; // earliest time at which it's safe to time travel
+            public int parentAmp; // unit which this unit split off from to form an amplitude (set to <0 if none)
+            public int nChildAmps;
+            public int[] childAmps; // unit amplitudes which split off from this unit
 
             public Unit(int typeVal, int playerVal, long startTime, FP.Vector startPos, int parentAmpVal = -1)
             {
                 type = typeVal;
                 player = playerVal;
-                parentAmp = parentAmpVal;
-                nChildAmps = 0;
-                childAmps = new int[nChildAmps];
                 n = 1;
                 m = new UnitMove[n];
                 m[0] = new UnitMove(startTime, startPos);
@@ -132,8 +156,14 @@ namespace Decoherence
                 //pos = startPos;
                 tileX = OffMap;
                 tileY = OffMap;
+                nTimeHealth = 0;
+                timeHealth = new long[g.unitT[type].maxHealth];
+                timeAttack = long.MinValue;
                 coherent = tileAt(startPos).coherentWhen(player, startTime);
                 timeCohere = coherent ? startTime : long.MaxValue;
+                parentAmp = parentAmpVal;
+                nChildAmps = 0;
+                childAmps = new int[nChildAmps];
             }
 
             public void setN(int newSize)
@@ -198,6 +228,33 @@ namespace Decoherence
                         events.add(new TileMoveEvt(m[i].timeAtY(tY << FP.Precision), id, int.MinValue, tY + dir));
                     }
                 }
+            }
+
+            // remove 1 health increment at specified time
+            public void takeHealth(long time)
+            {
+                if (nTimeHealth < g.unitT[type].maxHealth)
+                {
+                    nTimeHealth++;
+                    timeHealth[nTimeHealth - 1] = time;
+                    if (nTimeHealth >= g.unitT[type].maxHealth)
+                    {
+                        // unit lost all health
+                        addMove(new UnitMove(time, new FP.Vector(OffMap << FP.Precision, 0)));
+                    }
+                }
+            }
+
+            public int healthLatest()
+            {
+                return g.unitT[type].maxHealth - nTimeHealth;
+            }
+
+            public int healthWhen(long time)
+            {
+                int i = nTimeHealth;
+                while (i > 0 && time < timeHealth[i - 1]) i--;
+                return g.unitT[type].maxHealth - i;
             }
 
             public void cohere(int id, long time)
@@ -491,6 +548,52 @@ namespace Decoherence
                         i++;
                     }
                 }
+            }
+        }
+
+        public class AttackEvt : SimEvt // event in which unit targets and possibly attacks a unit
+        {
+            public AttackEvt(long timeVal)
+            {
+                time = timeVal;
+            }
+
+            public override void apply()
+            {
+                FP.Vector pos;
+                int target;
+                long dist, targetDistSq;
+                int i, i2;
+                for (i = 0; i < nUnits; i++)
+                {
+                    if (time >= u[i].timeAttack + g.unitT[u[i].type].reload)
+                    {
+                        // done reloading, look for closest target
+                        pos = u[i].calcPos(time);
+                        target = -1;
+                        targetDistSq = g.unitT[u[i].type].range * g.unitT[u[i].type].range + 1;
+                        for (i2 = 0; i2 < nUnits; i2++)
+                        {
+                            if (i != i2 && g.players[u[i].player].mayAttack[u[i2].player] && g.unitT[u[i].type].damage[u[i2].type] > 0)
+                            {
+                                dist = (u[i2].calcPos(time) - pos).lengthSq();
+                                if (dist < targetDistSq)
+                                {
+                                    target = i2;
+                                    targetDistSq = dist;
+                                }
+                            }
+                        }
+                        if (target >= 0)
+                        {
+                            // attack target
+                            // take health with 1 ms delay so earlier units in array don't have unfair advantage
+                            for (i2 = 0; i2 < g.unitT[u[i].type].damage[u[target].type]; i2++) u[target].takeHealth(time + 1);
+                            u[i].timeAttack = time;
+                        }
+                    }
+                }
+                events.add(new AttackEvt(time + 250));
             }
         }
 
@@ -883,6 +986,14 @@ namespace Decoherence
                 if (i != player && tiles[tileX, tileY].playerVisWhen(i, time)) return false;
             }
             return true;
+        }
+
+        // returns index of unit that is the root parent amplitude of the specified unit
+        public static int rootParentAmp(int unit)
+        {
+            int ret = unit;
+            while (u[ret].parentAmp >= 0) ret = u[ret].parentAmp;
+            return ret;
         }
 
         public static bool inVis(long tX, long tY)
