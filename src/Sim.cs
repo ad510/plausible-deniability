@@ -50,6 +50,8 @@ namespace Decoherence
             public float drawScl;
             public float drawSclMin;
             public float drawSclMax;
+            public Vector2 healthBarSize;
+            public float healthBarYOffset;
             public Color4 backCol;
             public Color4 borderCol;
             public Color4 noVisCol;
@@ -57,6 +59,9 @@ namespace Decoherence
             public Color4 unitVisCol;
             public Color4 coherentCol;
             public Color4 amplitudeCol;
+            public Color4 healthBarBackCol;
+            public Color4 healthBarFullCol;
+            public Color4 healthBarEmptyCol;
             //public string music;
             public long visRadius;
             public int nPlayers;
@@ -182,7 +187,7 @@ namespace Decoherence
             {
                 setN(n + 1);
                 m[n - 1] = newMove;
-                if (newMove.timeStart >= timeSim) mLive = n - 1;
+                if (newMove.timeStart >= timeSimLast) mLive = n - 1;
             }
 
             public FP.Vector calcPos(long time)

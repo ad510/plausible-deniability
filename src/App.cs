@@ -33,7 +33,6 @@ namespace Decoherence
         SlimDX.Direct3D9.Device d3dOriginalDevice;
         int runMode; // TODO: should this be enum?
         float winDiag;
-        DX.Img2D imgSelect;
         DX.Img2D[] imgUnit;
         DX.Poly2D tlTile;
         DX.Poly2D tlPoly;
@@ -77,11 +76,6 @@ namespace Decoherence
             }
             // fonts (TODO: make font, size, and color customizable by mod)
             fnt = new SlimDX.Direct3D9.Font(DX.d3dDevice, new System.Drawing.Font("Arial", DX.sy * FntSize, GraphicsUnit.Pixel));
-            // selected unit image (TODO: make this customizable by mod)
-            imgSelect.init();
-            if (!imgSelect.open(appPath + modPath + "select.png", Color.White.ToArgb())) MessageBox.Show("Warning: failed to load " + modPath + "select.png");
-            imgSelect.rotCenter.X = imgSelect.srcWidth / 2;
-            imgSelect.rotCenter.Y = imgSelect.srcHeight / 2;
             // load scenario from file
             // if this ever supports multiplayer games, host should load file & send data to other players, otherwise json double parsing may not match
             str = new System.IO.StreamReader(appPath + modPath + "scn.json").ReadToEnd();
@@ -102,6 +96,8 @@ namespace Decoherence
             Sim.g.drawScl = (float)jsonDouble(json, "drawScl");
             Sim.g.drawSclMin = (float)jsonDouble(json, "drawSclMin");
             Sim.g.drawSclMax = (float)jsonDouble(json, "drawSclMax");
+            Sim.g.healthBarSize = jsonVector2(json, "healthBarSize");
+            Sim.g.healthBarYOffset = (float)jsonDouble(json, "healthBarYOffset");
             Sim.g.backCol = jsonColor4(json, "backCol");
             Sim.g.borderCol = jsonColor4(json, "borderCol");
             Sim.g.noVisCol = jsonColor4(json, "noVisCol");
@@ -109,6 +105,9 @@ namespace Decoherence
             Sim.g.unitVisCol = jsonColor4(json, "unitVisCol");
             Sim.g.coherentCol = jsonColor4(json, "coherentCol");
             Sim.g.amplitudeCol = jsonColor4(json, "amplitudeCol");
+            Sim.g.healthBarBackCol = jsonColor4(json, "healthBarBackCol");
+            Sim.g.healthBarFullCol = jsonColor4(json, "healthBarFullCol");
+            Sim.g.healthBarEmptyCol = jsonColor4(json, "healthBarEmptyCol");
             //Sim.g.music = jsonString(json, "music");
             Sim.g.visRadius = jsonFP(json, "visRadius");
             jsonA = jsonArray(json, "players");
@@ -189,7 +188,7 @@ namespace Decoherence
             Sim.u = new Sim.Unit[Sim.nUnits];
             for (i = 0; i < Sim.nUnits; i++)
             {
-                Sim.u[i] = new Sim.Unit(0, i / (Sim.nUnits / 2), 0, new FP.Vector((long)(rand.NextDouble() * Sim.g.mapSize), (long)(rand.NextDouble() * Sim.g.mapSize)));
+                Sim.u[i] = new Sim.Unit(0, 0, 0, new FP.Vector((long)(rand.NextDouble() * Sim.g.mapSize), (long)(rand.NextDouble() * Sim.g.mapSize)));
             }
             selUnits = new List<int>();
             tlTile.primitive = PrimitiveType.TriangleList;
@@ -380,8 +379,8 @@ namespace Decoherence
         private void draw()
         {
             Vector3 vec, vec2;
-            FP.Vector fpVec;
             Color4 col;
+            float f;
             int i, i2, tX, tY;
             DX.d3dDevice.Clear(ClearFlags.Target | ClearFlags.ZBuffer, Sim.g.backCol, 1, 0);
             DX.d3dDevice.BeginScene();
@@ -444,40 +443,69 @@ namespace Decoherence
             tlPoly.poly[0].v[3].y = vec2.Y;
             tlPoly.poly[0].v[4] = tlPoly.poly[0].v[0];
             tlPoly.draw();
-            // units
-            // TODO: scale unit images
+            // unit amplitude lines
             for (i = 0; i < Sim.nUnits; i++)
             {
-                if (DX.timeNow - DX.timeStart < Sim.u[i].m[0].timeStart) continue;
-                i2 = Sim.u[i].type * Sim.g.nUnitT + Sim.u[i].player;
-                fpVec = Sim.u[i].calcPos(DX.timeNow - DX.timeStart);
-                if (fpVec.x <= Sim.OffMap << FP.Precision) continue;
-                if (selPlayer != Sim.u[i].player && !Sim.tileAt(fpVec).playerVisWhen(selPlayer, DX.timeNow - DX.timeStart)) continue;
-                if (Sim.u[i].parentAmp >= 0 && DX.timeNow - DX.timeStart >= Sim.u[Sim.u[i].parentAmp].m[0].timeStart)
+                if (unitDrawPos(i, ref vec) && Sim.u[i].parentAmp >= 0 && DX.timeNow - DX.timeStart >= Sim.u[Sim.u[i].parentAmp].m[0].timeStart)
                 {
                     DX.d3dDevice.SetTexture(0, null);
                     tlPoly.primitive = PrimitiveType.LineStrip;
                     tlPoly.setNPoly(0);
                     tlPoly.nV[0] = 1;
                     tlPoly.poly[0].v = new DX.TLVertex[tlPoly.nV[0] + 1];
-                    tlPoly.poly[0].v[0] = new DX.TLVertex(simToDrawPos(fpVec), Sim.g.amplitudeCol.ToArgb(), 0, 0);
+                    tlPoly.poly[0].v[0] = new DX.TLVertex(vec, Sim.g.amplitudeCol.ToArgb(), 0, 0);
                     tlPoly.poly[0].v[1] = new DX.TLVertex(simToDrawPos(Sim.u[Sim.u[i].parentAmp].calcPos(DX.timeNow - DX.timeStart)), Sim.g.amplitudeCol.ToArgb(), 0, 0);
                     tlPoly.draw();
                 }
-                if (Sim.u[i].n > Sim.u[i].mLive + 1 && DX.timeNow - DX.timeStart >= Sim.u[i].m[Sim.u[i].mLive + 1].timeStart)
+            }
+            // units
+            // TODO: scale unit images
+            for (i = 0; i < Sim.nUnits; i++)
+            {
+                if (unitDrawPos(i, ref vec))
                 {
-                    imgUnit[i2].color = new Color4(0.5f, 1, 1, 1).ToArgb(); // TODO: make transparency amount customizable
+                    i2 = Sim.u[i].type * Sim.g.nUnitT + Sim.u[i].player;
+                    if (Sim.u[i].n > Sim.u[i].mLive + 1 && DX.timeNow - DX.timeStart >= Sim.u[i].m[Sim.u[i].mLive + 1].timeStart)
+                    {
+                        imgUnit[i2].color = new Color4(0.5f, 1, 1, 1).ToArgb(); // TODO: make transparency amount customizable
+                    }
+                    else
+                    {
+                        imgUnit[i2].color = new Color4(1, 1, 1, 1).ToArgb();
+                    }
+                    imgUnit[i2].pos = vec;
+                    imgUnit[i2].draw();
                 }
-                else
+            }
+            // health bars
+            foreach (int unit in selUnits)
+            {
+                if (unitDrawPos(unit, ref vec))
                 {
-                    imgUnit[i2].color = new Color4(1, 1, 1, 1).ToArgb();
-                }
-                imgUnit[i2].pos = simToDrawPos(fpVec);
-                imgUnit[i2].draw();
-                if (selUnits.Contains(i))
-                {
-                    imgSelect.pos = imgUnit[i2].pos;
-                    imgSelect.draw(); // TODO: draw health bar instead
+                    i2 = Sim.u[unit].type * Sim.g.nUnitT + Sim.u[unit].player;
+                    f = ((float)Sim.u[Sim.rootParentAmp(unit)].healthWhen(DX.timeNow - DX.timeStart)) / Sim.g.unitT[Sim.u[unit].type].maxHealth;
+                    tlPoly.primitive = PrimitiveType.TriangleStrip;
+                    tlPoly.setNPoly(0);
+                    tlPoly.nV[0] = 2;
+                    DX.d3dDevice.SetTexture(0, null);
+                    // background
+                    if (Sim.u[unit].healthWhen(DX.timeNow - DX.timeStart) > 0)
+                    {
+                        tlPoly.poly[0].makeRec(vec.X + Sim.g.healthBarSize.X * winDiag * (-0.5f + f),
+                            vec.X + Sim.g.healthBarSize.X * winDiag * 0.5f,
+                            vec.Y - imgUnit[i2].srcHeight / 2 - (Sim.g.healthBarYOffset - Sim.g.healthBarSize.Y / 2) * winDiag,
+                            vec.Y - imgUnit[i2].srcHeight / 2 - (Sim.g.healthBarYOffset + Sim.g.healthBarSize.Y / 2) * winDiag,
+                            0, Sim.g.healthBarBackCol.ToArgb(), Sim.g.healthBarBackCol.ToArgb(), Sim.g.healthBarBackCol.ToArgb(), Sim.g.healthBarBackCol.ToArgb());
+                        tlPoly.draw();
+                    }
+                    // foreground
+                    col = Sim.g.healthBarEmptyCol + (Sim.g.healthBarFullCol - Sim.g.healthBarEmptyCol) * f;
+                    tlPoly.poly[0].makeRec(vec.X + Sim.g.healthBarSize.X * winDiag * -0.5f,
+                        vec.X + Sim.g.healthBarSize.X * winDiag * (-0.5f + f),
+                        vec.Y - imgUnit[i2].srcHeight / 2 - (Sim.g.healthBarYOffset - Sim.g.healthBarSize.Y / 2) * winDiag,
+                        vec.Y - imgUnit[i2].srcHeight / 2 - (Sim.g.healthBarYOffset + Sim.g.healthBarSize.Y / 2) * winDiag,
+                        0, col.ToArgb(), col.ToArgb(), col.ToArgb(), col.ToArgb());
+                    tlPoly.draw();
                 }
             }
             // select box (if needed)
@@ -583,6 +611,16 @@ namespace Decoherence
             return defaultVal;
         }
 
+        private Vector2 jsonVector2(Hashtable json, string key, Vector2 defaultVal = new Vector2())
+        {
+            if (json.ContainsKey(key) && json[key] is Hashtable)
+            {
+                return new Vector2((float)jsonDouble((Hashtable)json[key], "x", defaultVal.X),
+                    (float)jsonDouble((Hashtable)json[key], "y", defaultVal.Y));
+            }
+            return defaultVal;
+        }
+
         private Color4 jsonColor4(Hashtable json, string key)
         {
             if (json.ContainsKey(key) && json[key] is Hashtable)
@@ -593,6 +631,18 @@ namespace Decoherence
                     (float)jsonDouble((Hashtable)json[key], "b", 0));
             }
             return new Color4();
+        }
+
+        // sets pos to where unit should be drawn at, and returns whether it should be drawn
+        private bool unitDrawPos(int unit, ref Vector3 pos)
+        {
+            FP.Vector fpVec;
+            if (DX.timeNow - DX.timeStart < Sim.u[unit].m[0].timeStart) return false;
+            fpVec = Sim.u[unit].calcPos(DX.timeNow - DX.timeStart);
+            if (fpVec.x <= Sim.OffMap << FP.Precision) return false;
+            if (selPlayer != Sim.u[unit].player && !Sim.tileAt(fpVec).playerVisWhen(selPlayer, DX.timeNow - DX.timeStart)) return false;
+            pos = simToDrawPos(fpVec);
+            return true;
         }
 
         private float simToDrawScl(long coor)
