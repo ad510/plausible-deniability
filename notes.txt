@@ -1,6 +1,11 @@
 todo:
+create & delete amplitude should be events
+ring formation
 doxygen-style comments
 should Universe data be directly in Sim class?
+remove floating point Sim calculations
+replace DX.cs structs with classes and rename some vars?
+PolyV2d.makeLineRec method?
 pathfinding
 darker gray tiles should act more conventionally
 
@@ -153,3 +158,8 @@ random notes:
 
 links:
 play ogg: http://christophermpark.blogspot.com/2009/06/how-to-stream-ogg-file-using.html
+binary serialization: http://code.google.com/p/protobuf-net/
+.net sockets: http://www.codeproject.com/Articles/10649/An-Introduction-to-Socket-Programming-in-NET-using
+age of empires multiplayer: http://www.gamasutra.com/view/feature/3094/1500_archers_on_a_288_network_.php
+ai war optimization (including multiplayer): http://christophermpark.blogspot.com/2009/06/optimizing-30000-ships-in-realtime-in-c.html
+multiplayer debugging: http://gafferongames.com/networking-for-game-programmers/debugging-multiplayer-games/
