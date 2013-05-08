@@ -635,7 +635,9 @@ namespace Decoherence
             return new Color4();
         }
 
-        // sets pos to where unit should be drawn at, and returns whether it should be drawn
+        /// <summary>
+        /// sets pos to where unit should be drawn at, and returns whether it should be drawn
+        /// </summary>
         private bool unitDrawPos(int unit, ref Vector3 pos)
         {
             FP.Vector fpVec;

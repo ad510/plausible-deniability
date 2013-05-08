@@ -70,7 +70,9 @@ namespace Decoherence
             public Player[] players;
             public UnitType[] unitT;
 
-            // returns index of player with specified name, or -1 if no such player
+            /// <summary>
+            /// returns index of player with specified name, or -1 if no such player
+            /// </summary>
             public int playerNamed(string name)
             {
                 for (int i = 0; i < nPlayers; i++)
@@ -80,7 +82,9 @@ namespace Decoherence
                 return -1;
             }
 
-            // returns index of unit type with specified name, or -1 if no such unit type
+            /// <summary>
+            /// returns index of unit type with specified name, or -1 if no such unit type
+            /// </summary>
             public int unitTypeNamed(string name)
             {
                 for (int i = 0; i < nUnitT; i++)
@@ -91,7 +95,10 @@ namespace Decoherence
             }
         }
 
-        public class UnitMove // unit movement (linearly interpolated between 2 points)
+        /// <summary>
+        /// unit movement (linearly interpolated between 2 points)
+        /// </summary>
+        public class UnitMove
         {
             public long timeStart; // time when starts moving
             public long timeEnd; // time when finishes moving
@@ -116,7 +123,10 @@ namespace Decoherence
                 return new UnitMove(timeStartVal, timeStartVal + new FP.Vector(vecEndVal - vecStartVal).length() / speed, vecStartVal, vecEndVal);
             }
 
-            public FP.Vector calcPos(long time) // returns location at specified time
+            /// <summary>
+            /// returns location at specified time
+            /// </summary>
+            public FP.Vector calcPos(long time)
             {
                 if (time >= timeEnd) return vecEnd;
                 return vecStart + (vecEnd - vecStart) * FP.div(time - timeStart, timeEnd - timeStart);
@@ -236,7 +246,9 @@ namespace Decoherence
                 }
             }
 
-            // remove 1 health increment at specified time
+            /// <summary>
+            /// remove 1 health increment at specified time
+            /// </summary>
             public void takeHealth(int id, long time)
             {
                 if (nTimeHealth < g.unitT[type].maxHealth)
@@ -278,7 +290,9 @@ namespace Decoherence
                 if (parentAmp >= 0) moveToParentAmp(id, time);
             }
 
-            // if this unit is an amplitude, delete it and return true, otherwise return false
+            /// <summary>
+            /// if this unit is an amplitude, delete it and return true, otherwise return false
+            /// </summary>
             public bool deleteAmp(int id, long time)
             {
                 if (nChildAmps > 0)
@@ -330,7 +344,9 @@ namespace Decoherence
                 u[unit].parentAmp = -1;
             }
 
-            // recursively delete all child amplitudes
+            /// <summary>
+            /// recursively delete all child amplitudes
+            /// </summary>
             private void deleteAllChildAmps(int id, long time)
             {
                 for (int i = 0; i < nChildAmps; i++)
@@ -342,7 +358,9 @@ namespace Decoherence
                 nChildAmps = 0;
             }
 
-            // move all moves to parent amplitude (so parent amplitude becomes us)
+            /// <summary>
+            /// move all moves to parent amplitude (so parent amplitude becomes us)
+            /// </summary>
             public void moveToParentAmp(int id, long time)
             {
                 for (int i = 0; i < n; i++)
@@ -352,7 +370,9 @@ namespace Decoherence
                 u[parentAmp].deleteChildAmp(id, time);
             }
 
-            // make this unit as if it never existed
+            /// <summary>
+            /// make this unit as if it never existed
+            /// </summary>
             private void delete(int id, long time)
             {
                 n = 0;
@@ -361,7 +381,9 @@ namespace Decoherence
                 events.add(new TileMoveEvt(Math.Max(time, timeSimLast), id, OffMap, 0));
             }
 
-            // returns whether unit is created and has health at specified time
+            /// <summary>
+            /// returns whether unit is created and has health at specified time
+            /// </summary>
             public bool exists(long time)
             {
                 return time >= m[0].timeStart && healthWhen(time) > 0;
@@ -402,7 +424,9 @@ namespace Decoherence
                 return unitVis.ContainsKey(unit) && visWhen(unitVis[unit], time);
             }
 
-            // returns if the specified tile is in the direct line of sight of a unit of specified player
+            /// <summary>
+            /// returns if the specified tile is in the direct line of sight of a unit of specified player
+            /// </summary>
             public bool playerDirectVisLatest(int player)
             {
                 foreach (int i in unitVis.Keys)
@@ -421,15 +445,19 @@ namespace Decoherence
                 return false;
             }
 
-            // returns if the specified tile is either in the direct line of sight for specified player at latest time,
-            // or if player can infer that other players' units aren't in specified tile at latest time
+            /// <summary>
+            /// returns if the specified tile is either in the direct line of sight for specified player at latest time,
+            /// or if player can infer that other players' units aren't in specified tile at latest time
+            /// </summary>
             public bool playerVisLatest(int player)
             {
                 return visLatest(playerVis[player]);
             }
 
-            // returns if the specified tile is either in the direct line of sight for specified player at specified time,
-            // or if player can infer that other players' units aren't in specified tile at specified time
+            /// <summary>
+            /// returns if the specified tile is either in the direct line of sight for specified player at specified time,
+            /// or if player can infer that other players' units aren't in specified tile at specified time
+            /// </summary>
             public bool playerVisWhen(int player, long time)
             {
                 return visWhen(playerVis[player], time);
@@ -440,8 +468,10 @@ namespace Decoherence
                 return visLatest(coherence[player]);
             }
 
-            // returns if it is impossible for other players' units to see this location
-            // this isn't the actual definition of coherence, but this is an important concept in the game and I need a name for it
+            /// <summary>
+            /// returns if it is impossible for other players' units to see this location
+            /// </summary>
+            /// <remarks>this isn't the actual definition of coherence, but this is an important concept in the game and I need a name for it</remarks>
             public bool coherentWhen(int player, long time)
             {
                 return visWhen(coherence[player], time);
@@ -463,7 +493,11 @@ namespace Decoherence
         }
 
         // simulation events
-        public abstract class SimEvt // base class for simulation events
+
+        /// <summary>
+        /// base class for simulation events
+        /// </summary>
+        public abstract class SimEvt
         {
             public long time;
 
@@ -503,7 +537,10 @@ namespace Decoherence
 
         public enum Formation : byte { Tight, Loose };
 
-        public class CmdMoveEvt : SimEvt // command to move unit(s)
+        /// <summary>
+        /// command to move unit(s)
+        /// </summary>
+        public class CmdMoveEvt : SimEvt
         {
             // TODO: need way to make sure commands are synced with addMoveEvts calls
             public long moveTime; // time is latest simulation time when command is given, moveTime is when units told to move (may be in past)
@@ -571,7 +608,10 @@ namespace Decoherence
             }
         }
 
-        public class UpdateEvt : SimEvt // event to update various things at regular intervals
+        /// <summary>
+        /// event to update various things at regular intervals
+        /// </summary>
+        public class UpdateEvt : SimEvt
         {
             public UpdateEvt(long timeVal)
             {
@@ -618,7 +658,10 @@ namespace Decoherence
             }
         }
 
-        public class TileMoveEvt : SimEvt // event in which unit moves between visibility tiles
+        /// <summary>
+        /// event in which unit moves between visibility tiles
+        /// </summary>
+        public class TileMoveEvt : SimEvt
         {
             public int unit;
             public int tileX, tileY; // new tile position, set to int.MinValue to keep current value
@@ -711,7 +754,10 @@ namespace Decoherence
             }
         }
 
-        public class PlayerVisAddEvt : SimEvt // event in which a player starts seeing a tile (incomplete)
+        /// <summary>
+        /// event in which a player starts seeing a tile (incomplete)
+        /// </summary>
+        public class PlayerVisAddEvt : SimEvt
         {
             public int player;
             public int tileX, tileY;
@@ -743,7 +789,10 @@ namespace Decoherence
             }
         }
 
-        public class PlayerVisRemoveEvt : SimEvt // event in which a player stops seeing a tile
+        /// <summary>
+        /// event in which a player stops seeing a tile
+        /// </summary>
+        public class PlayerVisRemoveEvt : SimEvt
         {
             public int player;
             public int tileX, tileY;
@@ -990,7 +1039,9 @@ namespace Decoherence
             }
         }
 
-        // calculates from player visibility tiles if it is impossible for other players' units to see this location
+        /// <summary>
+        /// calculates from player visibility tiles if it is impossible for other players' units to see this location
+        /// </summary>
         private static bool calcCoherent(int player, int tileX, int tileY, long time)
         {
             int i, tX, tY;
@@ -1010,7 +1061,9 @@ namespace Decoherence
             return true;
         }
 
-        // returns index of unit that is the root parent amplitude of the specified unit
+        /// <summary>
+        /// returns index of unit that is the root parent amplitude of the specified unit
+        /// </summary>
         public static int rootParentAmp(int unit)
         {
             int ret = unit;

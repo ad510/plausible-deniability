@@ -25,10 +25,8 @@ static class DX
     // constants
     public static VertexFormat VertexFmt = (VertexFormat.Position | VertexFormat.Normal | VertexFormat.Texture1 | VertexFormat.Diffuse); // tells about vertex types to D3D
     public static VertexFormat TLVertexFmt = (VertexFormat.PositionRhw | VertexFormat.Diffuse | VertexFormat.Texture1);
-    // # of usual screen resolutions - 1
-    public const short NResCommon = 9;
-    // # of usual screen bit depths - 1
-    public const short NDepthCommon = 1;
+    public const short NResCommon = 9; // # of usual screen resolutions - 1
+    public const short NDepthCommon = 1; // # of usual screen bit depths - 1
 
     // color constants
     public const int ColWhite = 0xffffff;
@@ -132,88 +130,100 @@ static class DX
     public static int mouseX;
     public static int mouseY;
 
-    // sets some DirectX settings
+    /// <summary>
+    /// sets some DirectX settings
+    /// </summary>
     public static bool init(IntPtr formHwnd, bool windowed)
-	{
-		int a = 0;
-		try {
-			// set common resolutions
-			sxCommon[0] = 640;
-			syCommon[0] = 480;
-			sxCommon[1] = 800;
-			syCommon[1] = 600;
-			sxCommon[2] = 1024;
-			syCommon[2] = 768;
-			sxCommon[3] = 1280;
-			syCommon[3] = 800;
-			sxCommon[4] = 1280;
-			syCommon[4] = 1024;
-			sxCommon[5] = 1440;
-			syCommon[5] = 900;
-			sxCommon[6] = 1600;
-			syCommon[6] = 1200;
-			sxCommon[7] = 1680;
-			syCommon[7] = 1050;
-			sxCommon[8] = 1920;
-			syCommon[8] = 1440;
-			sxCommon[9] = 2048;
-			syCommon[9] = 1536;
+    {
+        int a = 0;
+        try
+        {
+            // set common resolutions
+            sxCommon[0] = 640;
+            syCommon[0] = 480;
+            sxCommon[1] = 800;
+            syCommon[1] = 600;
+            sxCommon[2] = 1024;
+            syCommon[2] = 768;
+            sxCommon[3] = 1280;
+            syCommon[3] = 800;
+            sxCommon[4] = 1280;
+            syCommon[4] = 1024;
+            sxCommon[5] = 1440;
+            syCommon[5] = 900;
+            sxCommon[6] = 1600;
+            syCommon[6] = 1200;
+            sxCommon[7] = 1680;
+            syCommon[7] = 1050;
+            sxCommon[8] = 1920;
+            syCommon[8] = 1440;
+            sxCommon[9] = 2048;
+            syCommon[9] = 1536;
             // set d3d object
             dxErr = "making D3D";
             d3d = new Direct3D();
             if (d3d == null) throw new NullReferenceException("d3d is null");
-			// get current and possible resolutions
-			dxErr = "getting possible resolutions";
-			d3dPP = new PresentParameters();
-			d3dPP.Windowed = windowed;
-			mode = d3d.Adapters[0].CurrentDisplayMode;
-			if (windowed == false) {
-				foreach (DisplayMode tempMode in d3d.Adapters[0].GetDisplayModes(Format.R5G6B5)) {
-					for (a = 0; a <= NResCommon; a++) {
-						if (tempMode.Width == sxCommon[a] & tempMode.Height == syCommon[a]) {
-							sPossible[a, 0] = true;
-							break;
-						}
-					}
+            // get current and possible resolutions
+            dxErr = "getting possible resolutions";
+            d3dPP = new PresentParameters();
+            d3dPP.Windowed = windowed;
+            mode = d3d.Adapters[0].CurrentDisplayMode;
+            if (windowed == false)
+            {
+                foreach (DisplayMode tempMode in d3d.Adapters[0].GetDisplayModes(Format.R5G6B5))
+                {
+                    for (a = 0; a <= NResCommon; a++)
+                    {
+                        if (tempMode.Width == sxCommon[a] && tempMode.Height == syCommon[a])
+                        {
+                            sPossible[a, 0] = true;
+                            break;
+                        }
+                    }
                 }
                 foreach (DisplayMode tempMode in d3d.Adapters[0].GetDisplayModes(Format.X8B8G8R8))
                 {
                     for (a = 0; a <= NResCommon; a++)
                     {
-                        if (tempMode.Width == sxCommon[a] & tempMode.Height == syCommon[a])
+                        if (tempMode.Width == sxCommon[a] && tempMode.Height == syCommon[a])
                         {
                             sPossible[a, 1] = true;
                             break;
                         }
                     }
                 }
-			}
-			// set up keyboard input (don't acquire it yet)
-			dxErr = "making DI";
-			di = new DirectInput();
-			dxErr = "making keyboard device";
-			diKeyDevice = new Keyboard(di);
-			dxErr = "setting cooperative level of keyboard device";
+            }
+            // set up keyboard input (don't acquire it yet)
+            dxErr = "making DI";
+            di = new DirectInput();
+            dxErr = "making keyboard device";
+            diKeyDevice = new Keyboard(di);
+            dxErr = "setting cooperative level of keyboard device";
             diKeyDevice.SetCooperativeLevel(formHwnd, SlimDX.DirectInput.CooperativeLevel.Background | SlimDX.DirectInput.CooperativeLevel.Nonexclusive);
-			dxErr = "";
-		} catch (Exception ex) {
-			dxErr = ex.Message.TrimEnd('.') + " while " + dxErr;
-			endX(false);
-			return false;
-		}
-		// set up sound
-		try {
-			ds = new DirectSound();
-			ds.SetCooperativeLevel(formHwnd, SlimDX.DirectSound.CooperativeLevel.Priority);
-			dsBuf = new SoundBufferDescription();
-			dsBuf.Flags = BufferFlags.Control3D | BufferFlags.ControlVolume;
+            dxErr = "";
+        }
+        catch (Exception ex)
+        {
+            dxErr = ex.Message.TrimEnd('.') + " while " + dxErr;
+            endX(false);
+            return false;
+        }
+        // set up sound
+        try
+        {
+            ds = new DirectSound();
+            ds.SetCooperativeLevel(formHwnd, SlimDX.DirectSound.CooperativeLevel.Priority);
+            dsBuf = new SoundBufferDescription();
+            dsBuf.Flags = BufferFlags.Control3D | BufferFlags.ControlVolume;
             dsBuf.AlgorithmFor3D = DirectSound3DAlgorithmGuid.FullHrt3DAlgorithm;
-		} catch { // I've got backup in case DS doesn't work, so ignore errors
-		}
-		return true;
-	}
+        }
+        catch { } // I've got backup in case DS doesn't work, so ignore errors
+        return true;
+    }
 
-    // sets up Direct3D device
+    /// <summary>
+    /// sets up Direct3D device
+    /// </summary>
     public static bool init3d(out SlimDX.Direct3D9.Device d3dLinkDevice, IntPtr drawHwnd, int resX, int resY, Format resFormat, Vector3 camSourceVal, Vector3 camTargetVal, float camWidth, double lookDist)
     {
         Material mat = default(Material);
@@ -317,11 +327,11 @@ static class DX
         int b = 0;
         // check if current res is common
         sx = -1;
-        if (mode.Format == Format.R5G6B5 | mode.Format == Format.X8R8G8B8)
+        if (mode.Format == Format.R5G6B5 || mode.Format == Format.X8R8G8B8)
         {
             for (a = 0; a <= NResCommon; a++)
             {
-                if (mode.Width == sxCommon[a] & mode.Height == syCommon[a])
+                if (mode.Width == sxCommon[a] && mode.Height == syCommon[a])
                 {
                     sx = mode.Width;
                     sy = mode.Height;
@@ -368,9 +378,11 @@ static class DX
         fnt.DrawString(null, text, new Rectangle(left, top, sx, sy), DrawTextFormat.Top | DrawTextFormat.Left, col);
     }
 
+    /// <summary>
+    /// translate point for use with default DirectSound camera
+    /// </summary>
     public static Vector3 sndTrans(Vector3 vec)
     {
-        // translate point for use with default DirectSound camera
         Vector3 camSourceOrig = default(Vector3);
         Vector3 camTargetOrig = default(Vector3);
         Vector3 ret = default(Vector3);
@@ -389,20 +401,27 @@ static class DX
         return ret;
     }
 
+    /// <summary>
+    /// easier to use version of Vector3.Project
+    /// </summary>
     public static Vector3 vec3Project(Vector3 vec)
     {
-        // easier to use version of the directx function
         return Vector3.Project(vec, d3dDevice.Viewport.X, d3dDevice.Viewport.Y, d3dDevice.Viewport.Width, d3dDevice.Viewport.Height, d3dDevice.Viewport.MinZ, d3dDevice.Viewport.MaxZ, Matrix.Identity);
     }
 
+    /// <summary>
+    /// easier to use version of Vector3.Unproject
+    /// </summary>
     public static Vector3 vec3Unproject(Vector3 vec)
     {
-        // easier to use version of the directx function
         return Vector3.Unproject(vec, d3dDevice.Viewport.X, d3dDevice.Viewport.Y, d3dDevice.Viewport.Width, d3dDevice.Viewport.Height, d3dDevice.Viewport.MinZ, d3dDevice.Viewport.MaxZ, Matrix.Identity);
     }
 
     // mouse tracking procedures (for C# mouse tracking)
-    // triggers on mouse up so must be handled on MouseDoubleClick or MouseUp event
+
+    /// <summary>
+    /// triggers on mouse up so must be handled on MouseDoubleClick or MouseUp event
+    /// </summary>
     public static void mouseDblClk()
     {
         mouseState[mouseKey] = 2;
@@ -431,12 +450,12 @@ static class DX
     {
         mouseX = x;
         mouseY = y;
-        if (mouseState[button] == 0 & button != 0)
+        if (mouseState[button] == 0 && button != 0)
         {
             mouseDown(button, x, y);
             return button;
         }
-        else if (mouseState[button] != 0 & button == 0)
+        else if (mouseState[button] != 0 && button == 0)
         {
             mouseUp(button, x, y);
             return button;
@@ -476,8 +495,10 @@ static class DX
         return true;
     }
 
-    // frame rate & stuff like that
-    // if you need better timing see http://geisswerks.com/ryan/FAQS/timing.html
+    /// <summary>
+    /// frame rate and stuff like that
+    /// </summary>
+    /// <remarks>if you need better timing see http://geisswerks.com/ryan/FAQS/timing.html </remarks>
     public static void doEventsX()
     {
         System.Windows.Forms.Application.DoEvents();
@@ -798,7 +819,9 @@ static class DX
             polyVB = new VertexBuffer[numPoly + 1];
         }
 
-        // like setNPoly but preserves current values
+        /// <summary>
+        /// like setNPoly but preserves current values
+        /// </summary>
         public void setNpolyP(int numPoly)
         {
             Array.Resize(ref poly, numPoly + 1);
@@ -818,17 +841,17 @@ static class DX
             {
                 try
                 {
-                    if (primitive == PrimitiveType.TriangleStrip | primitive == PrimitiveType.TriangleList)
+                    if (primitive == PrimitiveType.TriangleStrip || primitive == PrimitiveType.TriangleList)
                     {
                         // figure out triangle normals (for lighting)
                         for (b = 2; b <= Convert.ToInt32((primitive != PrimitiveType.TriangleList ? nV[a] + 1 : nV[a] * 3 - 1)); b++)
                         {
-                            if (primitive != PrimitiveType.TriangleList | b % 3 == 2)
+                            if (primitive != PrimitiveType.TriangleList || b % 3 == 2)
                             {
                                 poly[a].v[b].norm = Vector3.Normalize(Vector3.Cross(Vector3.Subtract(new Vector3(poly[a].v[b - 2].x, poly[a].v[b - 2].y, poly[a].v[b - 2].z), new Vector3(poly[a].v[b - 1].x, poly[a].v[b - 1].y, poly[a].v[b - 1].z)), Vector3.Subtract(new Vector3(poly[a].v[b - 1].x, poly[a].v[b - 1].y, poly[a].v[b - 1].z), new Vector3(poly[a].v[b].x, poly[a].v[b].y, poly[a].v[b].z))));
                                 // the code above only works if triangles are counterclockwise
                                 // but triangle strips usually alternate btwn CW and CCW so fix this
-                                if (primitive == PrimitiveType.TriangleStrip & b % 2 == 0)
+                                if (primitive == PrimitiveType.TriangleStrip && b % 2 == 0)
                                     poly[a].v[b].norm = Vector3.Multiply(poly[a].v[b].norm, -1);
                             }
                         }
@@ -865,11 +888,14 @@ static class DX
         {
             int a = 0;
             // skip if nothing changed
-            if (rot.X != rotOld.X | rot.Y != rotOld.Y | rot.Z != rotOld.Z | pos.X != posOld.X | pos.Y != posOld.Y | pos.Z != posOld.Z | scl.X != sclOld.X | scl.Y != sclOld.Y | scl.Z != sclOld.Z | scl2.X != scl2Old.X | scl2.Y != scl2Old.Y | scl2.Z != scl2Old.Z)
+            if (rot.X != rotOld.X || rot.Y != rotOld.Y || rot.Z != rotOld.Z
+                || pos.X != posOld.X || pos.Y != posOld.Y || pos.Z != posOld.Z
+                || scl.X != sclOld.X || scl.Y != sclOld.Y || scl.Z != sclOld.Z
+                || scl2.X != scl2Old.X || scl2.Y != scl2Old.Y || scl2.Z != scl2Old.Z)
             {
                 mat = Matrix.Identity;
                 // do matrix scaling
-                if (scl.X != 1 | scl.Y != 1 | scl.Z != 1)
+                if (scl.X != 1 || scl.Y != 1 || scl.Z != 1)
                 {
                     mat = Matrix.Multiply(mat, Matrix.Scaling(scl));
                     sclOld = scl;
@@ -883,13 +909,13 @@ static class DX
                     mat = Matrix.Multiply(mat, Matrix.RotationZ(rot.Z));
                 rotOld = rot;
                 // do more matrix scaling
-                if (scl2.X != 1 | scl2.Y != 1 | scl2.Z != 1)
+                if (scl2.X != 1 || scl2.Y != 1 || scl2.Z != 1)
                 {
                     mat = Matrix.Multiply(mat, Matrix.Scaling(scl2));
                     scl2Old = scl2;
                 }
                 // do matrix translation
-                if (pos.X != 0 | pos.Y != 0 | pos.Z != 0)
+                if (pos.X != 0 || pos.Y != 0 || pos.Z != 0)
                 {
                     mat = Matrix.Multiply(mat, Matrix.Translation(pos));
                     posOld = pos;
@@ -906,9 +932,11 @@ static class DX
             }
         }
 
-        /*public bool open(string path)
+        /*/// <summary>
+        /// open my custom model file type
+        /// </summary>
+        public bool open(string path)
 		{
-			// open my custom model file type
 			int fFile = 0;
 			float[] tV = new float[6];
 			string s = "";
@@ -1061,7 +1089,10 @@ static class DX
         }
     }
 
-    public struct SoundCopies // so that copies of a sound can play at the same time
+    /// <summary>
+    /// so that copies of a sound can play at the same time
+    /// </summary>
+    public struct SoundCopies
     {
         public Sound[] snd;
         public byte last; // last copy played

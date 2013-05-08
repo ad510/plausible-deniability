@@ -13,9 +13,15 @@ namespace Decoherence
 {
     public class FP
     {
-        public const int Precision = 16; // fixed point bit precision past decimal point
+        /// <summary>
+        /// fixed point bit precision past decimal point
+        /// </summary>
+        public const int Precision = 16;
 
-        public struct Vector // fixed point vector
+        /// <summary>
+        /// fixed point vector
+        /// </summary>
+        public struct Vector
         {
             public long x;
             public long y;
@@ -112,12 +118,18 @@ namespace Decoherence
             }
         }
 
-        public static long mul(long left, long right) // fixed point multiplication
+        /// <summary>
+        /// fixed point multiplication
+        /// </summary>
+        public static long mul(long left, long right)
         {
             return (left * right) >> Precision;
         }
-
-        public static long div(long left, long right) // fixed point division
+        
+        /// <summary>
+        /// fixed point division
+        /// </summary>
+        public static long div(long left, long right)
         {
             return (left << Precision) / right;
         }
