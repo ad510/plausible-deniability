@@ -1,5 +1,7 @@
 {
   "mapSize": 40,
+  "updateInterval": 250,
+  "visRadius": 4,
   "camSpeed": 0.01,
   "drawScl": 0.02,
   "drawSclMin": 0.002,
@@ -17,7 +19,6 @@
   "healthBarFullCol": {"r": 0, "g": 1, "b": 0},
   "healthBarEmptyCol": {"r": 1, "g": 0, "b": 0},
   "music": "",
-  "visRadius": 4,
   "players":
   [
     {

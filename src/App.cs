@@ -91,6 +91,8 @@ namespace Decoherence
             Sim.cmdHistory = new Sim.SimEvtList();
             Sim.maxSpeed = 0;
             Sim.g.mapSize = jsonFP(json, "mapSize");
+            Sim.g.updateInterval = (long)jsonDouble(json, "updateInterval");
+            Sim.g.visRadius = jsonFP(json, "visRadius");
             Sim.g.camSpeed = jsonFP(json, "camSpeed");
             Sim.g.camPos = jsonFPVector(json, "camPos", new FP.Vector(Sim.g.mapSize / 2, Sim.g.mapSize / 2));
             Sim.g.drawScl = (float)jsonDouble(json, "drawScl");
@@ -109,7 +111,6 @@ namespace Decoherence
             Sim.g.healthBarFullCol = jsonColor4(json, "healthBarFullCol");
             Sim.g.healthBarEmptyCol = jsonColor4(json, "healthBarEmptyCol");
             //Sim.g.music = jsonString(json, "music");
-            Sim.g.visRadius = jsonFP(json, "visRadius");
             jsonA = jsonArray(json, "players");
             if (jsonA != null)
             {
@@ -202,7 +203,7 @@ namespace Decoherence
             }
             // start game
             Sim.timeSim = -1;
-            Sim.events.add(new Sim.AttackEvt(0));
+            Sim.events.add(new Sim.UpdateEvt(0));
             DX.timeNow = Environment.TickCount;
             DX.timeStart = DX.timeNow;
             runMode = 1;
@@ -293,6 +294,7 @@ namespace Decoherence
             while (runMode == 1)
             {
                 updateTime();
+                //if (DX.timeNow - DX.timeStart > Sim.timeSim + 1000) Sim.update(DX.timeNow - DX.timeStart);
                 Sim.update(DX.timeNow - DX.timeStart);
                 updateInput();
                 draw();
@@ -349,7 +351,7 @@ namespace Decoherence
                     // delete selected amplitudes
                     foreach (int unit in selUnits)
                     {
-                        Sim.u[unit].deleteAmp(unit);
+                        Sim.u[unit].deleteAmp(unit, DX.timeNow - DX.timeStart + 1);
                     }
                 }
             }
@@ -637,9 +639,8 @@ namespace Decoherence
         private bool unitDrawPos(int unit, ref Vector3 pos)
         {
             FP.Vector fpVec;
-            if (DX.timeNow - DX.timeStart < Sim.u[unit].m[0].timeStart) return false;
+            if (!Sim.u[unit].exists(DX.timeNow - DX.timeStart)) return false;
             fpVec = Sim.u[unit].calcPos(DX.timeNow - DX.timeStart);
-            if (fpVec.x <= Sim.OffMap << FP.Precision) return false;
             if (selPlayer != Sim.u[unit].player && !Sim.tileAt(fpVec).playerVisWhen(selPlayer, DX.timeNow - DX.timeStart)) return false;
             pos = simToDrawPos(fpVec);
             return true;

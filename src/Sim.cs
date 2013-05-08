@@ -45,6 +45,8 @@ namespace Decoherence
         public class Scenario
         {
             public long mapSize;
+            public long updateInterval;
+            public long visRadius;
             public long camSpeed;
             public FP.Vector camPos;
             public float drawScl;
@@ -63,7 +65,6 @@ namespace Decoherence
             public Color4 healthBarFullCol;
             public Color4 healthBarEmptyCol;
             //public string music;
-            public long visRadius;
             public int nPlayers;
             public int nUnitT;
             public Player[] players;
@@ -159,8 +160,8 @@ namespace Decoherence
                 m[0] = new UnitMove(startTime, startPos);
                 mLive = (startTime > timeSim) ? 0 : -1;
                 //pos = startPos;
-                tileX = OffMap;
-                tileY = OffMap;
+                tileX = OffMap + 1;
+                tileY = OffMap + 1;
                 nTimeHealth = 0;
                 timeHealth = new long[g.unitT[type].maxHealth];
                 timeAttack = long.MinValue;
@@ -236,7 +237,7 @@ namespace Decoherence
             }
 
             // remove 1 health increment at specified time
-            public void takeHealth(long time)
+            public void takeHealth(int id, long time)
             {
                 if (nTimeHealth < g.unitT[type].maxHealth)
                 {
@@ -245,7 +246,8 @@ namespace Decoherence
                     if (nTimeHealth >= g.unitT[type].maxHealth)
                     {
                         // unit lost all health
-                        addMove(new UnitMove(time, new FP.Vector(OffMap << FP.Precision, 0)));
+                        // TODO: shouldn't be able to see tiles that other players' units are on after dying
+                        events.add(new TileMoveEvt(time, id, OffMap, 0));
                     }
                 }
             }
@@ -272,23 +274,23 @@ namespace Decoherence
             {
                 coherent = false;
                 timeCohere = long.MaxValue;
-                deleteAllChildAmps();
-                if (parentAmp >= 0) moveToParentAmp(id);
+                deleteAllChildAmps(id, time);
+                if (parentAmp >= 0) moveToParentAmp(id, time);
             }
 
             // if this unit is an amplitude, delete it and return true, otherwise return false
-            public bool deleteAmp(int id)
+            public bool deleteAmp(int id, long time)
             {
                 if (nChildAmps > 0)
                 {
                     // become the last child amplitude (overwriting our current amplitude in the process)
-                    u[childAmps[nChildAmps - 1]].moveToParentAmp(childAmps[nChildAmps - 1]);
+                    u[childAmps[nChildAmps - 1]].moveToParentAmp(childAmps[nChildAmps - 1], time);
                     return true;
                 }
                 if (parentAmp >= 0)
                 {
                     // if we don't have a child amplitude but have a parent amplitude, delete this unit completely
-                    u[parentAmp].deleteChildAmp(id);
+                    u[parentAmp].deleteChildAmp(id, time);
                     return true;
                 }
                 return false; // this unit is not an amplitude
@@ -296,11 +298,9 @@ namespace Decoherence
 
             public bool makeChildAmp(int id, long time)
             {
-                if (coherent && (time > timeSim || time >= timeCohere))
+                if (exists(time) && coherent && (time > timeSim || time >= timeCohere))
                 {
-                    // check that unit is currently on map
                     FP.Vector pos = calcPos(time);
-                    if (pos.x <= OffMap << FP.Precision) return false;
                     // make unit amplitude
                     setNUnits(nUnits + 1);
                     u[nUnits - 1] = new Unit(type, player, time, pos, id);
@@ -314,7 +314,7 @@ namespace Decoherence
                 return false;
             }
 
-            public void deleteChildAmp(int unit)
+            public void deleteChildAmp(int unit, long time)
             {
                 int index;
                 for (index = 0; index < nChildAmps && childAmps[index] != unit; index++) ;
@@ -326,30 +326,45 @@ namespace Decoherence
                 }
                 nChildAmps--;
                 // delete child amplitude
-                u[unit].addMove(new UnitMove(long.MinValue, new FP.Vector(OffMap << FP.Precision, 0)));
+                u[unit].delete(unit, time);
                 u[unit].parentAmp = -1;
             }
 
             // recursively delete all child amplitudes
-            private void deleteAllChildAmps()
+            private void deleteAllChildAmps(int id, long time)
             {
                 for (int i = 0; i < nChildAmps; i++)
                 {
-                    u[childAmps[i]].addMove(new UnitMove(long.MinValue, new FP.Vector(OffMap << FP.Precision, 0)));
+                    u[childAmps[i]].delete(childAmps[i], time);
                     u[childAmps[i]].parentAmp = -1;
-                    u[childAmps[i]].deleteAllChildAmps();
+                    u[childAmps[i]].deleteAllChildAmps(childAmps[i], time);
                 }
                 nChildAmps = 0;
             }
 
             // move all moves to parent amplitude (so parent amplitude becomes us)
-            public void moveToParentAmp(int id)
+            public void moveToParentAmp(int id, long time)
             {
                 for (int i = 0; i < n; i++)
                 {
                     u[parentAmp].addMove(m[i]);
                 }
-                u[parentAmp].deleteChildAmp(id);
+                u[parentAmp].deleteChildAmp(id, time);
+            }
+
+            // make this unit as if it never existed
+            private void delete(int id, long time)
+            {
+                n = 0;
+                m[0] = new UnitMove(long.MaxValue - 1, new FP.Vector(OffMap, 0));
+                timeCohere = long.MaxValue;
+                events.add(new TileMoveEvt(Math.Max(time, timeSimLast), id, OffMap, 0));
+            }
+
+            // returns whether unit is created and has health at specified time
+            public bool exists(long time)
+            {
+                return time >= m[0].timeStart && healthWhen(time) > 0;
             }
         }
 
@@ -490,6 +505,7 @@ namespace Decoherence
 
         public class CmdMoveEvt : SimEvt // command to move unit(s)
         {
+            // TODO: need way to make sure commands are synced with addMoveEvts calls
             public long moveTime; // time is latest simulation time when command is given, moveTime is when units told to move (may be in past)
             public int[] units;
             public FP.Vector pos; // where to move to
@@ -515,7 +531,7 @@ namespace Decoherence
                 // count number of units able to move
                 foreach (int unit in units)
                 {
-                    if ((moveTime > timeSimLast || (moveTime >= u[unit].timeCohere && u[unit].coherent)) && u[unit].calcPos(moveTime).x > OffMap << FP.Precision) count++;
+                    if (u[unit].exists(moveTime) && (moveTime > timeSimLast || (moveTime >= u[unit].timeCohere && u[unit].coherent))) count++;
                 }
                 if (count == 0) return;
                 // calculate spacing
@@ -540,10 +556,9 @@ namespace Decoherence
                 // move units
                 foreach (int unit in units)
                 {
-                    if (moveTime > timeSimLast || (moveTime >= u[unit].timeCohere && u[unit].coherent))
+                    if (u[unit].exists(moveTime) && (moveTime > timeSimLast || (moveTime >= u[unit].timeCohere && u[unit].coherent)))
                     {
                         curPos = u[unit].calcPos(moveTime);
-                        if (curPos.x <= OffMap << FP.Precision) continue;
                         goal = pos + new FP.Vector((i % rows.x) * spacing - offset.x, i / rows.x * spacing - offset.y);
                         if (goal.x < 0) goal.x = 0;
                         if (goal.x > g.mapSize) goal.x = g.mapSize;
@@ -556,9 +571,9 @@ namespace Decoherence
             }
         }
 
-        public class AttackEvt : SimEvt // event in which unit targets and possibly attacks a unit
+        public class UpdateEvt : SimEvt // event to update various things at regular intervals
         {
-            public AttackEvt(long timeVal)
+            public UpdateEvt(long timeVal)
             {
                 time = timeVal;
             }
@@ -569,17 +584,18 @@ namespace Decoherence
                 int target;
                 long dist, targetDistSq;
                 int i, i2;
+                // update units
                 for (i = 0; i < nUnits; i++)
                 {
-                    if (time >= u[i].timeAttack + g.unitT[u[i].type].reload)
+                    if (u[i].exists(time) && time >= u[i].timeAttack + g.unitT[u[i].type].reload)
                     {
-                        // done reloading, look for closest target
+                        // done reloading, look for closest target to potentially attack
                         pos = u[i].calcPos(time);
                         target = -1;
                         targetDistSq = g.unitT[u[i].type].range * g.unitT[u[i].type].range + 1;
                         for (i2 = 0; i2 < nUnits; i2++)
                         {
-                            if (i != i2 && g.players[u[i].player].mayAttack[u[i2].player] && g.unitT[u[i].type].damage[u[i2].type] > 0)
+                            if (i != i2 && u[i2].exists(time) && g.players[u[i].player].mayAttack[u[i2].player] && g.unitT[u[i].type].damage[u[i2].type] > 0)
                             {
                                 dist = (u[i2].calcPos(time) - pos).lengthSq();
                                 if (dist < targetDistSq)
@@ -593,12 +609,12 @@ namespace Decoherence
                         {
                             // attack target
                             // take health with 1 ms delay so earlier units in array don't have unfair advantage
-                            for (i2 = 0; i2 < g.unitT[u[i].type].damage[u[target].type]; i2++) u[target].takeHealth(time + 1);
+                            for (i2 = 0; i2 < g.unitT[u[i].type].damage[u[target].type]; i2++) u[target].takeHealth(target, time + 1);
                             u[i].timeAttack = time;
                         }
                     }
                 }
-                events.add(new AttackEvt(time + 250));
+                events.add(new UpdateEvt(time + g.updateInterval));
             }
         }
 
@@ -618,6 +634,7 @@ namespace Decoherence
             public override void apply()
             {
                 int i, tXPrev, tYPrev, tX, tY;
+                if (u[unit].tileX == OffMap) return; // skip event if unit no longer exists
                 if (tileX == int.MinValue) tileX = u[unit].tileX;
                 if (tileY == int.MinValue) tileY = u[unit].tileY;
                 tXPrev = u[unit].tileX;
@@ -804,12 +821,12 @@ namespace Decoherence
             FP.Vector pos;
             int i;
             // do timing
+            timeSimLast = timeSim;
             if (curTime <= timeSim)
             {
                 updatePast(curTime);
                 return;
             }
-            timeSimLast = timeSim;
             timeSim = curTime;
             // tiles visible at previous latest live move may no longer be visible
             for (i = 0; i < nUnits; i++)
@@ -853,7 +870,7 @@ namespace Decoherence
                     if (pos.x >= 0 && !tileAt(pos).coherentWhen(u[i].player, curTime))
                     {
                         // if this is an amplitude then delete it, otherwise restore to previous state that was live
-                        if (!u[i].deleteAmp(i)) u[i].setN(u[i].mLive + 1);
+                        if (!u[i].deleteAmp(i, timeSim)) u[i].setN(u[i].mLive + 1);
                     }
                 }
             }
