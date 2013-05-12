@@ -189,7 +189,7 @@ namespace Decoherence
             Sim.u = new Sim.Unit[Sim.nUnits];
             for (i = 0; i < Sim.nUnits; i++)
             {
-                Sim.u[i] = new Sim.Unit(0, i / (Sim.nUnits / 2), 0, new FP.Vector((long)(rand.NextDouble() * Sim.g.mapSize), (long)(rand.NextDouble() * Sim.g.mapSize)));
+                Sim.u[i] = new Sim.Unit(i, 0, i / (Sim.nUnits / 2), 0, new FP.Vector((long)(rand.NextDouble() * Sim.g.mapSize), (long)(rand.NextDouble() * Sim.g.mapSize)));
             }
             selUnits = new List<int>();
             tlTile.primitive = PrimitiveType.TriangleList;
@@ -343,7 +343,7 @@ namespace Decoherence
                     // create amplitudes from selected units
                     foreach (int unit in selUnits)
                     {
-                        Sim.u[unit].makeChildAmp(unit, DX.timeNow - DX.timeStart + 1);
+                        Sim.u[unit].makeChildAmp(DX.timeNow - DX.timeStart + 1);
                     }
                 }
                 else if (DX.diKeysChanged[i] == Key.Delete && DX.diKeyState.IsPressed(DX.diKeysChanged[i]))
@@ -351,7 +351,7 @@ namespace Decoherence
                     // delete selected amplitudes
                     foreach (int unit in selUnits)
                     {
-                        Sim.u[unit].deleteAmp(unit, DX.timeNow - DX.timeStart + 1);
+                        Sim.u[unit].deleteAmp(DX.timeNow - DX.timeStart + 1);
                     }
                 }
             }
@@ -485,7 +485,7 @@ namespace Decoherence
                 if (unitDrawPos(unit, ref vec))
                 {
                     i2 = Sim.u[unit].type * Sim.g.nUnitT + Sim.u[unit].player;
-                    f = ((float)Sim.u[Sim.rootParentAmp(unit)].healthWhen(DX.timeNow - DX.timeStart)) / Sim.g.unitT[Sim.u[unit].type].maxHealth;
+                    f = ((float)Sim.u[Sim.u[unit].rootParentAmp()].healthWhen(DX.timeNow - DX.timeStart)) / Sim.g.unitT[Sim.u[unit].type].maxHealth;
                     tlPoly.primitive = PrimitiveType.TriangleStrip;
                     tlPoly.setNPoly(0);
                     tlPoly.nV[0] = 2;

@@ -145,6 +145,7 @@ namespace Decoherence
 
         public class Unit
         {
+            private int id; // index in unit array
             public int type;
             public int player;
             public int n; // number of moves
@@ -161,8 +162,9 @@ namespace Decoherence
             public int nChildAmps;
             public int[] childAmps; // unit amplitudes which split off from this unit
 
-            public Unit(int typeVal, int playerVal, long startTime, FP.Vector startPos, int parentAmpVal = -1)
+            public Unit(int idVal, int typeVal, int playerVal, long startTime, FP.Vector startPos, int parentAmpVal = -1)
             {
+                id = idVal;
                 type = typeVal;
                 player = playerVal;
                 n = 1;
@@ -182,6 +184,9 @@ namespace Decoherence
                 childAmps = new int[nChildAmps];
             }
 
+            /// <summary>
+            /// resize move array
+            /// </summary>
             public void setN(int newSize)
             {
                 int i = 0;
@@ -194,6 +199,9 @@ namespace Decoherence
                     Array.Resize(ref m, n * 2);
             }
 
+            /// <summary>
+            /// add specified move to end of move array
+            /// </summary>
             public void addMove(UnitMove newMove)
             {
                 setN(n + 1);
@@ -201,6 +209,9 @@ namespace Decoherence
                 if (newMove.timeStart >= timeSimLast) mLive = n - 1;
             }
 
+            /// <summary>
+            /// returns location at specified time
+            /// </summary>
             public FP.Vector calcPos(long time)
             {
                 return m[getMove(time)].calcPos(time);
@@ -213,7 +224,7 @@ namespace Decoherence
                 return ret;
             }
 
-            public void addMoveEvts(ref SimEvtList events, int id, long timeMin, long timeMax)
+            public void addMoveEvts(ref SimEvtList events, long timeMin, long timeMax)
             {
                 int move, moveLast;
                 FP.Vector pos, posLast;
@@ -249,7 +260,7 @@ namespace Decoherence
             /// <summary>
             /// remove 1 health increment at specified time
             /// </summary>
-            public void takeHealth(int id, long time)
+            public void takeHealth(long time)
             {
                 if (nTimeHealth < g.unitT[type].maxHealth)
                 {
@@ -276,29 +287,29 @@ namespace Decoherence
                 return g.unitT[type].maxHealth - i;
             }
 
-            public void cohere(int id, long time)
+            public void cohere(long time)
             {
                 coherent = true;
                 timeCohere = time;
             }
 
-            public void decohere(int id, long time)
+            public void decohere(long time)
             {
                 coherent = false;
                 timeCohere = long.MaxValue;
-                deleteAllChildAmps(id, time);
-                if (parentAmp >= 0) moveToParentAmp(id, time);
+                deleteAllChildAmps(time);
+                if (parentAmp >= 0) moveToParentAmp(time);
             }
 
             /// <summary>
             /// if this unit is an amplitude, delete it and return true, otherwise return false
             /// </summary>
-            public bool deleteAmp(int id, long time)
+            public bool deleteAmp(long time)
             {
                 if (nChildAmps > 0)
                 {
                     // become the last child amplitude (overwriting our current amplitude in the process)
-                    u[childAmps[nChildAmps - 1]].moveToParentAmp(childAmps[nChildAmps - 1], time);
+                    u[childAmps[nChildAmps - 1]].moveToParentAmp(time);
                     return true;
                 }
                 if (parentAmp >= 0)
@@ -310,14 +321,14 @@ namespace Decoherence
                 return false; // this unit is not an amplitude
             }
 
-            public bool makeChildAmp(int id, long time)
+            public bool makeChildAmp(long time)
             {
                 if (exists(time) && coherent && (time > timeSim || time >= timeCohere))
                 {
                     FP.Vector pos = calcPos(time);
                     // make unit amplitude
                     setNUnits(nUnits + 1);
-                    u[nUnits - 1] = new Unit(type, player, time, pos, id);
+                    u[nUnits - 1] = new Unit(nUnits - 1, type, player, time, pos, id);
                     // add it to child amplitude list
                     nChildAmps++;
                     if (nChildAmps > childAmps.Length)
@@ -340,20 +351,20 @@ namespace Decoherence
                 }
                 nChildAmps--;
                 // delete child amplitude
-                u[unit].delete(unit, time);
+                u[unit].delete(time);
                 u[unit].parentAmp = -1;
             }
 
             /// <summary>
             /// recursively delete all child amplitudes
             /// </summary>
-            private void deleteAllChildAmps(int id, long time)
+            private void deleteAllChildAmps(long time)
             {
                 for (int i = 0; i < nChildAmps; i++)
                 {
-                    u[childAmps[i]].delete(childAmps[i], time);
+                    u[childAmps[i]].delete(time);
                     u[childAmps[i]].parentAmp = -1;
-                    u[childAmps[i]].deleteAllChildAmps(childAmps[i], time);
+                    u[childAmps[i]].deleteAllChildAmps(time);
                 }
                 nChildAmps = 0;
             }
@@ -361,7 +372,7 @@ namespace Decoherence
             /// <summary>
             /// move all moves to parent amplitude (so parent amplitude becomes us)
             /// </summary>
-            public void moveToParentAmp(int id, long time)
+            public void moveToParentAmp(long time)
             {
                 for (int i = 0; i < n; i++)
                 {
@@ -371,9 +382,19 @@ namespace Decoherence
             }
 
             /// <summary>
+            /// returns index of unit that is the root parent amplitude of this unit
+            /// </summary>
+            public int rootParentAmp()
+            {
+                int ret = id;
+                while (u[ret].parentAmp >= 0) ret = u[ret].parentAmp;
+                return ret;
+            }
+
+            /// <summary>
             /// make this unit as if it never existed
             /// </summary>
-            private void delete(int id, long time)
+            private void delete(long time)
             {
                 n = 0;
                 m[0] = new UnitMove(long.MaxValue - 1, new FP.Vector(OffMap, 0));
@@ -649,7 +670,7 @@ namespace Decoherence
                         {
                             // attack target
                             // take health with 1 ms delay so earlier units in array don't have unfair advantage
-                            for (i2 = 0; i2 < g.unitT[u[i].type].damage[u[target].type]; i2++) u[target].takeHealth(target, time + 1);
+                            for (i2 = 0; i2 < g.unitT[u[i].type].damage[u[target].type]; i2++) u[target].takeHealth(time + 1);
                             u[i].timeAttack = time;
                         }
                     }
@@ -711,11 +732,11 @@ namespace Decoherence
                     // update whether this unit may time travel
                     if (!u[unit].coherent && tiles[tileX, tileY].coherentWhen(u[unit].player, time))
                     {
-                        u[unit].cohere(unit, time);
+                        u[unit].cohere(time);
                     }
                     else if (u[unit].coherent && !tiles[tileX, tileY].coherentWhen(u[unit].player, time))
                     {
-                        u[unit].decohere(unit, time);
+                        u[unit].decohere(time);
                     }
                     if (tXPrev >= 0 && tXPrev < tileLen() && tYPrev >= 0 && tYPrev < tileLen())
                     {
@@ -890,7 +911,7 @@ namespace Decoherence
             // check if units moved between tiles
             for (i = 0; i < nUnits; i++)
             {
-                u[i].addMoveEvts(ref events, i, timeSimLast, timeSim);
+                u[i].addMoveEvts(ref events, timeSimLast, timeSim);
             }
             // apply simulation events
             while (events.peekTime() <= timeSim)
@@ -919,7 +940,7 @@ namespace Decoherence
                     if (pos.x >= 0 && !tileAt(pos).coherentWhen(u[i].player, curTime))
                     {
                         // if this is an amplitude then delete it, otherwise restore to previous state that was live
-                        if (!u[i].deleteAmp(i, timeSim)) u[i].setN(u[i].mLive + 1);
+                        if (!u[i].deleteAmp(timeSim)) u[i].setN(u[i].mLive + 1);
                     }
                 }
             }
@@ -1020,7 +1041,7 @@ namespace Decoherence
             {
                 if (player == u[i].player && tX == u[i].tileX && tY == u[i].tileY && !u[i].coherent)
                 {
-                    u[i].cohere(i, time);
+                    u[i].cohere(time);
                 }
             }
         }
@@ -1034,7 +1055,7 @@ namespace Decoherence
             {
                 if (player == u[i].player && tX == u[i].tileX && tY == u[i].tileY && u[i].coherent)
                 {
-                    u[i].decohere(i, time);
+                    u[i].decohere(time);
                 }
             }
         }
@@ -1059,16 +1080,6 @@ namespace Decoherence
                 if (i != player && tiles[tileX, tileY].playerVisWhen(i, time)) return false;
             }
             return true;
-        }
-
-        /// <summary>
-        /// returns index of unit that is the root parent amplitude of the specified unit
-        /// </summary>
-        public static int rootParentAmp(int unit)
-        {
-            int ret = unit;
-            while (u[ret].parentAmp >= 0) ret = u[ret].parentAmp;
-            return ret;
         }
 
         public static bool inVis(long tX, long tY)
