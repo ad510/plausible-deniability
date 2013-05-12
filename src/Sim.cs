@@ -269,7 +269,6 @@ namespace Decoherence
                     if (nTimeHealth >= g.unitT[type].maxHealth)
                     {
                         // unit lost all health
-                        // TODO: shouldn't be able to see tiles that other players' units are on after dying
                         events.add(new TileMoveEvt(time, id, OffMap, 0));
                     }
                 }
@@ -755,18 +754,21 @@ namespace Decoherence
                                 }
                             }
                         }
-                        // if this player can no longer directly see another player's unit, remove this player's visibility there
-                        foreach (int i2 in tiles[tXPrev, tYPrev].unitVis.Keys)
+                    }
+                }
+                if (tXPrev >= 0 && tXPrev < tileLen() && tYPrev >= 0 && tYPrev < tileLen())
+                {
+                    // if this player can no longer directly see another player's unit, remove this player's visibility there
+                    foreach (int i2 in tiles[tXPrev, tYPrev].unitVis.Keys)
+                    {
+                        if (u[i2].player != u[unit].player && u[i2].healthLatest() > 0 && inVis(u[i2].tileX - tXPrev, u[i2].tileY - tYPrev) && !tiles[u[i2].tileX, u[i2].tileY].playerDirectVisLatest(u[unit].player))
                         {
-                            if (u[i2].player != u[unit].player && inVis(u[i2].tileX - tXPrev, u[i2].tileY - tYPrev) && !tiles[u[i2].tileX, u[i2].tileY].playerDirectVisLatest(u[unit].player))
+                            for (tX = Math.Max(0, u[i2].tileX - 1); tX <= Math.Min(tileLen() - 1, u[i2].tileX + 1); tX++)
                             {
-                                for (tX = Math.Max(0, u[i2].tileX - 1); tX <= Math.Min(tileLen() - 1, u[i2].tileX + 1); tX++)
+                                for (tY = Math.Max(0, u[i2].tileY - 1); tY <= Math.Min(tileLen() - 1, u[i2].tileY + 1); tY++)
                                 {
-                                    for (tY = Math.Max(0, u[i2].tileY - 1); tY <= Math.Min(tileLen() - 1, u[i2].tileY + 1); tY++)
-                                    {
-                                        // TODO?: use more accurate time at tiles other than (p[i2].tileX, p[i2].tileY)
-                                        events.add(new PlayerVisRemoveEvt(time, u[unit].player, tX, tY));
-                                    }
+                                    // TODO?: use more accurate time at tiles other than (p[i2].tileX, p[i2].tileY)
+                                    events.add(new PlayerVisRemoveEvt(time, u[unit].player, tX, tY));
                                 }
                             }
                         }
