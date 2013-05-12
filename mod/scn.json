@@ -1,11 +1,11 @@
 {
-  "mapSize": 40,
+  "mapSize": 80,
   "updateInterval": 250,
-  "visRadius": 4,
-  "camSpeed": 0.01,
-  "drawScl": 0.02,
-  "drawSclMin": 0.002,
-  "drawSclMax": 0.2,
+  "visRadius": 8,
+  "camSpeed": 0.02,
+  "drawScl": 0.01,
+  "drawSclMin": 0.001,
+  "drawSclMax": 0.1,
   "healthBarSize": {"x": 0.017, "y": 0.005},
   "healthBarYOffset": 0.005,
   "backCol": {"r": 0, "g": 0, "b": 0},
@@ -48,13 +48,13 @@
       "name": "marine",
       "imgPath": "test.png",
       "maxHealth": 4,
-      "speed": 0.003,
+      "speed": 0.006,
       "damage":
       {
         "marine": 1
       }
       "reload": 2000,
-      "range": 3,
+      "range": 6,
       "selRadius": 16
     }
   ]

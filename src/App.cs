@@ -312,7 +312,11 @@ namespace Decoherence
             {
                 DX.timeStart += 2 * (DX.timeNow - DX.timeLast);
             }
-            // TODO: cap time difference to a max amount
+            // cap time difference to a max amount
+            if (DX.timeNow - DX.timeLast > Sim.g.updateInterval && DX.timeNow - DX.timeStart >= Sim.timeSim)
+            {
+                DX.timeStart += DX.timeNow - DX.timeLast - Sim.g.updateInterval;
+            }
         }
 
         private void updateInput()
