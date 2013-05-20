@@ -41,6 +41,7 @@ namespace Decoherence
         int selPlayer;
         List<int> selUnits;
         bool paused;
+        long timeGame;
 
         public App()
         {
@@ -202,10 +203,10 @@ namespace Decoherence
                 tlTile.poly[0].v[i].z = 0;
             }
             // start game
+            timeGame = 0;
             Sim.timeSim = -1;
             Sim.events.add(new Sim.UpdateEvt(0));
             DX.timeNow = Environment.TickCount;
-            DX.timeStart = DX.timeNow;
             runMode = 1;
             gameLoop();
             this.Close();
@@ -262,9 +263,9 @@ namespace Decoherence
                 if (!DX.diKeyState.IsPressed(Key.LeftControl) && !DX.diKeyState.IsPressed(Key.LeftShift)) selUnits.Clear();
                 for (i = 0; i < Sim.nUnits; i++)
                 {
-                    if (selPlayer == Sim.u[i].player && DX.timeNow - DX.timeStart >= Sim.u[i].m[0].timeStart)
+                    if (selPlayer == Sim.u[i].player && timeGame >= Sim.u[i].m[0].timeStart)
                     {
-                        drawPos = simToDrawPos(Sim.u[i].calcPos(DX.timeNow - DX.timeStart));
+                        drawPos = simToDrawPos(Sim.u[i].calcPos(timeGame));
                         if (drawPos.X + Sim.g.unitT[Sim.u[i].type].selRadius >= Math.Min(DX.mouseDX[1], DX.mouseX)
                             && drawPos.X - Sim.g.unitT[Sim.u[i].type].selRadius <= Math.Max(DX.mouseDX[1], DX.mouseX)
                             && drawPos.Y + Sim.g.unitT[Sim.u[i].type].selRadius >= Math.Min(DX.mouseDY[1], DX.mouseY)
@@ -285,7 +286,7 @@ namespace Decoherence
             }
             else if (button == 2) // move
             {
-                Sim.events.add(new Sim.CmdMoveEvt(Sim.timeSim, DX.timeNow - DX.timeStart + 1, selUnits.ToArray(), mouseSimPos, DX.diKeyState.IsPressed(Key.LeftControl) ? Sim.Formation.Loose : Sim.Formation.Tight));
+                Sim.events.add(new Sim.CmdMoveEvt(Sim.timeSim, timeGame + 1, selUnits.ToArray(), mouseSimPos, DX.diKeyState.IsPressed(Key.LeftControl) ? Sim.Formation.Loose : Sim.Formation.Tight));
             }
         }
 
@@ -294,8 +295,8 @@ namespace Decoherence
             while (runMode == 1)
             {
                 updateTime();
-                //if (DX.timeNow - DX.timeStart > Sim.timeSim + 1000) Sim.update(DX.timeNow - DX.timeStart);
-                Sim.update(DX.timeNow - DX.timeStart);
+                //if (timeGame > Sim.timeSim + 1000) Sim.update(timeGame);
+                Sim.update(timeGame);
                 updateInput();
                 draw();
             }
@@ -304,18 +305,23 @@ namespace Decoherence
         private void updateTime()
         {
             DX.doEventsX();
-            if (paused)
+            if (!paused)
             {
-                DX.timeStart += DX.timeNow - DX.timeLast;
-            }
-            else if (DX.diKeyState != null && DX.diKeyState.IsPressed(Key.R))
-            {
-                DX.timeStart += 2 * (DX.timeNow - DX.timeLast);
-            }
-            // cap time difference to a max amount
-            if (DX.timeNow - DX.timeLast > Sim.g.updateInterval && DX.timeNow - DX.timeStart >= Sim.timeSim)
-            {
-                DX.timeStart += DX.timeNow - DX.timeLast - Sim.g.updateInterval;
+                if (DX.diKeyState != null && DX.diKeyState.IsPressed(Key.R))
+                {
+                    // rewind
+                    timeGame -= DX.timeNow - DX.timeLast;
+                }
+                else if (DX.timeNow - DX.timeLast > Sim.g.updateInterval && timeGame + DX.timeNow - DX.timeLast >= Sim.timeSim)
+                {
+                    // cap time difference to a max amount
+                    timeGame += Sim.g.updateInterval;
+                }
+                else
+                {
+                    // normal speed
+                    timeGame += DX.timeNow - DX.timeLast;
+                }
             }
         }
 
@@ -347,7 +353,7 @@ namespace Decoherence
                     // create amplitudes from selected units
                     foreach (int unit in selUnits)
                     {
-                        Sim.u[unit].makeChildAmp(DX.timeNow - DX.timeStart + 1);
+                        Sim.u[unit].makeChildAmp(timeGame + 1);
                     }
                 }
                 else if (DX.diKeysChanged[i] == Key.Delete && DX.diKeyState.IsPressed(DX.diKeysChanged[i]))
@@ -355,7 +361,7 @@ namespace Decoherence
                     // delete selected amplitudes
                     foreach (int unit in selUnits)
                     {
-                        Sim.u[unit].deleteAmp(DX.timeNow - DX.timeStart + 1);
+                        Sim.u[unit].deleteAmp(timeGame + 1);
                     }
                 }
             }
@@ -413,11 +419,11 @@ namespace Decoherence
                     tlTile.poly[0].v[i + 5].x = vec2.X;
                     tlTile.poly[0].v[i + 5].y = vec2.Y;
                     col = Sim.g.noVisCol;
-                    if (Sim.tiles[tX, tY].playerVisWhen(selPlayer, DX.timeNow - DX.timeStart))
+                    if (Sim.tiles[tX, tY].playerVisWhen(selPlayer, timeGame))
                     {
                         col += Sim.g.playerVisCol;
-                        if (Sim.tiles[tX, tY].playerDirectVisWhen(selPlayer, DX.timeNow - DX.timeStart)) col += Sim.g.unitVisCol;
-                        if (Sim.tiles[tX, tY].coherentWhen(selPlayer, DX.timeNow - DX.timeStart)) col += Sim.g.coherentCol;
+                        if (Sim.tiles[tX, tY].playerDirectVisWhen(selPlayer, timeGame)) col += Sim.g.unitVisCol;
+                        if (Sim.tiles[tX, tY].coherentWhen(selPlayer, timeGame)) col += Sim.g.coherentCol;
                     }
                     for (i2 = i; i2 < i + 6; i2++)
                     {
@@ -452,7 +458,7 @@ namespace Decoherence
             // unit amplitude lines
             for (i = 0; i < Sim.nUnits; i++)
             {
-                if (unitDrawPos(i, ref vec) && Sim.u[i].parentAmp >= 0 && DX.timeNow - DX.timeStart >= Sim.u[Sim.u[i].parentAmp].m[0].timeStart)
+                if (unitDrawPos(i, ref vec) && Sim.u[i].parentAmp >= 0 && timeGame >= Sim.u[Sim.u[i].parentAmp].m[0].timeStart)
                 {
                     DX.d3dDevice.SetTexture(0, null);
                     tlPoly.primitive = PrimitiveType.LineStrip;
@@ -460,7 +466,7 @@ namespace Decoherence
                     tlPoly.nV[0] = 1;
                     tlPoly.poly[0].v = new DX.TLVertex[tlPoly.nV[0] + 1];
                     tlPoly.poly[0].v[0] = new DX.TLVertex(vec, Sim.g.amplitudeCol.ToArgb(), 0, 0);
-                    tlPoly.poly[0].v[1] = new DX.TLVertex(simToDrawPos(Sim.u[Sim.u[i].parentAmp].calcPos(DX.timeNow - DX.timeStart)), Sim.g.amplitudeCol.ToArgb(), 0, 0);
+                    tlPoly.poly[0].v[1] = new DX.TLVertex(simToDrawPos(Sim.u[Sim.u[i].parentAmp].calcPos(timeGame)), Sim.g.amplitudeCol.ToArgb(), 0, 0);
                     tlPoly.draw();
                 }
             }
@@ -471,7 +477,7 @@ namespace Decoherence
                 if (unitDrawPos(i, ref vec))
                 {
                     i2 = Sim.u[i].type * Sim.g.nUnitT + Sim.u[i].player;
-                    if (Sim.u[i].n > Sim.u[i].mLive + 1 && DX.timeNow - DX.timeStart >= Sim.u[i].m[Sim.u[i].mLive + 1].timeStart)
+                    if (Sim.u[i].n > Sim.u[i].mLive + 1 && timeGame >= Sim.u[i].m[Sim.u[i].mLive + 1].timeStart)
                     {
                         imgUnit[i2].color = new Color4(0.5f, 1, 1, 1).ToArgb(); // TODO: make transparency amount customizable
                     }
@@ -489,13 +495,13 @@ namespace Decoherence
                 if (unitDrawPos(unit, ref vec))
                 {
                     i2 = Sim.u[unit].type * Sim.g.nUnitT + Sim.u[unit].player;
-                    f = ((float)Sim.u[Sim.u[unit].rootParentAmp()].healthWhen(DX.timeNow - DX.timeStart)) / Sim.g.unitT[Sim.u[unit].type].maxHealth;
+                    f = ((float)Sim.u[Sim.u[unit].rootParentAmp()].healthWhen(timeGame)) / Sim.g.unitT[Sim.u[unit].type].maxHealth;
                     tlPoly.primitive = PrimitiveType.TriangleStrip;
                     tlPoly.setNPoly(0);
                     tlPoly.nV[0] = 2;
                     DX.d3dDevice.SetTexture(0, null);
                     // background
-                    if (Sim.u[unit].healthWhen(DX.timeNow - DX.timeStart) > 0)
+                    if (Sim.u[unit].healthWhen(timeGame) > 0)
                     {
                         tlPoly.poly[0].makeRec(vec.X + Sim.g.healthBarSize.X * winDiag * (-0.5f + f),
                             vec.X + Sim.g.healthBarSize.X * winDiag * 0.5f,
@@ -541,7 +547,7 @@ namespace Decoherence
                 tlPoly.draw();
             }
             // text
-            DX.textDraw(fnt, new Color4(1, 1, 1, 1), (DX.timeNow - DX.timeStart >= Sim.timeSim) ? "LIVE" : "TIME TRAVELING", 0, 0);
+            DX.textDraw(fnt, new Color4(1, 1, 1, 1), (timeGame >= Sim.timeSim) ? "LIVE" : "TIME TRAVELING", 0, 0);
             if (paused) DX.textDraw(fnt, new Color4(1, 1, 1, 1), "PAUSED", 0, (int)(DX.sy * FntSize));
             DX.d3dDevice.EndScene();
             DX.d3dDevice.Present();
@@ -645,9 +651,9 @@ namespace Decoherence
         private bool unitDrawPos(int unit, ref Vector3 pos)
         {
             FP.Vector fpVec;
-            if (!Sim.u[unit].exists(DX.timeNow - DX.timeStart)) return false;
-            fpVec = Sim.u[unit].calcPos(DX.timeNow - DX.timeStart);
-            if (selPlayer != Sim.u[unit].player && !Sim.tileAt(fpVec).playerVisWhen(selPlayer, DX.timeNow - DX.timeStart)) return false;
+            if (!Sim.u[unit].exists(timeGame)) return false;
+            fpVec = Sim.u[unit].calcPos(timeGame);
+            if (selPlayer != Sim.u[unit].player && !Sim.tileAt(fpVec).playerVisWhen(selPlayer, timeGame)) return false;
             pos = simToDrawPos(fpVec);
             return true;
         }

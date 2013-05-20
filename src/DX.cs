@@ -115,7 +115,6 @@ static class DX
     public static List<Key> diKeysChanged = new List<Key>();
     public static long timeNow;
     public static long timeLast;
-    public static long timeStart;
     public static long timeFpsLast;
     public static float fps;
     public static int fpsCounter;
@@ -511,7 +510,6 @@ static class DX
                 if (timeNow < timeLast)
                 {
                     timeLast -= UInt32.MaxValue;
-                    timeStart -= UInt32.MaxValue;
                     timeFpsLast -= UInt32.MaxValue;
                 }
                 if (timeFpsLast + 1000 < timeNow)
