@@ -295,6 +295,10 @@ namespace Decoherence
             while (runMode == 1)
             {
                 updateTime();
+                for (int i = 0; i < Sim.nUnits; i++)
+                {
+                    if (Sim.u[i].player == selPlayer) Sim.u[i].updatePast(timeGame);
+                }
                 //if (timeGame > Sim.timeSim + 1000) Sim.update(timeGame);
                 Sim.update(timeGame);
                 updateInput();
@@ -477,7 +481,7 @@ namespace Decoherence
                 if (unitDrawPos(i, ref vec))
                 {
                     i2 = Sim.u[i].type * Sim.g.nUnitT + Sim.u[i].player;
-                    if (Sim.u[i].n > Sim.u[i].mLive + 1 && timeGame >= Sim.u[i].m[Sim.u[i].mLive + 1].timeStart)
+                    if (Sim.u[i].timeSimPast <= Sim.timeSim)
                     {
                         imgUnit[i2].color = new Color4(0.5f, 1, 1, 1).ToArgb(); // TODO: make transparency amount customizable
                     }
@@ -651,7 +655,7 @@ namespace Decoherence
         private bool unitDrawPos(int unit, ref Vector3 pos)
         {
             FP.Vector fpVec;
-            if (!Sim.u[unit].exists(timeGame)) return false;
+            if (!Sim.u[unit].exists(timeGame) || (selPlayer != Sim.u[unit].player && !Sim.u[unit].isLive(timeGame))) return false;
             fpVec = Sim.u[unit].calcPos(timeGame);
             if (selPlayer != Sim.u[unit].player && !Sim.tileAt(fpVec).playerVisWhen(selPlayer, timeGame)) return false;
             pos = simToDrawPos(fpVec);
