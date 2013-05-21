@@ -186,41 +186,61 @@ namespace Decoherence
                 childAmps = new int[nChildAmps];
             }
 
+            /// <summary>
+            /// ensure that if unit is moving in the past, it does not move off coherent areas
+            /// </summary>
             public void updatePast(long curTime)
             {
+                SimEvtList pastEvents = new SimEvtList();
+                TileMoveEvt evt;
                 FP.Vector pos;
-                if (!exists(curTime)) return;
-                // restore to last coherent/live state if unit moves off coherent area
-                // TODO: choose check state times more intelligently
-                // (how do I do that in multiplayer, when time traveling at same time as updating present?)
-                if (timeSimPast <= timeSim)
+                int tX, tY, coherenceIndex;
+                if (curTime <= timeSimPast || !exists(curTime)) return;
+                // delete amplitude if tile that unit starts on stops being coherent since timeSimPast
+                pos = calcPos(timeSimPast);
+                tX = (int)(pos.x >> FP.Precision);
+                tY = (int)(pos.y >> FP.Precision);
+                addMoveEvts(ref pastEvents, timeSimPast, Math.Min(curTime, timeSim));
+                evt = (TileMoveEvt)pastEvents.pop();
+                coherenceIndex = tiles[tX, tY].coherentIndexWhen(player, (evt != null) ? evt.time - 1 : curTime);
+                if (!tiles[tX, tY].coherentWhen(player, (evt != null) ? evt.time - 1 : curTime)
+                    || tiles[tX, tY].coherence[player][coherenceIndex] > timeSimPast)
                 {
-                    pos = calcPos(curTime);
-                    if (pos.x >= 0 && !tileAt(pos).coherentWhen(player, curTime))
+                    if (!deleteAmp(timeSim)) throw new SystemException("amplitude not deleted successfully after moving off coherent area");
+                    return;
+                }
+                // delete amplitude if unit moves off coherent area or tile that unit is on stops being coherent
+                if (evt != null)
+                {
+                    do
                     {
-                        if (!deleteAmp(timeSim)) throw new SystemException("amplitude not deleted successfully after moving off coherent area");
-                        return;
+                        if (evt.tileX != int.MinValue) tX = evt.tileX;
+                        if (evt.tileY != int.MinValue) tY = evt.tileY;
+                        coherenceIndex = tiles[tX, tY].coherentIndexWhen(player, evt.time);
+                        if (!tiles[tX, tY].coherentWhen(player, evt.time)
+                            || (coherenceIndex + 1 < tiles[tX, tY].coherence[player].Count() && tiles[tX, tY].coherence[player][coherenceIndex + 1] <= Math.Min(events.peekTime(), Math.Min(curTime, timeSim))))
+                        {
+                            if (!deleteAmp(timeSim)) throw new SystemException("amplitude not deleted successfully after moving off coherent area");
+                            return;
+                        }
+                    } while ((evt = (TileMoveEvt)pastEvents.pop()) != null);
+                }
+                if (curTime >= timeSim)
+                {
+                    // unit becomes live
+                    timeSimPast = long.MaxValue;
+                    if (replaceParentAmp)
+                    {
+                        replaceParentAmp = false;
+                        pos = calcPos(timeSim + 1);
+                        events.add(new TileMoveEvt(timeSim + 1, parentAmp, (int)(pos.x >> FP.Precision), (int)(pos.y >> FP.Precision)));
+                        deleteChildAmpsAfter(timeSim);
+                        moveToParentAmp(timeSim);
                     }
                 }
-                if (curTime > timeSimPast)
+                else
                 {
-                    if (curTime >= timeSim)
-                    {
-                        // unit becomes live
-                        timeSimPast = long.MaxValue;
-                        if (replaceParentAmp)
-                        {
-                            replaceParentAmp = false;
-                            pos = calcPos(timeSim + 1);
-                            events.add(new TileMoveEvt(timeSim + 1, parentAmp, (int)(pos.x >> FP.Precision), (int)(pos.y >> FP.Precision)));
-                            deleteChildAmpsAfter(timeSim);
-                            moveToParentAmp(timeSim);
-                        }
-                    }
-                    else
-                    {
-                        timeSimPast = curTime;
-                    }
+                    timeSimPast = curTime;
                 }
             }
 
@@ -565,6 +585,11 @@ namespace Decoherence
                 return visLatest(playerVis[player]);
             }
 
+            public int playerVisIndexWhen(int player, long time)
+            {
+                return visIndexWhen(playerVis[player], time);
+            }
+
             /// <summary>
             /// returns if the specified tile is either in the direct line of sight for specified player at specified time,
             /// or if player can infer that other players' units aren't in specified tile at specified time
@@ -577,6 +602,11 @@ namespace Decoherence
             public bool coherentLatest(int player)
             {
                 return visLatest(coherence[player]);
+            }
+
+            public int coherentIndexWhen(int player, long time)
+            {
+                return visIndexWhen(coherence[player], time);
             }
 
             /// <summary>
@@ -593,13 +623,19 @@ namespace Decoherence
                 return vis.Count % 2 == 1;
             }
 
+            private static int visIndexWhen(List<long> vis, long time)
+            {
+                int i;
+                for (i = vis.Count - 1; i >= 0; i--)
+                {
+                    if (time >= vis[i]) break;
+                }
+                return i;
+            }
+
             private static bool visWhen(List<long> vis, long time)
             {
-                for (int i = vis.Count - 1; i >= 0; i--)
-                {
-                    if (time >= vis[i]) return i % 2 == 0;
-                }
-                return false;
+                return visIndexWhen(vis, time) % 2 == 0;
             }
         }
 
@@ -729,6 +765,7 @@ namespace Decoherence
                             u[unit2].replaceParentAmp = true;
                         }
                         u[unit2].addMove(UnitMove.fromSpeed(moveTime, g.unitT[u[unit2].type].speed, curPos, goal));
+                        if (moveTime < timeSimLast && moveTime < u[unit2].timeSimPast) u[unit2].timeSimPast = moveTime;
                         i++;
                     }
                 }
