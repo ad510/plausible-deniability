@@ -4,7 +4,7 @@
 // The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-// last updated 1/20/2013
+// last updated 5/22/2013
 // look into comments beginning with "TODO: "
 
 using System;
@@ -48,7 +48,7 @@ static class DX
     public static DirectSound ds;
     public static SoundBufferDescription dsBuf;
     public static DirectInput di;
-    public static Keyboard diKeyDevice;
+    public static Keyboard keyDevice;
     public static int[] sxCommon = new int[NResCommon + 1];
     public static int[] syCommon = new int[NResCommon + 1];
     public static bool[,] sPossible = new bool[NResCommon + 1, NDepthCommon + 1]; // possible usual monitor settings
@@ -110,9 +110,9 @@ static class DX
     public static Vector3 camTarget;
     public static Matrix matView;
     public static Matrix matProj; // projection matrix
-    public static KeyboardState diKeyState;
-    public static bool[] diLastKeyState = new bool[256];
-    public static List<Key> diKeysChanged = new List<Key>();
+    public static KeyboardState keyState;
+    public static bool[] lastKeyState = new bool[256];
+    public static List<Key> keysChanged = new List<Key>();
     public static long timeNow;
     public static long timeLast;
     public static long timeFpsLast;
@@ -196,9 +196,9 @@ static class DX
             dxErr = "making DI";
             di = new DirectInput();
             dxErr = "making keyboard device";
-            diKeyDevice = new Keyboard(di);
+            keyDevice = new Keyboard(di);
             dxErr = "setting cooperative level of keyboard device";
-            diKeyDevice.SetCooperativeLevel(formHwnd, SlimDX.DirectInput.CooperativeLevel.Background | SlimDX.DirectInput.CooperativeLevel.Nonexclusive);
+            keyDevice.SetCooperativeLevel(formHwnd, SlimDX.DirectInput.CooperativeLevel.Background | SlimDX.DirectInput.CooperativeLevel.Nonexclusive);
             dxErr = "";
         }
         catch (Exception ex)
@@ -261,7 +261,7 @@ static class DX
             dxErr = "acquiring keyboard";
             mouseX = sx / 2;
             mouseY = sy / 2;
-            diKeyDevice.Acquire();
+            keyDevice.Acquire();
             // make D3D device
             dxErr = "making D3D device";
             d3dDevice = null;
@@ -468,27 +468,27 @@ static class DX
     public static bool keyboardUpdate()
     {
         Key a = default(Key);
-        diKeysChanged.Clear();
-        if (diKeyDevice == null)
+        keysChanged.Clear();
+        if (keyDevice == null)
             return false; // just in case
-        if (diKeyState != null)
+        if (keyState != null)
         {
             // keep earlier keystates up to date
             for (a = 0; a <= (Key)255; a++)
             {
-                diLastKeyState[(int)a] = diKeyState.IsPressed(a);
+                lastKeyState[(int)a] = keyState.IsPressed(a);
             }
         }
-        diKeyState = diKeyDevice.GetCurrentState();
+        keyState = keyDevice.GetCurrentState();
         // update new keys
-        if (diLastKeyState == null)
+        if (lastKeyState == null)
             return false; // if this is the 1st time setting DIkeystate
         // check for any changes since last time
         for (a = 0; a <= (Key)255; a++)
         {
-            if (diKeyState.IsPressed(a) != diLastKeyState[(int)a])
+            if (keyState.IsPressed(a) != lastKeyState[(int)a])
             {
-                diKeysChanged.Add(a);
+                keysChanged.Add(a);
             }
         }
         return true;
@@ -545,10 +545,10 @@ static class DX
     {
         try
         {
-            if ((diKeyDevice != null))
+            if ((keyDevice != null))
             {
-                diKeyDevice.Unacquire();
-                diKeyDevice = null;
+                keyDevice.Unacquire();
+                keyDevice = null;
             }
             ds.Dispose();
             //d3dX_ = null;

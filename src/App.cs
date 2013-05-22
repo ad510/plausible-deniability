@@ -267,7 +267,7 @@ namespace Decoherence
             DX.mouseUp(button, e.X, e.Y);
             if (button == 1) // select
             {
-                if (!DX.diKeyState.IsPressed(Key.LeftControl) && !DX.diKeyState.IsPressed(Key.LeftShift)) selUnits.Clear();
+                if (!DX.keyState.IsPressed(Key.LeftControl) && !DX.keyState.IsPressed(Key.LeftShift)) selUnits.Clear();
                 for (i = 0; i < Sim.nUnits; i++)
                 {
                     if (selPlayer == Sim.u[i].player && timeGame >= Sim.u[i].m[0].timeStart)
@@ -294,7 +294,7 @@ namespace Decoherence
             else if (button == 2) // move
             {
                 Sim.events.add(new Sim.CmdMoveEvt(Sim.timeSim, timeGame + 1, selUnits.ToArray(), mouseSimPos,
-                    DX.diKeyState.IsPressed(Key.LeftControl) ? Sim.Formation.Loose : DX.diKeyState.IsPressed(Key.LeftAlt) ? Sim.Formation.Ring : Sim.Formation.Tight));
+                    DX.keyState.IsPressed(Key.LeftControl) ? Sim.Formation.Loose : DX.keyState.IsPressed(Key.LeftAlt) ? Sim.Formation.Ring : Sim.Formation.Tight));
             }
         }
 
@@ -319,7 +319,7 @@ namespace Decoherence
             DX.doEventsX();
             if (!paused)
             {
-                if (DX.diKeyState != null && DX.diKeyState.IsPressed(Key.R))
+                if (DX.keyState != null && DX.keyState.IsPressed(Key.R))
                 {
                     // rewind
                     timeGame -= DX.timeNow - DX.timeLast;
@@ -342,25 +342,25 @@ namespace Decoherence
             int i;
             DX.keyboardUpdate();
             // handle changed keys
-            for (i = 0; i < DX.diKeysChanged.Count; i++)
+            for (i = 0; i < DX.keysChanged.Count; i++)
             {
-                if (DX.diKeysChanged[i] == Key.Escape && DX.diKeyState.IsPressed(DX.diKeysChanged[i]))
+                if (DX.keysChanged[i] == Key.Escape && DX.keyState.IsPressed(DX.keysChanged[i]))
                 {
                     // exit
                     App_KeyDown(this, new System.Windows.Forms.KeyEventArgs(Keys.Escape));
                 }
-                else if (DX.diKeysChanged[i] == Key.P && DX.diKeyState.IsPressed(DX.diKeysChanged[i]))
+                else if (DX.keysChanged[i] == Key.P && DX.keyState.IsPressed(DX.keysChanged[i]))
                 {
                     // pause/resume
                     paused = !paused;
                 }
-                else if (DX.diKeysChanged[i] == Key.Space && DX.diKeyState.IsPressed(DX.diKeysChanged[i]))
+                else if (DX.keysChanged[i] == Key.Space && DX.keyState.IsPressed(DX.keysChanged[i]))
                 {
                     // change selected player
                     selPlayer = (selPlayer + 1) % Sim.g.nPlayers;
                     selUnits.Clear();
                 }
-                else if (DX.diKeysChanged[i] == Key.A && DX.diKeyState.IsPressed(DX.diKeysChanged[i]))
+                else if (DX.keysChanged[i] == Key.A && DX.keyState.IsPressed(DX.keysChanged[i]))
                 {
                     // create amplitudes from selected units
                     // TODO: move new amplitude immediately after making it
@@ -369,7 +369,7 @@ namespace Decoherence
                         Sim.u[unit].makeChildAmp(timeGame + 1);
                     }
                 }
-                else if (DX.diKeysChanged[i] == Key.Delete && DX.diKeyState.IsPressed(DX.diKeysChanged[i]))
+                else if (DX.keysChanged[i] == Key.Delete && DX.keyState.IsPressed(DX.keysChanged[i]))
                 {
                     // delete selected amplitudes
                     foreach (int unit in selUnits)
@@ -379,22 +379,22 @@ namespace Decoherence
                 }
             }
             // move camera
-            if (DX.diKeyState.IsPressed(Key.LeftArrow) || DX.mouseX == 0 || (this.Left > 0 && DX.mouseX <= 15))
+            if (DX.keyState.IsPressed(Key.LeftArrow) || DX.mouseX == 0 || (this.Left > 0 && DX.mouseX <= 15))
             {
                 Sim.g.camPos.x -= Sim.g.camSpeed * (DX.timeNow - DX.timeLast);
                 if (Sim.g.camPos.x < 0) Sim.g.camPos.x = 0;
             }
-            if (DX.diKeyState.IsPressed(Key.RightArrow) || DX.mouseX == DX.sx - 1 || (this.Left + this.Width < Screen.PrimaryScreen.Bounds.Width && DX.mouseX >= DX.sx - 15))
+            if (DX.keyState.IsPressed(Key.RightArrow) || DX.mouseX == DX.sx - 1 || (this.Left + this.Width < Screen.PrimaryScreen.Bounds.Width && DX.mouseX >= DX.sx - 15))
             {
                 Sim.g.camPos.x += Sim.g.camSpeed * (DX.timeNow - DX.timeLast);
                 if (Sim.g.camPos.x > Sim.g.mapSize) Sim.g.camPos.x = Sim.g.mapSize;
             }
-            if (DX.diKeyState.IsPressed(Key.UpArrow) || DX.mouseY == 0 || (this.Top > 0 && DX.mouseY <= 15))
+            if (DX.keyState.IsPressed(Key.UpArrow) || DX.mouseY == 0 || (this.Top > 0 && DX.mouseY <= 15))
             {
                 Sim.g.camPos.y -= Sim.g.camSpeed * (DX.timeNow - DX.timeLast);
                 if (Sim.g.camPos.y < 0) Sim.g.camPos.y = 0;
             }
-            if (DX.diKeyState.IsPressed(Key.DownArrow) || DX.mouseY == DX.sy - 1 || (this.Top + this.Height < Screen.PrimaryScreen.Bounds.Height && DX.mouseY >= DX.sy - 15))
+            if (DX.keyState.IsPressed(Key.DownArrow) || DX.mouseY == DX.sy - 1 || (this.Top + this.Height < Screen.PrimaryScreen.Bounds.Height && DX.mouseY >= DX.sy - 15))
             {
                 Sim.g.camPos.y += Sim.g.camSpeed * (DX.timeNow - DX.timeLast);
                 if (Sim.g.camPos.y > Sim.g.mapSize) Sim.g.camPos.y = Sim.g.mapSize;
