@@ -55,6 +55,7 @@
       }
       "reload": 2000,
       "range": 6,
+      "tightFormationSpacing": 2,
       "selRadius": 16
     }
   ]

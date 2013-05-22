@@ -32,13 +32,14 @@ namespace Decoherence
             public string imgPath;
             /*public string sndSelect;
             public string sndMove;
-            public string sndAnniCmd;
-            public string sndAnnihilate;*/
+            public string sndAttack;
+            public string sndNoHealth;*/
             public int maxHealth;
             public long speed;
             public int[] damage; // damage done per attack to each unit type
             public long reload; // time needed to reload
             public long range; // range of attack
+            public long tightFormationSpacing;
             public double selRadius;
         }
 
@@ -711,7 +712,7 @@ namespace Decoherence
             public override void apply()
             {
                 FP.Vector curPos, goal;
-                long spacing;
+                long spacing = 0;
                 FP.Vector rows, offset;
                 int count = 0, i = 0, i2;
                 // copy event to command history list (it should've already been popped from event list)
@@ -719,19 +720,19 @@ namespace Decoherence
                 // count number of units able to move
                 foreach (int unit in units)
                 {
-                    if (u[unit].exists(moveTime) && (moveTime > timeSim || (moveTime >= u[unit].timeCohere && u[unit].coherent))) count++;
+                    if (u[unit].exists(moveTime) && (moveTime > timeSim || (moveTime >= u[unit].timeCohere && u[unit].coherent)))
+                    {
+                        count++;
+                        if (formation == Formation.Tight && g.unitT[u[unit].type].tightFormationSpacing > spacing) spacing = g.unitT[u[unit].type].tightFormationSpacing;
+                    }
                 }
                 if (count == 0) return;
                 // calculate spacing
-                // TODO: loose formation should be triangular
-                // TODO: tight formation spacing should be customizable
+                // (if tight formation, then spacing was already calculated above)
+                // TODO: loose formation should be triangular and not use sqrt
                 if (formation == Formation.Loose)
                 {
                     spacing = FP.mul(g.visRadius, FP.fromDouble(Math.Sqrt(2))) >> FP.Precision << FP.Precision;
-                }
-                else
-                {
-                    spacing = 1 << FP.Precision;
                 }
                 rows.x = (int)Math.Ceiling(Math.Sqrt(count)); // TODO: don't use sqrt
                 rows.y = (count - 1) / rows.x + 1;

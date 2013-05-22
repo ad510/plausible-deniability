@@ -87,6 +87,7 @@ namespace Decoherence
                 this.Close();
                 return;
             }
+            // base scenario
             Sim.g = new Sim.Scenario();
             Sim.events = new Sim.SimEvtList();
             Sim.cmdHistory = new Sim.SimEvtList();
@@ -112,6 +113,7 @@ namespace Decoherence
             Sim.g.healthBarFullCol = jsonColor4(json, "healthBarFullCol");
             Sim.g.healthBarEmptyCol = jsonColor4(json, "healthBarEmptyCol");
             //Sim.g.music = jsonString(json, "music");
+            // players
             jsonA = jsonArray(json, "players");
             if (jsonA != null)
             {
@@ -136,6 +138,7 @@ namespace Decoherence
                     }
                 }
             }
+            // unit types
             jsonA = jsonArray(json, "unitTypes");
             if (jsonA != null)
             {
@@ -148,6 +151,7 @@ namespace Decoherence
                     unitT.speed = jsonFP(jsonO, "speed");
                     unitT.reload = (long)jsonDouble(jsonO, "reload");
                     unitT.range = jsonFP(jsonO, "range");
+                    unitT.tightFormationSpacing = jsonFP(jsonO, "tightFormationSpacing");
                     unitT.selRadius = jsonDouble(jsonO, "selRadius");
                     if (unitT.speed > Sim.maxSpeed) Sim.maxSpeed = unitT.speed;
                     Sim.g.nUnitT++;
@@ -177,6 +181,7 @@ namespace Decoherence
                     imgUnit[i3].rotCenter.Y = imgUnit[i3].srcHeight / 2;
                 }
             }
+            // tiles
             Sim.tiles = new Sim.Tile[Sim.tileLen(), Sim.tileLen()];
             for (i = 0; i < Sim.tileLen(); i++)
             {
@@ -185,6 +190,7 @@ namespace Decoherence
                     Sim.tiles[i, i2] = new Sim.Tile();
                 }
             }
+            // units
             // TODO: load units from file too
             Sim.nUnits = 20;
             Sim.u = new Sim.Unit[Sim.nUnits];
@@ -193,6 +199,7 @@ namespace Decoherence
                 Sim.u[i] = new Sim.Unit(i, 0, i / (Sim.nUnits / 2), 0, new FP.Vector((long)(rand.NextDouble() * Sim.g.mapSize), (long)(rand.NextDouble() * Sim.g.mapSize)));
             }
             selUnits = new List<int>();
+            // tile graphics
             tlTile.primitive = PrimitiveType.TriangleList;
             tlTile.setNPoly(0);
             tlTile.nV[0] = Sim.tileLen() * Sim.tileLen() * 2;
