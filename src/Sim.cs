@@ -194,7 +194,7 @@ namespace Decoherence
                 SimEvtList pastEvents = new SimEvtList();
                 TileMoveEvt evt;
                 FP.Vector pos;
-                int tX, tY, coherenceIndex;
+                int tX, tY, coherenceIndex, parentAmpTemp;
                 if (curTime <= timeSimPast || !exists(curTime)) return;
                 // delete amplitude if tile that unit starts on stops being coherent since timeSimPast
                 pos = calcPos(timeSimPast);
@@ -232,10 +232,11 @@ namespace Decoherence
                     if (replaceParentAmp)
                     {
                         replaceParentAmp = false;
-                        pos = calcPos(timeSim + 1);
-                        events.add(new TileMoveEvt(timeSim + 1, parentAmp, (int)(pos.x >> FP.Precision), (int)(pos.y >> FP.Precision)));
-                        deleteChildAmpsAfter(timeSim);
+                        parentAmpTemp = parentAmp;
+                        u[parentAmp].deleteChildAmpsAfter(m[0].timeStart);
                         moveToParentAmp(timeSim);
+                        // tileX & tileY aren't set so moveToParentAmp() moves parent amplitude to wrong tile; line below moves parent amplitude to correct tile
+                        events.add(new TileMoveEvt(timeSim, parentAmpTemp, tX, tY));
                     }
                 }
                 else
@@ -474,7 +475,10 @@ namespace Decoherence
                 {
                     u[parentAmp].addMove(m[i]);
                 }
-                events.add(new TileMoveEvt(Math.Max(time, timeSim), parentAmp, tileX, tileY)); // TODO: timeSim may not be the same on different computers
+                // line below ensures that if parent amplitude deleted, child amplitude's tile is also transferred to parent (most noticeable when both amplitudes are still)
+                // TODO: when paused and unit is still, making amplitude then deleting parent amplitude messes up fog of war b/c tile pos of child not set yet
+                // TODO: timeSim may not be the same on different computers
+                events.add(new TileMoveEvt(Math.Max(time, timeSim), parentAmp, tileX, tileY));
                 for (i = 0; i < nChildAmps; i++)
                 {
                     u[parentAmp].addChildAmp(childAmps[i]);
@@ -689,7 +693,7 @@ namespace Decoherence
         /// </summary>
         public class CmdMoveEvt : SimEvt
         {
-            // TODO: need way to make sure commands are synced with addMoveEvts calls
+            // TODO: need way to make sure commands are synced with addMoveEvts calls, and ensure updatePast() works in replays
             public long moveTime; // time is latest simulation time when command is given, moveTime is when units told to move (may be in past)
             public int[] units;
             public FP.Vector pos; // where to move to

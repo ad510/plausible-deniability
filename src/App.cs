@@ -355,6 +355,7 @@ namespace Decoherence
                 else if (DX.diKeysChanged[i] == Key.A && DX.diKeyState.IsPressed(DX.diKeysChanged[i]))
                 {
                     // create amplitudes from selected units
+                    // TODO: move new amplitude immediately after making it
                     foreach (int unit in selUnits)
                     {
                         Sim.u[unit].makeChildAmp(timeGame + 1);
