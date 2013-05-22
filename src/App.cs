@@ -293,7 +293,8 @@ namespace Decoherence
             }
             else if (button == 2) // move
             {
-                Sim.events.add(new Sim.CmdMoveEvt(Sim.timeSim, timeGame + 1, selUnits.ToArray(), mouseSimPos, DX.diKeyState.IsPressed(Key.LeftControl) ? Sim.Formation.Loose : Sim.Formation.Tight));
+                Sim.events.add(new Sim.CmdMoveEvt(Sim.timeSim, timeGame + 1, selUnits.ToArray(), mouseSimPos,
+                    DX.diKeyState.IsPressed(Key.LeftControl) ? Sim.Formation.Loose : DX.diKeyState.IsPressed(Key.LeftAlt) ? Sim.Formation.Ring : Sim.Formation.Tight));
             }
         }
 

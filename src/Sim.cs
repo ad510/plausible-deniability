@@ -687,7 +687,7 @@ namespace Decoherence
             }
         }
 
-        public enum Formation : byte { Tight, Loose };
+        public enum Formation : byte { Tight, Loose, Ring };
 
         /// <summary>
         /// command to move unit(s)
@@ -711,9 +711,8 @@ namespace Decoherence
 
             public override void apply()
             {
-                FP.Vector curPos, goal;
+                FP.Vector curPos, goal, rows = new FP.Vector(), offset;
                 long spacing = 0;
-                FP.Vector rows, offset;
                 int count = 0, i = 0, i2;
                 // copy event to command history list (it should've already been popped from event list)
                 cmdHistory.add(this);
@@ -734,14 +733,29 @@ namespace Decoherence
                 {
                     spacing = FP.mul(g.visRadius, FP.fromDouble(Math.Sqrt(2))) >> FP.Precision << FP.Precision;
                 }
-                rows.x = (int)Math.Ceiling(Math.Sqrt(count)); // TODO: don't use sqrt
-                rows.y = (count - 1) / rows.x + 1;
-                rows.z = 0;
-                offset = (rows - new FP.Vector(1, 1)) * spacing / 2;
-                if (pos.x < offset.x) pos.x = offset.x;
-                if (pos.x > g.mapSize - offset.x) pos.x = g.mapSize - offset.x;
-                if (pos.y < offset.y) pos.y = offset.y;
-                if (pos.y > g.mapSize - offset.y) pos.y = g.mapSize - offset.y;
+                else if (formation == Formation.Ring)
+                {
+                    spacing = (g.visRadius * 2 >> FP.Precision) - 1 << FP.Precision;
+                }
+                if (formation == Formation.Tight || formation == Formation.Loose)
+                {
+                    rows.x = (int)Math.Ceiling(Math.Sqrt(count)); // TODO: don't use sqrt
+                    rows.y = (count - 1) / rows.x + 1;
+                    offset = (rows - new FP.Vector(1, 1)) * spacing / 2;
+                }
+                else if (formation == Formation.Ring)
+                {
+                    offset.x = FP.div(spacing / 2, FP.fromDouble(Math.Sin(Math.PI / count))); // TODO: don't use sin
+                    offset.y = offset.x;
+                }
+                else
+                {
+                    throw new NotImplementedException("requested formation is not implemented");
+                }
+                if (pos.x < Math.Min(offset.x, g.mapSize / 2)) pos.x = Math.Min(offset.x, g.mapSize / 2);
+                if (pos.x > g.mapSize - Math.Min(offset.x, g.mapSize / 2)) pos.x = g.mapSize - Math.Min(offset.x, g.mapSize / 2);
+                if (pos.y < Math.Min(offset.y, g.mapSize / 2)) pos.y = Math.Min(offset.y, g.mapSize / 2);
+                if (pos.y > g.mapSize - Math.Min(offset.y, g.mapSize / 2)) pos.y = g.mapSize - Math.Min(offset.y, g.mapSize / 2);
                 // move units
                 foreach (int unit in units)
                 {
@@ -749,7 +763,19 @@ namespace Decoherence
                     {
                         int unit2 = unit;
                         curPos = u[unit].calcPos(moveTime);
-                        goal = pos + new FP.Vector((i % rows.x) * spacing - offset.x, i / rows.x * spacing - offset.y);
+                        if (formation == Formation.Tight || formation == Formation.Loose)
+                        {
+                            goal = pos + new FP.Vector((i % rows.x) * spacing - offset.x, i / rows.x * spacing - offset.y);
+                        }
+                        else if (formation == Formation.Ring)
+                        {
+                            // TODO: don't use sin or cos
+                            goal = pos + offset.x * new FP.Vector(FP.fromDouble(Math.Cos(2 * Math.PI * i / count)), FP.fromDouble(Math.Sin(2 * Math.PI * i / count)));
+                        }
+                        else
+                        {
+                            throw new NotImplementedException("requested formation is not implemented");
+                        }
                         if (goal.x < 0) goal.x = 0;
                         if (goal.x > g.mapSize) goal.x = g.mapSize;
                         if (goal.y < 0) goal.y = 0;
