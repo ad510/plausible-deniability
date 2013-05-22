@@ -394,7 +394,7 @@ namespace Decoherence
 
             public bool makeChildAmp(long time)
             {
-                if (exists(time) && coherent && (time > timeSim || time >= timeCohere))
+                if (exists(time) && coherent && time >= timeCohere)
                 {
                     FP.Vector pos = calcPos(time);
                     // make unit amplitude
@@ -474,7 +474,7 @@ namespace Decoherence
                 {
                     u[parentAmp].addMove(m[i]);
                 }
-                events.add(new TileMoveEvt(Math.Max(time, timeSimLast), parentAmp, tileX, tileY)); // TODO: timeSimLast may not be the same on different computers
+                events.add(new TileMoveEvt(Math.Max(time, timeSim), parentAmp, tileX, tileY)); // TODO: timeSim may not be the same on different computers
                 for (i = 0; i < nChildAmps; i++)
                 {
                     u[parentAmp].addChildAmp(childAmps[i]);
@@ -501,7 +501,7 @@ namespace Decoherence
                 n = 0;
                 m[0] = new UnitMove(long.MaxValue - 1, new FP.Vector(OffMap, 0));
                 timeCohere = long.MaxValue;
-                events.add(new TileMoveEvt(Math.Max(time, timeSimLast), id, OffMap, 0)); // TODO: timeSimLast may not be the same on different computers
+                events.add(new TileMoveEvt(Math.Max(time, timeSim), id, OffMap, 0)); // TODO: timeSim may not be the same on different computers
             }
 
             /// <summary>
@@ -715,7 +715,7 @@ namespace Decoherence
                 // count number of units able to move
                 foreach (int unit in units)
                 {
-                    if (u[unit].exists(moveTime) && (moveTime > timeSimLast || (moveTime >= u[unit].timeCohere && u[unit].coherent))) count++;
+                    if (u[unit].exists(moveTime) && (moveTime > timeSim || (moveTime >= u[unit].timeCohere && u[unit].coherent))) count++;
                 }
                 if (count == 0) return;
                 // calculate spacing
@@ -740,7 +740,7 @@ namespace Decoherence
                 // move units
                 foreach (int unit in units)
                 {
-                    if (u[unit].exists(moveTime) && (moveTime > timeSimLast || (moveTime >= u[unit].timeCohere && u[unit].coherent)))
+                    if (u[unit].exists(moveTime) && (moveTime > timeSim || (moveTime >= u[unit].timeCohere && u[unit].coherent)))
                     {
                         int unit2 = unit;
                         curPos = u[unit].calcPos(moveTime);
@@ -749,7 +749,7 @@ namespace Decoherence
                         if (goal.x > g.mapSize) goal.x = g.mapSize;
                         if (goal.y < 0) goal.y = 0;
                         if (goal.y > g.mapSize) goal.y = g.mapSize;
-                        if (moveTime <= timeSimLast && !u[unit].replaceParentAmp)
+                        if (moveTime <= timeSim && !u[unit].replaceParentAmp)
                         {
                             // make child amplitude to replace this unit after it becomes live
                             for (i2 = 0; i2 < u[unit].nChildAmps; i2++)
@@ -765,7 +765,7 @@ namespace Decoherence
                             u[unit2].replaceParentAmp = true;
                         }
                         u[unit2].addMove(UnitMove.fromSpeed(moveTime, g.unitT[u[unit2].type].speed, curPos, goal));
-                        if (moveTime < timeSimLast && moveTime < u[unit2].timeSimPast) u[unit2].timeSimPast = moveTime;
+                        if (moveTime < timeSim && moveTime < u[unit2].timeSimPast) u[unit2].timeSimPast = moveTime;
                         i++;
                     }
                 }
@@ -1023,7 +1023,6 @@ namespace Decoherence
         public static SimEvtList cmdHistory;
         public static long maxSpeed;
         public static long timeSim;
-        public static long timeSimLast;
 
         public static void setNUnits(int newSize)
         {
@@ -1034,20 +1033,20 @@ namespace Decoherence
 
         public static void update(long curTime)
         {
+            long timeSimNext = Math.Max(curTime, timeSim);
             int i;
-            // do timing
-            timeSimLast = timeSim;
-            if (curTime > timeSim) timeSim = curTime;
             // check if units moved between tiles
             for (i = 0; i < nUnits; i++)
             {
-                u[i].addMoveEvts(ref events, timeSimLast, timeSim);
+                u[i].addMoveEvts(ref events, timeSim, timeSimNext);
             }
             // apply simulation events
-            while (events.peekTime() <= timeSim)
+            while (events.peekTime() <= timeSimNext)
             {
                 events.pop().apply();
             }
+            // update simulation time
+            timeSim = timeSimNext;
         }
 
         private static void visAdd(int unit, int tileX, int tileY, long time)
