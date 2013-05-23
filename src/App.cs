@@ -64,19 +64,19 @@ namespace Decoherence
                 return;
             }
             DX.setDefaultRes();
-            this.Width = DX.mode.Width;
-            this.Height = DX.mode.Height;
-            winDiag = new Vector2(DX.mode.Width, DX.mode.Height).Length();
+            this.Width = DX.dispMode.Width;
+            this.Height = DX.dispMode.Height;
+            winDiag = new Vector2(DX.dispMode.Width, DX.dispMode.Height).Length();
             this.Show();
             this.Focus();
-            if (!DX.init3d(out d3dOriginalDevice, this.Handle, DX.mode.Width, DX.mode.Height, DX.mode.Format, new Vector3(), new Vector3(), (float)(Math.PI / 4), 1000))
+            if (!DX.init3d(out d3dOriginalDevice, this.Handle, DX.dispMode.Width, DX.dispMode.Height, DX.dispMode.Format, new Vector3(), new Vector3(), (float)(Math.PI / 4), 1000))
             {
                 MessageBox.Show("Couldn't set up Direct3D. Make sure your video and audio drivers are up-to-date and that no other programs are currently using DirectX" + ErrStr + "\n\nError description: " + DX.dxErr);
                 Application.Exit();
                 return;
             }
             // fonts (TODO: make font, size, and color customizable by mod)
-            fnt = new SlimDX.Direct3D9.Font(DX.d3dDevice, new System.Drawing.Font("Arial", DX.sy * FntSize, GraphicsUnit.Pixel));
+            fnt = new SlimDX.Direct3D9.Font(DX.d3dDevice, new System.Drawing.Font("Arial", DX.resY * FntSize, GraphicsUnit.Pixel));
             // load scenario from file
             // if this ever supports multiplayer games, host should load file & send data to other players, otherwise json double parsing may not match
             str = new System.IO.StreamReader(appPath + modPath + "scn.json").ReadToEnd();
@@ -384,7 +384,7 @@ namespace Decoherence
                 Sim.g.camPos.x -= Sim.g.camSpeed * (DX.timeNow - DX.timeLast);
                 if (Sim.g.camPos.x < 0) Sim.g.camPos.x = 0;
             }
-            if (DX.keyState.IsPressed(Key.RightArrow) || DX.mouseX == DX.sx - 1 || (this.Left + this.Width < Screen.PrimaryScreen.Bounds.Width && DX.mouseX >= DX.sx - 15))
+            if (DX.keyState.IsPressed(Key.RightArrow) || DX.mouseX == DX.resX - 1 || (this.Left + this.Width < Screen.PrimaryScreen.Bounds.Width && DX.mouseX >= DX.resX - 15))
             {
                 Sim.g.camPos.x += Sim.g.camSpeed * (DX.timeNow - DX.timeLast);
                 if (Sim.g.camPos.x > Sim.g.mapSize) Sim.g.camPos.x = Sim.g.mapSize;
@@ -394,7 +394,7 @@ namespace Decoherence
                 Sim.g.camPos.y -= Sim.g.camSpeed * (DX.timeNow - DX.timeLast);
                 if (Sim.g.camPos.y < 0) Sim.g.camPos.y = 0;
             }
-            if (DX.keyState.IsPressed(Key.DownArrow) || DX.mouseY == DX.sy - 1 || (this.Top + this.Height < Screen.PrimaryScreen.Bounds.Height && DX.mouseY >= DX.sy - 15))
+            if (DX.keyState.IsPressed(Key.DownArrow) || DX.mouseY == DX.resY - 1 || (this.Top + this.Height < Screen.PrimaryScreen.Bounds.Height && DX.mouseY >= DX.resY - 15))
             {
                 Sim.g.camPos.y += Sim.g.camSpeed * (DX.timeNow - DX.timeLast);
                 if (Sim.g.camPos.y > Sim.g.mapSize) Sim.g.camPos.y = Sim.g.mapSize;
@@ -561,7 +561,7 @@ namespace Decoherence
             }
             // text
             DX.textDraw(fnt, new Color4(1, 1, 1, 1), (timeGame >= Sim.timeSim) ? "LIVE" : "TIME TRAVELING", 0, 0);
-            if (paused) DX.textDraw(fnt, new Color4(1, 1, 1, 1), "PAUSED", 0, (int)(DX.sy * FntSize));
+            if (paused) DX.textDraw(fnt, new Color4(1, 1, 1, 1), "PAUSED", 0, (int)(DX.resY * FntSize));
             DX.d3dDevice.EndScene();
             DX.d3dDevice.Present();
         }
@@ -693,12 +693,12 @@ namespace Decoherence
 
         private Vector3 simToDrawPos(FP.Vector vec)
         {
-            return new Vector3(simToDrawScl(vec.x - Sim.g.camPos.x), simToDrawScl(vec.y - Sim.g.camPos.y), 0f) + new Vector3(DX.sx / 2, DX.sy / 2, 0f);
+            return new Vector3(simToDrawScl(vec.x - Sim.g.camPos.x), simToDrawScl(vec.y - Sim.g.camPos.y), 0f) + new Vector3(DX.resX / 2, DX.resY / 2, 0f);
         }
 
         private FP.Vector drawToSimPos(Vector3 vec)
         {
-            return new FP.Vector(drawToSimScl(vec.X - DX.sx / 2), drawToSimScl(vec.Y - DX.sy / 2)) + Sim.g.camPos;
+            return new FP.Vector(drawToSimScl(vec.X - DX.resX / 2), drawToSimScl(vec.Y - DX.resY / 2)) + Sim.g.camPos;
         }
     }
 }

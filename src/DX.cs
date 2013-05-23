@@ -23,8 +23,8 @@ using SlimDX.DirectInput;
 static class DX
 {
     // constants
-    public static VertexFormat VertexFmt = (VertexFormat.Position | VertexFormat.Normal | VertexFormat.Texture1 | VertexFormat.Diffuse); // tells about vertex types to D3D
-    public static VertexFormat TLVertexFmt = (VertexFormat.PositionRhw | VertexFormat.Diffuse | VertexFormat.Texture1);
+    public const VertexFormat VertexFmt = (VertexFormat.Position | VertexFormat.Normal | VertexFormat.Texture1 | VertexFormat.Diffuse); // tells about vertex types to D3D
+    public const VertexFormat TLVertexFmt = (VertexFormat.PositionRhw | VertexFormat.Diffuse | VertexFormat.Texture1);
     public const short NResCommon = 9; // # of usual screen resolutions - 1
     public const short NDepthCommon = 1; // # of usual screen bit depths - 1
 
@@ -42,18 +42,18 @@ static class DX
     //public static D3DX d3dX_; // makes various DX objects
     public static Direct3D d3d;
     public static SlimDX.Direct3D9.Device d3dDevice;
-    public static DisplayMode mode; // current moniter settings
+    public static DisplayMode dispMode; // current moniter settings
     public static PresentParameters d3dPP; // tells how to load 3d device
     public static Light d3dLight;
     public static DirectSound ds;
     public static SoundBufferDescription dsBuf;
     public static DirectInput di;
     public static Keyboard keyDevice;
-    public static int[] sxCommon = new int[NResCommon + 1];
-    public static int[] syCommon = new int[NResCommon + 1];
-    public static bool[,] sPossible = new bool[NResCommon + 1, NDepthCommon + 1]; // possible usual monitor settings
-    public static int sx; // screen width
-    public static int sy; // screen height
+    public static int[] resXCommon = new int[NResCommon + 1];
+    public static int[] resYCommon = new int[NResCommon + 1];
+    public static bool[,] resPossible = new bool[NResCommon + 1, NDepthCommon + 1]; // possible usual monitor settings
+    public static int resX; // x resolution
+    public static int resY; // y resolution
 
     // to make objects
     public struct TLVertex
@@ -138,26 +138,26 @@ static class DX
         try
         {
             // set common resolutions
-            sxCommon[0] = 640;
-            syCommon[0] = 480;
-            sxCommon[1] = 800;
-            syCommon[1] = 600;
-            sxCommon[2] = 1024;
-            syCommon[2] = 768;
-            sxCommon[3] = 1280;
-            syCommon[3] = 800;
-            sxCommon[4] = 1280;
-            syCommon[4] = 1024;
-            sxCommon[5] = 1440;
-            syCommon[5] = 900;
-            sxCommon[6] = 1600;
-            syCommon[6] = 1200;
-            sxCommon[7] = 1680;
-            syCommon[7] = 1050;
-            sxCommon[8] = 1920;
-            syCommon[8] = 1440;
-            sxCommon[9] = 2048;
-            syCommon[9] = 1536;
+            resXCommon[0] = 640;
+            resYCommon[0] = 480;
+            resXCommon[1] = 800;
+            resYCommon[1] = 600;
+            resXCommon[2] = 1024;
+            resYCommon[2] = 768;
+            resXCommon[3] = 1280;
+            resYCommon[3] = 800;
+            resXCommon[4] = 1280;
+            resYCommon[4] = 1024;
+            resXCommon[5] = 1440;
+            resYCommon[5] = 900;
+            resXCommon[6] = 1600;
+            resYCommon[6] = 1200;
+            resXCommon[7] = 1680;
+            resYCommon[7] = 1050;
+            resXCommon[8] = 1920;
+            resYCommon[8] = 1440;
+            resXCommon[9] = 2048;
+            resYCommon[9] = 1536;
             // set d3d object
             dxErr = "making D3D";
             d3d = new Direct3D();
@@ -166,16 +166,16 @@ static class DX
             dxErr = "getting possible resolutions";
             d3dPP = new PresentParameters();
             d3dPP.Windowed = windowed;
-            mode = d3d.Adapters[0].CurrentDisplayMode;
+            dispMode = d3d.Adapters[0].CurrentDisplayMode;
             if (windowed == false)
             {
                 foreach (DisplayMode tempMode in d3d.Adapters[0].GetDisplayModes(Format.R5G6B5))
                 {
                     for (a = 0; a <= NResCommon; a++)
                     {
-                        if (tempMode.Width == sxCommon[a] && tempMode.Height == syCommon[a])
+                        if (tempMode.Width == resXCommon[a] && tempMode.Height == resYCommon[a])
                         {
-                            sPossible[a, 0] = true;
+                            resPossible[a, 0] = true;
                             break;
                         }
                     }
@@ -184,9 +184,9 @@ static class DX
                 {
                     for (a = 0; a <= NResCommon; a++)
                     {
-                        if (tempMode.Width == sxCommon[a] && tempMode.Height == syCommon[a])
+                        if (tempMode.Width == resXCommon[a] && tempMode.Height == resYCommon[a])
                         {
-                            sPossible[a, 1] = true;
+                            resPossible[a, 1] = true;
                             break;
                         }
                     }
@@ -223,7 +223,7 @@ static class DX
     /// <summary>
     /// sets up Direct3D device
     /// </summary>
-    public static bool init3d(out SlimDX.Direct3D9.Device d3dLinkDevice, IntPtr drawHwnd, int resX, int resY, Format resFormat, Vector3 camSourceVal, Vector3 camTargetVal, float camWidth, double lookDist)
+    public static bool init3d(out SlimDX.Direct3D9.Device d3dLinkDevice, IntPtr drawHwnd, int resXVal, int resYVal, Format resFormat, Vector3 camSourceVal, Vector3 camTargetVal, float camWidth, double lookDist)
     {
         Material mat = default(Material);
         d3dLinkDevice = null;
@@ -231,24 +231,23 @@ static class DX
         {
             dxErr = "setting basic structures";
             // remember screen resolution
-            sx = resX;
-            sy = resY;
+            resX = resXVal;
+            resY = resYVal;
             // set up some lighting stuff
             mat.Ambient = Color.White;
             mat.Diffuse = Color.White;
             d3dLight.Type = LightType.Directional;
             d3dLight.Direction = new Vector3(0, -1, 0);
             // tell how to load 3d device
-            d3dPP.BackBufferWidth = sx;
-            d3dPP.BackBufferHeight = sy;
+            d3dPP.BackBufferWidth = resX;
+            d3dPP.BackBufferHeight = resY;
             d3dPP.BackBufferFormat = resFormat;
             d3dPP.BackBufferCount = 1;
-            d3dPP.SwapEffect = SwapEffect.Copy;
+            d3dPP.SwapEffect = SwapEffect.Discard;
             d3dPP.Multisample = MultisampleType.None;
             d3dPP.EnableAutoDepthStencil = true;
             // enable z-buffering
-            d3dPP.AutoDepthStencilFormat = Format.D16;
-            // use 16 bit z-buffering
+            d3dPP.AutoDepthStencilFormat = Format.D16; // use 16 bit z-buffering
             camSource = camSourceVal;
             camTarget = camTargetVal;
             // set up camera view matrix
@@ -256,16 +255,17 @@ static class DX
             matView = Matrix.LookAtLH(camSource, camTarget, new Vector3(0, 1, 0));
             // set up projection matrix (pi/2 = radians)
             dxErr = "setting up projection matrix";
-            matProj = Matrix.PerspectiveFovLH(camWidth, Convert.ToSingle(sx / sy), Convert.ToSingle(lookDist / 1000), Convert.ToSingle(lookDist));
+            matProj = Matrix.PerspectiveFovLH(camWidth, Convert.ToSingle(resX / resY), Convert.ToSingle(lookDist / 1000), Convert.ToSingle(lookDist));
             // acquire keyboard
             dxErr = "acquiring keyboard";
-            mouseX = sx / 2;
-            mouseY = sy / 2;
+            mouseX = resX / 2;
+            mouseY = resY / 2;
             keyDevice.Acquire();
             // make D3D device
             dxErr = "making D3D device";
             d3dDevice = null;
-            d3dLinkDevice = new SlimDX.Direct3D9.Device(d3d, 0, SlimDX.Direct3D9.DeviceType.Hardware, drawHwnd, (d3d.GetDeviceCaps(0, SlimDX.Direct3D9.DeviceType.Hardware).DeviceCaps.HasFlag(DeviceCaps.HWTransformAndLight) ? CreateFlags.HardwareVertexProcessing : CreateFlags.SoftwareVertexProcessing), d3dPP);
+            d3dLinkDevice = new SlimDX.Direct3D9.Device(d3d, 0, SlimDX.Direct3D9.DeviceType.Hardware, drawHwnd,
+                (d3d.GetDeviceCaps(0, SlimDX.Direct3D9.DeviceType.Hardware).DeviceCaps.HasFlag(DeviceCaps.HWTransformAndLight) ? CreateFlags.HardwareVertexProcessing : CreateFlags.SoftwareVertexProcessing), d3dPP);
             d3dDevice = d3dLinkDevice;
             if (d3dDevice == null)
                 throw new NullReferenceException("D3D device is null");
@@ -325,31 +325,31 @@ static class DX
         int a = 0;
         int b = 0;
         // check if current res is common
-        sx = -1;
-        if (mode.Format == Format.R5G6B5 || mode.Format == Format.X8R8G8B8)
+        resX = -1;
+        if (dispMode.Format == Format.R5G6B5 || dispMode.Format == Format.X8R8G8B8)
         {
             for (a = 0; a <= NResCommon; a++)
             {
-                if (mode.Width == sxCommon[a] && mode.Height == syCommon[a])
+                if (dispMode.Width == resXCommon[a] && dispMode.Height == resYCommon[a])
                 {
-                    sx = mode.Width;
-                    sy = mode.Height;
-                    d3dPP.BackBufferFormat = mode.Format;
+                    resX = dispMode.Width;
+                    resY = dispMode.Height;
+                    d3dPP.BackBufferFormat = dispMode.Format;
                     break;
                 }
             }
         }
         // if it isn't choose the highest possible common res
-        if (sx == -1)
+        if (resX == -1)
         {
             for (b = 0; b <= NDepthCommon; b++)
             {
                 for (a = 0; a <= NResCommon; a++)
                 {
-                    if (sPossible[NResCommon - a, NDepthCommon - b] == true)
+                    if (resPossible[NResCommon - a, NDepthCommon - b] == true)
                     {
-                        sx = sxCommon[NResCommon - a];
-                        sy = syCommon[NResCommon - a];
+                        resX = resXCommon[NResCommon - a];
+                        resY = resYCommon[NResCommon - a];
                         if (b == 0)
                         {
                             d3dPP.BackBufferFormat = Format.R5G6B5;
@@ -364,17 +364,17 @@ static class DX
             }
         }
         // if that doesn't work then set to current res
-        if (sx == -1)
+        if (resX == -1)
         {
-            sx = mode.Width;
-            sy = mode.Height;
-            d3dPP.BackBufferFormat = mode.Format;
+            resX = dispMode.Width;
+            resY = dispMode.Height;
+            d3dPP.BackBufferFormat = dispMode.Format;
         }
     }
 
     public static void textDraw(SlimDX.Direct3D9.Font fnt, Color4 col, string text, int left, int top)
     {
-        fnt.DrawString(null, text, new Rectangle(left, top, sx, sy), DrawTextFormat.Top | DrawTextFormat.Left, col);
+        fnt.DrawString(null, text, new Rectangle(left, top, resX, resY), DrawTextFormat.Top | DrawTextFormat.Left, col);
     }
 
     /// <summary>
