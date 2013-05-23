@@ -366,6 +366,7 @@ namespace Decoherence
                     // TODO: move new amplitude immediately after making it
                     foreach (int unit in selUnits)
                     {
+                        // happens at timeGame + 1 so addMoveEvts() knows to initially put new amplitude on visibility tiles
                         Sim.u[unit].makeChildAmp(timeGame + 1);
                     }
                 }
@@ -374,7 +375,9 @@ namespace Decoherence
                     // delete selected amplitudes
                     foreach (int unit in selUnits)
                     {
-                        Sim.u[unit].deleteAmp(timeGame + 1);
+                        // happens at timeGame so that when paused, making amplitude then deleting parent amplitude doesn't move parent's tile pos off map
+                        // (where child's tile pos initially is)
+                        Sim.u[unit].deleteAmp(timeGame);
                     }
                 }
             }

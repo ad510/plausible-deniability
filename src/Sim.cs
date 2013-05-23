@@ -362,30 +362,39 @@ namespace Decoherence
                 {
                     int parentAmpTemp = parentAmp;
                     moveToParentAmp(time);
-                    u[parentAmpTemp].decohere(time); // TODO: this isn't working correctly (delete line adding TileMoveEvt in moveToParentAmp() if no longer needed)
+                    // TODO: bug if make 2 nested child amplitudes then decohere root child
+                    // b/c TileMoveEvt moves root parent's tile to middle amp instead of root child, b/c TileMoveEvt moving root child not applied yet
+                    u[parentAmpTemp].decohere(time);
                 }
             }
 
             /// <summary>
-            /// if this unit is an amplitude, delete it and return true, otherwise return false
+            /// if this unit is an amplitude, delete it (and child amplitudes made after the specified time) and return true, otherwise return false
             /// </summary>
             public bool deleteAmp(long time)
             {
-                deleteChildAmpsAfter(time); // delete child amplitudes made after the specified time
+                int i, amp;
+                if (parentAmp >= 0) deleteChildAmpsAfter(time); // delete child amplitudes made after the specified time
                 if (nChildAmps > 0)
                 {
-                    // become the last child amplitude (overwriting our current amplitude in the process)
-                    // TODO: if this happens in past, new moves might not become live, causing problems
-                    for (int i = nChildAmps - 1; i >= 0; i--)
+                    // become the latest child amplitude (overwriting our current amplitude in the process)
+                    amp = -1;
+                    for (i = 0; i < nChildAmps; i++)
                     {
-                        if (!u[childAmps[i]].replaceParentAmp)
+                        if ((u[childAmps[i]].isLive(time) || (!isLive(time) && u[childAmps[i]].exists(time))) // child amp must be live, unless this unit isn't
+                            && (amp < 0 || u[childAmps[i]].m[0].timeStart > u[amp].m[0].timeStart)) // child amp must be made after current best amplitude
                         {
-                            u[childAmps[i]].moveToParentAmp(time);
-                            return true;
+                            amp = childAmps[i];
                         }
                     }
+                    if (amp >= 0)
+                    {
+                        deleteChildAmpsAfter(u[amp].m[0].timeStart); // delete non-live child amplitudes made after the child amplitude that we will become
+                        u[amp].moveToParentAmp(time);
+                        return true;
+                    }
                 }
-                if (parentAmp >= 0)
+                else if (parentAmp >= 0)
                 {
                     // if we don't have a child amplitude but have a parent amplitude, delete this unit completely
                     u[parentAmp].deleteChildAmp(id, time);
@@ -477,7 +486,6 @@ namespace Decoherence
                     u[parentAmp].addMove(m[i]);
                 }
                 // line below ensures that if parent amplitude deleted, child amplitude's tile is also transferred to parent (most noticeable when both amplitudes are still)
-                // TODO: when paused and unit is still, making amplitude then deleting parent amplitude messes up fog of war b/c tile pos of child not set yet
                 // TODO: timeSim may not be the same on different computers
                 events.add(new TileMoveEvt(Math.Max(time, timeSim), parentAmp, tileX, tileY));
                 for (i = 0; i < nChildAmps; i++)
@@ -910,7 +918,7 @@ namespace Decoherence
                     }
                     else if (u[unit].coherent && !tiles[tileX, tileY].coherentWhen(u[unit].player, time))
                     {
-                        u[unit].decohere(time);
+                        u[unit].decohere(time); // TODO: sometimes this is called when the tile should be coherent (reproduce by putting many amplitudes in ring formation)
                     }
                     if (tXPrev >= 0 && tXPrev < tileLen() && tYPrev >= 0 && tYPrev < tileLen())
                     {
