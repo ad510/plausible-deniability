@@ -236,8 +236,6 @@ namespace Decoherence
                         parentAmpTemp = parentAmp;
                         u[parentAmp].deleteChildAmpsAfter(m[0].timeStart);
                         moveToParentAmp(timeSim);
-                        // tileX & tileY aren't set so moveToParentAmp() moves parent amplitude to wrong tile; line below moves parent amplitude to correct tile
-                        events.add(new TileMoveEvt(timeSim, parentAmpTemp, tX, tY));
                     }
                 }
                 else
@@ -362,8 +360,6 @@ namespace Decoherence
                 {
                     int parentAmpTemp = parentAmp;
                     moveToParentAmp(time);
-                    // TODO: bug if make 2 nested child amplitudes then decohere root child
-                    // b/c TileMoveEvt moves root parent's tile to middle amp instead of root child, b/c TileMoveEvt moving root child not applied yet
                     u[parentAmpTemp].decohere(time);
                 }
             }
@@ -480,19 +476,24 @@ namespace Decoherence
             /// </summary>
             private void moveToParentAmp(long time)
             {
+                FP.Vector pos = calcPos(Math.Max(time, timeSim));
                 int i;
+                // move all moves to parent amplitude
                 for (i = 0; i < n; i++)
                 {
                     u[parentAmp].addMove(m[i]);
                 }
-                // line below ensures that if parent amplitude deleted, child amplitude's tile is also transferred to parent (most noticeable when both amplitudes are still)
+                // move parent amplitude onto tile that we are currently on
+                // can't pass in tileX and tileY because this unit's latest TileMoveEvts might not be applied yet
                 // TODO: timeSim may not be the same on different computers
-                events.add(new TileMoveEvt(Math.Max(time, timeSim), parentAmp, tileX, tileY));
+                events.add(new TileMoveEvt(Math.Max(time, timeSim), parentAmp, (int)(pos.x >> FP.Precision), (int)(pos.y >> FP.Precision)));
+                // move child amplitudes to parent amplitude
                 for (i = 0; i < nChildAmps; i++)
                 {
                     u[parentAmp].addChildAmp(childAmps[i]);
                 }
                 nChildAmps = 0;
+                // delete this amplitude since it is now incorporated into its parent amplitude
                 u[parentAmp].deleteChildAmp(id, time);
             }
 
@@ -703,6 +704,7 @@ namespace Decoherence
         public class CmdMoveEvt : SimEvt
         {
             // TODO: need way to make sure commands are synced with addMoveEvts calls, and ensure updatePast() works in replays
+            // note that syncing with addMoveEvts isn't just a problem with commands, it's also a problem e.g. after a child amplitude decoheres (during TileMoveEvt)
             public long moveTime; // time is latest simulation time when command is given, moveTime is when units told to move (may be in past)
             public int[] units;
             public FP.Vector pos; // where to move to
@@ -864,6 +866,10 @@ namespace Decoherence
         /// <summary>
         /// event in which unit moves between visibility tiles
         /// </summary>
+        /// <remarks>
+        /// when making this event, can't rely on a unit's tileX and tileY being up-to-date
+        /// because the latest TileMoveEvts for that unit might not be applied yet
+        /// </remarks>
         public class TileMoveEvt : SimEvt
         {
             public int unit;
