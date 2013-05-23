@@ -521,7 +521,6 @@ namespace Decoherence
                 }
                 // move parent amplitude onto tile that we are currently on
                 // can't pass in tileX and tileY because this unit's latest TileMoveEvts might not be applied yet
-                // TODO: timeSim may not be the same on different computers
                 events.add(new TileMoveEvt(Math.Max(time, timeSim), parentAmp, (int)(pos.x >> FP.Precision), (int)(pos.y >> FP.Precision)));
                 // move child amplitudes to parent amplitude
                 for (i = 0; i < nChildAmps; i++)
@@ -551,7 +550,7 @@ namespace Decoherence
                 n = 0;
                 m[0] = new UnitMove(long.MaxValue - 1, new FP.Vector(OffMap, 0));
                 timeCohere = long.MaxValue;
-                events.add(new TileMoveEvt(Math.Max(time, timeSim), id, OffMap, 0)); // TODO: timeSim may not be the same on different computers
+                events.add(new TileMoveEvt(Math.Max(time, timeSim), id, OffMap, 0));
             }
 
             /// <summary>
@@ -1099,6 +1098,7 @@ namespace Decoherence
 
         public static void update(long curTime)
         {
+            SimEvt evt;
             long timeSimNext = Math.Max(curTime, timeSim);
             int i;
             // check if units moved between tiles
@@ -1109,7 +1109,9 @@ namespace Decoherence
             // apply simulation events
             while (events.peekTime() <= timeSimNext)
             {
-                events.pop().apply();
+                evt = events.pop();
+                timeSim = evt.time;
+                evt.apply();
             }
             // update simulation time
             timeSim = timeSimNext;
