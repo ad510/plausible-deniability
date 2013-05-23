@@ -493,13 +493,13 @@ namespace Decoherence
                 if (unitDrawPos(i, ref vec))
                 {
                     i2 = Sim.u[i].type * Sim.g.nUnitT + Sim.u[i].player;
-                    if (Sim.u[i].timeSimPast <= Sim.timeSim)
+                    if (Sim.u[i].isLive(timeGame))
                     {
-                        imgUnit[i2].color = new Color4(0.5f, 1, 1, 1).ToArgb(); // TODO: make transparency amount customizable
+                        imgUnit[i2].color = new Color4(1, 1, 1, 1).ToArgb();
                     }
                     else
                     {
-                        imgUnit[i2].color = new Color4(1, 1, 1, 1).ToArgb();
+                        imgUnit[i2].color = new Color4(0.5f, 1, 1, 1).ToArgb(); // TODO: make transparency amount customizable
                     }
                     imgUnit[i2].pos = vec;
                     imgUnit[i2].draw();

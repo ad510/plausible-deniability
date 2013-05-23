@@ -195,7 +195,7 @@ namespace Decoherence
                 SimEvtList pastEvents = new SimEvtList();
                 TileMoveEvt evt;
                 FP.Vector pos;
-                int tX, tY, coherenceIndex, parentAmpTemp;
+                int tX, tY, coherenceIndex;
                 if (curTime <= timeSimPast || !exists(curTime)) return;
                 // delete amplitude if tile that unit starts on stops being coherent since timeSimPast
                 pos = calcPos(timeSimPast);
@@ -233,9 +233,12 @@ namespace Decoherence
                     if (replaceParentAmp)
                     {
                         replaceParentAmp = false;
-                        parentAmpTemp = parentAmp;
                         u[parentAmp].deleteChildAmpsAfter(m[0].timeStart);
                         moveToParentAmp(timeSim);
+                    }
+                    else
+                    {
+                        events.add(new TileMoveEvt(timeSim, id, tX, tY));
                     }
                 }
                 else
@@ -378,7 +381,7 @@ namespace Decoherence
                     for (i = 0; i < nChildAmps; i++)
                     {
                         if ((u[childAmps[i]].isLive(time) || (!isLive(time) && u[childAmps[i]].exists(time))) // child amp must be live, unless this unit isn't
-                            && (amp < 0 || u[childAmps[i]].m[0].timeStart > u[amp].m[0].timeStart)) // child amp must be made after current best amplitude
+                            && (amp < 0 || u[childAmps[i]].m[0].timeStart > u[amp].m[0].timeStart)) // child amp must be made after current latest amplitude
                         {
                             amp = childAmps[i];
                         }
@@ -399,6 +402,9 @@ namespace Decoherence
                 return false; // this unit is not an amplitude
             }
 
+            /// <summary>
+            /// makes a new unit amplitude splitting off from this unit at specified time (if allowed), returns whether successful
+            /// </summary>
             public bool makeChildAmp(long time)
             {
                 if (exists(time) && coherent && time >= timeCohere)
@@ -415,6 +421,36 @@ namespace Decoherence
             }
 
             /// <summary>
+            /// returns index of amplitude that isn't updated in the present and is therefore safe to move in the past
+            /// </summary>
+            public int prepareNonLiveAmp(long time)
+            {
+                if (timeSimPast != long.MaxValue)
+                {
+                    // this unit isn't live, prepare for a new move to be added at specified time
+                    deleteChildAmpsAfter(time);
+                    if (time < timeSimPast) timeSimPast = time;
+                    return id;
+                }
+                else
+                {
+                    // this unit is live, make new child amplitude to replace this unit when the amplitude becomes live
+                    for (int i2 = 0; i2 < nChildAmps; i2++)
+                    {
+                        if (u[childAmps[i2]].replaceParentAmp)
+                        {
+                            // delete existing replacement amplitude before making a new one
+                            u[childAmps[i2]].deleteAmp(u[childAmps[i2]].m[0].timeStart);
+                            break;
+                        }
+                    }
+                    makeChildAmp(time);
+                    u[childAmps[nChildAmps - 1]].replaceParentAmp = true;
+                    return childAmps[nChildAmps - 1];
+                }
+            }
+
+            /// <summary>
             /// add specified unit to child amplitude list
             /// </summary>
             private void addChildAmp(int unit)
@@ -426,7 +462,7 @@ namespace Decoherence
                 u[unit].parentAmp = id;
             }
 
-            public void deleteChildAmp(int unit, long time)
+            private void deleteChildAmp(int unit, long time)
             {
                 int index;
                 for (index = 0; index < nChildAmps && childAmps[index] != unit; index++) ;
@@ -723,13 +759,13 @@ namespace Decoherence
             {
                 FP.Vector curPos, goal, rows = new FP.Vector(), offset;
                 long spacing = 0;
-                int count = 0, i = 0, i2;
+                int count = 0, i = 0;
                 // copy event to command history list (it should've already been popped from event list)
                 cmdHistory.add(this);
                 // count number of units able to move
                 foreach (int unit in units)
                 {
-                    if (u[unit].exists(moveTime) && (moveTime > timeSim || (moveTime >= u[unit].timeCohere && u[unit].coherent)))
+                    if (u[unit].exists(moveTime) && (moveTime >= timeSim || (moveTime >= u[unit].timeCohere && u[unit].coherent)))
                     {
                         count++;
                         if (formation == Formation.Tight && g.unitT[u[unit].type].tightFormationSpacing > spacing) spacing = g.unitT[u[unit].type].tightFormationSpacing;
@@ -769,7 +805,7 @@ namespace Decoherence
                 // move units
                 foreach (int unit in units)
                 {
-                    if (u[unit].exists(moveTime) && (moveTime > timeSim || (moveTime >= u[unit].timeCohere && u[unit].coherent)))
+                    if (u[unit].exists(moveTime) && (moveTime >= timeSim || (moveTime >= u[unit].timeCohere && u[unit].coherent)))
                     {
                         int unit2 = unit;
                         curPos = u[unit].calcPos(moveTime);
@@ -790,23 +826,8 @@ namespace Decoherence
                         if (goal.x > g.mapSize) goal.x = g.mapSize;
                         if (goal.y < 0) goal.y = 0;
                         if (goal.y > g.mapSize) goal.y = g.mapSize;
-                        if (moveTime <= timeSim && !u[unit].replaceParentAmp)
-                        {
-                            // make child amplitude to replace this unit after it becomes live
-                            for (i2 = 0; i2 < u[unit].nChildAmps; i2++)
-                            {
-                                if (u[u[unit].childAmps[i2]].replaceParentAmp)
-                                {
-                                    u[unit].deleteChildAmp(u[unit].childAmps[i2], moveTime);
-                                    break;
-                                }
-                            }
-                            u[unit].makeChildAmp(moveTime);
-                            unit2 = u[unit].childAmps[u[unit].nChildAmps - 1];
-                            u[unit2].replaceParentAmp = true;
-                        }
+                        if (moveTime < timeSim) unit2 = u[unit].prepareNonLiveAmp(moveTime); // move replacement amplitude instead of live unit if in past
                         u[unit2].addMove(UnitMove.fromSpeed(moveTime, g.unitT[u[unit2].type].speed, curPos, goal));
-                        if (moveTime < timeSim && moveTime < u[unit2].timeSimPast) u[unit2].timeSimPast = moveTime;
                         i++;
                     }
                 }
