@@ -305,6 +305,7 @@ namespace Decoherence
                 updateTime();
                 for (int i = 0; i < Sim.nUnits; i++)
                 {
+                    //if (timeGame > Sim.timeSim + 1000 && Sim.u[i].player == selPlayer) Sim.u[i].updatePast(timeGame);
                     if (Sim.u[i].player == selPlayer) Sim.u[i].updatePast(timeGame);
                 }
                 //if (timeGame > Sim.timeSim + 1000) Sim.update(timeGame);

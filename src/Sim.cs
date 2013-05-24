@@ -201,7 +201,7 @@ namespace Decoherence
                 pos = calcPos(timeSimPast);
                 tX = (int)(pos.x >> FP.Precision);
                 tY = (int)(pos.y >> FP.Precision);
-                addMoveEvts(ref pastEvents, timeSimPast, Math.Min(curTime, timeSim));
+                addTileMoveEvts(ref pastEvents, timeSimPast, Math.Min(curTime, timeSim));
                 evt = (TileMoveEvt)pastEvents.pop();
                 coherenceIndex = tiles[tX, tY].coherentIndexWhen(player, (evt != null) ? evt.time - 1 : curTime);
                 if (!tiles[tX, tY].coherentWhen(player, (evt != null) ? evt.time - 1 : curTime)
@@ -265,10 +265,15 @@ namespace Decoherence
             /// <summary>
             /// add specified move to end of move array
             /// </summary>
+            /// <remarks>
+            /// if caller also adds a TileMoveEvt, must ensure that it isn't deleted in update()
+            /// (add allowOverride variable in TileMoveEvt if necessary)
+            /// </remarks>
             public void addMove(UnitMove newMove)
             {
                 setN(n + 1);
                 m[n - 1] = newMove;
+                if (!movedUnits.Contains(id)) movedUnits.Add(id);
             }
 
             /// <summary>
@@ -286,7 +291,7 @@ namespace Decoherence
                 return ret;
             }
 
-            public void addMoveEvts(ref SimEvtList events, long timeMin, long timeMax)
+            public void addTileMoveEvts(ref SimEvtList events, long timeMin, long timeMax)
             {
                 int move, moveLast;
                 FP.Vector pos, posLast;
@@ -702,7 +707,7 @@ namespace Decoherence
 
         public class SimEvtList
         {
-            private List<SimEvt> events;
+            public List<SimEvt> events;
 
             public SimEvtList()
             {
@@ -738,8 +743,6 @@ namespace Decoherence
         /// </summary>
         public class CmdMoveEvt : SimEvt
         {
-            // TODO: need way to make sure commands are synced with addMoveEvts calls, and ensure updatePast() works in replays
-            // note that syncing with addMoveEvts isn't just a problem with commands, it's also a problem e.g. after a child amplitude decoheres (during TileMoveEvt)
             public long moveTime; // time is latest simulation time when command is given, moveTime is when units told to move (may be in past)
             public int[] units;
             public FP.Vector pos; // where to move to
@@ -987,7 +990,7 @@ namespace Decoherence
         }
 
         /// <summary>
-        /// event in which a player starts seeing a tile (incomplete)
+        /// event in which a player starts seeing a tile (TODO: incomplete, probably should copy code from visAdd())
         /// </summary>
         public class PlayerVisAddEvt : SimEvt
         {
@@ -1005,15 +1008,14 @@ namespace Decoherence
             public override void apply()
             {
                 int i, tX, tY;
-                // TODO: copy code from visAdd()
-                // add events to add visibility to surrounding tiles (TODO: likely has bugs)
+                // add events to add visibility to surrounding tiles (likely has bugs)
                 for (tX = Math.Max(0, tileX - 1); tX <= Math.Min(tileLen() - 1, tileX + 1); tX++)
                 {
                     for (tY = Math.Max(0, tileY - 1); tY <= Math.Min(tileLen() - 1, tileY + 1); tY++)
                     {
                         if ((tX != tileX || tY != tileY) && !tiles[tX, tY].playerVisLatest(player))
                         {
-                            // TODO: use more accurate time
+                            // probably should use more accurate time
                             events.add(new PlayerVisAddEvt(time - (1 << FP.Precision) / maxSpeed, player, tX, tY));
                         }
                     }
@@ -1086,8 +1088,9 @@ namespace Decoherence
         public static Tile[,] tiles;
         public static SimEvtList events;
         public static SimEvtList cmdHistory;
-        public static long maxSpeed;
-        public static long timeSim;
+        public static List<int> movedUnits; // indices of units that moved in the latest simulation event, invalidating later TileMoveEvts for that unit
+        public static long maxSpeed; // speed of fastest unit (is max speed that players can gain or lose visibility)
+        public static long timeSim; // current simulation time
 
         public static void setNUnits(int newSize)
         {
@@ -1104,14 +1107,33 @@ namespace Decoherence
             // check if units moved between tiles
             for (i = 0; i < nUnits; i++)
             {
-                u[i].addMoveEvts(ref events, timeSim, timeSimNext);
+                u[i].addTileMoveEvts(ref events, timeSim, timeSimNext);
             }
             // apply simulation events
+            movedUnits = new List<int>();
             while (events.peekTime() <= timeSimNext)
             {
                 evt = events.pop();
                 timeSim = evt.time;
                 evt.apply();
+                // if event caused unit(s) to move, re-make later events moving them between tiles
+                // (could this cause syncing problems due to events with the same time being applied in a different order on different computers?)
+                if (movedUnits.Count > 0)
+                {
+                    for (i = 0; i < events.events.Count; i++)
+                    {
+                        if (events.events[i] is TileMoveEvt && events.events[i].time > timeSim && movedUnits.Contains(((TileMoveEvt)events.events[i]).unit))
+                        {
+                            events.events.RemoveAt(i);
+                            i--;
+                        }
+                    }
+                    foreach (int unit in movedUnits)
+                    {
+                        u[unit].addTileMoveEvts(ref events, timeSim, timeSimNext);
+                    }
+                    movedUnits.Clear();
+                }
             }
             // update simulation time
             timeSim = timeSimNext;
