@@ -91,6 +91,7 @@ namespace Decoherence
             Sim.g = new Sim.Scenario();
             Sim.events = new Sim.SimEvtList();
             Sim.cmdHistory = new Sim.SimEvtList();
+            Sim.unitIdChgs = new List<int>();
             Sim.maxSpeed = 0;
             Sim.g.mapSize = jsonFP(json, "mapSize");
             Sim.g.updateInterval = (long)jsonDouble(json, "updateInterval");
@@ -341,8 +342,18 @@ namespace Decoherence
         private void updateInput()
         {
             int i;
-            DX.keyboardUpdate();
+            // handle changed unit indices
+            for (i = 0; i < Sim.unitIdChgs.Count / 2; i++)
+            {
+                if (selUnits.Contains(Sim.unitIdChgs[i * 2]))
+                {
+                    if (Sim.unitIdChgs[i * 2 + 1] >= 0 && !selUnits.Contains(Sim.unitIdChgs[i * 2 + 1])) selUnits.Insert(selUnits.IndexOf(Sim.unitIdChgs[i * 2]), Sim.unitIdChgs[i * 2 + 1]);
+                    selUnits.Remove(Sim.unitIdChgs[i * 2]);
+                }
+            }
+            Sim.unitIdChgs.Clear();
             // handle changed keys
+            DX.keyboardUpdate();
             for (i = 0; i < DX.keysChanged.Count; i++)
             {
                 if (DX.keysChanged[i] == Key.Escape && DX.keyState.IsPressed(DX.keysChanged[i]))

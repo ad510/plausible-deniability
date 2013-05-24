@@ -401,6 +401,11 @@ namespace Decoherence
                 else if (parentAmp >= 0)
                 {
                     // if we don't have a child amplitude but have a parent amplitude, delete this unit completely
+                    if (replaceParentAmp)
+                    {
+                        unitIdChgs.Add(id);
+                        unitIdChgs.Add(parentAmp);
+                    }
                     u[parentAmp].deleteChildAmp(id, time);
                     return true;
                 }
@@ -451,6 +456,8 @@ namespace Decoherence
                     }
                     makeChildAmp(time);
                     u[childAmps[nChildAmps - 1]].replaceParentAmp = true;
+                    unitIdChgs.Add(id);
+                    unitIdChgs.Add(childAmps[nChildAmps - 1]);
                     return childAmps[nChildAmps - 1];
                 }
             }
@@ -519,6 +526,11 @@ namespace Decoherence
             {
                 FP.Vector pos = calcPos(Math.Max(time, timeSim));
                 int i;
+                // indicate that this unit changed indices
+                unitIdChgs.Add(parentAmp);
+                unitIdChgs.Add(-1);
+                unitIdChgs.Add(id);
+                unitIdChgs.Add(parentAmp);
                 // move all moves to parent amplitude
                 for (i = 0; i < n; i++)
                 {
@@ -1089,6 +1101,7 @@ namespace Decoherence
         public static SimEvtList events;
         public static SimEvtList cmdHistory;
         public static List<int> movedUnits; // indices of units that moved in the latest simulation event, invalidating later TileMoveEvts for that unit
+        public static List<int> unitIdChgs; // list of units that changed indices (old index followed by new index)
         public static long maxSpeed; // speed of fastest unit (is max speed that players can gain or lose visibility)
         public static long timeSim; // current simulation time
 
