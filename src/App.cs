@@ -115,6 +115,7 @@ namespace Decoherence
             Sim.g.healthBarEmptyCol = jsonColor4(json, "healthBarEmptyCol");
             //Sim.g.music = jsonString(json, "music");
             // players
+            Sim.g.nPlayers = 0;
             jsonA = jsonArray(json, "players");
             if (jsonA != null)
             {
@@ -140,6 +141,7 @@ namespace Decoherence
                 }
             }
             // unit types
+            Sim.g.nUnitT = 0;
             jsonA = jsonArray(json, "unitTypes");
             if (jsonA != null)
             {
@@ -192,12 +194,17 @@ namespace Decoherence
                 }
             }
             // units
-            // TODO: load units from file too
-            Sim.nUnits = 20;
-            Sim.u = new Sim.Unit[Sim.nUnits];
-            for (i = 0; i < Sim.nUnits; i++)
+            Sim.nUnits = 0;
+            jsonA = jsonArray(json, "units");
+            if (jsonA != null)
             {
-                Sim.u[i] = new Sim.Unit(i, 0, i / (Sim.nUnits / 2), 0, new FP.Vector((long)(rand.NextDouble() * Sim.g.mapSize), (long)(rand.NextDouble() * Sim.g.mapSize)));
+                foreach (Hashtable jsonO in jsonA)
+                {
+                    Sim.setNUnits(Sim.nUnits + 1);
+                    Sim.u[Sim.nUnits - 1] = new Sim.Unit(Sim.nUnits - 1, Sim.g.unitTypeNamed(jsonString(jsonO, "type")),
+                        Sim.g.playerNamed(jsonString(jsonO, "player")), (long)jsonDouble(jsonO, "startTime"),
+                        jsonFPVector(jsonO, "startPos", new FP.Vector((long)(rand.NextDouble() * Sim.g.mapSize), (long)(rand.NextDouble() * Sim.g.mapSize))));
+                }
             }
             selUnits = new List<int>();
             // tile graphics

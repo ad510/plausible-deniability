@@ -1108,7 +1108,7 @@ namespace Decoherence
         public static void setNUnits(int newSize)
         {
             nUnits = newSize;
-            if (nUnits > u.Length)
+            if (u == null || nUnits > u.Length)
                 Array.Resize(ref u, nUnits * 2);
         }
 

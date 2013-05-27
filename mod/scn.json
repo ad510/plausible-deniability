@@ -22,23 +22,23 @@
   "players":
   [
     {
-      "name": "good",
+      "name": "blue",
       "isUser": true,
       "user": 1,
       "mayAttack":
       {
-        "good": false,
-        "evil": true
+        "blue": false,
+        "red": true
       }
     },
     {
-      "name": "evil",
+      "name": "red",
       "isUser": true,
       "user": -1,
       "mayAttack":
       {
-        "good": true,
-        "evil": false
+        "blue": true,
+        "red": false
       }
     }
   ],
@@ -57,6 +57,89 @@
       "range": 6,
       "tightFormationSpacing": 2,
       "selRadius": 16
+    }
+  ],
+  "units":
+  [
+    {
+      "type": "marine",
+      "player": "blue",
+    },
+    {
+      "type": "marine",
+      "player": "blue",
+    },
+    {
+      "type": "marine",
+      "player": "blue",
+    },
+    {
+      "type": "marine",
+      "player": "blue",
+    },
+    {
+      "type": "marine",
+      "player": "blue",
+    },
+    {
+      "type": "marine",
+      "player": "blue",
+    },
+    {
+      "type": "marine",
+      "player": "blue",
+    },
+    {
+      "type": "marine",
+      "player": "blue",
+    },
+    {
+      "type": "marine",
+      "player": "blue",
+    },
+    {
+      "type": "marine",
+      "player": "blue",
+    },
+    {
+      "type": "marine",
+      "player": "red",
+    },
+    {
+      "type": "marine",
+      "player": "red",
+    },
+    {
+      "type": "marine",
+      "player": "red",
+    },
+    {
+      "type": "marine",
+      "player": "red",
+    },
+    {
+      "type": "marine",
+      "player": "red",
+    },
+    {
+      "type": "marine",
+      "player": "red",
+    },
+    {
+      "type": "marine",
+      "player": "red",
+    },
+    {
+      "type": "marine",
+      "player": "red",
+    },
+    {
+      "type": "marine",
+      "player": "red",
+    },
+    {
+      "type": "marine",
+      "player": "red",
     }
   ]
 }
