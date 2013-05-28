@@ -377,22 +377,12 @@ namespace Decoherence
                 else if (DX.keysChanged[i] == Key.A && DX.keyState.IsPressed(DX.keysChanged[i]))
                 {
                     // create amplitudes from selected units
-                    // TODO: move new amplitude immediately after making it
-                    foreach (int unit in selUnits)
-                    {
-                        // happens at timeGame + 1 so addMoveEvts() knows to initially put new amplitude on visibility tiles
-                        Sim.u[unit].makeChildAmp(timeGame + 1);
-                    }
+                    Sim.events.add(new Sim.CmdUnitActionEvt(Sim.timeSim, timeGame, selUnits.ToArray(), Sim.UnitAction.MakeAmplitude));
                 }
                 else if (DX.keysChanged[i] == Key.Delete && DX.keyState.IsPressed(DX.keysChanged[i]))
                 {
                     // delete selected amplitudes
-                    foreach (int unit in selUnits)
-                    {
-                        // happens at timeGame so that when paused, making amplitude then deleting parent amplitude doesn't move parent's tile pos off map
-                        // (where child's tile pos initially is)
-                        Sim.u[unit].deleteAmp(timeGame);
-                    }
+                    Sim.events.add(new Sim.CmdUnitActionEvt(Sim.timeSim, timeGame, selUnits.ToArray(), Sim.UnitAction.DeleteAmplitude));
                 }
             }
             // move camera

@@ -755,15 +755,15 @@ namespace Decoherence
         /// </summary>
         public class CmdMoveEvt : SimEvt
         {
-            public long moveTime; // time is latest simulation time when command is given, moveTime is when units told to move (may be in past)
+            public long timeCmd; // time is latest simulation time when command is given, timeCmd is when units told to move (may be in past)
             public int[] units;
             public FP.Vector pos; // where to move to
             public Formation formation;
 
-            public CmdMoveEvt(long timeVal, long moveTimeVal, int[] unitsVal, FP.Vector posVal, Formation formationVal)
+            public CmdMoveEvt(long timeVal, long timeCmdVal, int[] unitsVal, FP.Vector posVal, Formation formationVal)
             {
                 time = timeVal;
-                moveTime = moveTimeVal;
+                timeCmd = timeCmdVal;
                 units = unitsVal;
                 pos = posVal;
                 formation = formationVal;
@@ -779,7 +779,7 @@ namespace Decoherence
                 // count number of units able to move
                 foreach (int unit in units)
                 {
-                    if (u[unit].exists(moveTime) && (moveTime >= timeSim || (moveTime >= u[unit].timeCohere && u[unit].coherent)))
+                    if (u[unit].exists(timeCmd) && (timeCmd >= timeSim || (timeCmd >= u[unit].timeCohere && u[unit].coherent)))
                     {
                         count++;
                         if (formation == Formation.Tight && g.unitT[u[unit].type].tightFormationSpacing > spacing) spacing = g.unitT[u[unit].type].tightFormationSpacing;
@@ -819,10 +819,10 @@ namespace Decoherence
                 // move units
                 foreach (int unit in units)
                 {
-                    if (u[unit].exists(moveTime) && (moveTime >= timeSim || (moveTime >= u[unit].timeCohere && u[unit].coherent)))
+                    if (u[unit].exists(timeCmd) && (timeCmd >= timeSim || (timeCmd >= u[unit].timeCohere && u[unit].coherent)))
                     {
                         int unit2 = unit;
-                        curPos = u[unit].calcPos(moveTime);
+                        curPos = u[unit].calcPos(timeCmd);
                         if (formation == Formation.Tight || formation == Formation.Loose)
                         {
                             goal = pos + new FP.Vector((i % rows.x) * spacing - offset.x, i / rows.x * spacing - offset.y);
@@ -840,9 +840,49 @@ namespace Decoherence
                         if (goal.x > g.mapSize) goal.x = g.mapSize;
                         if (goal.y < 0) goal.y = 0;
                         if (goal.y > g.mapSize) goal.y = g.mapSize;
-                        if (moveTime < timeSim) unit2 = u[unit].prepareNonLiveAmp(moveTime); // move replacement amplitude instead of live unit if in past
-                        u[unit2].addMove(UnitMove.fromSpeed(moveTime, g.unitT[u[unit2].type].speed, curPos, goal));
+                        if (timeCmd < timeSim) unit2 = u[unit].prepareNonLiveAmp(timeCmd); // move replacement amplitude instead of live unit if in past
+                        u[unit2].addMove(UnitMove.fromSpeed(timeCmd, g.unitT[u[unit2].type].speed, curPos, goal));
                         i++;
+                    }
+                }
+            }
+        }
+
+        public enum UnitAction : byte { MakeAmplitude, DeleteAmplitude };
+
+        /// <summary>
+        /// command to apply an action to a set of units
+        /// </summary>
+        public class CmdUnitActionEvt : SimEvt
+        {
+            public long timeCmd; // time is latest simulation time when command is given, timeCmd is when action is applied (may be in past)
+            public int[] units;
+            public UnitAction action;
+
+            public CmdUnitActionEvt(long timeVal, long timeCmdVal, int[] unitsVal, UnitAction actionVal)
+            {
+                time = timeVal;
+                timeCmd = timeCmdVal;
+                units = unitsVal;
+                action = actionVal;
+            }
+
+            public override void apply()
+            {
+                cmdHistory.add(this); // copy event to command history list (it should've already been popped from event list)
+                foreach (int unit in units)
+                {
+                    if (action == UnitAction.MakeAmplitude)
+                    {
+                        // happens at timeCmd + 1 so addTileMoveEvts() knows to initially put new amplitude on visibility tiles
+                        // TODO: move new amplitude immediately after making it
+                        u[unit].makeChildAmp(timeCmd + 1);
+                    }
+                    else if (action == UnitAction.DeleteAmplitude)
+                    {
+                        // happens at timeCmd so that when paused, making amplitude then deleting parent amplitude doesn't move parent's tile pos off map
+                        // (where child's tile pos initially is)
+                        u[unit].deleteAmp(timeCmd);
                     }
                 }
             }
