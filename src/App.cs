@@ -363,12 +363,7 @@ namespace Decoherence
             DX.keyboardUpdate();
             for (i = 0; i < DX.keysChanged.Count; i++)
             {
-                if (DX.keysChanged[i] == Key.Escape && DX.keyState.IsPressed(DX.keysChanged[i]))
-                {
-                    // exit
-                    App_KeyDown(this, new System.Windows.Forms.KeyEventArgs(Keys.Escape));
-                }
-                else if (DX.keysChanged[i] == Key.P && DX.keyState.IsPressed(DX.keysChanged[i]))
+                if (DX.keysChanged[i] == Key.P && DX.keyState.IsPressed(DX.keysChanged[i]))
                 {
                     // pause/resume
                     paused = !paused;
@@ -590,9 +585,9 @@ namespace Decoherence
 
         private void App_KeyDown(object sender, KeyEventArgs e)
         {
-            // in case DirectInput isn't working
             if (e.KeyCode == Keys.Escape)
             {
+                // exit
                 runMode = 0;
             }
         }
