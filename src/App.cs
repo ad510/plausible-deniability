@@ -93,11 +93,11 @@ namespace Decoherence
             Sim.cmdHistory = new Sim.SimEvtList();
             Sim.unitIdChgs = new List<int>();
             Sim.maxSpeed = 0;
-            Sim.g.mapSize = jsonFP(json, "mapSize");
+            Sim.g.mapSize = jsonFixPt(json, "mapSize");
             Sim.g.updateInterval = (long)jsonDouble(json, "updateInterval");
-            Sim.g.visRadius = jsonFP(json, "visRadius");
-            Sim.g.camSpeed = jsonFP(json, "camSpeed");
-            Sim.g.camPos = jsonFPVector(json, "camPos", new FP.Vector(Sim.g.mapSize / 2, Sim.g.mapSize / 2));
+            Sim.g.visRadius = jsonFixPt(json, "visRadius");
+            Sim.g.camSpeed = jsonFixPt(json, "camSpeed").data;
+            Sim.g.camPos = jsonFixPtVector(json, "camPos", new FixPt.Vector(Sim.g.mapSize / FixPt.fromLong(2), Sim.g.mapSize / FixPt.fromLong(2)));
             Sim.g.drawScl = (float)jsonDouble(json, "drawScl");
             Sim.g.drawSclMin = (float)jsonDouble(json, "drawSclMin");
             Sim.g.drawSclMax = (float)jsonDouble(json, "drawSclMax");
@@ -151,10 +151,10 @@ namespace Decoherence
                     unitT.name = jsonString(jsonO, "name");
                     unitT.imgPath = jsonString(jsonO, "imgPath");
                     unitT.maxHealth = (int)jsonDouble(jsonO, "maxHealth");
-                    unitT.speed = jsonFP(jsonO, "speed");
+                    unitT.speed = jsonFixPt(jsonO, "speed").data;
                     unitT.reload = (long)jsonDouble(jsonO, "reload");
-                    unitT.range = jsonFP(jsonO, "range");
-                    unitT.tightFormationSpacing = jsonFP(jsonO, "tightFormationSpacing");
+                    unitT.range = jsonFixPt(jsonO, "range");
+                    unitT.tightFormationSpacing = jsonFixPt(jsonO, "tightFormationSpacing");
                     unitT.selRadius = jsonDouble(jsonO, "selRadius");
                     if (unitT.speed > Sim.maxSpeed) Sim.maxSpeed = unitT.speed;
                     Sim.g.nUnitT++;
@@ -203,7 +203,7 @@ namespace Decoherence
                     Sim.setNUnits(Sim.nUnits + 1);
                     Sim.u[Sim.nUnits - 1] = new Sim.Unit(Sim.nUnits - 1, Sim.g.unitTypeNamed(jsonString(jsonO, "type")),
                         Sim.g.playerNamed(jsonString(jsonO, "player")), (long)jsonDouble(jsonO, "startTime"),
-                        jsonFPVector(jsonO, "startPos", new FP.Vector((long)(rand.NextDouble() * Sim.g.mapSize), (long)(rand.NextDouble() * Sim.g.mapSize))));
+                        jsonFixPtVector(jsonO, "startPos", new FixPt.Vector(FixPt.fromDouble(rand.NextDouble()) * Sim.g.mapSize, FixPt.fromDouble(rand.NextDouble()) * Sim.g.mapSize)));
                 }
             }
             selUnits = new List<int>();
@@ -269,7 +269,7 @@ namespace Decoherence
         {
             int button = (int)e.Button / 0x100000;
             int mousePrevState = DX.mouseState[button];
-            FP.Vector mouseSimPos = drawToSimPos(new Vector3(e.X, e.Y, 0));
+            FixPt.Vector mouseSimPos = drawToSimPos(new Vector3(e.X, e.Y, 0));
             Vector3 drawPos;
             int i;
             DX.mouseUp(button, e.X, e.Y);
@@ -388,22 +388,22 @@ namespace Decoherence
             // move camera
             if (DX.keyState.IsPressed(Key.LeftArrow) || DX.mouseX == 0 || (this.Left > 0 && DX.mouseX <= 15))
             {
-                Sim.g.camPos.x -= Sim.g.camSpeed * (DX.timeNow - DX.timeLast);
-                if (Sim.g.camPos.x < 0) Sim.g.camPos.x = 0;
+                Sim.g.camPos.x -= new FixPt(Sim.g.camSpeed * (DX.timeNow - DX.timeLast));
+                if (Sim.g.camPos.x < FixPt.fromLong(0)) Sim.g.camPos.x = FixPt.fromLong(0);
             }
             if (DX.keyState.IsPressed(Key.RightArrow) || DX.mouseX == DX.resX - 1 || (this.Left + this.Width < Screen.PrimaryScreen.Bounds.Width && DX.mouseX >= DX.resX - 15))
             {
-                Sim.g.camPos.x += Sim.g.camSpeed * (DX.timeNow - DX.timeLast);
+                Sim.g.camPos.x += new FixPt(Sim.g.camSpeed * (DX.timeNow - DX.timeLast));
                 if (Sim.g.camPos.x > Sim.g.mapSize) Sim.g.camPos.x = Sim.g.mapSize;
             }
             if (DX.keyState.IsPressed(Key.UpArrow) || DX.mouseY == 0 || (this.Top > 0 && DX.mouseY <= 15))
             {
-                Sim.g.camPos.y -= Sim.g.camSpeed * (DX.timeNow - DX.timeLast);
-                if (Sim.g.camPos.y < 0) Sim.g.camPos.y = 0;
+                Sim.g.camPos.y -= new FixPt(Sim.g.camSpeed * (DX.timeNow - DX.timeLast));
+                if (Sim.g.camPos.y < FixPt.fromLong(0)) Sim.g.camPos.y = FixPt.fromLong(0);
             }
             if (DX.keyState.IsPressed(Key.DownArrow) || DX.mouseY == DX.resY - 1 || (this.Top + this.Height < Screen.PrimaryScreen.Bounds.Height && DX.mouseY >= DX.resY - 15))
             {
-                Sim.g.camPos.y += Sim.g.camSpeed * (DX.timeNow - DX.timeLast);
+                Sim.g.camPos.y += new FixPt(Sim.g.camSpeed * (DX.timeNow - DX.timeLast));
                 if (Sim.g.camPos.y > Sim.g.mapSize) Sim.g.camPos.y = Sim.g.mapSize;
             }
         }
@@ -423,8 +423,8 @@ namespace Decoherence
             {
                 for (tY = 0; tY < Sim.tileLen(); tY++)
                 {
-                    vec = simToDrawPos(new FP.Vector(tX << FP.Precision, tY << FP.Precision));
-                    vec2 = simToDrawPos(new FP.Vector((tX + 1) << FP.Precision, (tY + 1) << FP.Precision));
+                    vec = simToDrawPos(new FixPt.Vector(FixPt.fromLong(tX), FixPt.fromLong(tY)));
+                    vec2 = simToDrawPos(new FixPt.Vector(FixPt.fromLong(tX + 1), FixPt.fromLong(tY + 1)));
                     i = (tX * Sim.tileLen() + tY) * 6;
                     tlTile.poly[0].v[i].x = vec.X;
                     tlTile.poly[0].v[i].y = vec.Y;
@@ -463,8 +463,8 @@ namespace Decoherence
                 tlPoly.poly[0].v[i].rhw = 1;
                 tlPoly.poly[0].v[i].z = 0;
             }
-            vec = simToDrawPos(new FP.Vector());
-            vec2 = simToDrawPos(new FP.Vector(Sim.g.mapSize, Sim.g.mapSize));
+            vec = simToDrawPos(new FixPt.Vector());
+            vec2 = simToDrawPos(new FixPt.Vector(Sim.g.mapSize, Sim.g.mapSize));
             tlPoly.poly[0].v[0].x = vec.X;
             tlPoly.poly[0].v[0].y = vec.Y;
             tlPoly.poly[0].v[1].x = vec2.X;
@@ -600,11 +600,11 @@ namespace Decoherence
             return defaultVal;
         }
 
-        private long jsonFP(Hashtable json, string key, long defaultVal = 0)
+        private FixPt jsonFixPt(Hashtable json, string key, FixPt defaultVal)
         {
             if (json.ContainsKey(key))
             {
-                if (json[key] is double) return FP.fromDouble((double)json[key]);
+                if (json[key] is double) return FixPt.fromDouble((double)json[key]);
                 if (json[key] is string)
                 {
                     // parse as hex string, so no rounding errors when converting from double
@@ -612,12 +612,17 @@ namespace Decoherence
                     long ret;
                     if (long.TryParse(((string)json[key]).TrimStart('-'), System.Globalization.NumberStyles.HexNumber, null, out ret))
                     {
-                        return ((string)json[key])[0] == '-' ? -ret : ret;
+                        return new FixPt(((string)json[key])[0] == '-' ? -ret : ret);
                     }
                     return defaultVal;
                 }
             }
             return defaultVal;
+        }
+
+        private FixPt jsonFixPt(Hashtable json, string key)
+        {
+            return jsonFixPt(json, key, FixPt.fromLong(0));
         }
 
         private Hashtable jsonObject(Hashtable json, string key)
@@ -632,13 +637,13 @@ namespace Decoherence
             return null;
         }
 
-        private FP.Vector jsonFPVector(Hashtable json, string key, FP.Vector defaultVal = new FP.Vector())
+        private FixPt.Vector jsonFixPtVector(Hashtable json, string key, FixPt.Vector defaultVal = new FixPt.Vector())
         {
             if (json.ContainsKey(key) && json[key] is Hashtable)
             {
-                return new FP.Vector(jsonFP((Hashtable)json[key], "x", defaultVal.x),
-                    jsonFP((Hashtable)json[key], "y", defaultVal.y),
-                    jsonFP((Hashtable)json[key], "z", defaultVal.z));
+                return new FixPt.Vector(jsonFixPt((Hashtable)json[key], "x", defaultVal.x),
+                    jsonFixPt((Hashtable)json[key], "y", defaultVal.y),
+                    jsonFixPt((Hashtable)json[key], "z", defaultVal.z));
             }
             return defaultVal;
         }
@@ -670,7 +675,7 @@ namespace Decoherence
         /// </summary>
         private bool unitDrawPos(int unit, ref Vector3 pos)
         {
-            FP.Vector fpVec;
+            FixPt.Vector fpVec;
             if (!Sim.u[unit].exists(timeGame) || (selPlayer != Sim.u[unit].player && !Sim.u[unit].isLive(timeGame))) return false;
             fpVec = Sim.u[unit].calcPos(timeGame);
             if (selPlayer != Sim.u[unit].player && !Sim.tileAt(fpVec).playerVisWhen(selPlayer, timeGame)) return false;
@@ -678,34 +683,34 @@ namespace Decoherence
             return true;
         }
 
-        private float simToDrawScl(long coor)
+        private float simToDrawScl(FixPt coor)
         {
-            return (float)(FP.toDouble(coor) * Sim.g.drawScl * winDiag);
+            return (float)(coor.toDouble() * Sim.g.drawScl * winDiag);
         }
 
-        private long drawToSimScl(float coor)
+        private FixPt drawToSimScl(float coor)
         {
-            return FP.fromDouble(coor / winDiag / Sim.g.drawScl);
+            return FixPt.fromDouble(coor / winDiag / Sim.g.drawScl);
         }
 
-        private Vector3 simToDrawScl(FP.Vector vec)
+        private Vector3 simToDrawScl(FixPt.Vector vec)
         {
             return new Vector3(simToDrawScl(vec.x), simToDrawScl(vec.y), simToDrawScl(vec.z));
         }
 
-        private FP.Vector drawToSimScl(Vector3 vec)
+        private FixPt.Vector drawToSimScl(Vector3 vec)
         {
-            return new FP.Vector(drawToSimScl(vec.X), drawToSimScl(vec.Y), drawToSimScl(vec.Z));
+            return new FixPt.Vector(drawToSimScl(vec.X), drawToSimScl(vec.Y), drawToSimScl(vec.Z));
         }
 
-        private Vector3 simToDrawPos(FP.Vector vec)
+        private Vector3 simToDrawPos(FixPt.Vector vec)
         {
             return new Vector3(simToDrawScl(vec.x - Sim.g.camPos.x), simToDrawScl(vec.y - Sim.g.camPos.y), 0f) + new Vector3(DX.resX / 2, DX.resY / 2, 0f);
         }
 
-        private FP.Vector drawToSimPos(Vector3 vec)
+        private FixPt.Vector drawToSimPos(Vector3 vec)
         {
-            return new FP.Vector(drawToSimScl(vec.X - DX.resX / 2), drawToSimScl(vec.Y - DX.resY / 2)) + Sim.g.camPos;
+            return new FixPt.Vector(drawToSimScl(vec.X - DX.resX / 2), drawToSimScl(vec.Y - DX.resY / 2)) + Sim.g.camPos;
         }
     }
 }
