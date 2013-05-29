@@ -273,7 +273,7 @@ namespace Decoherence
             {
                 setN(n + 1);
                 m[n - 1] = newMove;
-                if (!movedUnits.Contains(id)) movedUnits.Add(id);
+                if (!movedUnits.Contains(id)) movedUnits.Add(id); // indicate to delete and recalculate later TileMoveEvts for this unit
             }
 
             /// <summary>
@@ -425,6 +425,8 @@ namespace Decoherence
                     u[nUnits - 1] = new Unit(nUnits - 1, type, player, time, pos);
                     // add it to child amplitude list
                     addChildAmp(nUnits - 1);
+                    // indicate to calculate TileMoveEvts for new amplitude starting at timeSim
+                    if (!movedUnits.Contains(nUnits - 1)) movedUnits.Add(nUnits - 1);
                     return true;
                 }
                 return false;
@@ -1169,7 +1171,7 @@ namespace Decoherence
                 evt = events.pop();
                 timeSim = evt.time;
                 evt.apply();
-                // if event caused unit(s) to move, re-make later events moving them between tiles
+                // if event caused unit(s) to move, delete and recalculate later events moving them between tiles
                 // (could this cause syncing problems due to events with the same time being applied in a different order on different computers?)
                 if (movedUnits.Count > 0)
                 {
