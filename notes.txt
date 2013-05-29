@@ -1,10 +1,9 @@
 todo:
-dead units don't lose visibility if they were killed without ever moving
-create & delete amplitude should be events
-ring formation
-doxygen-style comments
+rename amplitudes to paths
+optimize coherence calculation
+add/improve comments
 should Universe data be directly in Sim class?
-remove floating point Sim calculations
+remove floating point Sim calculations (look at csci 102 hw2 long sqrt?)
 replace DX.cs structs with classes and rename some vars?
 PolyV2d.makeLineRec method?
 pathfinding
@@ -67,6 +66,7 @@ retroactive visibility temporary data:
   time this tile gained visibility
 
 retroactive visibility algorithm:
+(consider when another player's unit dies on a tile we later see)
 (might want to start making levels before implementing this)
 (don't need global events for tile adds, since it all happens in 1 go)
 add relevant tile to "add vis" list
@@ -130,8 +130,10 @@ random notes:
 - flip/mirror map for some players in multiplayer game
 - only share amplitudes if option is checked for a selection of units (don't want units randomly disappearing out of nowhere)
   - if some wavefunctions don't overlap yet, send amplitudes going between those units
-- after implementing amplitudes, fog of war would need nonstandard behavior if different units have different seeing radii
-  - so engine (not just mod file) might as well give all units the same seeing radius
+- make amplitudes with same parent unit(s) pulse in phase with each other as excuse to say they're coherent (if not in a quantum way)
+  - if multiple parent units share some but not all amplitudes with each other, show superposition of their pulsing (maybe with offset positions so it's clearer they're separate)
+  - pulse parent units at different frequencies? (faster pulsing can be done with lower amplitude b/c more noticeable)
+  - pulse wavefunctions (in different colors for different parent units?) so can say they're coherent too?
 - don't bother with fastest unit going at light speed, so don't need to have relativity
   - if need it for 1 q&a video, use command line or mod option to enable it
 - population limit? (or just make units expensive enough that you can't make too many)

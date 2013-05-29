@@ -2,8 +2,11 @@ NOTE: If you are not Andrew, you will probably have no clue what I'm rambling ab
 
 not q&a but still good wording:
 - Now we know that by any reasonable set of rules I won't be able to complete this level in X seconds. But does my opponent know that?
-- amplitude: the moment another player sees one, that's the one that happens
+- amplitude (rename to path?): the moment another player sees one, that's the one that happens
 - physicists wouldn't like it if I answer with "kind of" because physics is a precise science and "kind of" is an imprecise answer
+- green area in game serves similar purpose to wavefunction in physics
+  - can't call green area a wavefunction, would be like calling something a "g force" when it's really an acceleration
+- alternate catch phrase: Think like a quantum computer.
 
 UI:
 have visibility circle (like in menu), when hovering over Q&A box all of it becomes visible
@@ -38,3 +41,5 @@ Notice you could do that without ever seeing the other player time travel. But t
 (note: experiment to detect in real physics more complicated due to additional restrictions from prev answer, but used for particle physics "discoveries" such as higgs)
 
 (note: after sniper level, say how distinguish radio waves from 1 source vs 2 close sources when can't tell which star the photon came from (from QED))
+
+(note: after seeing the entire map level, show how paths/amplitudes and wavefunctions are equivalent in 1 player game/nature)
