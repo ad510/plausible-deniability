@@ -447,12 +447,12 @@ namespace Decoherence
                 else
                 {
                     // this unit is live, make new child path to replace this unit's path when the child path becomes live
-                    for (int i2 = 0; i2 < nChildPaths; i2++)
+                    for (int i = 0; i < nChildPaths; i++)
                     {
-                        if (u[childPaths[i2]].replaceParentPath)
+                        if (u[childPaths[i]].replaceParentPath)
                         {
                             // delete existing replacement path before making a new one
-                            u[childPaths[i2]].deletePath(u[childPaths[i2]].m[0].timeStart);
+                            u[childPaths[i]].deletePath(u[childPaths[i]].m[0].timeStart);
                             break;
                         }
                     }
@@ -905,7 +905,7 @@ namespace Decoherence
                 FixPt.Vector pos;
                 int target;
                 long distSq, targetDistSq;
-                int i, i2;
+                int i, j;
                 // update units
                 for (i = 0; i < nUnits; i++)
                 {
@@ -915,14 +915,14 @@ namespace Decoherence
                         pos = u[i].calcPos(time);
                         target = -1;
                         targetDistSq = g.unitT[u[i].type].range.data * g.unitT[u[i].type].range.data + 1;
-                        for (i2 = 0; i2 < nUnits; i2++)
+                        for (j = 0; j < nUnits; j++)
                         {
-                            if (i != i2 && u[i2].isLive(time) && g.players[u[i].player].mayAttack[u[i2].player] && g.unitT[u[i].type].damage[u[i2].type] > 0)
+                            if (i != j && u[j].isLive(time) && g.players[u[i].player].mayAttack[u[j].player] && g.unitT[u[i].type].damage[u[j].type] > 0)
                             {
-                                distSq = (u[i2].calcPos(time) - pos).lengthSq();
+                                distSq = (u[j].calcPos(time) - pos).lengthSq();
                                 if (distSq < targetDistSq)
                                 {
-                                    target = i2;
+                                    target = j;
                                     targetDistSq = distSq;
                                 }
                             }
@@ -931,7 +931,7 @@ namespace Decoherence
                         {
                             // attack target
                             // take health with 1 ms delay so earlier units in array don't have unfair advantage
-                            for (i2 = 0; i2 < g.unitT[u[i].type].damage[u[target].type]; i2++) u[target].takeHealth(time + 1);
+                            for (j = 0; j < g.unitT[u[i].type].damage[u[target].type]; j++) u[target].takeHealth(time + 1);
                             u[i].timeAttack = time;
                         }
                     }
@@ -1025,15 +1025,15 @@ namespace Decoherence
                 if (tXPrev >= 0 && tXPrev < tileLen() && tYPrev >= 0 && tYPrev < tileLen())
                 {
                     // if this player can no longer directly see another player's unit, remove this player's visibility there
-                    foreach (int i2 in tiles[tXPrev, tYPrev].unitVis.Keys)
+                    foreach (int j in tiles[tXPrev, tYPrev].unitVis.Keys)
                     {
-                        if (u[i2].player != u[unit].player && u[i2].healthLatest() > 0 && inVis(u[i2].tileX - tXPrev, u[i2].tileY - tYPrev) && !tiles[u[i2].tileX, u[i2].tileY].playerDirectVisLatest(u[unit].player))
+                        if (u[j].player != u[unit].player && u[j].healthLatest() > 0 && inVis(u[j].tileX - tXPrev, u[j].tileY - tYPrev) && !tiles[u[j].tileX, u[j].tileY].playerDirectVisLatest(u[unit].player))
                         {
-                            for (tX = Math.Max(0, u[i2].tileX - 1); tX <= Math.Min(tileLen() - 1, u[i2].tileX + 1); tX++)
+                            for (tX = Math.Max(0, u[j].tileX - 1); tX <= Math.Min(tileLen() - 1, u[j].tileX + 1); tX++)
                             {
-                                for (tY = Math.Max(0, u[i2].tileY - 1); tY <= Math.Min(tileLen() - 1, u[i2].tileY + 1); tY++)
+                                for (tY = Math.Max(0, u[j].tileY - 1); tY <= Math.Min(tileLen() - 1, u[j].tileY + 1); tY++)
                                 {
-                                    // TODO?: use more accurate time at tiles other than (p[i2].tileX, p[i2].tileY)
+                                    // TODO?: use more accurate time at tiles other than (u[j].tileX, u[j].tileY)
                                     events.add(new PlayerVisRemoveEvt(time, u[unit].player, tX, tY));
                                 }
                             }

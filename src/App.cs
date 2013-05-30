@@ -50,7 +50,7 @@ namespace Decoherence
 
         private void App_Load(object sender, EventArgs e)
         {
-            int i, i2, i3;
+            int i, j, k;
             Hashtable json;
             ArrayList jsonA;
             string str;
@@ -134,9 +134,9 @@ namespace Decoherence
                     Hashtable jsonO2 = jsonObject(jsonO, "mayAttack");
                     i = Sim.g.playerNamed(jsonString(jsonO, "name"));
                     Sim.g.players[i].mayAttack = new bool[Sim.g.nPlayers];
-                    for (i2 = 0; i2 < Sim.g.nPlayers; i2++)
+                    for (j = 0; j < Sim.g.nPlayers; j++)
                     {
-                        Sim.g.players[i].mayAttack[i2] = jsonBool(jsonO2, Sim.g.players[i2].name);
+                        Sim.g.players[i].mayAttack[j] = jsonBool(jsonO2, Sim.g.players[j].name);
                     }
                 }
             }
@@ -166,31 +166,31 @@ namespace Decoherence
                     Hashtable jsonO2 = jsonObject(jsonO, "damage");
                     i = Sim.g.unitTypeNamed(jsonString(jsonO, "name"));
                     Sim.g.unitT[i].damage = new int[Sim.g.nUnitT];
-                    for (i2 = 0; i2 < Sim.g.nUnitT; i2++)
+                    for (j = 0; j < Sim.g.nUnitT; j++)
                     {
-                        Sim.g.unitT[i].damage[i2] = (int)jsonDouble(jsonO2, Sim.g.unitT[i2].name);
+                        Sim.g.unitT[i].damage[j] = (int)jsonDouble(jsonO2, Sim.g.unitT[j].name);
                     }
                 }
             }
             imgUnit = new DX.Img2D[Sim.g.nUnitT * Sim.g.nPlayers];
             for (i = 0; i < Sim.g.nUnitT; i++)
             {
-                for (i2 = 0; i2 < Sim.g.nPlayers; i2++)
+                for (j = 0; j < Sim.g.nPlayers; j++)
                 {
-                    i3 = i * Sim.g.nUnitT + i2;
-                    imgUnit[i3].init();
-                    if (!imgUnit[i3].open(appPath + modPath + Sim.g.players[i2].name + '.' + Sim.g.unitT[i].imgPath, Color.White.ToArgb())) MessageBox.Show("Warning: failed to load " + modPath + Sim.g.players[i2].name + '.' + Sim.g.unitT[i].imgPath);
-                    imgUnit[i3].rotCenter.X = imgUnit[i3].srcWidth / 2;
-                    imgUnit[i3].rotCenter.Y = imgUnit[i3].srcHeight / 2;
+                    k = i * Sim.g.nUnitT + j;
+                    imgUnit[k].init();
+                    if (!imgUnit[k].open(appPath + modPath + Sim.g.players[j].name + '.' + Sim.g.unitT[i].imgPath, Color.White.ToArgb())) MessageBox.Show("Warning: failed to load " + modPath + Sim.g.players[j].name + '.' + Sim.g.unitT[i].imgPath);
+                    imgUnit[k].rotCenter.X = imgUnit[k].srcWidth / 2;
+                    imgUnit[k].rotCenter.Y = imgUnit[k].srcHeight / 2;
                 }
             }
             // tiles
             Sim.tiles = new Sim.Tile[Sim.tileLen(), Sim.tileLen()];
             for (i = 0; i < Sim.tileLen(); i++)
             {
-                for (i2 = 0; i2 < Sim.tileLen(); i2++)
+                for (j = 0; j < Sim.tileLen(); j++)
                 {
-                    Sim.tiles[i, i2] = new Sim.Tile();
+                    Sim.tiles[i, j] = new Sim.Tile();
                 }
             }
             // units
@@ -413,7 +413,7 @@ namespace Decoherence
             Vector3 vec, vec2;
             Color4 col;
             float f;
-            int i, i2, tX, tY;
+            int i, j, tX, tY;
             DX.d3dDevice.Clear(ClearFlags.Target | ClearFlags.ZBuffer, Sim.g.backCol, 1, 0);
             DX.d3dDevice.BeginScene();
             DX.d3dDevice.SetTexture(0, null);
@@ -445,9 +445,9 @@ namespace Decoherence
                         if (Sim.tiles[tX, tY].playerDirectVisWhen(selPlayer, timeGame)) col += Sim.g.unitVisCol;
                         if (Sim.tiles[tX, tY].coherentWhen(selPlayer, timeGame)) col += Sim.g.coherentCol;
                     }
-                    for (i2 = i; i2 < i + 6; i2++)
+                    for (j = i; j < i + 6; j++)
                     {
-                        tlTile.poly[0].v[i2].color = col.ToArgb();
+                        tlTile.poly[0].v[j].color = col.ToArgb();
                     }
                 }
             }
@@ -496,17 +496,17 @@ namespace Decoherence
             {
                 if (unitDrawPos(i, ref vec))
                 {
-                    i2 = Sim.u[i].type * Sim.g.nUnitT + Sim.u[i].player;
+                    j = Sim.u[i].type * Sim.g.nUnitT + Sim.u[i].player;
                     if (Sim.u[i].isLive(timeGame))
                     {
-                        imgUnit[i2].color = new Color4(1, 1, 1, 1).ToArgb();
+                        imgUnit[j].color = new Color4(1, 1, 1, 1).ToArgb();
                     }
                     else
                     {
-                        imgUnit[i2].color = new Color4(0.5f, 1, 1, 1).ToArgb(); // TODO: make transparency amount customizable
+                        imgUnit[j].color = new Color4(0.5f, 1, 1, 1).ToArgb(); // TODO: make transparency amount customizable
                     }
-                    imgUnit[i2].pos = vec;
-                    imgUnit[i2].draw();
+                    imgUnit[j].pos = vec;
+                    imgUnit[j].draw();
                 }
             }
             // health bars
@@ -514,7 +514,7 @@ namespace Decoherence
             {
                 if (unitDrawPos(unit, ref vec))
                 {
-                    i2 = Sim.u[unit].type * Sim.g.nUnitT + Sim.u[unit].player;
+                    j = Sim.u[unit].type * Sim.g.nUnitT + Sim.u[unit].player;
                     f = ((float)Sim.u[Sim.u[unit].rootParentPath()].healthWhen(timeGame)) / Sim.g.unitT[Sim.u[unit].type].maxHealth;
                     tlPoly.primitive = PrimitiveType.TriangleStrip;
                     tlPoly.setNPoly(0);
@@ -525,8 +525,8 @@ namespace Decoherence
                     {
                         tlPoly.poly[0].makeRec(vec.X + Sim.g.healthBarSize.X * winDiag * (-0.5f + f),
                             vec.X + Sim.g.healthBarSize.X * winDiag * 0.5f,
-                            vec.Y - imgUnit[i2].srcHeight / 2 - (Sim.g.healthBarYOffset - Sim.g.healthBarSize.Y / 2) * winDiag,
-                            vec.Y - imgUnit[i2].srcHeight / 2 - (Sim.g.healthBarYOffset + Sim.g.healthBarSize.Y / 2) * winDiag,
+                            vec.Y - imgUnit[j].srcHeight / 2 - (Sim.g.healthBarYOffset - Sim.g.healthBarSize.Y / 2) * winDiag,
+                            vec.Y - imgUnit[j].srcHeight / 2 - (Sim.g.healthBarYOffset + Sim.g.healthBarSize.Y / 2) * winDiag,
                             0, Sim.g.healthBarBackCol.ToArgb(), Sim.g.healthBarBackCol.ToArgb(), Sim.g.healthBarBackCol.ToArgb(), Sim.g.healthBarBackCol.ToArgb());
                         tlPoly.draw();
                     }
@@ -534,8 +534,8 @@ namespace Decoherence
                     col = Sim.g.healthBarEmptyCol + (Sim.g.healthBarFullCol - Sim.g.healthBarEmptyCol) * f;
                     tlPoly.poly[0].makeRec(vec.X + Sim.g.healthBarSize.X * winDiag * -0.5f,
                         vec.X + Sim.g.healthBarSize.X * winDiag * (-0.5f + f),
-                        vec.Y - imgUnit[i2].srcHeight / 2 - (Sim.g.healthBarYOffset - Sim.g.healthBarSize.Y / 2) * winDiag,
-                        vec.Y - imgUnit[i2].srcHeight / 2 - (Sim.g.healthBarYOffset + Sim.g.healthBarSize.Y / 2) * winDiag,
+                        vec.Y - imgUnit[j].srcHeight / 2 - (Sim.g.healthBarYOffset - Sim.g.healthBarSize.Y / 2) * winDiag,
+                        vec.Y - imgUnit[j].srcHeight / 2 - (Sim.g.healthBarYOffset + Sim.g.healthBarSize.Y / 2) * winDiag,
                         0, col.ToArgb(), col.ToArgb(), col.ToArgb(), col.ToArgb());
                     tlPoly.draw();
                 }
