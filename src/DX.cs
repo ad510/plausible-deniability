@@ -4,7 +4,7 @@
 // The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-// last updated 5/22/2013
+// last updated 5/29/2013
 // look into comments beginning with "TODO: "
 
 using System;
@@ -479,10 +479,8 @@ static class DX
                 lastKeyState[(int)a] = keyState.IsPressed(a);
             }
         }
-        keyState = keyDevice.GetCurrentState();
-        // update new keys
-        if (lastKeyState == null)
-            return false; // if this is the 1st time setting DIkeystate
+        keyState = keyDevice.GetCurrentState(); // update new keys
+        if (lastKeyState == null) return false; // if this is the 1st time setting DIkeystate
         // check for any changes since last time
         for (a = 0; a <= (Key)255; a++)
         {
@@ -529,12 +527,11 @@ static class DX
                 {
                     fpsCounter += 1;
                 }
-                // Environment.TickCount really only updates about 60 times per second
             }
             else
             {
-                System.Threading.Thread.Sleep(1);
-                // be nice to other programs
+                // Environment.TickCount really only updates about 60 times per second
+                System.Threading.Thread.Sleep(1); // be nice to other programs
                 // this may actually sleep more than 1 ms but sleeps about as long as Environment.TickCount resolution
                 System.Windows.Forms.Application.DoEvents();
             }
@@ -582,12 +579,9 @@ static class DX
         public bool open(string path, int transColorVal = 0)
         {
             Image img = default(Image);
-            if ((spr != null))
-                spr.Dispose();
-            // dispose any previously made sprite to avoid crash while program exits
-            if (!System.IO.File.Exists(path))
-                return false;
-            // get width & height of bitmap
+            if (spr != null) spr.Dispose(); // dispose any previously made sprite to avoid crash while program exits
+            if (!System.IO.File.Exists(path)) return false;
+            // get width & height of image
             img = Image.FromFile(path);
             srcWidth = img.Width;
             srcHeight = img.Height;
