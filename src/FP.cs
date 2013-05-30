@@ -121,6 +121,10 @@ namespace Decoherence
         /// <summary>
         /// fixed point multiplication
         /// </summary>
+        /// <remarks>
+        /// I also tried making a fixed point data type to replace these functions in commit a2523a5,
+        /// but reverted it in commit 7d01306 because there was too much of a performance hit
+        /// </remarks>
         public static long mul(long left, long right)
         {
             return (left * right) >> Precision;
@@ -129,6 +133,10 @@ namespace Decoherence
         /// <summary>
         /// fixed point division
         /// </summary>
+        /// <remarks>
+        /// I also tried making a fixed point data type to replace these functions in commit a2523a5,
+        /// but reverted it in commit 7d01306 because there was too much of a performance hit
+        /// </remarks>
         public static long div(long left, long right)
         {
             return (left << Precision) / right;
