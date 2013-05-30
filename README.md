@@ -4,7 +4,7 @@ Decoherence
 
 Overview
 --------
-This is a technical proof of concept of an RTS game in which you don't have to make up your mind about what you do until another player sees it. You can do this by splitting your units into multiple "amplitudes" (by pressing A), but the moment another player sees one, the one they see is the one that happens. You can even do this in the past (hold down R to rewind) as long as your new amplitudes stay in yellow regions, which you know other players can't see based on what your units see. I'm also hoping to implement more convenient ways to change what you did in the past. The key aspect to these features is that anything you don't do is wiped from history, so in replays (after I implement them), your opponents won't see you doing anything beyond what is allowed in a normal RTS game, making you look psychic (or just consistently lucky).
+This is a technical proof of concept of an RTS game in which you don't have to make up your mind about what you do until another player sees it. You can do this by moving your units along multiple paths when other players aren't looking (by pressing N), but the moment another player sees one, the path they see is the one that is taken. You can also move your units in the past (hold down R to rewind) as long as your new paths stay in yellow regions, which you know other players can't see based on what your units see. I'm also hoping to implement more convenient ways to change what you did in the past. The key aspect to these features is that anything you don't do is wiped from history, so in replays (after I implement them), your opponents won't see you doing anything beyond what is allowed in a normal RTS game, making you look consistently lucky.
 
 I'm hoping to keep working on this and turn it into a full multiplayer game. If you want to help, feel free to send pull requests to the GitHub repository at https://github.com/ad510/decoherence , or email questions or comments to me using the link at http://ad510.users.sf.net/.
 
@@ -30,8 +30,8 @@ Controls
 - spacebar = change selected player
 - p = pause/resume
 - r = go backwards in time
-- a = create amplitudes from selected units
-- delete = delete selected amplitudes
+- n = create new paths that selected units could take
+- delete = delete selected paths
 
 License
 -------

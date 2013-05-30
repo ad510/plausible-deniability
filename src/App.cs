@@ -109,7 +109,7 @@ namespace Decoherence
             Sim.g.playerVisCol = jsonColor4(json, "playerVisCol");
             Sim.g.unitVisCol = jsonColor4(json, "unitVisCol");
             Sim.g.coherentCol = jsonColor4(json, "coherentCol");
-            Sim.g.amplitudeCol = jsonColor4(json, "amplitudeCol");
+            Sim.g.pathCol = jsonColor4(json, "pathCol");
             Sim.g.healthBarBackCol = jsonColor4(json, "healthBarBackCol");
             Sim.g.healthBarFullCol = jsonColor4(json, "healthBarFullCol");
             Sim.g.healthBarEmptyCol = jsonColor4(json, "healthBarEmptyCol");
@@ -374,15 +374,15 @@ namespace Decoherence
                     selPlayer = (selPlayer + 1) % Sim.g.nPlayers;
                     selUnits.Clear();
                 }
-                else if (DX.keysChanged[i] == Key.A && DX.keyState.IsPressed(DX.keysChanged[i]))
+                else if (DX.keysChanged[i] == Key.N && DX.keyState.IsPressed(DX.keysChanged[i]))
                 {
-                    // create amplitudes from selected units
-                    Sim.events.add(new Sim.CmdUnitActionEvt(Sim.timeSim, timeGame, selUnits.ToArray(), Sim.UnitAction.MakeAmplitude));
+                    // create new paths that selected units could take
+                    Sim.events.add(new Sim.CmdUnitActionEvt(Sim.timeSim, timeGame, selUnits.ToArray(), Sim.UnitAction.MakePath));
                 }
                 else if (DX.keysChanged[i] == Key.Delete && DX.keyState.IsPressed(DX.keysChanged[i]))
                 {
-                    // delete selected amplitudes
-                    Sim.events.add(new Sim.CmdUnitActionEvt(Sim.timeSim, timeGame, selUnits.ToArray(), Sim.UnitAction.DeleteAmplitude));
+                    // delete selected paths
+                    Sim.events.add(new Sim.CmdUnitActionEvt(Sim.timeSim, timeGame, selUnits.ToArray(), Sim.UnitAction.DeletePath));
                 }
             }
             // move camera
@@ -475,18 +475,18 @@ namespace Decoherence
             tlPoly.poly[0].v[3].y = vec2.Y;
             tlPoly.poly[0].v[4] = tlPoly.poly[0].v[0];
             tlPoly.draw();
-            // unit amplitude lines
+            // unit path lines
             for (i = 0; i < Sim.nUnits; i++)
             {
-                if (unitDrawPos(i, ref vec) && Sim.u[i].parentAmp >= 0 && timeGame >= Sim.u[Sim.u[i].parentAmp].m[0].timeStart)
+                if (unitDrawPos(i, ref vec) && Sim.u[i].parentPath >= 0 && timeGame >= Sim.u[Sim.u[i].parentPath].m[0].timeStart)
                 {
                     DX.d3dDevice.SetTexture(0, null);
                     tlPoly.primitive = PrimitiveType.LineStrip;
                     tlPoly.setNPoly(0);
                     tlPoly.nV[0] = 1;
                     tlPoly.poly[0].v = new DX.TLVertex[tlPoly.nV[0] + 1];
-                    tlPoly.poly[0].v[0] = new DX.TLVertex(vec, Sim.g.amplitudeCol.ToArgb(), 0, 0);
-                    tlPoly.poly[0].v[1] = new DX.TLVertex(simToDrawPos(Sim.u[Sim.u[i].parentAmp].calcPos(timeGame)), Sim.g.amplitudeCol.ToArgb(), 0, 0);
+                    tlPoly.poly[0].v[0] = new DX.TLVertex(vec, Sim.g.pathCol.ToArgb(), 0, 0);
+                    tlPoly.poly[0].v[1] = new DX.TLVertex(simToDrawPos(Sim.u[Sim.u[i].parentPath].calcPos(timeGame)), Sim.g.pathCol.ToArgb(), 0, 0);
                     tlPoly.draw();
                 }
             }
@@ -515,7 +515,7 @@ namespace Decoherence
                 if (unitDrawPos(unit, ref vec))
                 {
                     i2 = Sim.u[unit].type * Sim.g.nUnitT + Sim.u[unit].player;
-                    f = ((float)Sim.u[Sim.u[unit].rootParentAmp()].healthWhen(timeGame)) / Sim.g.unitT[Sim.u[unit].type].maxHealth;
+                    f = ((float)Sim.u[Sim.u[unit].rootParentPath()].healthWhen(timeGame)) / Sim.g.unitT[Sim.u[unit].type].maxHealth;
                     tlPoly.primitive = PrimitiveType.TriangleStrip;
                     tlPoly.setNPoly(0);
                     tlPoly.nV[0] = 2;

@@ -61,7 +61,7 @@ namespace Decoherence
             public Color4 playerVisCol;
             public Color4 unitVisCol;
             public Color4 coherentCol;
-            public Color4 amplitudeCol;
+            public Color4 pathCol;
             public Color4 healthBarBackCol;
             public Color4 healthBarFullCol;
             public Color4 healthBarEmptyCol;
@@ -103,7 +103,7 @@ namespace Decoherence
         {
             public long timeStart; // time when starts moving
             public long timeEnd; // time when finishes moving
-            public FixPt.Vector vecStart; // z indicates rotation
+            public FixPt.Vector vecStart; // z indicates rotation (TODO: implement rotation)
             public FixPt.Vector vecEnd;
 
             public UnitMove(long timeStartVal, long timeEndVal, FixPt.Vector vecStartVal, FixPt.Vector vecEndVal)
@@ -159,10 +159,10 @@ namespace Decoherence
             public long timeSimPast; // time traveling simulation time if made in the past, otherwise set to long.MaxValue
             public bool coherent; // whether safe to time travel at simulation time
             public long timeCohere; // earliest time at which it's safe to time travel
-            public int parentAmp; // unit which this unit split off from to form an amplitude (set to <0 if none)
-            public bool replaceParentAmp; // whether should replace parent amplitude when this amplitude becomes live
-            public int nChildAmps;
-            public int[] childAmps; // unit amplitudes which split off from this unit
+            public int parentPath; // index of unit whose path this unit split off from (set to <0 if none)
+            public bool replaceParentPath; // whether should replace parent unit's path with this unit's path when this unit becomes live
+            public int nChildPaths;
+            public int[] childPaths; // indices of temporary units which move along alternate paths that this unit could take
 
             public Unit(int idVal, int typeVal, int playerVal, long startTime, FixPt.Vector startPos)
             {
@@ -181,10 +181,10 @@ namespace Decoherence
                 timeSimPast = (startTime >= timeSim) ? long.MaxValue : startTime;
                 coherent = tileAt(startPos).coherentWhen(player, startTime);
                 timeCohere = coherent ? startTime : long.MaxValue;
-                parentAmp = -1;
-                replaceParentAmp = false;
-                nChildAmps = 0;
-                childAmps = new int[nChildAmps];
+                parentPath = -1;
+                replaceParentPath = false;
+                nChildPaths = 0;
+                childPaths = new int[nChildPaths];
             }
 
             /// <summary>
@@ -197,7 +197,7 @@ namespace Decoherence
                 FixPt.Vector pos;
                 int tX, tY, coherenceIndex;
                 if (curTime <= timeSimPast || !exists(curTime)) return;
-                // delete amplitude if tile that unit starts on stops being coherent since timeSimPast
+                // delete path if tile that unit starts on stops being coherent since timeSimPast
                 pos = calcPos(timeSimPast);
                 tX = (int)FixPt.toLong(pos.x);
                 tY = (int)FixPt.toLong(pos.y);
@@ -207,10 +207,10 @@ namespace Decoherence
                 if (!tiles[tX, tY].coherentWhen(player, (evt != null) ? evt.time - 1 : curTime)
                     || tiles[tX, tY].coherence[player][coherenceIndex] > timeSimPast)
                 {
-                    if (!deleteAmp(timeSim)) throw new SystemException("amplitude not deleted successfully after moving off coherent area");
+                    if (!deletePath(timeSim)) throw new SystemException("path not deleted successfully after moving off coherent area");
                     return;
                 }
-                // delete amplitude if unit moves off coherent area or tile that unit is on stops being coherent
+                // delete path if unit moves off coherent area or tile that unit is on stops being coherent
                 if (evt != null)
                 {
                     do
@@ -221,7 +221,7 @@ namespace Decoherence
                         if (!tiles[tX, tY].coherentWhen(player, evt.time)
                             || (coherenceIndex + 1 < tiles[tX, tY].coherence[player].Count() && tiles[tX, tY].coherence[player][coherenceIndex + 1] <= Math.Min(events.peekTime(), Math.Min(curTime, timeSim))))
                         {
-                            if (!deleteAmp(timeSim)) throw new SystemException("amplitude not deleted successfully after moving off coherent area");
+                            if (!deletePath(timeSim)) throw new SystemException("path not deleted successfully after moving off coherent area");
                             return;
                         }
                     } while ((evt = (TileMoveEvt)pastEvents.pop()) != null);
@@ -230,11 +230,11 @@ namespace Decoherence
                 {
                     // unit becomes live
                     timeSimPast = long.MaxValue;
-                    if (replaceParentAmp)
+                    if (replaceParentPath)
                     {
-                        replaceParentAmp = false;
-                        u[parentAmp].deleteChildAmpsAfter(m[0].timeStart);
-                        moveToParentAmp(timeSim);
+                        replaceParentPath = false;
+                        u[parentPath].deleteChildPathsAfter(m[0].timeStart);
+                        moveToParentPath(timeSim);
                     }
                     else
                     {
@@ -363,69 +363,69 @@ namespace Decoherence
             {
                 coherent = false;
                 timeCohere = long.MaxValue;
-                deleteAllChildAmps(time);
-                if (parentAmp >= 0)
+                deleteAllChildPaths(time);
+                if (parentPath >= 0)
                 {
-                    int parentAmpTemp = parentAmp;
-                    moveToParentAmp(time);
-                    u[parentAmpTemp].decohere(time);
+                    int parentPathTemp = parentPath;
+                    moveToParentPath(time);
+                    u[parentPathTemp].decohere(time);
                 }
             }
 
             /// <summary>
-            /// if this unit is an amplitude, delete it (and child amplitudes made after the specified time) and return true, otherwise return false
+            /// if this unit has multiple paths, delete it (and child paths made after the specified time) and return true, otherwise return false
             /// </summary>
-            public bool deleteAmp(long time)
+            public bool deletePath(long time)
             {
-                int i, amp;
-                if (parentAmp >= 0) deleteChildAmpsAfter(time); // delete child amplitudes made after the specified time
-                if (nChildAmps > 0)
+                int i, path;
+                if (parentPath >= 0) deleteChildPathsAfter(time); // delete child paths made after the specified time
+                if (nChildPaths > 0)
                 {
-                    // become the latest child amplitude (overwriting our current amplitude in the process)
-                    amp = -1;
-                    for (i = 0; i < nChildAmps; i++)
+                    // take the path of the latest child unit (overwriting our current moves in the process)
+                    path = -1;
+                    for (i = 0; i < nChildPaths; i++)
                     {
-                        if ((u[childAmps[i]].isLive(time) || (!isLive(time) && u[childAmps[i]].exists(time))) // child amp must be live, unless this unit isn't
-                            && (amp < 0 || u[childAmps[i]].m[0].timeStart > u[amp].m[0].timeStart)) // child amp must be made after current latest amplitude
+                        if ((u[childPaths[i]].isLive(time) || (!isLive(time) && u[childPaths[i]].exists(time))) // child path must be live, unless this unit isn't
+                            && (path < 0 || u[childPaths[i]].m[0].timeStart > u[path].m[0].timeStart)) // child path must be made after current latest path
                         {
-                            amp = childAmps[i];
+                            path = childPaths[i];
                         }
                     }
-                    if (amp >= 0)
+                    if (path >= 0)
                     {
-                        deleteChildAmpsAfter(u[amp].m[0].timeStart); // delete non-live child amplitudes made after the child amplitude that we will become
-                        u[amp].moveToParentAmp(time);
+                        deleteChildPathsAfter(u[path].m[0].timeStart); // delete non-live child paths made after the child path that we will take
+                        u[path].moveToParentPath(time);
                         return true;
                     }
                 }
-                else if (parentAmp >= 0)
+                else if (parentPath >= 0)
                 {
-                    // if we don't have a child amplitude but have a parent amplitude, delete this unit completely
-                    if (replaceParentAmp)
+                    // if we don't have a child path but have a parent path, delete this unit completely
+                    if (replaceParentPath)
                     {
                         unitIdChgs.Add(id);
-                        unitIdChgs.Add(parentAmp);
+                        unitIdChgs.Add(parentPath);
                     }
-                    u[parentAmp].deleteChildAmp(id, time);
+                    u[parentPath].deleteChildPath(id, time);
                     return true;
                 }
-                return false; // this unit is not an amplitude
+                return false; // this unit is only moving along 1 path, so there are no other paths to replace this path if it's deleted
             }
 
             /// <summary>
-            /// makes a new unit amplitude splitting off from this unit at specified time (if allowed), returns whether successful
+            /// makes a temporary unit splitting off from this unit's path at specified time (if allowed), returns whether successful
             /// </summary>
-            public bool makeChildAmp(long time)
+            public bool makeChildPath(long time)
             {
                 if (exists(time) && coherent && time >= timeCohere)
                 {
                     FixPt.Vector pos = calcPos(time);
-                    // make unit amplitude
+                    // make new unit
                     setNUnits(nUnits + 1);
                     u[nUnits - 1] = new Unit(nUnits - 1, type, player, time, pos);
-                    // add it to child amplitude list
-                    addChildAmp(nUnits - 1);
-                    // indicate to calculate TileMoveEvts for new amplitude starting at timeSim
+                    // add it to child path list
+                    addChildPath(nUnits - 1);
+                    // indicate to calculate TileMoveEvts for new unit starting at timeSim
                     if (!movedUnits.Contains(nUnits - 1)) movedUnits.Add(nUnits - 1);
                     return true;
                 }
@@ -433,131 +433,131 @@ namespace Decoherence
             }
 
             /// <summary>
-            /// returns index of amplitude that isn't updated in the present and is therefore safe to move in the past
+            /// returns index (in unit array) of path that isn't updated in the present and is therefore safe to move in the past
             /// </summary>
-            public int prepareNonLiveAmp(long time)
+            public int prepareNonLivePath(long time)
             {
                 if (timeSimPast != long.MaxValue)
                 {
                     // this unit isn't live, prepare for a new move to be added at specified time
-                    deleteChildAmpsAfter(time);
+                    deleteChildPathsAfter(time);
                     if (time < timeSimPast) timeSimPast = time;
                     return id;
                 }
                 else
                 {
-                    // this unit is live, make new child amplitude to replace this unit when the amplitude becomes live
-                    for (int i2 = 0; i2 < nChildAmps; i2++)
+                    // this unit is live, make new child path to replace this unit's path when the child path becomes live
+                    for (int i2 = 0; i2 < nChildPaths; i2++)
                     {
-                        if (u[childAmps[i2]].replaceParentAmp)
+                        if (u[childPaths[i2]].replaceParentPath)
                         {
-                            // delete existing replacement amplitude before making a new one
-                            u[childAmps[i2]].deleteAmp(u[childAmps[i2]].m[0].timeStart);
+                            // delete existing replacement path before making a new one
+                            u[childPaths[i2]].deletePath(u[childPaths[i2]].m[0].timeStart);
                             break;
                         }
                     }
-                    makeChildAmp(time);
-                    u[childAmps[nChildAmps - 1]].replaceParentAmp = true;
+                    makeChildPath(time);
+                    u[childPaths[nChildPaths - 1]].replaceParentPath = true;
                     unitIdChgs.Add(id);
-                    unitIdChgs.Add(childAmps[nChildAmps - 1]);
-                    return childAmps[nChildAmps - 1];
+                    unitIdChgs.Add(childPaths[nChildPaths - 1]);
+                    return childPaths[nChildPaths - 1];
                 }
             }
 
             /// <summary>
-            /// add specified unit to child amplitude list
+            /// add specified unit to child path list
             /// </summary>
-            private void addChildAmp(int unit)
+            private void addChildPath(int unit)
             {
-                nChildAmps++;
-                if (nChildAmps > childAmps.Length)
-                    Array.Resize(ref childAmps, nChildAmps * 2);
-                childAmps[nChildAmps - 1] = unit;
-                u[unit].parentAmp = id;
+                nChildPaths++;
+                if (nChildPaths > childPaths.Length)
+                    Array.Resize(ref childPaths, nChildPaths * 2);
+                childPaths[nChildPaths - 1] = unit;
+                u[unit].parentPath = id;
             }
 
-            private void deleteChildAmp(int unit, long time)
+            private void deleteChildPath(int unit, long time)
             {
                 int index;
-                for (index = 0; index < nChildAmps && childAmps[index] != unit; index++) ;
-                if (index == nChildAmps) throw new ArgumentException("unit " + unit + " is not a child amplitude");
-                // remove child amplitude from list
-                for (int i = index; i < nChildAmps - 1; i++)
+                for (index = 0; index < nChildPaths && childPaths[index] != unit; index++) ;
+                if (index == nChildPaths) throw new ArgumentException("unit " + unit + " is not a child path");
+                // remove child path from list
+                for (int i = index; i < nChildPaths - 1; i++)
                 {
-                    childAmps[i] = childAmps[i + 1];
+                    childPaths[i] = childPaths[i + 1];
                 }
-                nChildAmps--;
-                // delete child amplitude
+                nChildPaths--;
+                // delete child path
                 u[unit].delete(time);
-                u[unit].parentAmp = -1;
+                u[unit].parentPath = -1;
             }
 
             /// <summary>
-            /// recursively delete all child amplitudes
+            /// recursively delete all child paths
             /// </summary>
-            private void deleteAllChildAmps(long time)
+            private void deleteAllChildPaths(long time)
             {
-                for (int i = 0; i < nChildAmps; i++)
+                for (int i = 0; i < nChildPaths; i++)
                 {
-                    u[childAmps[i]].delete(time);
-                    u[childAmps[i]].parentAmp = -1;
-                    u[childAmps[i]].deleteAllChildAmps(time);
+                    u[childPaths[i]].delete(time);
+                    u[childPaths[i]].parentPath = -1;
+                    u[childPaths[i]].deleteAllChildPaths(time);
                 }
-                nChildAmps = 0;
+                nChildPaths = 0;
             }
 
             /// <summary>
-            /// delete child amplitudes made after the specified time
+            /// delete child paths made after the specified time
             /// </summary>
-            private void deleteChildAmpsAfter(long time)
+            private void deleteChildPathsAfter(long time)
             {
-                for (int i = 0; i < nChildAmps; i++)
+                for (int i = 0; i < nChildPaths; i++)
                 {
-                    if (u[childAmps[i]].m[0].timeStart > time)
+                    if (u[childPaths[i]].m[0].timeStart > time)
                     {
-                        u[childAmps[i]].deleteAmp(time);
+                        u[childPaths[i]].deletePath(time);
                         i--;
                     }
                 }
             }
 
             /// <summary>
-            /// move all moves and child amplitudes to parent amplitude (so parent amplitude becomes us)
+            /// make parent unit take the path of this unit, then delete this unit
             /// </summary>
-            private void moveToParentAmp(long time)
+            private void moveToParentPath(long time)
             {
                 FixPt.Vector pos = calcPos(Math.Max(time, timeSim));
                 int i;
                 // indicate that this unit changed indices
-                unitIdChgs.Add(parentAmp);
+                unitIdChgs.Add(parentPath);
                 unitIdChgs.Add(-1);
                 unitIdChgs.Add(id);
-                unitIdChgs.Add(parentAmp);
-                // move all moves to parent amplitude
+                unitIdChgs.Add(parentPath);
+                // move all moves to parent unit
                 for (i = 0; i < n; i++)
                 {
-                    u[parentAmp].addMove(m[i]);
+                    u[parentPath].addMove(m[i]);
                 }
-                // move parent amplitude onto tile that we are currently on
+                // move parent unit onto tile that we are currently on
                 // can't pass in tileX and tileY because this unit's latest TileMoveEvts might not be applied yet
-                events.add(new TileMoveEvt(Math.Max(time, timeSim), parentAmp, (int)FixPt.toLong(pos.x), (int)FixPt.toLong(pos.y)));
-                // move child amplitudes to parent amplitude
-                for (i = 0; i < nChildAmps; i++)
+                events.add(new TileMoveEvt(Math.Max(time, timeSim), parentPath, (int)FixPt.toLong(pos.x), (int)FixPt.toLong(pos.y)));
+                // move child units to parent unit
+                for (i = 0; i < nChildPaths; i++)
                 {
-                    u[parentAmp].addChildAmp(childAmps[i]);
+                    u[parentPath].addChildPath(childPaths[i]);
                 }
-                nChildAmps = 0;
-                // delete this amplitude since it is now incorporated into its parent amplitude
-                u[parentAmp].deleteChildAmp(id, time);
+                nChildPaths = 0;
+                // delete this unit since it is now incorporated into its parent unit
+                u[parentPath].deleteChildPath(id, time);
             }
 
             /// <summary>
-            /// returns index of unit that is the root parent amplitude of this unit
+            /// returns index of unit that is the root parent path of this unit
             /// </summary>
-            public int rootParentAmp()
+            public int rootParentPath()
             {
                 int ret = id;
-                while (u[ret].parentAmp >= 0) ret = u[ret].parentAmp;
+                while (u[ret].parentPath >= 0) ret = u[ret].parentPath;
                 return ret;
             }
 
@@ -842,7 +842,7 @@ namespace Decoherence
                         if (goal.x > g.mapSize) goal.x = g.mapSize;
                         if (goal.y < FixPt.fromLong(0)) goal.y = FixPt.fromLong(0);
                         if (goal.y > g.mapSize) goal.y = g.mapSize;
-                        if (timeCmd < timeSim) unit2 = u[unit].prepareNonLiveAmp(timeCmd); // move replacement amplitude instead of live unit if in past
+                        if (timeCmd < timeSim) unit2 = u[unit].prepareNonLivePath(timeCmd); // move replacement path instead of live path if in past
                         u[unit2].addMove(UnitMove.fromSpeed(timeCmd, g.unitT[u[unit2].type].speed, curPos, goal));
                         i++;
                     }
@@ -850,7 +850,7 @@ namespace Decoherence
             }
         }
 
-        public enum UnitAction : byte { MakeAmplitude, DeleteAmplitude };
+        public enum UnitAction : byte { MakePath, DeletePath };
 
         /// <summary>
         /// command to apply an action to a set of units
@@ -874,17 +874,17 @@ namespace Decoherence
                 cmdHistory.add(this); // copy event to command history list (it should've already been popped from event list)
                 foreach (int unit in units)
                 {
-                    if (action == UnitAction.MakeAmplitude)
+                    if (action == UnitAction.MakePath)
                     {
-                        // happens at timeCmd + 1 so addTileMoveEvts() knows to initially put new amplitude on visibility tiles
-                        // TODO: move new amplitude immediately after making it
-                        u[unit].makeChildAmp(timeCmd + 1);
+                        // happens at timeCmd + 1 so addTileMoveEvts() knows to initially put new unit on visibility tiles
+                        // TODO: move new unit immediately after making it
+                        u[unit].makeChildPath(timeCmd + 1);
                     }
-                    else if (action == UnitAction.DeleteAmplitude)
+                    else if (action == UnitAction.DeletePath)
                     {
-                        // happens at timeCmd so that when paused, making amplitude then deleting parent amplitude doesn't move parent's tile pos off map
+                        // happens at timeCmd so that when paused, making path then deleting parent path doesn't move parent's tile pos off map
                         // (where child's tile pos initially is)
-                        u[unit].deleteAmp(timeCmd);
+                        u[unit].deletePath(timeCmd);
                     }
                 }
             }
@@ -1001,7 +1001,7 @@ namespace Decoherence
                     }
                     else if (u[unit].coherent && !tiles[tileX, tileY].coherentWhen(u[unit].player, time))
                     {
-                        u[unit].decohere(time); // TODO: sometimes this is called when the tile should be coherent (reproduce by putting many amplitudes in ring formation)
+                        u[unit].decohere(time); // TODO: sometimes this is called when the tile should be coherent (reproduce by putting many units in ring formation when no enemy units on map)
                     }
                     if (tXPrev >= 0 && tXPrev < tileLen() && tYPrev >= 0 && tYPrev < tileLen())
                     {

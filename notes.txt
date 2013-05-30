@@ -1,5 +1,4 @@
 todo:
-rename amplitudes to paths
 optimize coherence calculation
 add/improve comments
 should Universe data be directly in Sim class?
@@ -119,7 +118,7 @@ changing the past and wavefunctions levels:
   - put introduction text in "what they didn't see" repeat
   - initially show detailed animation for each move command, then short animation retracing particle's movement every time after that
 
-amplitudes levels: (find better synonym for "part 2" such as redux?)
+paths levels: (find better synonym for "part 2" such as redux?)
 - better than a coin flip, part 2
 - spreading coherence, part 2
 - retroactive coherence, part 2
@@ -128,22 +127,22 @@ amplitudes levels: (find better synonym for "part 2" such as redux?)
 random notes:
 - phrase from AI wisdom: "expand selection by radius"
 - flip/mirror map for some players in multiplayer game
-- only share amplitudes if option is checked for a selection of units (don't want units randomly disappearing out of nowhere)
-  - if some wavefunctions don't overlap yet, send amplitudes going between those units
-- make amplitudes with same parent unit(s) pulse in phase with each other as excuse to say they're coherent (if not in a quantum way)
-  - if multiple parent units share some but not all amplitudes with each other, show superposition of their pulsing (maybe with offset positions so it's clearer they're separate)
+- only share paths if option is checked for a selection of units (don't want units randomly disappearing out of nowhere)
+  - if some wavefunctions don't overlap yet, send paths going between those units
+- make paths with same parent unit(s) pulse in phase with each other as excuse to say they're coherent (if not in a quantum way)
+  - if multiple parent units share some but not all paths with each other, show superposition of their pulsing (maybe with offset positions so it's clearer they're separate)
   - pulse parent units at different frequencies? (faster pulsing can be done with lower amplitude b/c more noticeable)
   - pulse wavefunctions (in different colors for different parent units?) so can say they're coherent too?
 - don't bother with fastest unit going at light speed, so don't need to have relativity
   - if need it for 1 q&a video, use command line or mod option to enable it
 - population limit? (or just make units expensive enough that you can't make too many)
-- if 1 amplitude mining & 1 amplitude scouting and use miner's money to make a fighter and fighter decoheres, then miner must have been mining (not scouting)
-- introduce amplitudes 1st, then introduce wavefunctions as amplitudes that go everywhere in a region? (skipping manual time travel)
+- if 1 path mining & 1 path scouting and use miner's money to make a fighter and fighter decoheres, then miner must have been mining (not scouting)
+- introduce paths 1st, then introduce wavefunctions as paths going everywhere in a region? (skipping manual time travel)
   - but manual time travel is nice though
-  - keep in mind hard to force using time travel in levels if can do amplitudes
+  - keep in mind hard to force using time travel in levels if can use paths
 - Matthew says have story or something to make game interesting for people not interested in "physics" q&a's
 - unit type ideas (Matthew says using real life particles is bad idea)
-  - don't need too many unit types b/c time travel & amplitudes already make the game interesting
+  - don't need too many unit types b/c time travel & paths already make the game interesting
   - can have ranged units with visible laser paths
     - except can only see own snipers' laser paths (from all possible snipers)
     - other units' range is less than vis radius, so would have decohered by the time they shoot (so ok for anyone to see laser path)
@@ -153,7 +152,7 @@ random notes:
   - sniper unit that shoots further than visibility range (but can shoot units that other units see)
     - which sniper shot it?
     - reload slowly so not too powerful?
-    - have checkbox to automatically delete amplitude if another player gets too close, so can surround snipers with worker amplitudes
+    - have option to change into different unit type if seen by another player, so using multiple paths doesn't just make snipers easier to find
   - Matthew's unit images can be pixellated to keep them simple
   - workers/miners with low/0 attack (use as "helpers" in levels)
     - make more interesting name for them?
