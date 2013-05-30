@@ -1044,40 +1044,6 @@ namespace Decoherence
         }
 
         /// <summary>
-        /// event in which a player starts seeing a tile (TODO: incomplete, probably should copy code from visAdd())
-        /// </summary>
-        public class PlayerVisAddEvt : SimEvt
-        {
-            public int player;
-            public int tileX, tileY;
-
-            public PlayerVisAddEvt(long timeVal, int playerVal, int tileXVal, int tileYVal)
-            {
-                time = timeVal;
-                player = playerVal;
-                tileX = tileXVal;
-                tileY = tileYVal;
-            }
-
-            public override void apply()
-            {
-                int i, tX, tY;
-                // add events to add visibility to surrounding tiles (likely has bugs)
-                for (tX = Math.Max(0, tileX - 1); tX <= Math.Min(tileLen() - 1, tileX + 1); tX++)
-                {
-                    for (tY = Math.Max(0, tileY - 1); tY <= Math.Min(tileLen() - 1, tileY + 1); tY++)
-                    {
-                        if ((tX != tileX || tY != tileY) && !tiles[tX, tY].playerVisLatest(player))
-                        {
-                            // probably should use more accurate time
-                            events.add(new PlayerVisAddEvt(time - (1 << FixPt.Precision) / maxSpeed, player, tX, tY));
-                        }
-                    }
-                }
-            }
-        }
-
-        /// <summary>
         /// event in which a player stops seeing a tile
         /// </summary>
         public class PlayerVisRemoveEvt : SimEvt
@@ -1197,7 +1163,6 @@ namespace Decoherence
         private static void visAdd(int unit, int tileX, int tileY, long time)
         {
             int i, tX, tY;
-            bool filled = true;
             if (tileX >= 0 && tileX < tileLen() && tileY >= 0 && tileY < tileLen())
             {
                 if (tiles[tileX, tileY].unitVisLatest(unit)) throw new InvalidOperationException("unit " + unit + " already sees tile (" + tileX + ", " + tileY + ")");
@@ -1226,14 +1191,6 @@ namespace Decoherence
                             }
                         }
                     }
-                    for (tX = Math.Max(0, tileX - 1); tX <= Math.Min(tileLen() - 1, tileX + 1); tX++)
-                    {
-                        for (tY = Math.Max(0, tileY - 1); tY <= Math.Min(tileLen() - 1, tileY + 1); tY++)
-                        {
-                            if (!tiles[tileX, tileY].playerVisLatest(u[unit].player)) filled = false;
-                        }
-                    }
-                    //if (filled) events.add(new PlayerVisAddEvt(time, u[unit].player, tileX, tileY));
                 }
             }
         }
