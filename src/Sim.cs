@@ -38,18 +38,18 @@ namespace Decoherence
             public long speed;
             public int[] damage; // damage done per attack to each unit type
             public long reload; // time needed to reload
-            public FixPt range; // range of attack
-            public FixPt tightFormationSpacing;
+            public long range; // range of attack
+            public long tightFormationSpacing;
             public double selRadius;
         }
 
         public class Scenario
         {
-            public FixPt mapSize;
+            public long mapSize;
             public long updateInterval;
-            public FixPt visRadius;
+            public long visRadius;
             public long camSpeed;
-            public FixPt.Vector camPos;
+            public FP.Vector camPos;
             public float drawScl;
             public float drawSclMin;
             public float drawSclMax;
@@ -103,10 +103,10 @@ namespace Decoherence
         {
             public long timeStart; // time when starts moving
             public long timeEnd; // time when finishes moving
-            public FixPt.Vector vecStart; // z indicates rotation (TODO: implement rotation)
-            public FixPt.Vector vecEnd;
+            public FP.Vector vecStart; // z indicates rotation (TODO: implement rotation)
+            public FP.Vector vecEnd;
 
-            public UnitMove(long timeStartVal, long timeEndVal, FixPt.Vector vecStartVal, FixPt.Vector vecEndVal)
+            public UnitMove(long timeStartVal, long timeEndVal, FP.Vector vecStartVal, FP.Vector vecEndVal)
             {
                 timeStart = timeStartVal;
                 timeEnd = timeEndVal;
@@ -114,33 +114,33 @@ namespace Decoherence
                 vecEnd = vecEndVal;
             }
 
-            public UnitMove(long timeVal, FixPt.Vector vecVal)
+            public UnitMove(long timeVal, FP.Vector vecVal)
                 : this(timeVal, timeVal + 1, vecVal, vecVal)
             {
             }
 
-            public static UnitMove fromSpeed(long timeStartVal, long speed, FixPt.Vector vecStartVal, FixPt.Vector vecEndVal)
+            public static UnitMove fromSpeed(long timeStartVal, long speed, FP.Vector vecStartVal, FP.Vector vecEndVal)
             {
-                return new UnitMove(timeStartVal, timeStartVal + new FixPt.Vector(vecEndVal - vecStartVal).length().data / speed, vecStartVal, vecEndVal);
+                return new UnitMove(timeStartVal, timeStartVal + new FP.Vector(vecEndVal - vecStartVal).length() / speed, vecStartVal, vecEndVal);
             }
 
             /// <summary>
             /// returns location at specified time
             /// </summary>
-            public FixPt.Vector calcPos(long time)
+            public FP.Vector calcPos(long time)
             {
                 if (time >= timeEnd) return vecEnd;
-                return vecStart + (vecEnd - vecStart) * (new FixPt(time - timeStart) / new FixPt(timeEnd - timeStart));
+                return vecStart + (vecEnd - vecStart) * FP.div(time - timeStart, timeEnd - timeStart);
             }
 
-            public long timeAtX(FixPt x)
+            public long timeAtX(long x)
             {
-                return lineCalcX(new FixPt.Vector(new FixPt(timeStart), vecStart.x), new FixPt.Vector(new FixPt(timeEnd), vecEnd.x), x).data;
+                return lineCalcX(new FP.Vector(timeStart, vecStart.x), new FP.Vector(timeEnd, vecEnd.x), x);
             }
 
-            public long timeAtY(FixPt y)
+            public long timeAtY(long y)
             {
-                return lineCalcX(new FixPt.Vector(new FixPt(timeStart), vecStart.y), new FixPt.Vector(new FixPt(timeEnd), vecEnd.y), y).data;
+                return lineCalcX(new FP.Vector(timeStart, vecStart.y), new FP.Vector(timeEnd, vecEnd.y), y);
             }
         }
 
@@ -151,7 +151,7 @@ namespace Decoherence
             public int player;
             public int n; // number of moves
             public UnitMove[] m;
-            //public FixPt.Vector pos; // current position
+            //public FP.Vector pos; // current position
             public int tileX, tileY; // current position on visibility tiles
             public int nTimeHealth;
             public long[] timeHealth; // times at which each health increment is removed
@@ -164,7 +164,7 @@ namespace Decoherence
             public int nChildPaths;
             public int[] childPaths; // indices of temporary units which move along alternate paths that this unit could take
 
-            public Unit(int idVal, int typeVal, int playerVal, long startTime, FixPt.Vector startPos)
+            public Unit(int idVal, int typeVal, int playerVal, long startTime, FP.Vector startPos)
             {
                 id = idVal;
                 type = typeVal;
@@ -194,13 +194,13 @@ namespace Decoherence
             {
                 SimEvtList pastEvents = new SimEvtList();
                 TileMoveEvt evt;
-                FixPt.Vector pos;
+                FP.Vector pos;
                 int tX, tY, coherenceIndex;
                 if (curTime <= timeSimPast || !exists(curTime)) return;
                 // delete path if tile that unit starts on stops being coherent since timeSimPast
                 pos = calcPos(timeSimPast);
-                tX = (int)FixPt.toLong(pos.x);
-                tY = (int)FixPt.toLong(pos.y);
+                tX = (int)(pos.x >> FP.Precision);
+                tY = (int)(pos.y >> FP.Precision);
                 addTileMoveEvts(ref pastEvents, timeSimPast, Math.Min(curTime, timeSim));
                 evt = (TileMoveEvt)pastEvents.pop();
                 coherenceIndex = tiles[tX, tY].coherentIndexWhen(player, (evt != null) ? evt.time - 1 : curTime);
@@ -255,7 +255,7 @@ namespace Decoherence
                 int i = 0;
                 for (i = n; i < Math.Min(newSize, m.Length); i++)
                 {
-                    m[i] = new UnitMove(0, new FixPt.Vector());
+                    m[i] = new UnitMove(0, new FP.Vector());
                 }
                 n = newSize;
                 if (n > m.Length)
@@ -279,7 +279,7 @@ namespace Decoherence
             /// <summary>
             /// returns location at specified time
             /// </summary>
-            public FixPt.Vector calcPos(long time)
+            public FP.Vector calcPos(long time)
             {
                 return m[getMove(time)].calcPos(time);
             }
@@ -294,7 +294,7 @@ namespace Decoherence
             public void addTileMoveEvts(ref SimEvtList events, long timeMin, long timeMax)
             {
                 int move, moveLast;
-                FixPt.Vector pos, posLast;
+                FP.Vector pos, posLast;
                 int i, tX, tY, dir;
                 if (timeMax < m[0].timeStart) return;
                 moveLast = getMove(timeMin);
@@ -302,7 +302,7 @@ namespace Decoherence
                 if (moveLast < 0)
                 {
                     // put unit on visibility tiles for the first time
-                    events.add(new TileMoveEvt(m[0].timeStart, id, (int)FixPt.toLong(m[0].vecStart.x), (int)FixPt.toLong(m[0].vecStart.y)));
+                    events.add(new TileMoveEvt(m[0].timeStart, id, (int)(m[0].vecStart.x >> FP.Precision), (int)(m[0].vecStart.y >> FP.Precision)));
                     moveLast = 0;
                 }
                 for (i = moveLast; i <= move; i++)
@@ -311,15 +311,15 @@ namespace Decoherence
                     pos = (i == move) ? m[i].calcPos(timeMax) : m[i + 1].vecStart;
                     // moving between columns (x)
                     dir = (pos.x >= posLast.x) ? 0 : -1;
-                    for (tX = (int)FixPt.toLong(FixPt.min(pos.x, posLast.x)) + 1; tX <= (int)FixPt.toLong(FixPt.max(pos.x, posLast.x)); tX++)
+                    for (tX = (int)(Math.Min(pos.x, posLast.x) >> FP.Precision) + 1; tX <= (int)(Math.Max(pos.x, posLast.x) >> FP.Precision); tX++)
                     {
-                        events.add(new TileMoveEvt(m[i].timeAtX(FixPt.fromLong(tX)), id, tX + dir, int.MinValue));
+                        events.add(new TileMoveEvt(m[i].timeAtX(tX << FP.Precision), id, tX + dir, int.MinValue));
                     }
                     // moving between rows (y)
                     dir = (pos.y >= posLast.y) ? 0 : -1;
-                    for (tY = (int)FixPt.toLong(FixPt.min(pos.y, posLast.y)) + 1; tY <= (int)FixPt.toLong(FixPt.max(pos.y, posLast.y)); tY++)
+                    for (tY = (int)(Math.Min(pos.y, posLast.y) >> FP.Precision) + 1; tY <= (int)(Math.Max(pos.y, posLast.y) >> FP.Precision); tY++)
                     {
-                        events.add(new TileMoveEvt(m[i].timeAtY(FixPt.fromLong(tY)), id, int.MinValue, tY + dir));
+                        events.add(new TileMoveEvt(m[i].timeAtY(tY << FP.Precision), id, int.MinValue, tY + dir));
                     }
                 }
             }
@@ -419,7 +419,7 @@ namespace Decoherence
             {
                 if (exists(time) && coherent && time >= timeCohere)
                 {
-                    FixPt.Vector pos = calcPos(time);
+                    FP.Vector pos = calcPos(time);
                     // make new unit
                     setNUnits(nUnits + 1);
                     u[nUnits - 1] = new Unit(nUnits - 1, type, player, time, pos);
@@ -526,7 +526,7 @@ namespace Decoherence
             /// </summary>
             private void moveToParentPath(long time)
             {
-                FixPt.Vector pos = calcPos(Math.Max(time, timeSim));
+                FP.Vector pos = calcPos(Math.Max(time, timeSim));
                 int i;
                 // indicate that this unit changed indices
                 unitIdChgs.Add(parentPath);
@@ -540,7 +540,7 @@ namespace Decoherence
                 }
                 // move parent unit onto tile that we are currently on
                 // can't pass in tileX and tileY because this unit's latest TileMoveEvts might not be applied yet
-                events.add(new TileMoveEvt(Math.Max(time, timeSim), parentPath, (int)FixPt.toLong(pos.x), (int)FixPt.toLong(pos.y)));
+                events.add(new TileMoveEvt(Math.Max(time, timeSim), parentPath, (int)(pos.x >> FP.Precision), (int)(pos.y >> FP.Precision)));
                 // move child units to parent unit
                 for (i = 0; i < nChildPaths; i++)
                 {
@@ -567,7 +567,7 @@ namespace Decoherence
             private void delete(long time)
             {
                 n = 0;
-                m[0] = new UnitMove(long.MaxValue - 1, new FixPt.Vector(FixPt.fromLong(OffMap), FixPt.fromLong(0)));
+                m[0] = new UnitMove(long.MaxValue - 1, new FP.Vector(OffMap, 0));
                 timeCohere = long.MaxValue;
                 events.add(new TileMoveEvt(Math.Max(time, timeSim), id, OffMap, 0));
             }
@@ -759,10 +759,10 @@ namespace Decoherence
         {
             public long timeCmd; // time is latest simulation time when command is given, timeCmd is when units told to move (may be in past)
             public int[] units;
-            public FixPt.Vector pos; // where to move to
+            public FP.Vector pos; // where to move to
             public Formation formation;
 
-            public CmdMoveEvt(long timeVal, long timeCmdVal, int[] unitsVal, FixPt.Vector posVal, Formation formationVal)
+            public CmdMoveEvt(long timeVal, long timeCmdVal, int[] unitsVal, FP.Vector posVal, Formation formationVal)
             {
                 time = timeVal;
                 timeCmd = timeCmdVal;
@@ -773,9 +773,9 @@ namespace Decoherence
 
             public override void apply()
             {
-                FixPt.Vector curPos, goal, offset;
-                FixPt spacing = FixPt.fromLong(0);
-                int rowsX = 0, rowsY = 0, count = 0, i = 0;
+                FP.Vector curPos, goal, rows = new FP.Vector(), offset;
+                long spacing = 0;
+                int count = 0, i = 0;
                 // copy event to command history list (it should've already been popped from event list)
                 cmdHistory.add(this);
                 // count number of units able to move
@@ -793,31 +793,31 @@ namespace Decoherence
                 // TODO: loose formation should be triangular and not use sqrt
                 if (formation == Formation.Loose)
                 {
-                    spacing = FixPt.fromLong(FixPt.toLong(g.visRadius * FixPt.fromDouble(Math.Sqrt(2))));
+                    spacing = FP.mul(g.visRadius, FP.fromDouble(Math.Sqrt(2))) >> FP.Precision << FP.Precision;
                 }
                 else if (formation == Formation.Ring)
                 {
-                    spacing = FixPt.fromLong(FixPt.toLong(g.visRadius * FixPt.fromLong(2)) - 1);
+                    spacing = (g.visRadius * 2 >> FP.Precision) - 1 << FP.Precision;
                 }
                 if (formation == Formation.Tight || formation == Formation.Loose)
                 {
-                    rowsX = (int)Math.Ceiling(Math.Sqrt(count)); // TODO: don't use sqrt
-                    rowsY = (count - 1) / rowsX + 1;
-                    offset = new FixPt.Vector(FixPt.fromLong(rowsX - 1), FixPt.fromLong(rowsY - 1)) * (spacing / FixPt.fromLong(2));
+                    rows.x = (int)Math.Ceiling(Math.Sqrt(count)); // TODO: don't use sqrt
+                    rows.y = (count - 1) / rows.x + 1;
+                    offset = (rows - new FP.Vector(1, 1)) * spacing / 2;
                 }
                 else if (formation == Formation.Ring)
                 {
-                    offset.x = spacing / FixPt.fromLong(2) / FixPt.fromDouble(Math.Sin(Math.PI / count)); // TODO: don't use sin
+                    offset.x = FP.div(spacing / 2, FP.fromDouble(Math.Sin(Math.PI / count))); // TODO: don't use sin
                     offset.y = offset.x;
                 }
                 else
                 {
                     throw new NotImplementedException("requested formation is not implemented");
                 }
-                if (pos.x < FixPt.min(offset.x, g.mapSize / FixPt.fromLong(2))) pos.x = FixPt.min(offset.x, g.mapSize / FixPt.fromLong(2));
-                if (pos.x > g.mapSize - FixPt.min(offset.x, g.mapSize / FixPt.fromLong(2))) pos.x = g.mapSize - FixPt.min(offset.x, g.mapSize / FixPt.fromLong(2));
-                if (pos.y < FixPt.min(offset.y, g.mapSize / FixPt.fromLong(2))) pos.y = FixPt.min(offset.y, g.mapSize / FixPt.fromLong(2));
-                if (pos.y > g.mapSize - FixPt.min(offset.y, g.mapSize / FixPt.fromLong(2))) pos.y = g.mapSize - FixPt.min(offset.y, g.mapSize / FixPt.fromLong(2));
+                if (pos.x < Math.Min(offset.x, g.mapSize / 2)) pos.x = Math.Min(offset.x, g.mapSize / 2);
+                if (pos.x > g.mapSize - Math.Min(offset.x, g.mapSize / 2)) pos.x = g.mapSize - Math.Min(offset.x, g.mapSize / 2);
+                if (pos.y < Math.Min(offset.y, g.mapSize / 2)) pos.y = Math.Min(offset.y, g.mapSize / 2);
+                if (pos.y > g.mapSize - Math.Min(offset.y, g.mapSize / 2)) pos.y = g.mapSize - Math.Min(offset.y, g.mapSize / 2);
                 // move units
                 foreach (int unit in units)
                 {
@@ -827,20 +827,20 @@ namespace Decoherence
                         curPos = u[unit].calcPos(timeCmd);
                         if (formation == Formation.Tight || formation == Formation.Loose)
                         {
-                            goal = pos + new FixPt.Vector(FixPt.fromLong(i % rowsX) * spacing - offset.x, FixPt.fromLong(i / rowsX) * spacing - offset.y);
+                            goal = pos + new FP.Vector((i % rows.x) * spacing - offset.x, i / rows.x * spacing - offset.y);
                         }
                         else if (formation == Formation.Ring)
                         {
                             // TODO: don't use sin or cos
-                            goal = pos + offset.x * new FixPt.Vector(FixPt.fromDouble(Math.Cos(2 * Math.PI * i / count)), FixPt.fromDouble(Math.Sin(2 * Math.PI * i / count)));
+                            goal = pos + offset.x * new FP.Vector(FP.fromDouble(Math.Cos(2 * Math.PI * i / count)), FP.fromDouble(Math.Sin(2 * Math.PI * i / count)));
                         }
                         else
                         {
                             throw new NotImplementedException("requested formation is not implemented");
                         }
-                        if (goal.x < FixPt.fromLong(0)) goal.x = FixPt.fromLong(0);
+                        if (goal.x < 0) goal.x = 0;
                         if (goal.x > g.mapSize) goal.x = g.mapSize;
-                        if (goal.y < FixPt.fromLong(0)) goal.y = FixPt.fromLong(0);
+                        if (goal.y < 0) goal.y = 0;
                         if (goal.y > g.mapSize) goal.y = g.mapSize;
                         if (timeCmd < timeSim) unit2 = u[unit].prepareNonLivePath(timeCmd); // move replacement path instead of live path if in past
                         u[unit2].addMove(UnitMove.fromSpeed(timeCmd, g.unitT[u[unit2].type].speed, curPos, goal));
@@ -902,7 +902,7 @@ namespace Decoherence
 
             public override void apply()
             {
-                FixPt.Vector pos;
+                FP.Vector pos;
                 int target;
                 long distSq, targetDistSq;
                 int i, j;
@@ -914,7 +914,7 @@ namespace Decoherence
                         // done reloading, look for closest target to potentially attack
                         pos = u[i].calcPos(time);
                         target = -1;
-                        targetDistSq = g.unitT[u[i].type].range.data * g.unitT[u[i].type].range.data + 1;
+                        targetDistSq = g.unitT[u[i].type].range * g.unitT[u[i].type].range + 1;
                         for (j = 0; j < nUnits; j++)
                         {
                             if (i != j && u[j].isLive(time) && g.players[u[i].player].mayAttack[u[j].player] && g.unitT[u[i].type].damage[u[j].type] > 0)
@@ -1091,7 +1091,7 @@ namespace Decoherence
                             if ((tX != tileX || tY != tileY) && tiles[tX, tY].playerVisLatest(player))
                             {
                                 // TODO: use more accurate time
-                                events.add(new PlayerVisRemoveEvt(time + (1 << FixPt.Precision) / maxSpeed, player, tX, tY));
+                                events.add(new PlayerVisRemoveEvt(time + (1 << FP.Precision) / maxSpeed, player, tX, tY));
                             }
                         }
                     }
@@ -1229,7 +1229,7 @@ namespace Decoherence
                     // so remove this tile's visibility for this player
                     if (timePlayerVis != long.MaxValue)
                     {
-                        timePlayerVis = Math.Max(time, timePlayerVis + (1 << FixPt.Precision) / maxSpeed); // TODO: use more accurate time
+                        timePlayerVis = Math.Max(time, timePlayerVis + (1 << FP.Precision) / maxSpeed); // TODO: use more accurate time
                         events.add(new PlayerVisRemoveEvt(timePlayerVis, u[unit].player, tileX, tileY));
                     }
                 }
@@ -1289,33 +1289,33 @@ namespace Decoherence
 
         public static bool inVis(long tX, long tY)
         {
-            //return Math.Max(Math.Abs(tX), Math.Abs(tY)) <= FixPt.toLong(g.visRadius);
-            return new FixPt.Vector(FixPt.fromLong(tX), FixPt.fromLong(tY)).lengthSq() <= g.visRadius.data * g.visRadius.data;
+            //return Math.Max(Math.Abs(tX), Math.Abs(tY)) <= (int)(visRadius >> FP.Precision);
+            return new FP.Vector(tX << FP.Precision, tY << FP.Precision).lengthSq() <= g.visRadius * g.visRadius;
         }
 
         public static int tileVisRadius()
         {
-            return (int)FixPt.toLong(g.visRadius); // adding "+ 1" to this actually doesn't make a difference
+            return (int)(g.visRadius >> FP.Precision); // adding "+ 1" to this actually doesn't make a difference
         }
 
-        public static Tile tileAt(FixPt.Vector pos)
+        public static Tile tileAt(FP.Vector pos)
         {
-            return tiles[FixPt.toLong(pos.x), FixPt.toLong(pos.y)];
+            return tiles[pos.x >> FP.Precision, pos.y >> FP.Precision];
         }
 
         public static int tileLen() // TODO: use unitVis.GetUpperBound instead of this function
         {
-            return (int)(FixPt.toLong(g.mapSize) + 1);
+            return (int)((g.mapSize >> FP.Precision) + 1);
         }
 
-        public static FixPt lineCalcX(FixPt.Vector p1, FixPt.Vector p2, FixPt y)
+        public static long lineCalcX(FP.Vector p1, FP.Vector p2, long y)
         {
-            return (p2.x - p1.x) / (p2.y - p1.y) * (y - p1.y) + p1.x;
+            return FP.mul(y - p1.y, FP.div(p2.x - p1.x, p2.y - p1.y)) + p1.x;
         }
 
-        public static FixPt lineCalcY(FixPt.Vector p1, FixPt.Vector p2, FixPt x)
+        public static long lineCalcY(FP.Vector p1, FP.Vector p2, long x)
         {
-            return (p2.y - p1.y) / (p2.x - p1.x) * (x - p1.x) + p1.y; // easily derived from point-slope form
+            return FP.mul(x - p1.x, FP.div(p2.y - p1.y, p2.x - p1.x)) + p1.y; // easily derived from point-slope form
         }
     }
 }

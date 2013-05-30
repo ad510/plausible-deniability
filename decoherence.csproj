@@ -54,7 +54,7 @@
       <DependentUpon>App.cs</DependentUpon>
     </Compile>
     <Compile Include="src\DX.cs" />
-    <Compile Include="src\FixPt.cs" />
+    <Compile Include="src\FP.cs" />
     <Compile Include="src\JSON.cs" />
     <Compile Include="src\Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
