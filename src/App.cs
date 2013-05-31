@@ -33,6 +33,7 @@ namespace Decoherence
         SlimDX.Direct3D9.Device d3dOriginalDevice;
         int runMode; // TODO: should this be enum?
         float winDiag;
+        Sim g;
         DX.Img2D[] imgUnit;
         DX.Poly2D tlTile;
         DX.Poly2D tlPoly;
@@ -98,34 +99,34 @@ namespace Decoherence
             json = (Hashtable)Procurios.Public.JSON.JsonDecode(new System.IO.StreamReader(path).ReadToEnd(), ref b);
             if (!b) return false;
             // base scenario
-            Sim.g = new Sim.Scenario();
-            Sim.events = new Sim.SimEvtList();
-            Sim.cmdHistory = new Sim.SimEvtList();
-            Sim.unitIdChgs = new List<int>();
-            Sim.maxSpeed = 0;
-            Sim.g.mapSize = jsonFP(json, "mapSize");
-            Sim.g.updateInterval = (long)jsonDouble(json, "updateInterval");
-            Sim.g.visRadius = jsonFP(json, "visRadius");
-            Sim.g.camSpeed = jsonFP(json, "camSpeed");
-            Sim.g.camPos = jsonFPVector(json, "camPos", new FP.Vector(Sim.g.mapSize / 2, Sim.g.mapSize / 2));
-            Sim.g.drawScl = (float)jsonDouble(json, "drawScl");
-            Sim.g.drawSclMin = (float)jsonDouble(json, "drawSclMin");
-            Sim.g.drawSclMax = (float)jsonDouble(json, "drawSclMax");
-            Sim.g.healthBarSize = jsonVector2(json, "healthBarSize");
-            Sim.g.healthBarYOffset = (float)jsonDouble(json, "healthBarYOffset");
-            Sim.g.backCol = jsonColor4(json, "backCol");
-            Sim.g.borderCol = jsonColor4(json, "borderCol");
-            Sim.g.noVisCol = jsonColor4(json, "noVisCol");
-            Sim.g.playerVisCol = jsonColor4(json, "playerVisCol");
-            Sim.g.unitVisCol = jsonColor4(json, "unitVisCol");
-            Sim.g.coherentCol = jsonColor4(json, "coherentCol");
-            Sim.g.pathCol = jsonColor4(json, "pathCol");
-            Sim.g.healthBarBackCol = jsonColor4(json, "healthBarBackCol");
-            Sim.g.healthBarFullCol = jsonColor4(json, "healthBarFullCol");
-            Sim.g.healthBarEmptyCol = jsonColor4(json, "healthBarEmptyCol");
-            //Sim.g.music = jsonString(json, "music");
+            g = new Sim();
+            g.events = new SimEvtList();
+            g.cmdHistory = new SimEvtList();
+            g.unitIdChgs = new List<int>();
+            g.maxSpeed = 0;
+            g.mapSize = jsonFP(json, "mapSize");
+            g.updateInterval = (long)jsonDouble(json, "updateInterval");
+            g.visRadius = jsonFP(json, "visRadius");
+            g.camSpeed = jsonFP(json, "camSpeed");
+            g.camPos = jsonFPVector(json, "camPos", new FP.Vector(g.mapSize / 2, g.mapSize / 2));
+            g.drawScl = (float)jsonDouble(json, "drawScl");
+            g.drawSclMin = (float)jsonDouble(json, "drawSclMin");
+            g.drawSclMax = (float)jsonDouble(json, "drawSclMax");
+            g.healthBarSize = jsonVector2(json, "healthBarSize");
+            g.healthBarYOffset = (float)jsonDouble(json, "healthBarYOffset");
+            g.backCol = jsonColor4(json, "backCol");
+            g.borderCol = jsonColor4(json, "borderCol");
+            g.noVisCol = jsonColor4(json, "noVisCol");
+            g.playerVisCol = jsonColor4(json, "playerVisCol");
+            g.unitVisCol = jsonColor4(json, "unitVisCol");
+            g.coherentCol = jsonColor4(json, "coherentCol");
+            g.pathCol = jsonColor4(json, "pathCol");
+            g.healthBarBackCol = jsonColor4(json, "healthBarBackCol");
+            g.healthBarFullCol = jsonColor4(json, "healthBarFullCol");
+            g.healthBarEmptyCol = jsonColor4(json, "healthBarEmptyCol");
+            //Sim.music = jsonString(json, "music");
             // players
-            Sim.g.nPlayers = 0;
+            g.nPlayers = 0;
             jsonA = jsonArray(json, "players");
             if (jsonA != null)
             {
@@ -135,23 +136,23 @@ namespace Decoherence
                     player.name = jsonString(jsonO, "name");
                     player.isUser = jsonBool(jsonO, "isUser");
                     player.user = (short)jsonDouble(jsonO, "user");
-                    Sim.g.nPlayers++;
-                    Array.Resize(ref Sim.g.players, Sim.g.nPlayers);
-                    Sim.g.players[Sim.g.nPlayers - 1] = player;
+                    g.nPlayers++;
+                    Array.Resize(ref g.players, g.nPlayers);
+                    g.players[g.nPlayers - 1] = player;
                 }
                 foreach (Hashtable jsonO in jsonA)
                 {
                     Hashtable jsonO2 = jsonObject(jsonO, "mayAttack");
-                    i = Sim.g.playerNamed(jsonString(jsonO, "name"));
-                    Sim.g.players[i].mayAttack = new bool[Sim.g.nPlayers];
-                    for (j = 0; j < Sim.g.nPlayers; j++)
+                    i = g.playerNamed(jsonString(jsonO, "name"));
+                    g.players[i].mayAttack = new bool[g.nPlayers];
+                    for (j = 0; j < g.nPlayers; j++)
                     {
-                        Sim.g.players[i].mayAttack[j] = jsonBool(jsonO2, Sim.g.players[j].name);
+                        g.players[i].mayAttack[j] = jsonBool(jsonO2, g.players[j].name);
                     }
                 }
             }
             // unit types
-            Sim.g.nUnitT = 0;
+            g.nUnitT = 0;
             jsonA = jsonArray(json, "unitTypes");
             if (jsonA != null)
             {
@@ -166,61 +167,61 @@ namespace Decoherence
                     unitT.range = jsonFP(jsonO, "range");
                     unitT.tightFormationSpacing = jsonFP(jsonO, "tightFormationSpacing");
                     unitT.selRadius = jsonDouble(jsonO, "selRadius");
-                    if (unitT.speed > Sim.maxSpeed) Sim.maxSpeed = unitT.speed;
-                    Sim.g.nUnitT++;
-                    Array.Resize(ref Sim.g.unitT, Sim.g.nUnitT);
-                    Sim.g.unitT[Sim.g.nUnitT - 1] = unitT;
+                    if (unitT.speed > g.maxSpeed) g.maxSpeed = unitT.speed;
+                    g.nUnitT++;
+                    Array.Resize(ref g.unitT, g.nUnitT);
+                    g.unitT[g.nUnitT - 1] = unitT;
                 }
                 foreach (Hashtable jsonO in jsonA)
                 {
                     Hashtable jsonO2 = jsonObject(jsonO, "damage");
-                    i = Sim.g.unitTypeNamed(jsonString(jsonO, "name"));
-                    Sim.g.unitT[i].damage = new int[Sim.g.nUnitT];
-                    for (j = 0; j < Sim.g.nUnitT; j++)
+                    i = g.unitTypeNamed(jsonString(jsonO, "name"));
+                    g.unitT[i].damage = new int[g.nUnitT];
+                    for (j = 0; j < g.nUnitT; j++)
                     {
-                        Sim.g.unitT[i].damage[j] = (int)jsonDouble(jsonO2, Sim.g.unitT[j].name);
+                        g.unitT[i].damage[j] = (int)jsonDouble(jsonO2, g.unitT[j].name);
                     }
                 }
             }
-            imgUnit = new DX.Img2D[Sim.g.nUnitT * Sim.g.nPlayers];
-            for (i = 0; i < Sim.g.nUnitT; i++)
+            imgUnit = new DX.Img2D[g.nUnitT * g.nPlayers];
+            for (i = 0; i < g.nUnitT; i++)
             {
-                for (j = 0; j < Sim.g.nPlayers; j++)
+                for (j = 0; j < g.nPlayers; j++)
                 {
-                    k = i * Sim.g.nUnitT + j;
+                    k = i * g.nUnitT + j;
                     imgUnit[k].init();
-                    if (!imgUnit[k].open(appPath + modPath + Sim.g.players[j].name + '.' + Sim.g.unitT[i].imgPath, Color.White.ToArgb())) MessageBox.Show("Warning: failed to load " + modPath + Sim.g.players[j].name + '.' + Sim.g.unitT[i].imgPath);
+                    if (!imgUnit[k].open(appPath + modPath + g.players[j].name + '.' + g.unitT[i].imgPath, Color.White.ToArgb())) MessageBox.Show("Warning: failed to load " + modPath + g.players[j].name + '.' + g.unitT[i].imgPath);
                     imgUnit[k].rotCenter.X = imgUnit[k].srcWidth / 2;
                     imgUnit[k].rotCenter.Y = imgUnit[k].srcHeight / 2;
                 }
             }
             // tiles
-            Sim.tiles = new Sim.Tile[Sim.tileLen(), Sim.tileLen()];
-            for (i = 0; i < Sim.tileLen(); i++)
+            g.tiles = new Sim.Tile[g.tileLen(), g.tileLen()];
+            for (i = 0; i < g.tileLen(); i++)
             {
-                for (j = 0; j < Sim.tileLen(); j++)
+                for (j = 0; j < g.tileLen(); j++)
                 {
-                    Sim.tiles[i, j] = new Sim.Tile();
+                    g.tiles[i, j] = new Sim.Tile(g);
                 }
             }
             // units
-            Sim.nUnits = 0;
+            g.nUnits = 0;
             jsonA = jsonArray(json, "units");
             if (jsonA != null)
             {
                 foreach (Hashtable jsonO in jsonA)
                 {
-                    Sim.setNUnits(Sim.nUnits + 1);
-                    Sim.u[Sim.nUnits - 1] = new Sim.Unit(Sim.nUnits - 1, Sim.g.unitTypeNamed(jsonString(jsonO, "type")),
-                        Sim.g.playerNamed(jsonString(jsonO, "player")), (long)jsonDouble(jsonO, "startTime"),
-                        jsonFPVector(jsonO, "startPos", new FP.Vector((long)(rand.NextDouble() * Sim.g.mapSize), (long)(rand.NextDouble() * Sim.g.mapSize))));
+                    g.setNUnits(g.nUnits + 1);
+                    g.u[g.nUnits - 1] = new Unit(g, g.nUnits - 1, g.unitTypeNamed(jsonString(jsonO, "type")),
+                        g.playerNamed(jsonString(jsonO, "player")), (long)jsonDouble(jsonO, "startTime"),
+                        jsonFPVector(jsonO, "startPos", new FP.Vector((long)(rand.NextDouble() * g.mapSize), (long)(rand.NextDouble() * g.mapSize))));
                 }
             }
             selUnits = new List<int>();
             // tile graphics
             tlTile.primitive = PrimitiveType.TriangleList;
             tlTile.setNPoly(0);
-            tlTile.nV[0] = Sim.tileLen() * Sim.tileLen() * 2;
+            tlTile.nV[0] = g.tileLen() * g.tileLen() * 2;
             tlTile.poly[0].v = new DX.TLVertex[tlTile.nV[0] * 3];
             for (i = 0; i < tlTile.poly[0].v.Length; i++)
             {
@@ -232,8 +233,8 @@ namespace Decoherence
             speed = 0;
             timeSpeedChg = Environment.TickCount - 1000;
             timeGame = 0;
-            Sim.timeSim = -1;
-            Sim.events.add(new Sim.UpdateEvt(0));
+            g.timeSim = -1;
+            g.events.add(new UpdateEvt(0));
             DX.timeNow = Environment.TickCount;
             runMode = 1;
             return true;
@@ -288,15 +289,15 @@ namespace Decoherence
             if (button == 1) // select
             {
                 if (!DX.keyState.IsPressed(Key.LeftControl) && !DX.keyState.IsPressed(Key.LeftShift)) selUnits.Clear();
-                for (i = 0; i < Sim.nUnits; i++)
+                for (i = 0; i < g.nUnits; i++)
                 {
-                    if (selPlayer == Sim.u[i].player && timeGame >= Sim.u[i].m[0].timeStart)
+                    if (selPlayer == g.u[i].player && timeGame >= g.u[i].m[0].timeStart)
                     {
-                        drawPos = simToDrawPos(Sim.u[i].calcPos(timeGame));
-                        if (drawPos.X + Sim.g.unitT[Sim.u[i].type].selRadius >= Math.Min(DX.mouseDX[1], DX.mouseX)
-                            && drawPos.X - Sim.g.unitT[Sim.u[i].type].selRadius <= Math.Max(DX.mouseDX[1], DX.mouseX)
-                            && drawPos.Y + Sim.g.unitT[Sim.u[i].type].selRadius >= Math.Min(DX.mouseDY[1], DX.mouseY)
-                            && drawPos.Y - Sim.g.unitT[Sim.u[i].type].selRadius <= Math.Max(DX.mouseDY[1], DX.mouseY))
+                        drawPos = simToDrawPos(g.u[i].calcPos(timeGame));
+                        if (drawPos.X + g.unitT[g.u[i].type].selRadius >= Math.Min(DX.mouseDX[1], DX.mouseX)
+                            && drawPos.X - g.unitT[g.u[i].type].selRadius <= Math.Max(DX.mouseDX[1], DX.mouseX)
+                            && drawPos.Y + g.unitT[g.u[i].type].selRadius >= Math.Min(DX.mouseDY[1], DX.mouseY)
+                            && drawPos.Y - g.unitT[g.u[i].type].selRadius <= Math.Max(DX.mouseDY[1], DX.mouseY))
                         {
                             if (selUnits.Contains(i))
                             {
@@ -313,8 +314,8 @@ namespace Decoherence
             }
             else if (button == 2) // move
             {
-                Sim.events.add(new Sim.CmdMoveEvt(Sim.timeSim, timeGame + 1, selUnits.ToArray(), mouseSimPos,
-                    DX.keyState.IsPressed(Key.LeftControl) ? Sim.Formation.Loose : DX.keyState.IsPressed(Key.LeftAlt) ? Sim.Formation.Ring : Sim.Formation.Tight));
+                g.events.add(new CmdMoveEvt(g.timeSim, timeGame + 1, selUnits.ToArray(), mouseSimPos,
+                    DX.keyState.IsPressed(Key.LeftControl) ? Formation.Loose : DX.keyState.IsPressed(Key.LeftAlt) ? Formation.Ring : Formation.Tight));
             }
         }
 
@@ -323,13 +324,13 @@ namespace Decoherence
             while (runMode == 1)
             {
                 updateTime();
-                for (int i = 0; i < Sim.nUnits; i++)
+                for (int i = 0; i < g.nUnits; i++)
                 {
                     //if (timeGame > Sim.timeSim + 1000 && Sim.u[i].player == selPlayer) Sim.u[i].updatePast(timeGame);
-                    if (Sim.u[i].player == selPlayer) Sim.u[i].updatePast(timeGame);
+                    if (g.u[i].player == selPlayer) g.u[i].updatePast(timeGame);
                 }
                 //if (timeGame > Sim.timeSim + 1000) Sim.update(timeGame);
-                Sim.update(timeGame);
+                g.update(timeGame);
                 updateInput();
                 draw();
             }
@@ -346,10 +347,10 @@ namespace Decoherence
                     // rewind
                     timeGameDiff = -(DX.timeNow - DX.timeLast);
                 }
-                else if (DX.timeNow - DX.timeLast > Sim.g.updateInterval && timeGame + DX.timeNow - DX.timeLast >= Sim.timeSim)
+                else if (DX.timeNow - DX.timeLast > g.updateInterval && timeGame + DX.timeNow - DX.timeLast >= g.timeSim)
                 {
                     // cap time difference to a max amount
-                    timeGameDiff = Sim.g.updateInterval;
+                    timeGameDiff = g.updateInterval;
                 }
                 else
                 {
@@ -364,15 +365,15 @@ namespace Decoherence
         {
             int i;
             // handle changed unit indices
-            for (i = 0; i < Sim.unitIdChgs.Count / 2; i++)
+            for (i = 0; i < g.unitIdChgs.Count / 2; i++)
             {
-                if (selUnits.Contains(Sim.unitIdChgs[i * 2]))
+                if (selUnits.Contains(g.unitIdChgs[i * 2]))
                 {
-                    if (Sim.unitIdChgs[i * 2 + 1] >= 0 && !selUnits.Contains(Sim.unitIdChgs[i * 2 + 1])) selUnits.Insert(selUnits.IndexOf(Sim.unitIdChgs[i * 2]), Sim.unitIdChgs[i * 2 + 1]);
-                    selUnits.Remove(Sim.unitIdChgs[i * 2]);
+                    if (g.unitIdChgs[i * 2 + 1] >= 0 && !selUnits.Contains(g.unitIdChgs[i * 2 + 1])) selUnits.Insert(selUnits.IndexOf(g.unitIdChgs[i * 2]), g.unitIdChgs[i * 2 + 1]);
+                    selUnits.Remove(g.unitIdChgs[i * 2]);
                 }
             }
-            Sim.unitIdChgs.Clear();
+            g.unitIdChgs.Clear();
             // handle changed keys
             DX.keyboardUpdate();
             for (i = 0; i < DX.keysChanged.Count; i++)
@@ -380,7 +381,7 @@ namespace Decoherence
                 if (DX.keysChanged[i] == Key.Space && DX.keyState.IsPressed(DX.keysChanged[i]))
                 {
                     // change selected player
-                    selPlayer = (selPlayer + 1) % Sim.g.nPlayers;
+                    selPlayer = (selPlayer + 1) % g.nPlayers;
                     selUnits.Clear();
                 }
                 else if (DX.keysChanged[i] == Key.P && DX.keyState.IsPressed(DX.keysChanged[i]))
@@ -403,34 +404,34 @@ namespace Decoherence
                 else if (DX.keysChanged[i] == Key.N && DX.keyState.IsPressed(DX.keysChanged[i]))
                 {
                     // create new paths that selected units could take
-                    Sim.events.add(new Sim.CmdUnitActionEvt(Sim.timeSim, timeGame, selUnits.ToArray(), Sim.UnitAction.MakePath));
+                    g.events.add(new CmdUnitActionEvt(g.timeSim, timeGame, selUnits.ToArray(), UnitAction.MakePath));
                 }
                 else if (DX.keysChanged[i] == Key.Delete && DX.keyState.IsPressed(DX.keysChanged[i]))
                 {
                     // delete selected paths
-                    Sim.events.add(new Sim.CmdUnitActionEvt(Sim.timeSim, timeGame, selUnits.ToArray(), Sim.UnitAction.DeletePath));
+                    g.events.add(new CmdUnitActionEvt(g.timeSim, timeGame, selUnits.ToArray(), UnitAction.DeletePath));
                 }
             }
             // move camera
             if (DX.keyState.IsPressed(Key.LeftArrow) || DX.mouseX == 0 || (this.Left > 0 && DX.mouseX <= 15))
             {
-                Sim.g.camPos.x -= Sim.g.camSpeed * (DX.timeNow - DX.timeLast);
-                if (Sim.g.camPos.x < 0) Sim.g.camPos.x = 0;
+                g.camPos.x -= g.camSpeed * (DX.timeNow - DX.timeLast);
+                if (g.camPos.x < 0) g.camPos.x = 0;
             }
             if (DX.keyState.IsPressed(Key.RightArrow) || DX.mouseX == DX.resX - 1 || (this.Left + this.Width < Screen.PrimaryScreen.Bounds.Width && DX.mouseX >= DX.resX - 15))
             {
-                Sim.g.camPos.x += Sim.g.camSpeed * (DX.timeNow - DX.timeLast);
-                if (Sim.g.camPos.x > Sim.g.mapSize) Sim.g.camPos.x = Sim.g.mapSize;
+                g.camPos.x += g.camSpeed * (DX.timeNow - DX.timeLast);
+                if (g.camPos.x > g.mapSize) g.camPos.x = g.mapSize;
             }
             if (DX.keyState.IsPressed(Key.UpArrow) || DX.mouseY == 0 || (this.Top > 0 && DX.mouseY <= 15))
             {
-                Sim.g.camPos.y -= Sim.g.camSpeed * (DX.timeNow - DX.timeLast);
-                if (Sim.g.camPos.y < 0) Sim.g.camPos.y = 0;
+                g.camPos.y -= g.camSpeed * (DX.timeNow - DX.timeLast);
+                if (g.camPos.y < 0) g.camPos.y = 0;
             }
             if (DX.keyState.IsPressed(Key.DownArrow) || DX.mouseY == DX.resY - 1 || (this.Top + this.Height < Screen.PrimaryScreen.Bounds.Height && DX.mouseY >= DX.resY - 15))
             {
-                Sim.g.camPos.y += Sim.g.camSpeed * (DX.timeNow - DX.timeLast);
-                if (Sim.g.camPos.y > Sim.g.mapSize) Sim.g.camPos.y = Sim.g.mapSize;
+                g.camPos.y += g.camSpeed * (DX.timeNow - DX.timeLast);
+                if (g.camPos.y > g.mapSize) g.camPos.y = g.mapSize;
             }
         }
 
@@ -440,18 +441,18 @@ namespace Decoherence
             Color4 col;
             float f;
             int i, j, tX, tY;
-            DX.d3dDevice.Clear(ClearFlags.Target | ClearFlags.ZBuffer, Sim.g.backCol, 1, 0);
+            DX.d3dDevice.Clear(ClearFlags.Target | ClearFlags.ZBuffer, g.backCol, 1, 0);
             DX.d3dDevice.BeginScene();
             DX.d3dDevice.SetTexture(0, null);
             // visibility tiles
             // TODO: don't draw tiles off map
-            for (tX = 0; tX < Sim.tileLen(); tX++)
+            for (tX = 0; tX < g.tileLen(); tX++)
             {
-                for (tY = 0; tY < Sim.tileLen(); tY++)
+                for (tY = 0; tY < g.tileLen(); tY++)
                 {
                     vec = simToDrawPos(new FP.Vector(tX << FP.Precision, tY << FP.Precision));
                     vec2 = simToDrawPos(new FP.Vector((tX + 1) << FP.Precision, (tY + 1) << FP.Precision));
-                    i = (tX * Sim.tileLen() + tY) * 6;
+                    i = (tX * g.tileLen() + tY) * 6;
                     tlTile.poly[0].v[i].x = vec.X;
                     tlTile.poly[0].v[i].y = vec.Y;
                     tlTile.poly[0].v[i + 1].x = vec2.X;
@@ -464,12 +465,12 @@ namespace Decoherence
                     tlTile.poly[0].v[i + 4].y = vec2.Y;
                     tlTile.poly[0].v[i + 5].x = vec2.X;
                     tlTile.poly[0].v[i + 5].y = vec2.Y;
-                    col = Sim.g.noVisCol;
-                    if (Sim.tiles[tX, tY].playerVisWhen(selPlayer, timeGame))
+                    col = g.noVisCol;
+                    if (g.tiles[tX, tY].playerVisWhen(selPlayer, timeGame))
                     {
-                        col += Sim.g.playerVisCol;
-                        if (Sim.tiles[tX, tY].playerDirectVisWhen(selPlayer, timeGame)) col += Sim.g.unitVisCol;
-                        if (Sim.tiles[tX, tY].coherentWhen(selPlayer, timeGame)) col += Sim.g.coherentCol;
+                        col += g.playerVisCol;
+                        if (g.tiles[tX, tY].playerDirectVisWhen(selPlayer, timeGame)) col += g.unitVisCol;
+                        if (g.tiles[tX, tY].coherentWhen(selPlayer, timeGame)) col += g.coherentCol;
                     }
                     for (j = i; j < i + 6; j++)
                     {
@@ -485,12 +486,12 @@ namespace Decoherence
             tlPoly.poly[0].v = new DX.TLVertex[tlPoly.nV[0] + 1];
             for (i = 0; i < 4; i++)
             {
-                tlPoly.poly[0].v[i].color = Sim.g.borderCol.ToArgb();
+                tlPoly.poly[0].v[i].color = g.borderCol.ToArgb();
                 tlPoly.poly[0].v[i].rhw = 1;
                 tlPoly.poly[0].v[i].z = 0;
             }
             vec = simToDrawPos(new FP.Vector());
-            vec2 = simToDrawPos(new FP.Vector(Sim.g.mapSize, Sim.g.mapSize));
+            vec2 = simToDrawPos(new FP.Vector(g.mapSize, g.mapSize));
             tlPoly.poly[0].v[0].x = vec.X;
             tlPoly.poly[0].v[0].y = vec.Y;
             tlPoly.poly[0].v[1].x = vec2.X;
@@ -502,28 +503,28 @@ namespace Decoherence
             tlPoly.poly[0].v[4] = tlPoly.poly[0].v[0];
             tlPoly.draw();
             // unit path lines
-            for (i = 0; i < Sim.nUnits; i++)
+            for (i = 0; i < g.nUnits; i++)
             {
-                if (unitDrawPos(i, ref vec) && Sim.u[i].parentPath >= 0 && timeGame >= Sim.u[Sim.u[i].parentPath].m[0].timeStart)
+                if (unitDrawPos(i, ref vec) && g.u[i].parentPath >= 0 && timeGame >= g.u[g.u[i].parentPath].m[0].timeStart)
                 {
                     DX.d3dDevice.SetTexture(0, null);
                     tlPoly.primitive = PrimitiveType.LineStrip;
                     tlPoly.setNPoly(0);
                     tlPoly.nV[0] = 1;
                     tlPoly.poly[0].v = new DX.TLVertex[tlPoly.nV[0] + 1];
-                    tlPoly.poly[0].v[0] = new DX.TLVertex(vec, Sim.g.pathCol.ToArgb(), 0, 0);
-                    tlPoly.poly[0].v[1] = new DX.TLVertex(simToDrawPos(Sim.u[Sim.u[i].parentPath].calcPos(timeGame)), Sim.g.pathCol.ToArgb(), 0, 0);
+                    tlPoly.poly[0].v[0] = new DX.TLVertex(vec, g.pathCol.ToArgb(), 0, 0);
+                    tlPoly.poly[0].v[1] = new DX.TLVertex(simToDrawPos(g.u[g.u[i].parentPath].calcPos(timeGame)), g.pathCol.ToArgb(), 0, 0);
                     tlPoly.draw();
                 }
             }
             // units
             // TODO: scale unit images
-            for (i = 0; i < Sim.nUnits; i++)
+            for (i = 0; i < g.nUnits; i++)
             {
                 if (unitDrawPos(i, ref vec))
                 {
-                    j = Sim.u[i].type * Sim.g.nUnitT + Sim.u[i].player;
-                    if (Sim.u[i].isLive(timeGame))
+                    j = g.u[i].type * g.nUnitT + g.u[i].player;
+                    if (g.u[i].isLive(timeGame))
                     {
                         imgUnit[j].color = new Color4(1, 1, 1, 1).ToArgb();
                     }
@@ -536,7 +537,7 @@ namespace Decoherence
                     if (DX.keyState.IsPressed(Key.LeftShift) && selUnits.Contains(i))
                     {
                         // show final position if holding shift
-                        imgUnit[j].pos = simToDrawPos(Sim.u[i].m[Sim.u[i].n - 1].vecEnd);
+                        imgUnit[j].pos = simToDrawPos(g.u[i].m[g.u[i].n - 1].vecEnd);
                         imgUnit[j].draw();
                     }
                 }
@@ -546,28 +547,28 @@ namespace Decoherence
             {
                 if (unitDrawPos(unit, ref vec))
                 {
-                    j = Sim.u[unit].type * Sim.g.nUnitT + Sim.u[unit].player;
-                    f = ((float)Sim.u[Sim.u[unit].rootParentPath()].healthWhen(timeGame)) / Sim.g.unitT[Sim.u[unit].type].maxHealth;
+                    j = g.u[unit].type * g.nUnitT + g.u[unit].player;
+                    f = ((float)g.u[g.u[unit].rootParentPath()].healthWhen(timeGame)) / g.unitT[g.u[unit].type].maxHealth;
                     tlPoly.primitive = PrimitiveType.TriangleStrip;
                     tlPoly.setNPoly(0);
                     tlPoly.nV[0] = 2;
                     DX.d3dDevice.SetTexture(0, null);
                     // background
-                    if (Sim.u[unit].healthWhen(timeGame) > 0)
+                    if (g.u[unit].healthWhen(timeGame) > 0)
                     {
-                        tlPoly.poly[0].makeRec(vec.X + Sim.g.healthBarSize.X * winDiag * (-0.5f + f),
-                            vec.X + Sim.g.healthBarSize.X * winDiag * 0.5f,
-                            vec.Y - imgUnit[j].srcHeight / 2 - (Sim.g.healthBarYOffset - Sim.g.healthBarSize.Y / 2) * winDiag,
-                            vec.Y - imgUnit[j].srcHeight / 2 - (Sim.g.healthBarYOffset + Sim.g.healthBarSize.Y / 2) * winDiag,
-                            0, Sim.g.healthBarBackCol.ToArgb(), Sim.g.healthBarBackCol.ToArgb(), Sim.g.healthBarBackCol.ToArgb(), Sim.g.healthBarBackCol.ToArgb());
+                        tlPoly.poly[0].makeRec(vec.X + g.healthBarSize.X * winDiag * (-0.5f + f),
+                            vec.X + g.healthBarSize.X * winDiag * 0.5f,
+                            vec.Y - imgUnit[j].srcHeight / 2 - (g.healthBarYOffset - g.healthBarSize.Y / 2) * winDiag,
+                            vec.Y - imgUnit[j].srcHeight / 2 - (g.healthBarYOffset + g.healthBarSize.Y / 2) * winDiag,
+                            0, g.healthBarBackCol.ToArgb(), g.healthBarBackCol.ToArgb(), g.healthBarBackCol.ToArgb(), g.healthBarBackCol.ToArgb());
                         tlPoly.draw();
                     }
                     // foreground
-                    col = Sim.g.healthBarEmptyCol + (Sim.g.healthBarFullCol - Sim.g.healthBarEmptyCol) * f;
-                    tlPoly.poly[0].makeRec(vec.X + Sim.g.healthBarSize.X * winDiag * -0.5f,
-                        vec.X + Sim.g.healthBarSize.X * winDiag * (-0.5f + f),
-                        vec.Y - imgUnit[j].srcHeight / 2 - (Sim.g.healthBarYOffset - Sim.g.healthBarSize.Y / 2) * winDiag,
-                        vec.Y - imgUnit[j].srcHeight / 2 - (Sim.g.healthBarYOffset + Sim.g.healthBarSize.Y / 2) * winDiag,
+                    col = g.healthBarEmptyCol + (g.healthBarFullCol - g.healthBarEmptyCol) * f;
+                    tlPoly.poly[0].makeRec(vec.X + g.healthBarSize.X * winDiag * -0.5f,
+                        vec.X + g.healthBarSize.X * winDiag * (-0.5f + f),
+                        vec.Y - imgUnit[j].srcHeight / 2 - (g.healthBarYOffset - g.healthBarSize.Y / 2) * winDiag,
+                        vec.Y - imgUnit[j].srcHeight / 2 - (g.healthBarYOffset + g.healthBarSize.Y / 2) * winDiag,
                         0, col.ToArgb(), col.ToArgb(), col.ToArgb(), col.ToArgb());
                     tlPoly.draw();
                 }
@@ -599,7 +600,7 @@ namespace Decoherence
                 tlPoly.draw();
             }
             // text
-            DX.textDraw(fnt, new Color4(1, 1, 1, 1), (timeGame >= Sim.timeSim) ? "LIVE" : "TIME TRAVELING", 0, 0);
+            DX.textDraw(fnt, new Color4(1, 1, 1, 1), (timeGame >= g.timeSim) ? "LIVE" : "TIME TRAVELING", 0, 0);
             if (paused) fnt.DrawString(null, "PAUSED", new Rectangle(0, 0, DX.resX, (int)(DX.resY * FntSize)), DrawTextFormat.Center | DrawTextFormat.Top, new Color4(1, 1, 1, 1));
             if (Environment.TickCount < timeSpeedChg) timeSpeedChg -= UInt32.MaxValue;
             if (Environment.TickCount < timeSpeedChg + 1000) DX.textDraw(fnt, new Color4(1, 1, 1, 1), "SPEED: " + Math.Pow(2, speed) + "x", 0, (int)(DX.resY * FntSize));
@@ -705,21 +706,21 @@ namespace Decoherence
         private bool unitDrawPos(int unit, ref Vector3 pos)
         {
             FP.Vector fpVec;
-            if (!Sim.u[unit].exists(timeGame) || (selPlayer != Sim.u[unit].player && !Sim.u[unit].isLive(timeGame))) return false;
-            fpVec = Sim.u[unit].calcPos(timeGame);
-            if (selPlayer != Sim.u[unit].player && !Sim.tileAt(fpVec).playerVisWhen(selPlayer, timeGame)) return false;
+            if (!g.u[unit].exists(timeGame) || (selPlayer != g.u[unit].player && !g.u[unit].isLive(timeGame))) return false;
+            fpVec = g.u[unit].calcPos(timeGame);
+            if (selPlayer != g.u[unit].player && !g.tileAt(fpVec).playerVisWhen(selPlayer, timeGame)) return false;
             pos = simToDrawPos(fpVec);
             return true;
         }
 
         private float simToDrawScl(long coor)
         {
-            return (float)(FP.toDouble(coor) * Sim.g.drawScl * winDiag);
+            return (float)(FP.toDouble(coor) * g.drawScl * winDiag);
         }
 
         private long drawToSimScl(float coor)
         {
-            return FP.fromDouble(coor / winDiag / Sim.g.drawScl);
+            return FP.fromDouble(coor / winDiag / g.drawScl);
         }
 
         private Vector3 simToDrawScl(FP.Vector vec)
@@ -734,12 +735,12 @@ namespace Decoherence
 
         private Vector3 simToDrawPos(FP.Vector vec)
         {
-            return new Vector3(simToDrawScl(vec.x - Sim.g.camPos.x), simToDrawScl(vec.y - Sim.g.camPos.y), 0f) + new Vector3(DX.resX / 2, DX.resY / 2, 0f);
+            return new Vector3(simToDrawScl(vec.x - g.camPos.x), simToDrawScl(vec.y - g.camPos.y), 0f) + new Vector3(DX.resX / 2, DX.resY / 2, 0f);
         }
 
         private FP.Vector drawToSimPos(Vector3 vec)
         {
-            return new FP.Vector(drawToSimScl(vec.X - DX.resX / 2), drawToSimScl(vec.Y - DX.resY / 2)) + Sim.g.camPos;
+            return new FP.Vector(drawToSimScl(vec.X - DX.resX / 2), drawToSimScl(vec.Y - DX.resY / 2)) + g.camPos;
         }
     }
 }
