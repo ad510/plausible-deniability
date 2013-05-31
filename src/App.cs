@@ -52,11 +52,6 @@ namespace Decoherence
 
         private void App_Load(object sender, EventArgs e)
         {
-            int i, j, k;
-            Hashtable json;
-            ArrayList jsonA;
-            string str;
-            bool b = false;
             appPath = Application.ExecutablePath.Substring(0, Application.ExecutablePath.LastIndexOf("bin\\"));
             rand = new Random();
             if (!DX.init(this.Handle, true))
@@ -77,18 +72,31 @@ namespace Decoherence
                 Application.Exit();
                 return;
             }
-            // fonts (TODO: make font, size, and color customizable by mod)
+            // TODO: make font, size, and color customizable by mod
             fnt = new SlimDX.Direct3D9.Font(DX.d3dDevice, new System.Drawing.Font("Arial", DX.resY * FntSize, GraphicsUnit.Pixel));
-            // load scenario from file
-            // if this ever supports multiplayer games, host should load file & send data to other players, otherwise json double parsing may not match
-            str = new System.IO.StreamReader(appPath + modPath + "scn.json").ReadToEnd();
-            json = (Hashtable)Procurios.Public.JSON.JsonDecode(str, ref b);
-            if (!b)
+            if (!scnOpen(appPath + modPath + "scn.json"))
             {
                 MessageBox.Show("Scenario failed to load" + ErrStr);
                 this.Close();
                 return;
             }
+            gameLoop();
+            this.Close();
+        }
+
+        /// <summary>
+        /// loads scenario from json file and returns whether successful
+        /// </summary>
+        private bool scnOpen(string path)
+        {
+            int i, j, k;
+            Hashtable json;
+            ArrayList jsonA;
+            bool b = false;
+            // if this ever supports multiplayer games, host should load file & send data to other players, otherwise json double parsing may not match
+            if (!System.IO.File.Exists(path)) return false;
+            json = (Hashtable)Procurios.Public.JSON.JsonDecode(new System.IO.StreamReader(path).ReadToEnd(), ref b);
+            if (!b) return false;
             // base scenario
             Sim.g = new Sim.Scenario();
             Sim.events = new Sim.SimEvtList();
@@ -228,8 +236,7 @@ namespace Decoherence
             Sim.events.add(new Sim.UpdateEvt(0));
             DX.timeNow = Environment.TickCount;
             runMode = 1;
-            gameLoop();
-            this.Close();
+            return true;
         }
 
         private void App_FormClosing(object sender, FormClosingEventArgs e)
