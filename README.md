@@ -30,6 +30,8 @@ Controls
 - spacebar = change selected player
 - p = pause/resume
 - r = go backwards in time
+- + = increase speed
+- - = decrease speed
 - n = create new paths that selected units could take
 - delete = delete selected paths
 

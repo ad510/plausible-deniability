@@ -40,8 +40,10 @@ namespace Decoherence
         Random rand;
         int selPlayer;
         List<int> selUnits;
-        bool paused;
         long timeGame;
+        bool paused;
+        int speed;
+        long timeSpeedChg;
 
         public App()
         {
@@ -218,6 +220,9 @@ namespace Decoherence
                 tlTile.poly[0].v[i].z = 0;
             }
             // start game
+            paused = false;
+            speed = 0;
+            timeSpeedChg = Environment.TickCount - 1000;
             timeGame = 0;
             Sim.timeSim = -1;
             Sim.events.add(new Sim.UpdateEvt(0));
@@ -328,21 +333,23 @@ namespace Decoherence
             DX.doEventsX();
             if (!paused)
             {
+                long timeGameDiff;
                 if (DX.keyState != null && DX.keyState.IsPressed(Key.R))
                 {
                     // rewind
-                    timeGame -= DX.timeNow - DX.timeLast;
+                    timeGameDiff = -(DX.timeNow - DX.timeLast);
                 }
                 else if (DX.timeNow - DX.timeLast > Sim.g.updateInterval && timeGame + DX.timeNow - DX.timeLast >= Sim.timeSim)
                 {
                     // cap time difference to a max amount
-                    timeGame += Sim.g.updateInterval;
+                    timeGameDiff = Sim.g.updateInterval;
                 }
                 else
                 {
                     // normal speed
-                    timeGame += DX.timeNow - DX.timeLast;
+                    timeGameDiff = DX.timeNow - DX.timeLast;
                 }
+                timeGame += (long)(timeGameDiff * Math.Pow(2, speed)); // adjust game speed based on user setting
             }
         }
 
@@ -363,16 +370,28 @@ namespace Decoherence
             DX.keyboardUpdate();
             for (i = 0; i < DX.keysChanged.Count; i++)
             {
-                if (DX.keysChanged[i] == Key.P && DX.keyState.IsPressed(DX.keysChanged[i]))
-                {
-                    // pause/resume
-                    paused = !paused;
-                }
-                else if (DX.keysChanged[i] == Key.Space && DX.keyState.IsPressed(DX.keysChanged[i]))
+                if (DX.keysChanged[i] == Key.Space && DX.keyState.IsPressed(DX.keysChanged[i]))
                 {
                     // change selected player
                     selPlayer = (selPlayer + 1) % Sim.g.nPlayers;
                     selUnits.Clear();
+                }
+                else if (DX.keysChanged[i] == Key.P && DX.keyState.IsPressed(DX.keysChanged[i]))
+                {
+                    // pause/resume
+                    paused = !paused;
+                }
+                else if ((DX.keysChanged[i] == Key.Equals || DX.keysChanged[i] == Key.PreviousTrack) && DX.keyState.IsPressed(DX.keysChanged[i]))
+                {
+                    // increase speed
+                    speed++;
+                    timeSpeedChg = Environment.TickCount;
+                }
+                else if (DX.keysChanged[i] == Key.Minus && DX.keyState.IsPressed(DX.keysChanged[i]))
+                {
+                    // decrease speed
+                    speed--;
+                    timeSpeedChg = Environment.TickCount;
                 }
                 else if (DX.keysChanged[i] == Key.N && DX.keyState.IsPressed(DX.keysChanged[i]))
                 {
@@ -568,7 +587,9 @@ namespace Decoherence
             }
             // text
             DX.textDraw(fnt, new Color4(1, 1, 1, 1), (timeGame >= Sim.timeSim) ? "LIVE" : "TIME TRAVELING", 0, 0);
-            if (paused) DX.textDraw(fnt, new Color4(1, 1, 1, 1), "PAUSED", 0, (int)(DX.resY * FntSize));
+            if (paused) fnt.DrawString(null, "PAUSED", new Rectangle(0, 0, DX.resX, (int)(DX.resY * FntSize)), DrawTextFormat.Center | DrawTextFormat.Top, new Color4(1, 1, 1, 1));
+            if (Environment.TickCount < timeSpeedChg) timeSpeedChg -= UInt32.MaxValue;
+            if (Environment.TickCount < timeSpeedChg + 1000) DX.textDraw(fnt, new Color4(1, 1, 1, 1), "SPEED: " + Math.Pow(2, speed) + "x", 0, (int)(DX.resY * FntSize));
             DX.d3dDevice.EndScene();
             DX.d3dDevice.Present();
         }
