@@ -526,6 +526,12 @@ namespace Decoherence
                     }
                     imgUnit[j].pos = vec;
                     imgUnit[j].draw();
+                    if (DX.keyState.IsPressed(Key.LeftShift) && selUnits.Contains(i))
+                    {
+                        // show final position if holding shift
+                        imgUnit[j].pos = simToDrawPos(Sim.u[i].m[Sim.u[i].n - 1].vecEnd);
+                        imgUnit[j].draw();
+                    }
                 }
             }
             // health bars
