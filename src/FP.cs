@@ -139,7 +139,7 @@ namespace Decoherence
         /// </summary>
         /// <remarks>
         /// I also tried making a fixed point data type to replace these functions in commit a2523a5,
-        /// but reverted it in commit 7d01306 because there was too much of a performance hit
+        /// but there was too much of a performance hit so I reverted it in commit 7d01306
         /// </remarks>
         public static long mul(long left, long right)
         {
@@ -151,7 +151,7 @@ namespace Decoherence
         /// </summary>
         /// <remarks>
         /// I also tried making a fixed point data type to replace these functions in commit a2523a5,
-        /// but reverted it in commit 7d01306 because there was too much of a performance hit
+        /// but there was too much of a performance hit so I reverted it in commit 7d01306
         /// </remarks>
         public static long div(long left, long right)
         {
