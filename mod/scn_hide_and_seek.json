@@ -1,0 +1,74 @@
+{
+  "mapSize": 80,
+  "updateInterval": 200,
+  "visRadius": 8,
+  "camSpeed": 0.02,
+  "drawScl": 0.01,
+  "drawSclMin": 0.001,
+  "drawSclMax": 0.1,
+  "healthBarSize": {"x": 0.017, "y": 0.005},
+  "healthBarYOffset": 0.005,
+  "backCol": {"r": 0, "g": 0, "b": 0},
+  "borderCol": {"r": 1, "g": 0.5, "b": 0},
+  "noVisCol": {"r": 0, "g": 0, "b": 0},
+  "playerVisCol": {"r": 0.3, "g": 0.3, "b": 0.3},
+  "unitVisCol": {"r": 0.2, "g": 0.2, "b": 0.2},
+  "coherentCol": {"r": 0.2, "g": 0.2, "b": -0.3},
+  "pathCol": {"r": 0, "g": 1, "b": 0},
+  "healthBarBackCol": {"r": 0, "g": 0, "b": 0},
+  "healthBarFullCol": {"r": 0, "g": 1, "b": 0},
+  "healthBarEmptyCol": {"r": 1, "g": 0, "b": 0},
+  "music": "",
+  "players":
+  [
+    {
+      "name": "blue",
+      "isUser": true,
+      "user": 1,
+      "mayAttack":
+      {
+        "blue": false,
+        "red": true
+      }
+    },
+    {
+      "name": "red",
+      "isUser": true,
+      "user": -1,
+      "mayAttack":
+      {
+        "blue": true,
+        "red": false
+      }
+    }
+  ],
+  "unitTypes":
+  [
+    {
+      "name": "marine",
+      "imgPath": "test.png",
+      "maxHealth": 4,
+      "speed": 0.006,
+      "damage":
+      {
+        "marine": 1
+      }
+      "reload": 2000,
+      "range": 6,
+      "tightFormationSpacing": 2,
+      "selRadius": 16
+    }
+  ],
+  "units":
+  [
+    {
+      "type": "marine",
+      "player": "blue",
+      "startPos": {"x": 40, "y": 40}
+    },
+    {
+      "type": "marine",
+      "player": "red",
+    }
+  ]
+}
