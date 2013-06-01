@@ -320,7 +320,7 @@ namespace Decoherence
                 }
                 else if (g.u[unit].coherent && !g.tiles[tileX, tileY].coherentWhen(g.u[unit].player, time))
                 {
-                    g.u[unit].decohere(time); // TODO: sometimes this is called when the tile should be coherent (reproduce by putting many units in ring formation when no enemy units on map)
+                    g.u[unit].decohere(); // TODO: sometimes this is called when the tile should be coherent (reproduce by putting many units in ring formation when no enemy units on map)
                 }
                 if (tXPrev >= 0 && tXPrev < g.tileLen() && tYPrev >= 0 && tYPrev < g.tileLen())
                 {

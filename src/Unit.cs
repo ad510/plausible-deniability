@@ -169,7 +169,7 @@ namespace Decoherence
                 {
                     replaceParentPath = false;
                     g.u[parentPath].deleteChildPathsAfter(m[0].timeStart);
-                    moveToParentPath(g.timeSim);
+                    moveToParentPath();
                 }
                 else
                 {
@@ -310,18 +310,18 @@ namespace Decoherence
         }
 
         /// <summary>
-        /// stops allowing unit to time travel or move along multiple paths starting at specified time
+        /// stops allowing unit to time travel or move along multiple paths starting at timeSim
         /// </summary>
-        public void decohere(long time)
+        public void decohere()
         {
             coherent = false;
             timeCohere = long.MaxValue;
-            deleteAllChildPaths(time);
+            deleteAllChildPaths();
             if (parentPath >= 0)
             {
                 int parentPathTemp = parentPath;
-                moveToParentPath(time);
-                g.u[parentPathTemp].decohere(time);
+                moveToParentPath();
+                g.u[parentPathTemp].decohere();
             }
         }
 
@@ -347,7 +347,7 @@ namespace Decoherence
                 if (path >= 0)
                 {
                     deleteChildPathsAfter(g.u[path].m[0].timeStart); // delete non-live child paths made after the child path that we will take
-                    g.u[path].moveToParentPath(time);
+                    g.u[path].moveToParentPath();
                     return true;
                 }
             }
@@ -359,7 +359,7 @@ namespace Decoherence
                     g.unitIdChgs.Add(id);
                     g.unitIdChgs.Add(parentPath);
                 }
-                g.u[parentPath].deleteChildPath(id, time);
+                g.u[parentPath].deleteChildPath(id);
                 return true;
             }
             return false; // this unit is only moving along 1 path, so there are no other paths to replace this path if it's deleted
@@ -432,7 +432,7 @@ namespace Decoherence
         /// <summary>
         /// non-recursively delete specified child path
         /// </summary>
-        private void deleteChildPath(int unit, long time)
+        private void deleteChildPath(int unit)
         {
             int index;
             for (index = 0; index < nChildPaths && childPaths[index] != unit; index++) ;
@@ -444,20 +444,20 @@ namespace Decoherence
             }
             nChildPaths--;
             // delete child path
-            g.u[unit].delete(time);
+            g.u[unit].delete();
             g.u[unit].parentPath = -1;
         }
 
         /// <summary>
         /// recursively delete all child paths
         /// </summary>
-        private void deleteAllChildPaths(long time)
+        private void deleteAllChildPaths()
         {
             for (int i = 0; i < nChildPaths; i++)
             {
-                g.u[childPaths[i]].delete(time);
+                g.u[childPaths[i]].delete();
                 g.u[childPaths[i]].parentPath = -1;
-                g.u[childPaths[i]].deleteAllChildPaths(time);
+                g.u[childPaths[i]].deleteAllChildPaths();
             }
             nChildPaths = 0;
         }
@@ -480,9 +480,9 @@ namespace Decoherence
         /// <summary>
         /// make parent unit take the path of this unit, then delete this unit
         /// </summary>
-        private void moveToParentPath(long time)
+        private void moveToParentPath()
         {
-            FP.Vector pos = calcPos(Math.Max(time, g.timeSim));
+            FP.Vector pos = calcPos(g.timeSim);
             int i;
             // indicate that this unit changed indices
             g.unitIdChgs.Add(parentPath);
@@ -496,7 +496,7 @@ namespace Decoherence
             }
             // move parent unit onto tile that we are currently on
             // can't pass in tileX and tileY because this unit's latest TileMoveEvts might not be applied yet
-            g.events.add(new TileMoveEvt(Math.Max(time, g.timeSim), parentPath, (int)(pos.x >> FP.Precision), (int)(pos.y >> FP.Precision)));
+            g.events.add(new TileMoveEvt(g.timeSim, parentPath, (int)(pos.x >> FP.Precision), (int)(pos.y >> FP.Precision)));
             // move child units to parent unit
             for (i = 0; i < nChildPaths; i++)
             {
@@ -504,7 +504,7 @@ namespace Decoherence
             }
             nChildPaths = 0;
             // delete this unit since it is now incorporated into its parent unit
-            g.u[parentPath].deleteChildPath(id, time);
+            g.u[parentPath].deleteChildPath(id);
         }
 
         /// <summary>
@@ -520,12 +520,12 @@ namespace Decoherence
         /// <summary>
         /// make this unit as if it never existed
         /// </summary>
-        private void delete(long time)
+        private void delete()
         {
             n = 0;
             m[0] = new Move(long.MaxValue - 1, new FP.Vector(Sim.OffMap, 0));
             timeCohere = long.MaxValue;
-            g.events.add(new TileMoveEvt(Math.Max(time, g.timeSim), id, Sim.OffMap, 0));
+            g.events.add(new TileMoveEvt(g.timeSim, id, Sim.OffMap, 0));
         }
 
         /// <summary>

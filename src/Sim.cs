@@ -344,7 +344,7 @@ namespace Decoherence
             {
                 if (player == u[i].player && tileX == u[i].tileX && tileY == u[i].tileY && u[i].coherent)
                 {
-                    u[i].decohere(time);
+                    u[i].decohere();
                 }
             }
         }
