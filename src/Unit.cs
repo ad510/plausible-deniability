@@ -136,6 +136,7 @@ namespace Decoherence
             pos = calcPos(timeSimPast);
             tX = (int)(pos.x >> FP.Precision);
             tY = (int)(pos.y >> FP.Precision);
+            // without modifications, line below may cause syncing problems in multiplayer b/c addTileMoveEvts() sometimes adds events before timeSimPast
             addTileMoveEvts(ref pastEvents, timeSimPast, Math.Min(curTime, g.timeSim));
             evt = (TileMoveEvt)pastEvents.pop();
             coherenceIndex = g.tiles[tX, tY].coherentIndexWhen(player, (evt != null) ? evt.time - 1 : curTime);
@@ -232,6 +233,7 @@ namespace Decoherence
         /// <summary>
         /// inserts TileMoveEvt events for this unit into events for the time interval from timeMin to timeMax
         /// </summary>
+        /// <remarks>due to fixed point imprecision in lineCalcX() and lineCalcY(), this sometimes adds events outside the requested time interval</remarks>
         public void addTileMoveEvts(ref SimEvtList events, long timeMin, long timeMax)
         {
             int move, moveLast;

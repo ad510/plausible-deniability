@@ -255,7 +255,16 @@ namespace Decoherence
                     }
                 }
             }
+            // add events to move units between tiles
+            // this shouldn't be done in Sim.update() because addTileMoveEvts() sometimes adds events before timeSim
+            for (i = 0; i < g.nUnits; i++)
+            {
+                g.u[i].addTileMoveEvts(ref g.events, time, time + g.updateInterval);
+            }
+            g.movedUnits.Clear();
+            // add next UpdateEvt
             g.events.add(new UpdateEvt(time + g.updateInterval));
+            g.timeUpdateEvt = time;
         }
     }
 
@@ -314,13 +323,13 @@ namespace Decoherence
             if (tileX >= 0 && tileX < g.tileLen() && tileY >= 0 && tileY < g.tileLen())
             {
                 // update whether this unit may time travel
-                if (!g.u[unit].coherent && g.tiles[tileX, tileY].coherentWhen(g.u[unit].player, time))
+                if (!g.u[unit].coherent && g.tiles[tileX, tileY].coherentLatest(g.u[unit].player))
                 {
                     g.u[unit].cohere(time);
                 }
-                else if (g.u[unit].coherent && !g.tiles[tileX, tileY].coherentWhen(g.u[unit].player, time))
+                else if (g.u[unit].coherent && !g.tiles[tileX, tileY].coherentLatest(g.u[unit].player))
                 {
-                    g.u[unit].decohere(); // TODO: sometimes this is called when the tile should be coherent (reproduce by putting many units in ring formation when no enemy units on map)
+                    g.u[unit].decohere();
                 }
                 if (tXPrev >= 0 && tXPrev < g.tileLen() && tYPrev >= 0 && tYPrev < g.tileLen())
                 {

@@ -257,6 +257,7 @@ namespace Decoherence
         public List<int> unitIdChgs; // list of units that changed indices (old index followed by new index)
         public long maxSpeed; // speed of fastest unit (is max speed that players can gain or lose visibility)
         public long timeSim; // current simulation time
+        public long timeUpdateEvt; // last time that an UpdateEvt was applied
 
         /// <summary>
         /// intelligently resize unit array to specified size
@@ -277,11 +278,6 @@ namespace Decoherence
             SimEvt evt;
             long timeSimNext = Math.Max(curTime, timeSim);
             int i;
-            // check if units moved between tiles
-            for (i = 0; i < nUnits; i++)
-            {
-                u[i].addTileMoveEvts(ref events, timeSim, timeSimNext);
-            }
             // apply simulation events
             movedUnits = new List<int>();
             while (events.peekTime() <= timeSimNext)
@@ -290,7 +286,6 @@ namespace Decoherence
                 timeSim = evt.time;
                 evt.apply(this);
                 // if event caused unit(s) to move, delete and recalculate later events moving them between tiles
-                // (could this cause syncing problems due to events with the same time being applied in a different order on different computers?)
                 if (movedUnits.Count > 0)
                 {
                     for (i = 0; i < events.events.Count; i++)
@@ -303,7 +298,7 @@ namespace Decoherence
                     }
                     foreach (int unit in movedUnits)
                     {
-                        u[unit].addTileMoveEvts(ref events, timeSim, timeSimNext);
+                        u[unit].addTileMoveEvts(ref events, timeSim, timeUpdateEvt + updateInterval);
                     }
                     movedUnits.Clear();
                 }

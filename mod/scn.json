@@ -1,6 +1,6 @@
 {
   "mapSize": 80,
-  "updateInterval": 250,
+  "updateInterval": 200,
   "visRadius": 8,
   "camSpeed": 0.02,
   "drawScl": 0.01,

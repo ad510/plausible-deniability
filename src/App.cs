@@ -236,7 +236,8 @@ namespace Decoherence
             timeSpeedChg = Environment.TickCount - 1000;
             timeGame = 0;
             g.timeSim = -1;
-            g.events.add(new UpdateEvt(0));
+            g.timeUpdateEvt = long.MinValue;
+            g.events.add(new UpdateEvt(-1));
             DX.timeNow = Environment.TickCount;
             runMode = 1;
             return true;
