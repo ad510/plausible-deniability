@@ -126,7 +126,7 @@ namespace Decoherence
             }
             else if (formation == Formation.Ring)
             {
-                offset.x = FP.div(spacing / 2, FP.fromDouble(Math.Sin(Math.PI / count))); // TODO: don't use sin
+                offset.x = (count == 1) ? 0 : FP.div(spacing / 2, FP.fromDouble(Math.Sin(Math.PI / count))); // TODO: don't use sin
                 offset.y = offset.x;
             }
             else
