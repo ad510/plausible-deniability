@@ -1,5 +1,4 @@
-﻿// game unit
-// Copyright (c) 2013 Andrew Downing
+﻿// Copyright (c) 2013 Andrew Downing
 // Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 // The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
@@ -11,18 +10,25 @@ using System.Text;
 
 namespace Decoherence
 {
+    /// <summary>
+    /// RTS game unit that can do strange things when other players aren't looking
+    /// </summary>
     public class Unit
     {
         /// <summary>
-        /// unit movement (linearly interpolated between 2 points)
+        /// represents a single unit movement that starts at a specified location,
+        /// moves at constant velocity to a specified end location, then stops
         /// </summary>
         public class Move
         {
             public long timeStart; // time when starts moving
             public long timeEnd; // time when finishes moving
-            public FP.Vector vecStart; // z indicates rotation (TODO: implement rotation)
-            public FP.Vector vecEnd;
+            public FP.Vector vecStart; // location at timeStart, z indicates rotation (TODO: implement rotation)
+            public FP.Vector vecEnd; // location at timeEnd, z indicates rotation
 
+            /// <summary>
+            /// constructor that directly sets all instance variables
+            /// </summary>
             public Move(long timeStartVal, long timeEndVal, FP.Vector vecStartVal, FP.Vector vecEndVal)
             {
                 timeStart = timeStartVal;
@@ -31,11 +37,17 @@ namespace Decoherence
                 vecEnd = vecEndVal;
             }
 
+            /// <summary>
+            /// constructor for nonmoving trajectory
+            /// </summary>
             public Move(long timeVal, FP.Vector vecVal)
                 : this(timeVal, timeVal + 1, vecVal, vecVal)
             {
             }
 
+            /// <summary>
+            /// alternate method to create Unit.Move object that asks for speed (in position units per millisecond) instead of end time
+            /// </summary>
             public static Move fromSpeed(long timeStartVal, long speed, FP.Vector vecStartVal, FP.Vector vecEndVal)
             {
                 return new Move(timeStartVal, timeStartVal + new FP.Vector(vecEndVal - vecStartVal).length() / speed, vecStartVal, vecEndVal);
@@ -50,14 +62,20 @@ namespace Decoherence
                 return vecStart + (vecEnd - vecStart) * FP.div(time - timeStart, timeEnd - timeStart);
             }
 
+            /// <summary>
+            /// returns time when position is at specified x value (inaccurate when x isn't between vecStart.x and vecEnd.x)
+            /// </summary>
             public long timeAtX(long x)
             {
-                return Sim.lineCalcX(new FP.Vector(timeStart, vecStart.x), new FP.Vector(timeEnd, vecEnd.x), x);
+                return FP.lineCalcX(new FP.Vector(timeStart, vecStart.x), new FP.Vector(timeEnd, vecEnd.x), x);
             }
 
+            /// <summary>
+            /// returns time when position is at specified y value (inaccurate when y isn't between vecStart.y and vecEnd.y)
+            /// </summary>
             public long timeAtY(long y)
             {
-                return Sim.lineCalcX(new FP.Vector(timeStart, vecStart.y), new FP.Vector(timeEnd, vecEnd.y), y);
+                return FP.lineCalcX(new FP.Vector(timeStart, vecStart.y), new FP.Vector(timeEnd, vecEnd.y), y);
             }
         }
 
@@ -66,7 +84,7 @@ namespace Decoherence
         public int type;
         public int player;
         public int n; // number of moves
-        public Move[] m;
+        public Move[] m; // array of moves (later moves are later in array)
         //public FP.Vector pos; // current position
         public int tileX, tileY; // current position on visibility tiles
         public int nTimeHealth;
@@ -165,7 +183,7 @@ namespace Decoherence
         }
 
         /// <summary>
-        /// resize move array
+        /// intelligently resize move array to specified size
         /// </summary>
         public void setN(int newSize)
         {
@@ -201,6 +219,9 @@ namespace Decoherence
             return m[getMove(time)].calcPos(time);
         }
 
+        /// <summary>
+        /// returns index of move that is occurring at specified time
+        /// </summary>
         public int getMove(long time)
         {
             int ret = n - 1;
@@ -208,6 +229,9 @@ namespace Decoherence
             return ret;
         }
 
+        /// <summary>
+        /// inserts TileMoveEvt events for this unit into events for the time interval from timeMin to timeMax
+        /// </summary>
         public void addTileMoveEvts(ref SimEvtList events, long timeMin, long timeMax)
         {
             int move, moveLast;
@@ -258,11 +282,17 @@ namespace Decoherence
             }
         }
 
+        /// <summary>
+        /// returns health of this unit at latest possible time
+        /// </summary>
         public int healthLatest()
         {
             return g.unitT[type].maxHealth - nTimeHealth;
         }
 
+        /// <summary>
+        /// returns health of this unit at specified time
+        /// </summary>
         public int healthWhen(long time)
         {
             int i = nTimeHealth;
@@ -270,12 +300,18 @@ namespace Decoherence
             return g.unitT[type].maxHealth - i;
         }
 
+        /// <summary>
+        /// allows unit to time travel and move along multiple paths starting at specified time
+        /// </summary>
         public void cohere(long time)
         {
             coherent = true;
             timeCohere = time;
         }
 
+        /// <summary>
+        /// stops allowing unit to time travel or move along multiple paths starting at specified time
+        /// </summary>
         public void decohere(long time)
         {
             coherent = false;
@@ -393,6 +429,9 @@ namespace Decoherence
             g.u[unit].parentPath = id;
         }
 
+        /// <summary>
+        /// non-recursively delete specified child path
+        /// </summary>
         private void deleteChildPath(int unit, long time)
         {
             int index;

@@ -1,7 +1,5 @@
 todo:
 optimize coherence calculation
-add/improve comments
-should Universe data be directly in Sim class?
 remove floating point Sim calculations (look at csci 102 hw2 long sqrt?)
 replace DX.cs structs with classes and rename some vars?
 PolyV2d.makeLineRec method?

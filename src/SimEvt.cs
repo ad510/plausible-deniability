@@ -1,8 +1,13 @@
-﻿// simulation events
-// Copyright (c) 2013 Andrew Downing
+﻿// Copyright (c) 2013 Andrew Downing
 // Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 // The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+/* This file contains:
+ * the different types of simulation events (including user commands) that can be applied at a specific time in the game,
+ * the base class for the simulation events
+ * a list data type that specializes in storing simulation events
+ */
 
 using System;
 using System.Collections.Generic;
@@ -21,6 +26,9 @@ namespace Decoherence
         public abstract void apply(Sim g);
     }
 
+    /// <summary>
+    /// list of simulation events in order of ascending event time
+    /// </summary>
     public class SimEvtList
     {
         public List<SimEvt> events;
@@ -30,6 +38,9 @@ namespace Decoherence
             events = new List<SimEvt>();
         }
 
+        /// <summary>
+        /// inserts specified event into list in order of ascending event time
+        /// </summary>
         public void add(SimEvt evt)
         {
             int ins;
@@ -37,6 +48,9 @@ namespace Decoherence
             events.Insert(ins, evt);
         }
 
+        /// <summary>
+        /// pops the first (earliest) event from the list, returning null if list is empty
+        /// </summary>
         public SimEvt pop()
         {
             if (events.Count == 0) return null;
@@ -45,6 +59,9 @@ namespace Decoherence
             return ret;
         }
 
+        /// <summary>
+        /// returns time of first (earliest) event in list, or long.MaxValue if list is empty
+        /// </summary>
         public long peekTime()
         {
             if (events.Count == 0) return long.MaxValue;
@@ -279,7 +296,7 @@ namespace Decoherence
                 {
                     if (!g.inVis(tX - tXPrev, tY - tYPrev) && g.inVis(tX - tileX, tY - tileY))
                     {
-                        g.visAdd(unit, tX, tY, time);
+                        visAdd(g, unit, tX, tY, time);
                     }
                 }
             }
@@ -290,7 +307,7 @@ namespace Decoherence
                 {
                     if (g.inVis(tX - tXPrev, tY - tYPrev) && !g.inVis(tX - tileX, tY - tileY))
                     {
-                        g.visRemove(unit, tX, tY, time);
+                        visRemove(g, unit, tX, tY, time);
                     }
                 }
             }
@@ -339,6 +356,88 @@ namespace Decoherence
                                 g.events.add(new PlayerVisRemoveEvt(time, g.u[unit].player, tX, tY));
                             }
                         }
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// makes specified tile visible to specified unit starting at specified time, including effects on player visibility
+        /// </summary>
+        private static void visAdd(Sim g, int unit, int tileX, int tileY, long time)
+        {
+            int i, tX, tY;
+            if (tileX >= 0 && tileX < g.tileLen() && tileY >= 0 && tileY < g.tileLen())
+            {
+                if (g.tiles[tileX, tileY].unitVisLatest(unit)) throw new InvalidOperationException("unit " + unit + " already sees tile (" + tileX + ", " + tileY + ")");
+                // add unit to unit visibility tile
+                g.tiles[tileX, tileY].unitVisToggle(unit, time);
+                // TODO: use smarter playerVis adding algorithm
+                // also, if opponent units that can't make anything enter then exit region previously indirectly visible, should use smarter playerVis adding algorithm where last one exited
+                if (!g.tiles[tileX, tileY].playerVisLatest(g.u[unit].player))
+                {
+                    g.tiles[tileX, tileY].playerVis[g.u[unit].player].Add(time);
+                    // check if a tile cohered for this player, or decohered for another player
+                    for (i = 0; i < g.nPlayers; i++)
+                    {
+                        for (tX = Math.Max(0, tileX - g.tileVisRadius()); tX <= Math.Min(g.tileLen() - 1, tileX + g.tileVisRadius()); tX++)
+                        {
+                            for (tY = Math.Max(0, tileY - g.tileVisRadius()); tY <= Math.Min(g.tileLen() - 1, tileY + g.tileVisRadius()); tY++)
+                            {
+                                if (i == g.u[unit].player && !g.tiles[tX, tY].coherentLatest(i) && g.calcCoherent(i, tX, tY, time))
+                                {
+                                    g.coherenceAdd(i, tX, tY, time);
+                                }
+                                else if (i != g.u[unit].player && g.tiles[tX, tY].coherentLatest(i) && !g.calcCoherent(i, tX, tY, time))
+                                {
+                                    g.coherenceRemove(i, tX, tY, time);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// makes specified tile not visible to specified unit starting at specified time, including effects on player visibility
+        /// </summary>
+        private static void visRemove(Sim g, int unit, int tileX, int tileY, long time)
+        {
+            int tX, tY;
+            long timePlayerVis = long.MaxValue;
+            if (tileX >= 0 && tileX < g.tileLen() && tileY >= 0 && tileY < g.tileLen())
+            {
+                if (!g.tiles[tileX, tileY].unitVisLatest(unit)) throw new InvalidOperationException("unit " + unit + " already doesn't see tile (" + tileX + ", " + tileY + ")");
+                // remove unit from unit visibility tile
+                g.tiles[tileX, tileY].unitVisToggle(unit, time);
+                // check if player can't directly see this tile anymore
+                if (g.tiles[tileX, tileY].playerVisLatest(g.u[unit].player) && !g.tiles[tileX, tileY].playerDirectVisLatest(g.u[unit].player))
+                {
+                    // find lowest time that surrounding tiles lost visibility
+                    for (tX = Math.Max(0, tileX - 1); tX <= Math.Min(g.tileLen() - 1, tileX + 1); tX++)
+                    {
+                        for (tY = Math.Max(0, tileY - 1); tY <= Math.Min(g.tileLen() - 1, tileY + 1); tY++)
+                        {
+                            if ((tX != tileX || tY != tileY) && !g.tiles[tX, tY].playerVisLatest(g.u[unit].player))
+                            {
+                                if (g.tiles[tX, tY].playerVis[g.u[unit].player].Count == 0)
+                                {
+                                    timePlayerVis = long.MinValue;
+                                }
+                                else if (g.tiles[tX, tY].playerVis[g.u[unit].player][g.tiles[tX, tY].playerVis[g.u[unit].player].Count - 1] < timePlayerVis)
+                                {
+                                    timePlayerVis = g.tiles[tX, tY].playerVis[g.u[unit].player][g.tiles[tX, tY].playerVis[g.u[unit].player].Count - 1];
+                                }
+                            }
+                        }
+                    }
+                    // if player can't see all neighboring tiles, they won't be able to tell if another player's unit moves into this tile
+                    // so remove this tile's visibility for this player
+                    if (timePlayerVis != long.MaxValue)
+                    {
+                        timePlayerVis = Math.Max(time, timePlayerVis + (1 << FP.Precision) / g.maxSpeed); // TODO: use more accurate time
+                        g.events.add(new PlayerVisRemoveEvt(timePlayerVis, g.u[unit].player, tileX, tileY));
                     }
                 }
             }
