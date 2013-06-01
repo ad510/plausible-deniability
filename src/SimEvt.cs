@@ -384,11 +384,11 @@ namespace Decoherence
                         {
                             for (tY = Math.Max(0, tileY - g.tileVisRadius()); tY <= Math.Min(g.tileLen() - 1, tileY + g.tileVisRadius()); tY++)
                             {
-                                if (i == g.u[unit].player && !g.tiles[tX, tY].coherentLatest(i) && g.calcCoherent(i, tX, tY, time))
+                                if (i == g.u[unit].player && !g.tiles[tX, tY].coherentLatest(i) && g.calcCoherent(i, tX, tY))
                                 {
                                     g.coherenceAdd(i, tX, tY, time);
                                 }
-                                else if (i != g.u[unit].player && g.tiles[tX, tY].coherentLatest(i) && !g.calcCoherent(i, tX, tY, time))
+                                else if (i != g.u[unit].player && g.tiles[tX, tY].coherentLatest(i) && !g.calcCoherent(i, tX, tY))
                                 {
                                     g.coherenceRemove(i, tX, tY, time);
                                 }
@@ -473,11 +473,11 @@ namespace Decoherence
                     {
                         for (tY = Math.Max(0, tileY - g.tileVisRadius()); tY <= Math.Min(g.tileLen() - 1, tileY + g.tileVisRadius()); tY++)
                         {
-                            if (i == player && g.tiles[tX, tY].coherentLatest(i) && !g.calcCoherent(i, tX, tY, time))
+                            if (i == player && g.tiles[tX, tY].coherentLatest(i) && !g.calcCoherent(i, tX, tY))
                             {
                                 g.coherenceRemove(i, tX, tY, time);
                             }
-                            else if (i != player && !g.tiles[tX, tY].coherentLatest(i) && g.calcCoherent(i, tX, tY, time))
+                            else if (i != player && !g.tiles[tX, tY].coherentLatest(i) && g.calcCoherent(i, tX, tY))
                             {
                                 g.coherenceAdd(i, tX, tY, time);
                             }

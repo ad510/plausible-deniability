@@ -350,7 +350,7 @@ namespace Decoherence
         }
 
         /// <summary>
-        /// calculates from player visibility tiles if specified player can infer that no other player can see specified tile at specified time
+        /// calculates from player visibility tiles if specified player can infer that no other player can see specified tile at latest possible time
         /// </summary>
         /// <remarks>
         /// The worst-case scenario would then be that every tile that this player can't see contains another player's unit
@@ -358,7 +358,7 @@ namespace Decoherence
         /// If no other player could see the specified tile in this worst case scenario,
         /// the player can infer that he/she is the only player that can see this tile.
         /// </remarks>
-        public bool calcCoherent(int player, int tileX, int tileY, long time)
+        public bool calcCoherent(int player, int tileX, int tileY)
         {
             int i, tX, tY;
             // check that this player can see all nearby tiles
@@ -366,13 +366,13 @@ namespace Decoherence
             {
                 for (tY = Math.Max(0, tileY - tileVisRadius()); tY <= Math.Min(tileLen() - 1, tileY + tileVisRadius()); tY++)
                 {
-                    if (inVis(tX - tileX, tY - tileY) && !tiles[tX, tY].playerVisWhen(player, time)) return false;
+                    if (inVis(tX - tileX, tY - tileY) && !tiles[tX, tY].playerVisLatest(player)) return false;
                 }
             }
             // check that no other players can see this tile
             for (i = 0; i < nPlayers; i++)
             {
-                if (i != player && tiles[tileX, tileY].playerVisWhen(i, time)) return false;
+                if (i != player && tiles[tileX, tileY].playerVisLatest(i)) return false;
             }
             return true;
         }
