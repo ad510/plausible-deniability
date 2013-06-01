@@ -238,7 +238,7 @@ namespace Decoherence
         {
             int move, moveLast;
             FP.Vector pos, posLast;
-            int i, tX, tY, dir;
+            int i, j, iNext, tX, tY, dir;
             if (timeMax < m[0].timeStart) return;
             moveLast = getMove(timeMin);
             move = getMove(timeMax);
@@ -248,10 +248,20 @@ namespace Decoherence
                 events.add(new TileMoveEvt(m[0].timeStart, id, (int)(m[0].vecStart.x >> FP.Precision), (int)(m[0].vecStart.y >> FP.Precision)));
                 moveLast = 0;
             }
-            for (i = moveLast; i <= move; i++)
+            for (i = moveLast; i <= move; i = iNext)
             {
+                // next move may not be i + 1 if times are out of order
+                iNext = i + 1;
+                for (j = n - 1; j > iNext; j--)
+                {
+                    if (m[j].timeStart <= m[iNext].timeStart)
+                    {
+                        iNext = j;
+                        break;
+                    }
+                }
                 posLast = (i == moveLast) ? m[i].calcPos(Math.Max(timeMin, m[0].timeStart)) : m[i].vecStart;
-                pos = (i == move) ? m[i].calcPos(timeMax) : m[i + 1].vecStart;
+                pos = (i == move) ? m[i].calcPos(timeMax) : m[iNext].vecStart;
                 // moving between columns (x)
                 dir = (pos.x >= posLast.x) ? 0 : -1;
                 for (tX = (int)(Math.Min(pos.x, posLast.x) >> FP.Precision) + 1; tX <= (int)(Math.Max(pos.x, posLast.x) >> FP.Precision); tX++)
@@ -264,6 +274,11 @@ namespace Decoherence
                 {
                     events.add(new TileMoveEvt(m[i].timeAtY(tY << FP.Precision), id, int.MinValue, tY + dir));
                 }
+            }
+            if (healthLatest() == 0 && healthWhen(timeMin) > 0)
+            {
+                // unit lost all health
+                g.events.add(new TileMoveEvt(timeHealth[nTimeHealth - 1], id, Sim.OffMap, 0));
             }
         }
 
@@ -279,7 +294,7 @@ namespace Decoherence
                 if (nTimeHealth >= g.unitT[type].maxHealth)
                 {
                     // unit lost all health
-                    g.events.add(new TileMoveEvt(time, id, Sim.OffMap, 0));
+                    if (!g.movedUnits.Contains(id)) g.movedUnits.Add(id); // indicate to delete and recalculate later TileMoveEvts for this unit
                 }
             }
         }

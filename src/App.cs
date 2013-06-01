@@ -366,7 +366,7 @@ namespace Decoherence
 
         private void updateInput()
         {
-            int i;
+            int i, j;
             // handle changed unit indices
             for (i = 0; i < g.unitIdChgs.Count / 2; i++)
             {
@@ -413,6 +413,30 @@ namespace Decoherence
                 {
                     // delete selected paths
                     g.events.add(new CmdUnitActionEvt(g.timeSim, timeGame, selUnits.ToArray(), UnitAction.DeletePath));
+                }
+                else if (DX.keysChanged[i] == Key.R && DX.keyState.IsPressed(DX.keysChanged[i]) && DX.keyState.IsPressed(Key.LeftControl))
+                {
+                    // instant replay
+                    timeGame = 0;
+                    // hide traces of mischief
+                    for (i = 0; i < g.nUnits; i++)
+                    {
+                        g.u[i].decohere();
+                        g.u[i].tileX = Sim.OffMap + 1;
+                    }
+                    for (i = 0; i < g.tileLen(); i++)
+                    {
+                        for (j = 0; j < g.tileLen(); j++)
+                        {
+                            g.tiles[i, j] = new Sim.Tile(g);
+                        }
+                    }
+                    for (i = 0; i < g.nUnits; i++)
+                    {
+                        g.u[i].addTileMoveEvts(ref g.events, -1, g.timeSim);
+                    }
+                    g.update(g.timeSim);
+                    paused = true;
                 }
             }
             // move camera
