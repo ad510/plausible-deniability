@@ -27,66 +27,39 @@ namespace Decoherence
     }
 
     /// <summary>
-    /// list of simulation events in order of ascending event time
+    /// base class for unit commands
     /// </summary>
-    public class SimEvtList
+    public abstract class CmdEvt : SimEvt
     {
-        public List<SimEvt> events;
+        public long timeCmd; // time is latest simulation time when command is given, timeCmd is when event takes place (may be in past)
+        public int[] units;
 
-        public SimEvtList()
+        protected CmdEvt(long timeVal, long timeCmdVal, int[] unitsVal)
         {
-            events = new List<SimEvt>();
+            time = timeVal;
+            timeCmd = timeCmdVal;
+            units = unitsVal;
         }
 
-        /// <summary>
-        /// inserts specified event into list in order of ascending event time
-        /// </summary>
-        public void add(SimEvt evt)
+        public override void apply(Sim g)
         {
-            int ins;
-            for (ins = events.Count; ins >= 1 && evt.time < events[ins - 1].time; ins--) ;
-            events.Insert(ins, evt);
-        }
-
-        /// <summary>
-        /// pops the first (earliest) event from the list, returning null if list is empty
-        /// </summary>
-        public SimEvt pop()
-        {
-            if (events.Count == 0) return null;
-            SimEvt ret = events[0];
-            events.RemoveAt(0);
-            return ret;
-        }
-
-        /// <summary>
-        /// returns time of first (earliest) event in list, or long.MaxValue if list is empty
-        /// </summary>
-        public long peekTime()
-        {
-            if (events.Count == 0) return long.MaxValue;
-            return events[0].time;
+            g.cmdHistory.add(this); // copy event to command history list (it should've already been popped from event list)
         }
     }
 
     public enum Formation : byte { Tight, Loose, Ring };
 
-    // TODO: make generic CmdEvt class?
     /// <summary>
     /// command to move unit(s)
     /// </summary>
-    public class CmdMoveEvt : SimEvt
+    public class MoveCmdEvt : CmdEvt
     {
-        public long timeCmd; // time is latest simulation time when command is given, timeCmd is when units told to move (may be in past)
-        public int[] units;
         public FP.Vector pos; // where to move to
         public Formation formation;
 
-        public CmdMoveEvt(long timeVal, long timeCmdVal, int[] unitsVal, FP.Vector posVal, Formation formationVal)
+        public MoveCmdEvt(long timeVal, long timeCmdVal, int[] unitsVal, FP.Vector posVal, Formation formationVal)
+            : base(timeVal, timeCmdVal, unitsVal)
         {
-            time = timeVal;
-            timeCmd = timeCmdVal;
-            units = unitsVal;
             pos = posVal;
             formation = formationVal;
         }
@@ -96,13 +69,11 @@ namespace Decoherence
             FP.Vector curPos, goal, rows = new FP.Vector(), offset;
             long spacing = 0;
             int count = 0, i = 0;
-            // copy event to command history list (it should've already been popped from event list)
-            g.cmdHistory.add(this);
+            base.apply(g);
             // count number of units able to move
             foreach (int unit in units)
             {
-                // TODO: line below is repeated later, make it a private method?
-                if (g.u[unit].exists(timeCmd) && (timeCmd >= g.timeSim || timeCmd >= g.u[unit].timeCohere) && g.unitT[g.u[unit].type].speed > 0)
+                if (unitCanMove(g, unit))
                 {
                     count++;
                     if (formation == Formation.Tight && g.unitT[g.u[unit].type].tightFormationSpacing > spacing) spacing = g.unitT[g.u[unit].type].tightFormationSpacing;
@@ -142,7 +113,7 @@ namespace Decoherence
             // move units
             foreach (int unit in units)
             {
-                if (g.u[unit].exists(timeCmd) && (timeCmd >= g.timeSim || timeCmd >= g.u[unit].timeCohere) && g.unitT[g.u[unit].type].speed > 0)
+                if (unitCanMove(g, unit))
                 {
                     int unit2 = unit;
                     curPos = g.u[unit].calcPos(timeCmd);
@@ -163,37 +134,41 @@ namespace Decoherence
                     if (goal.x > g.mapSize) goal.x = g.mapSize;
                     if (goal.y < 0) goal.y = 0;
                     if (goal.y > g.mapSize) goal.y = g.mapSize;
-                    if (timeCmd < g.timeSim) unit2 = g.u[unit].prepareNonLivePath(timeCmd); // move replacement path instead of live path if in past
+                    if (timeCmd < g.timeSim) unit2 = g.u[unit].prepareNonLivePath(timeCmd); // move replacement unit instead of live unit if in past
                     g.u[unit2].addMove(Unit.Move.fromSpeed(timeCmd, g.unitT[g.u[unit2].type].speed, curPos, goal));
                     i++;
                 }
             }
+        }
+
+        private bool unitCanMove(Sim g, int unit)
+        {
+            return g.u[unit].exists(timeCmd) && (timeCmd >= g.timeSim || timeCmd >= g.u[unit].timeCohere) && g.unitT[g.u[unit].type].speed > 0;
         }
     }
 
     /// <summary>
     /// command to make a new unit
     /// </summary>
-    public class CmdMakeUnitEvt : SimEvt
+    public class MakeUnitCmdEvt : CmdEvt
     {
-        public long timeCmd; // time is latest simulation time when command is given, timeCmd is when action is applied (may be in past)
-        public int unit;
         public int type;
 
-        public CmdMakeUnitEvt(long timeVal, long timeCmdVal, int unitVal, int typeVal)
+        public MakeUnitCmdEvt(long timeVal, long timeCmdVal, int[] unitsVal, int typeVal)
+            : base(timeVal, timeCmdVal, unitsVal)
         {
-            time = timeVal;
-            timeCmd = timeCmdVal;
-            unit = unitVal;
             type = typeVal;
         }
 
         public override void apply(Sim g)
         {
-            g.cmdHistory.add(this); // copy event to command history list (it should've already been popped from event list)
-            // happens at timeCmd + 1 so addTileMoveEvts() knows to initially put new unit on visibility tiles
-            // TODO: move new unit immediately after making it
-            g.u[unit].makeChildPath(timeCmd + 1, false, type);
+            base.apply(g);
+            foreach (int unit in units)
+            {
+                // happens at timeCmd + 1 so addTileMoveEvts() knows to initially put new unit on visibility tiles
+                // TODO: move new unit immediately after making it
+                if (g.u[unit].makeChildUnit(timeCmd + 1, false, type)) return;
+            }
         }
     }
 
@@ -202,36 +177,32 @@ namespace Decoherence
     /// <summary>
     /// command to apply an action to a set of units
     /// </summary>
-    public class CmdUnitActionEvt : SimEvt
+    public class UnitActionCmdEvt : CmdEvt
     {
-        public long timeCmd; // time is latest simulation time when command is given, timeCmd is when action is applied (may be in past)
-        public int[] units;
         public UnitAction action;
 
-        public CmdUnitActionEvt(long timeVal, long timeCmdVal, int[] unitsVal, UnitAction actionVal)
+        public UnitActionCmdEvt(long timeVal, long timeCmdVal, int[] unitsVal, UnitAction actionVal)
+            : base(timeVal, timeCmdVal, unitsVal)
         {
-            time = timeVal;
-            timeCmd = timeCmdVal;
-            units = unitsVal;
             action = actionVal;
         }
 
         public override void apply(Sim g)
         {
-            g.cmdHistory.add(this); // copy event to command history list (it should've already been popped from event list)
+            base.apply(g);
             foreach (int unit in units)
             {
                 if (action == UnitAction.MakePath)
                 {
                     // happens at timeCmd + 1 so addTileMoveEvts() knows to initially put new unit on visibility tiles
                     // TODO: move new unit immediately after making it
-                    g.u[unit].makeChildPath(timeCmd + 1, true);
+                    g.u[unit].makeChildUnit(timeCmd + 1, true);
                 }
                 else if (action == UnitAction.DeletePath)
                 {
                     // happens at timeCmd so that when paused, making path then deleting parent path doesn't move parent's tile pos off map
                     // (where child's tile pos initially is)
-                    g.u[unit].deletePath(timeCmd);
+                    g.u[unit].delete(timeCmd);
                 }
             }
         }
@@ -534,6 +505,49 @@ namespace Decoherence
                     }
                 }
             }
+        }
+    }
+
+    /// <summary>
+    /// list of simulation events in order of ascending event time
+    /// </summary>
+    public class SimEvtList
+    {
+        public List<SimEvt> events;
+
+        public SimEvtList()
+        {
+            events = new List<SimEvt>();
+        }
+
+        /// <summary>
+        /// inserts specified event into list in order of ascending event time
+        /// </summary>
+        public void add(SimEvt evt)
+        {
+            int ins;
+            for (ins = events.Count; ins >= 1 && evt.time < events[ins - 1].time; ins--) ;
+            events.Insert(ins, evt);
+        }
+
+        /// <summary>
+        /// pops the first (earliest) event from the list, returning null if list is empty
+        /// </summary>
+        public SimEvt pop()
+        {
+            if (events.Count == 0) return null;
+            SimEvt ret = events[0];
+            events.RemoveAt(0);
+            return ret;
+        }
+
+        /// <summary>
+        /// returns time of first (earliest) event in list, or long.MaxValue if list is empty
+        /// </summary>
+        public long peekTime()
+        {
+            if (events.Count == 0) return long.MaxValue;
+            return events[0].time;
         }
     }
 }

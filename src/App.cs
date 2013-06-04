@@ -343,7 +343,7 @@ namespace Decoherence
             }
             else if (button == 2) // move
             {
-                g.events.add(new CmdMoveEvt(g.timeSim, timeGame + 1, selUnits.ToArray(), mouseSimPos,
+                g.events.add(new MoveCmdEvt(g.timeSim, timeGame + 1, selUnits.ToArray(), mouseSimPos,
                     DX.keyState.IsPressed(Key.LeftControl) ? Formation.Loose : DX.keyState.IsPressed(Key.LeftAlt) ? Formation.Ring : Formation.Tight));
             }
         }
@@ -433,17 +433,17 @@ namespace Decoherence
                 else if (DX.keysChanged[i] >= Key.D1 && DX.keysChanged[i] <= Key.D9 && DX.keysChanged[i] - Key.D1 < g.nUnitT && DX.keyState.IsPressed(DX.keysChanged[i]))
                 {
                     // make unit of specified type
-                    if (selUnits.Count > 0) g.events.add(new CmdMakeUnitEvt(g.timeSim, timeGame, selUnits[0], DX.keysChanged[i] - Key.D1));
+                    if (selUnits.Count > 0) g.events.add(new MakeUnitCmdEvt(g.timeSim, timeGame, selUnits.ToArray(), DX.keysChanged[i] - Key.D1));
                 }
                 else if (DX.keysChanged[i] == Key.N && DX.keyState.IsPressed(DX.keysChanged[i]))
                 {
                     // create new paths that selected units could take
-                    g.events.add(new CmdUnitActionEvt(g.timeSim, timeGame, selUnits.ToArray(), UnitAction.MakePath));
+                    g.events.add(new UnitActionCmdEvt(g.timeSim, timeGame, selUnits.ToArray(), UnitAction.MakePath));
                 }
                 else if (DX.keysChanged[i] == Key.Delete && DX.keyState.IsPressed(DX.keysChanged[i]))
                 {
                     // delete selected paths
-                    g.events.add(new CmdUnitActionEvt(g.timeSim, timeGame, selUnits.ToArray(), UnitAction.DeletePath));
+                    g.events.add(new UnitActionCmdEvt(g.timeSim, timeGame, selUnits.ToArray(), UnitAction.DeletePath));
                 }
                 else if (DX.keysChanged[i] == Key.R && DX.keyState.IsPressed(DX.keysChanged[i]) && DX.keyState.IsPressed(Key.LeftControl))
                 {
@@ -563,7 +563,7 @@ namespace Decoherence
             // unit path lines
             for (i = 0; i < g.nUnits; i++)
             {
-                if (unitDrawPos(i, ref vec) && g.u[i].isChildPath && timeGame >= g.u[g.u[i].parentPath].m[0].timeStart)
+                if (unitDrawPos(i, ref vec) && g.u[i].isChildPath && timeGame >= g.u[g.u[i].parent].m[0].timeStart)
                 {
                     DX.d3dDevice.SetTexture(0, null);
                     tlPoly.primitive = PrimitiveType.LineStrip;
@@ -571,7 +571,7 @@ namespace Decoherence
                     tlPoly.nV[0] = 1;
                     tlPoly.poly[0].v = new DX.TLVertex[tlPoly.nV[0] + 1];
                     tlPoly.poly[0].v[0] = new DX.TLVertex(vec, g.pathCol.ToArgb(), 0, 0);
-                    tlPoly.poly[0].v[1] = new DX.TLVertex(simToDrawPos(g.u[g.u[i].parentPath].calcPos(timeGame)), g.pathCol.ToArgb(), 0, 0);
+                    tlPoly.poly[0].v[1] = new DX.TLVertex(simToDrawPos(g.u[g.u[i].parent].calcPos(timeGame)), g.pathCol.ToArgb(), 0, 0);
                     tlPoly.draw();
                 }
             }
