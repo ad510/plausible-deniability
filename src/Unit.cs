@@ -91,9 +91,10 @@ namespace Decoherence
         public long[] timeHealth; // times at which each health increment is removed
         public long timeAttack; // latest time that attacked a unit
         public long timeSimPast; // time traveling simulation time if made in the past, otherwise set to long.MaxValue
-        public bool coherent; // whether safe to time travel at simulation time
-        public long timeCohere; // earliest time at which it's safe to time travel
+        public long timeCohere; // earliest time at which it's safe to time travel (set to long.MaxValue if never)
+        // TODO: don't put "path" in identifier names unless it's really a path
         public int parentPath; // index of unit whose path this unit split off from (set to <0 if none)
+        public bool isChildPath; // whether this is a temporary unit moving along an alternate path that its parent unit could take
         public bool replaceParentPath; // whether should replace parent unit's path with this unit's path when this unit becomes live
         public int nChildPaths;
         public int[] childPaths; // indices of temporary units which move along alternate paths that this unit could take
@@ -114,9 +115,9 @@ namespace Decoherence
             timeHealth = new long[g.unitT[type].maxHealth];
             timeAttack = long.MinValue;
             timeSimPast = (startTime >= g.timeSim) ? long.MaxValue : startTime;
-            coherent = g.tileAt(startPos).coherentWhen(player, startTime);
-            timeCohere = coherent ? startTime : long.MaxValue;
+            timeCohere = g.tileAt(startPos).coherentWhen(player, startTime) ? startTime : long.MaxValue;
             parentPath = -1;
+            isChildPath = false;
             replaceParentPath = false;
             nChildPaths = 0;
             childPaths = new int[nChildPaths];
@@ -322,23 +323,36 @@ namespace Decoherence
         /// </summary>
         public void cohere(long time)
         {
-            coherent = true;
             timeCohere = time;
         }
 
         /// <summary>
         /// stops allowing unit to time travel or move along multiple paths starting at timeSim
         /// </summary>
-        public void decohere()
+        public void decohere(long time = long.MaxValue)
         {
-            coherent = false;
-            timeCohere = long.MaxValue;
-            deleteAllChildPaths();
+            if (time > timeCohere) timeCohere = time;
+            // delete all child paths made before time cohered
+            for (int i = 0; i < nChildPaths; i++)
+            {
+                if (g.u[childPaths[i]].isChildPath && g.u[childPaths[i]].m[0].timeStart < timeCohere)
+                {
+                    g.u[childPaths[i]].deletePath(time);
+                    i--;
+                }
+            }
             if (parentPath >= 0)
             {
-                int parentPathTemp = parentPath;
-                moveToParentPath();
-                g.u[parentPathTemp].decohere();
+                if (isChildPath)
+                {
+                    int parentPathTemp = parentPath;
+                    moveToParentPath();
+                    g.u[parentPathTemp].decohere();
+                }
+                else
+                {
+                    g.u[parentPath].decohere(m[0].timeStart);
+                }
             }
         }
 
@@ -355,7 +369,8 @@ namespace Decoherence
                 path = -1;
                 for (i = 0; i < nChildPaths; i++)
                 {
-                    if ((g.u[childPaths[i]].isLive(time) || (!isLive(time) && g.u[childPaths[i]].exists(time))) // child path must be live, unless this unit isn't
+                    if (g.u[childPaths[i]].isChildPath // child unit must be a child path
+                        && (g.u[childPaths[i]].isLive(time) || (!isLive(time) && g.u[childPaths[i]].exists(time))) // child path must be live, unless this unit isn't
                         && (path < 0 || g.u[childPaths[i]].m[0].timeStart > g.u[path].m[0].timeStart)) // child path must be made after current latest path
                     {
                         path = childPaths[i];
@@ -368,9 +383,9 @@ namespace Decoherence
                     return true;
                 }
             }
-            else if (parentPath >= 0)
+            else if (parentPath >= 0 && timeCohere == m[0].timeStart)
             {
-                // if we don't have a child path but have a parent path, delete this unit completely
+                // if we don't have a child path but have a parent path and were never seen by another player, delete this unit completely
                 if (replaceParentPath)
                 {
                     g.unitIdChgs.Add(id);
@@ -385,16 +400,17 @@ namespace Decoherence
         /// <summary>
         /// makes a temporary unit splitting off from this unit's path at specified time (if allowed), returns whether successful
         /// </summary>
-        public bool makeChildPath(long time)
+        public bool makeChildPath(long time, bool isChildPathVal, int typeVal = -1)
         {
-            if (exists(time) && coherent && time >= timeCohere)
+            if (exists(time) && time >= timeCohere && (isChildPathVal || g.unitT[type].canMake[typeVal]))
             {
                 FP.Vector pos = calcPos(time);
                 // make new unit
                 g.setNUnits(g.nUnits + 1);
-                g.u[g.nUnits - 1] = new Unit(g, g.nUnits - 1, type, player, time, pos);
+                g.u[g.nUnits - 1] = new Unit(g, g.nUnits - 1, isChildPathVal ? type : typeVal, player, time, pos);
                 // add it to child path list
                 addChildPath(g.nUnits - 1);
+                g.u[g.nUnits - 1].isChildPath = isChildPathVal;
                 // indicate to calculate TileMoveEvts for new unit starting at timeSim
                 if (!g.movedUnits.Contains(g.nUnits - 1)) g.movedUnits.Add(g.nUnits - 1);
                 return true;
@@ -426,7 +442,7 @@ namespace Decoherence
                         break;
                     }
                 }
-                makeChildPath(time);
+                makeChildPath(time, true);
                 g.u[childPaths[nChildPaths - 1]].replaceParentPath = true;
                 g.unitIdChgs.Add(id);
                 g.unitIdChgs.Add(childPaths[nChildPaths - 1]);
@@ -465,7 +481,7 @@ namespace Decoherence
             g.u[unit].parentPath = -1;
         }
 
-        /// <summary>
+        /*/// <summary>
         /// recursively delete all child paths
         /// </summary>
         private void deleteAllChildPaths()
@@ -477,7 +493,7 @@ namespace Decoherence
                 g.u[childPaths[i]].deleteAllChildPaths();
             }
             nChildPaths = 0;
-        }
+        }*/
 
         /// <summary>
         /// delete child paths made after the specified time
@@ -530,7 +546,7 @@ namespace Decoherence
         public int rootParentPath()
         {
             int ret = id;
-            while (g.u[ret].parentPath >= 0) ret = g.u[ret].parentPath;
+            while (g.u[ret].isChildPath) ret = g.u[ret].parentPath;
             return ret;
         }
 
@@ -543,6 +559,14 @@ namespace Decoherence
             m[0] = new Move(long.MaxValue - 1, new FP.Vector(Sim.OffMap, 0));
             timeCohere = long.MaxValue;
             g.events.add(new TileMoveEvt(g.timeSim, id, Sim.OffMap, 0));
+        }
+
+        /// <summary>
+        /// returns whether it's ever safe for unit to time travel
+        /// </summary>
+        public bool coherent()
+        {
+            return timeCohere != long.MaxValue;
         }
 
         /// <summary>

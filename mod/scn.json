@@ -25,21 +25,13 @@
       "name": "blue",
       "isUser": true,
       "user": 1,
-      "mayAttack":
-      {
-        "blue": false,
-        "red": true
-      }
+      "mayAttack": ["red"]
     },
     {
       "name": "red",
       "isUser": true,
       "user": -1,
-      "mayAttack":
-      {
-        "blue": true,
-        "red": false
-      }
+      "mayAttack": ["blue"]
     }
   ],
   "unitTypes":
@@ -49,15 +41,25 @@
       "imgPath": "test.png",
       "maxHealth": 4,
       "speed": 0.006,
+      "canMake": ["building"],
       "damage":
       {
-        "marine": 1
+        "marine": 1,
+        "building": 1
       }
       "reload": 2000,
       "range": 6,
       "tightFormationSpacing": 2,
       "selRadius": 16
-    }
+    },
+    {
+      "name": "building",
+      "imgPath": "building.png",
+      "maxHealth": 4,
+      "speed": 0,
+      "canMake": ["marine"],
+      "selRadius": 32
+    }    
   ],
   "units":
   [

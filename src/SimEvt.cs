@@ -71,6 +71,7 @@ namespace Decoherence
 
     public enum Formation : byte { Tight, Loose, Ring };
 
+    // TODO: make generic CmdEvt class?
     /// <summary>
     /// command to move unit(s)
     /// </summary>
@@ -100,7 +101,8 @@ namespace Decoherence
             // count number of units able to move
             foreach (int unit in units)
             {
-                if (g.u[unit].exists(timeCmd) && (timeCmd >= g.timeSim || (timeCmd >= g.u[unit].timeCohere && g.u[unit].coherent)))
+                // TODO: line below is repeated later, make it a private method?
+                if (g.u[unit].exists(timeCmd) && (timeCmd >= g.timeSim || timeCmd >= g.u[unit].timeCohere) && g.unitT[g.u[unit].type].speed > 0)
                 {
                     count++;
                     if (formation == Formation.Tight && g.unitT[g.u[unit].type].tightFormationSpacing > spacing) spacing = g.unitT[g.u[unit].type].tightFormationSpacing;
@@ -140,7 +142,7 @@ namespace Decoherence
             // move units
             foreach (int unit in units)
             {
-                if (g.u[unit].exists(timeCmd) && (timeCmd >= g.timeSim || (timeCmd >= g.u[unit].timeCohere && g.u[unit].coherent)))
+                if (g.u[unit].exists(timeCmd) && (timeCmd >= g.timeSim || timeCmd >= g.u[unit].timeCohere) && g.unitT[g.u[unit].type].speed > 0)
                 {
                     int unit2 = unit;
                     curPos = g.u[unit].calcPos(timeCmd);
@@ -166,6 +168,32 @@ namespace Decoherence
                     i++;
                 }
             }
+        }
+    }
+
+    /// <summary>
+    /// command to make a new unit
+    /// </summary>
+    public class CmdMakeUnitEvt : SimEvt
+    {
+        public long timeCmd; // time is latest simulation time when command is given, timeCmd is when action is applied (may be in past)
+        public int unit;
+        public int type;
+
+        public CmdMakeUnitEvt(long timeVal, long timeCmdVal, int unitVal, int typeVal)
+        {
+            time = timeVal;
+            timeCmd = timeCmdVal;
+            unit = unitVal;
+            type = typeVal;
+        }
+
+        public override void apply(Sim g)
+        {
+            g.cmdHistory.add(this); // copy event to command history list (it should've already been popped from event list)
+            // happens at timeCmd + 1 so addTileMoveEvts() knows to initially put new unit on visibility tiles
+            // TODO: move new unit immediately after making it
+            g.u[unit].makeChildPath(timeCmd + 1, false, type);
         }
     }
 
@@ -197,7 +225,7 @@ namespace Decoherence
                 {
                     // happens at timeCmd + 1 so addTileMoveEvts() knows to initially put new unit on visibility tiles
                     // TODO: move new unit immediately after making it
-                    g.u[unit].makeChildPath(timeCmd + 1);
+                    g.u[unit].makeChildPath(timeCmd + 1, true);
                 }
                 else if (action == UnitAction.DeletePath)
                 {
@@ -323,11 +351,11 @@ namespace Decoherence
             if (tileX >= 0 && tileX < g.tileLen() && tileY >= 0 && tileY < g.tileLen())
             {
                 // update whether this unit may time travel
-                if (!g.u[unit].coherent && g.tiles[tileX, tileY].coherentLatest(g.u[unit].player))
+                if (!g.u[unit].coherent() && g.tiles[tileX, tileY].coherentLatest(g.u[unit].player))
                 {
                     g.u[unit].cohere(time);
                 }
-                else if (g.u[unit].coherent && !g.tiles[tileX, tileY].coherentLatest(g.u[unit].player))
+                else if (g.u[unit].coherent() && !g.tiles[tileX, tileY].coherentLatest(g.u[unit].player))
                 {
                     g.u[unit].decohere();
                 }

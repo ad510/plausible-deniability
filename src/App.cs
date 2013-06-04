@@ -144,12 +144,22 @@ namespace Decoherence
                 }
                 foreach (Hashtable jsonO in jsonA)
                 {
-                    Hashtable jsonO2 = jsonObject(jsonO, "mayAttack");
+                    ArrayList jsonA2 = jsonArray(jsonO, "mayAttack");
                     i = g.playerNamed(jsonString(jsonO, "name"));
                     g.players[i].mayAttack = new bool[g.nPlayers];
                     for (j = 0; j < g.nPlayers; j++)
                     {
-                        g.players[i].mayAttack[j] = jsonBool(jsonO2, g.players[j].name);
+                        g.players[i].mayAttack[j] = false;
+                    }
+                    if (jsonA2 != null)
+                    {
+                        foreach (string player in jsonA2)
+                        {
+                            if (g.playerNamed(player) >= 0)
+                            {
+                                g.players[i].mayAttack[g.playerNamed(player)] = true;
+                            }
+                        }
                     }
                 }
             }
@@ -176,12 +186,28 @@ namespace Decoherence
                 }
                 foreach (Hashtable jsonO in jsonA)
                 {
+                    ArrayList jsonA2 = jsonArray(jsonO, "canMake");
                     Hashtable jsonO2 = jsonObject(jsonO, "damage");
                     i = g.unitTypeNamed(jsonString(jsonO, "name"));
+                    g.unitT[i].canMake = new bool[g.nUnitT];
+                    for (j = 0; j < g.nUnitT; j++)
+                    {
+                        g.unitT[i].canMake[j] = false;
+                    }
+                    if (jsonA2 != null)
+                    {
+                        foreach (string type in jsonA2)
+                        {
+                            if (g.unitTypeNamed(type) >= 0)
+                            {
+                                g.unitT[i].canMake[g.unitTypeNamed(type)] = true;
+                            }
+                        }
+                    }
                     g.unitT[i].damage = new int[g.nUnitT];
                     for (j = 0; j < g.nUnitT; j++)
                     {
-                        g.unitT[i].damage[j] = (int)jsonDouble(jsonO2, g.unitT[j].name);
+                        g.unitT[i].damage[j] = (jsonO2 != null) ? (int)jsonDouble(jsonO2, g.unitT[j].name) : 0;
                     }
                 }
             }
@@ -404,6 +430,11 @@ namespace Decoherence
                     speed--;
                     timeSpeedChg = Environment.TickCount;
                 }
+                else if (DX.keysChanged[i] >= Key.D1 && DX.keysChanged[i] <= Key.D9 && DX.keysChanged[i] - Key.D1 < g.nUnitT && DX.keyState.IsPressed(DX.keysChanged[i]))
+                {
+                    // make unit of specified type
+                    if (selUnits.Count > 0) g.events.add(new CmdMakeUnitEvt(g.timeSim, timeGame, selUnits[0], DX.keysChanged[i] - Key.D1));
+                }
                 else if (DX.keysChanged[i] == Key.N && DX.keyState.IsPressed(DX.keysChanged[i]))
                 {
                     // create new paths that selected units could take
@@ -532,7 +563,7 @@ namespace Decoherence
             // unit path lines
             for (i = 0; i < g.nUnits; i++)
             {
-                if (unitDrawPos(i, ref vec) && g.u[i].parentPath >= 0 && timeGame >= g.u[g.u[i].parentPath].m[0].timeStart)
+                if (unitDrawPos(i, ref vec) && g.u[i].isChildPath && timeGame >= g.u[g.u[i].parentPath].m[0].timeStart)
                 {
                     DX.d3dDevice.SetTexture(0, null);
                     tlPoly.primitive = PrimitiveType.LineStrip;

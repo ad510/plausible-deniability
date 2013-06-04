@@ -38,6 +38,7 @@ namespace Decoherence
             public string sndNoHealth;*/
             public int maxHealth;
             public long speed;
+            public bool[] canMake; // whether can make each unit type
             public int[] damage; // damage done per attack to each unit type
             public long reload; // time needed to reload
             public long range; // range of attack
@@ -319,7 +320,7 @@ namespace Decoherence
             // TODO: actually safe to time travel at earlier times, as long as unit of same type is at same place when decoheres
             for (int i = 0; i < nUnits; i++)
             {
-                if (player == u[i].player && tileX == u[i].tileX && tileY == u[i].tileY && !u[i].coherent)
+                if (player == u[i].player && tileX == u[i].tileX && tileY == u[i].tileY && !u[i].coherent())
                 {
                     u[i].cohere(time);
                 }
@@ -337,7 +338,7 @@ namespace Decoherence
             // this player's units that are on this tile may not time travel starting now
             for (int i = 0; i < nUnits; i++)
             {
-                if (player == u[i].player && tileX == u[i].tileX && tileY == u[i].tileY && u[i].coherent)
+                if (player == u[i].player && tileX == u[i].tileX && tileY == u[i].tileY && u[i].coherent())
                 {
                     u[i].decohere();
                 }

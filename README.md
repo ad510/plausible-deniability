@@ -33,6 +33,7 @@ Controls
 - r = go backwards in time
 - + = increase speed
 - - = decrease speed
+- numbers 1-9 = make unit of type corresponding to number pressed
 - n = create new paths that selected units could take
 - delete = delete selected paths
 - ctrl + r = instant replay
