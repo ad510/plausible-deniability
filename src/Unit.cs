@@ -429,7 +429,7 @@ namespace Decoherence
         /// </summary>
         public bool canMakeChildUnit(long time, bool isChildPathVal, int typeVal = -1)
         {
-            return exists(time) && time >= timeCohere && (isChildPathVal || g.unitT[type].canMake[typeVal]);
+            return exists(time) && (isChildPathVal ? time >= timeCohere : g.unitT[type].canMake[typeVal] && (time >= g.timeSim || time >= timeCohere));
         }
 
         /// <summary>
