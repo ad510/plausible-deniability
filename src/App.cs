@@ -127,6 +127,18 @@ namespace Decoherence
             g.healthBarFullCol = jsonColor4(json, "healthBarFullCol");
             g.healthBarEmptyCol = jsonColor4(json, "healthBarEmptyCol");
             //Sim.music = jsonString(json, "music");
+            // resources
+            g.nRsc = 0;
+            jsonA = jsonArray(json, "resources");
+            if (jsonA != null)
+            {
+                foreach (string rscName in jsonA)
+                {
+                    g.nRsc++;
+                    Array.Resize(ref g.rscNames, g.nRsc);
+                    g.rscNames[g.nRsc - 1] = rscName;
+                }
+            }
             // players
             g.nPlayers = 0;
             jsonA = jsonArray(json, "players");
@@ -134,10 +146,16 @@ namespace Decoherence
             {
                 foreach (Hashtable jsonO in jsonA)
                 {
+                    Hashtable jsonO2 = jsonObject(jsonO, "startRsc");
                     Sim.Player player = new Sim.Player();
                     player.name = jsonString(jsonO, "name");
                     player.isUser = jsonBool(jsonO, "isUser");
                     player.user = (short)jsonDouble(jsonO, "user");
+                    player.startRsc = new long[g.nRsc];
+                    for (j = 0; j < g.nRsc; j++)
+                    {
+                        player.startRsc[j] = (jsonO2 != null) ? jsonFP(jsonO2, g.rscNames[j]) : 0;
+                    }
                     g.nPlayers++;
                     Array.Resize(ref g.players, g.nPlayers);
                     g.players[g.nPlayers - 1] = player;
@@ -170,25 +188,39 @@ namespace Decoherence
             {
                 foreach (Hashtable jsonO in jsonA)
                 {
+                    Hashtable jsonO2 = jsonObject(jsonO, "rscCost");
+                    Hashtable jsonO3 = jsonObject(jsonO, "rscCollectRate");
                     Sim.UnitType unitT = new Sim.UnitType();
                     unitT.name = jsonString(jsonO, "name");
                     unitT.imgPath = jsonString(jsonO, "imgPath");
                     unitT.maxHealth = (int)jsonDouble(jsonO, "maxHealth");
                     unitT.speed = jsonFP(jsonO, "speed");
+                    if (unitT.speed > g.maxSpeed) g.maxSpeed = unitT.speed;
                     unitT.reload = (long)jsonDouble(jsonO, "reload");
                     unitT.range = jsonFP(jsonO, "range");
                     unitT.tightFormationSpacing = jsonFP(jsonO, "tightFormationSpacing");
                     unitT.selRadius = jsonDouble(jsonO, "selRadius");
-                    if (unitT.speed > g.maxSpeed) g.maxSpeed = unitT.speed;
+                    unitT.rscCost = new long[g.nRsc];
+                    unitT.rscCollectRate = new long[g.nRsc];
+                    for (j = 0; j < g.nRsc; j++)
+                    {
+                        unitT.rscCost[j] = (jsonO2 != null) ? jsonFP(jsonO2, g.rscNames[j]) : 0;
+                        unitT.rscCollectRate[j] = (jsonO3 != null) ? jsonFP(jsonO3, g.rscNames[j]) : 0;
+                    }
                     g.nUnitT++;
                     Array.Resize(ref g.unitT, g.nUnitT);
                     g.unitT[g.nUnitT - 1] = unitT;
                 }
                 foreach (Hashtable jsonO in jsonA)
                 {
-                    ArrayList jsonA2 = jsonArray(jsonO, "canMake");
                     Hashtable jsonO2 = jsonObject(jsonO, "damage");
+                    ArrayList jsonA2 = jsonArray(jsonO, "canMake");
                     i = g.unitTypeNamed(jsonString(jsonO, "name"));
+                    g.unitT[i].damage = new int[g.nUnitT];
+                    for (j = 0; j < g.nUnitT; j++)
+                    {
+                        g.unitT[i].damage[j] = (jsonO2 != null) ? (int)jsonDouble(jsonO2, g.unitT[j].name) : 0;
+                    }
                     g.unitT[i].canMake = new bool[g.nUnitT];
                     for (j = 0; j < g.nUnitT; j++)
                     {
@@ -203,11 +235,6 @@ namespace Decoherence
                                 g.unitT[i].canMake[g.unitTypeNamed(type)] = true;
                             }
                         }
-                    }
-                    g.unitT[i].damage = new int[g.nUnitT];
-                    for (j = 0; j < g.nUnitT; j++)
-                    {
-                        g.unitT[i].damage[j] = (jsonO2 != null) ? (int)jsonDouble(jsonO2, g.unitT[j].name) : 0;
                     }
                 }
             }
@@ -662,6 +689,12 @@ namespace Decoherence
             if (paused) fnt.DrawString(null, "PAUSED", new Rectangle(0, 0, DX.resX, (int)(DX.resY * FntSize)), DrawTextFormat.Center | DrawTextFormat.Top, new Color4(1, 1, 1, 1));
             if (Environment.TickCount < timeSpeedChg) timeSpeedChg -= UInt32.MaxValue;
             if (Environment.TickCount < timeSpeedChg + 1000) DX.textDraw(fnt, new Color4(1, 1, 1, 1), "SPEED: " + Math.Pow(2, speed) + "x", 0, (int)(DX.resY * FntSize));
+            for (i = 0; i < g.nRsc; i++)
+            {
+                long rscMin = (long)Math.Floor(FP.toDouble(g.playerResource(selPlayer, timeGame, i, false)));
+                long rscMax = (long)Math.Floor(FP.toDouble(g.playerResource(selPlayer, timeGame, i, true)));
+                DX.textDraw(fnt, new Color4(1, 1, 1, 1), g.rscNames[i] + ": " + rscMin + ((rscMax != rscMin) ? " to " + rscMax : ""), 0, (int)(DX.resY + (i - g.nRsc) * DX.resY * FntSize));
+            }
             DX.d3dDevice.EndScene();
             DX.d3dDevice.Present();
         }

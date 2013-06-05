@@ -555,6 +555,17 @@ namespace Decoherence
         }
 
         /// <summary>
+        /// change unit movement to make it look like this unit never existed
+        /// </summary>
+        private void deleteAllMoves()
+        {
+            n = 0;
+            m[0] = new Move(long.MaxValue - 1, new FP.Vector(Sim.OffMap, 0));
+            timeCohere = long.MaxValue;
+            g.events.add(new TileMoveEvt(g.timeSim, id, Sim.OffMap, 0));
+        }
+
+        /// <summary>
         /// returns index of unit that is the root parent path of this unit
         /// </summary>
         public int rootParentPath()
@@ -565,14 +576,44 @@ namespace Decoherence
         }
 
         /// <summary>
-        /// change unit movement to make it look like this unit never existed
+        /// returns resource amount gained by this unit and its child units (subtracting cost to make the units)
         /// </summary>
-        private void deleteAllMoves()
+        /// <param name="max">
+        /// since different paths can have collected different resource amounts,
+        /// determines whether to use paths that collected least or most resources in calculation
+        /// </param>
+        public long rscCollected(long time, int rscType, bool max)
         {
-            n = 0;
-            m[0] = new Move(long.MaxValue - 1, new FP.Vector(Sim.OffMap, 0));
-            timeCohere = long.MaxValue;
-            g.events.add(new TileMoveEvt(g.timeSim, id, Sim.OffMap, 0));
+            if (time < m[0].timeStart) return 0; // if this unit isn't made yet, it can't have collected anything
+            List<int> childrenList = new List<int>(children);
+            long timeCollectEnd = (healthWhen(time) == 0) ? timeHealth[nTimeHealth - 1] : time;
+            long pathCollected;
+            long ret = 0;
+            childrenList.RemoveRange(nChildren, children.Length - nChildren);
+            foreach (int child in childrenList.OrderByDescending(i => g.u[i].m[0].timeStart))
+            {
+                if (g.u[child].isChildPath)
+                {
+                    // if child unit is one of this unit's paths and collected more/less (depending on max parameter) resources than this path,
+                    // use that path for resource calculation
+                    pathCollected = g.u[child].rscCollected(time, rscType, max);
+                    if (max ^ (pathCollected < ret + g.unitT[type].rscCollectRate[rscType] * (timeCollectEnd - g.u[child].m[0].timeStart)))
+                    {
+                        ret = pathCollected;
+                        timeCollectEnd = g.u[child].m[0].timeStart;
+                    }
+                }
+                else
+                {
+                    // add resources that non-path child unit gained
+                    ret += g.u[child].rscCollected(time, rscType, max);
+                }
+            }
+            // add resources collected by this unit
+            ret += g.unitT[type].rscCollectRate[rscType] * (timeCollectEnd - m[0].timeStart);
+            // if unit was made by another unit, subtract cost to make it
+            if (parent >= 0 && !isChildPath) ret -= g.unitT[type].rscCost[rscType];
+            return ret;
         }
 
         /// <summary>

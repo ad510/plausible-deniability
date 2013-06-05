@@ -41,14 +41,14 @@
       "imgPath": "test.png",
       "maxHealth": 4,
       "speed": 0.006,
+      "reload": 2000,
+      "range": 6,
+      "tightFormationSpacing": 2,
+      "selRadius": 16,
       "damage":
       {
         "marine": 1
       }
-      "reload": 2000,
-      "range": 6,
-      "tightFormationSpacing": 2,
-      "selRadius": 16
     }
   ],
   "units":

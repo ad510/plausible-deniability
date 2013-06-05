@@ -19,18 +19,27 @@
   "healthBarFullCol": {"r": 0, "g": 1, "b": 0},
   "healthBarEmptyCol": {"r": 1, "g": 0, "b": 0},
   "music": "",
+  "resources": ["Minerals"],
   "players":
   [
     {
       "name": "blue",
       "isUser": true,
       "user": 1,
+      "startRsc":
+      {
+        "Minerals": 20
+      },
       "mayAttack": ["red"]
     },
     {
       "name": "red",
       "isUser": true,
       "user": -1,
+      "startRsc":
+      {
+        "Minerals": 20
+      },
       "mayAttack": ["blue"]
     }
   ],
@@ -41,24 +50,36 @@
       "imgPath": "test.png",
       "maxHealth": 4,
       "speed": 0.006,
-      "canMake": ["building"],
+      "reload": 2000,
+      "range": 6,
+      "tightFormationSpacing": 2,
+      "selRadius": 16,
       "damage":
       {
         "marine": 1,
         "building": 1
+      },
+      "canMake": ["building"],
+      "rscCost":
+      {
+        "Minerals": 5
       }
-      "reload": 2000,
-      "range": 6,
-      "tightFormationSpacing": 2,
-      "selRadius": 16
     },
     {
       "name": "building",
       "imgPath": "building.png",
       "maxHealth": 4,
       "speed": 0,
+      "selRadius": 32,
       "canMake": ["marine"],
-      "selRadius": 32
+      "rscCost":
+      {
+        "Minerals": 10
+      },
+      "rscCollectRate":
+      {
+        "Minerals": 0.001
+      }
     }    
   ],
   "units":

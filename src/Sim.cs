@@ -25,6 +25,7 @@ namespace Decoherence
             public string name;
             public bool isUser; // whether actively controlled by either a human or AI
             public short user; // -1 = nobody, 0 = computer, 1+ = human
+            public long[] startRsc; // resources at beginning of game
             public bool[] mayAttack; // if this player's units may attack each other player's units
         }
 
@@ -37,13 +38,15 @@ namespace Decoherence
             public string sndAttack;
             public string sndNoHealth;*/
             public int maxHealth;
-            public long speed;
-            public bool[] canMake; // whether can make each unit type
-            public int[] damage; // damage done per attack to each unit type
+            public long speed; // in position units per millisecond
             public long reload; // time needed to reload
             public long range; // range of attack
             public long tightFormationSpacing;
             public double selRadius;
+            public int[] damage; // damage done per attack to each unit type
+            public bool[] canMake; // whether can make each unit type
+            public long[] rscCost; // cost to make unit
+            public long[] rscCollectRate; // resources collected per each millisecond that unit exists
         }
 
         public class Tile
@@ -243,9 +246,11 @@ namespace Decoherence
         public Color4 healthBarFullCol;
         public Color4 healthBarEmptyCol;
         //public string music;
+        public int nRsc;
         public int nPlayers;
         public int nUnitT;
         public int nUnits;
+        public string[] rscNames;
         public Player[] players;
         public UnitType[] unitT;
         public Unit[] u;
@@ -374,6 +379,23 @@ namespace Decoherence
         }
 
         /// <summary>
+        /// returns amount of specified resource that specified player has at specified time
+        /// </summary>
+        /// <param name="max">
+        /// since different paths can have collected different resource amounts,
+        /// determines whether to use paths that collected least or most resources in calculation
+        /// </param>
+        public long playerResource(int player, long time, int rscType, bool max)
+        {
+            long ret = players[player].startRsc[rscType];
+            for (int i = 0; i < nUnits; i++)
+            {
+                if (u[i].player == player && u[i].parent < 0) ret += u[i].rscCollected(time, rscType, max);
+            }
+            return ret;
+        }
+
+        /// <summary>
         /// returns if a hypothetical unit at the origin could see tile with specified (positive or negative) x and y indices
         /// </summary>
         public bool inVis(long tX, long tY)
@@ -395,6 +417,18 @@ namespace Decoherence
         public int tileLen() // TODO: use unitVis.GetUpperBound instead of this function
         {
             return (int)((mapSize >> FP.Precision) + 1);
+        }
+
+        /// <summary>
+        /// returns index of resource with specified name, or -1 if no such resource
+        /// </summary>
+        public int resourceNamed(string name)
+        {
+            for (int i = 0; i < nRsc; i++)
+            {
+                if (name == rscNames[i]) return i;
+            }
+            return -1;
         }
 
         /// <summary>
