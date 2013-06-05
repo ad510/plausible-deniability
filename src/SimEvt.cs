@@ -200,9 +200,15 @@ namespace Decoherence
                 }
                 else if (action == UnitAction.DeletePath)
                 {
+                    // check if unit changed index due to a previous path deletion
+                    int unit2 = unit;
+                    for (int i = 0; i < g.unitIdChgs.Count / 2; i++)
+                    {
+                        if (unit2 == g.unitIdChgs[i * 2]) unit2 = g.unitIdChgs[i * 2 + 1];
+                    }
                     // happens at timeCmd so that when paused, making path then deleting parent path doesn't move parent's tile pos off map
                     // (where child's tile pos initially is)
-                    g.u[unit].delete(timeCmd);
+                    if (unit2 >= 0) g.u[unit2].delete(timeCmd);
                 }
             }
         }
