@@ -4,6 +4,7 @@ remove floating point Sim calculations (look at csci 102 hw2 long sqrt?)
 replace DX.cs structs with classes and rename some vars?
 PolyV2d.makeLineRec method?
 pathfinding
+keep non-live paths in yellow areas w/o user help
 darker gray tiles should act more conventionally
 
 global variables:
@@ -86,6 +87,29 @@ while "vis time" list isn't empty:
     this tile gains visibility at time it takes to get between tiles
     add this tile to "vis time" list
 
+if ever allow "min" resources to be <0, must handle these cases w/o letting max resources ever be <0 in replays:
+split worker into 2 paths, 1 path makes a mine, other path doesn't
+make enough fighters that needs to have the mine to make them
+if mine is seen:
+  we're ok
+if enough fighters are seen:
+  delete path w/o mine
+if path w/o mine is seen and enough fighters seen that 1 more would require the mine:
+  for every unseen unit:
+    if seeing this unit would ever make resources negative (even if it becomes positive by the present time), delete this unit
+
+fancy resources algorithm (allow min < 0) draft:
+(bug: allows resources to be negative in past as long as it becomes positive by present)
+for each unit w/ no child units:
+  if playerResource(max except skipping this unit) - unit.rscCollected(no min or max since no child units) < 0:
+    delete unit
+    do this calculation on unit's parent
+def playerResource(skipUnit):
+  if skipUnit is child path:
+    take paths to get there, but don't add resources collected by skipUnit
+  else:
+    take paths to get there, but set ret = 0 instead of ret = pathCollected
+
 pathfinding:
 tile-based fog of war good?
 find disconnected regions
@@ -134,7 +158,6 @@ random notes:
 - don't bother with fastest unit going at light speed, so don't need to have relativity
   - if need it for 1 q&a video, use command line or mod option to enable it
 - population limit? (or just make units expensive enough that you can't make too many)
-- if 1 path mining & 1 path scouting and use miner's money to make a fighter and fighter decoheres, then miner must have been mining (not scouting)
 - introduce paths 1st, then introduce wavefunctions as paths going everywhere in a region? (skipping manual time travel)
   - but manual time travel is nice though
   - keep in mind hard to force using time travel in levels if can use paths
