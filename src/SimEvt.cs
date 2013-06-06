@@ -215,6 +215,57 @@ namespace Decoherence
     }
 
     /// <summary>
+    /// command to make a player's time traveling units be updated in the present
+    /// </summary>
+    /// <remarks>this doesn't inherit from CmdEvt because it isn't a unit command</remarks>
+    public class GoLiveCmdEvt : SimEvt
+    {
+        public int player;
+
+        public GoLiveCmdEvt(long timeVal, int playerVal)
+        {
+            time = timeVal;
+            player = playerVal;
+        }
+
+        public override void apply(Sim g)
+        {
+            long timeTravelStart = long.MaxValue;
+            int i;
+            g.cmdHistory.add(this); // copy event to command history list (it should've already been popped from event list)
+            for (i = 0; i < g.nUnits; i++)
+            {
+                if (player == g.u[i].player && g.u[i].exists(time) && !g.u[i].isLive(time))
+                {
+                    // ensure that time traveling units don't move off coherent areas
+                    g.u[i].updatePast(time);
+                    // find earliest time that player's units started time traveling
+                    if (g.u[i].m[0].timeStart < timeTravelStart) timeTravelStart = g.u[i].m[0].timeStart;
+                }
+            }
+            if (timeTravelStart != long.MaxValue) // skip if player has no time traveling units
+            {
+                // check if going live might lead to player having negative resources
+                g.players[player].timeNegRsc = g.playerCheckNegRsc(player, timeTravelStart, true, true);
+                if (g.players[player].timeNegRsc >= 0)
+                {
+                    // indicate failure to go live, then return
+                    g.players[player].timeGoLiveFail = time;
+                    return;
+                }
+                // safe for units to become live, so do so
+                for (i = 0; i < g.nUnits; i++)
+                {
+                    if (player == g.u[i].player && g.u[i].exists(time) && !g.u[i].isLive(time)) g.u[i].goLive();
+                }
+            }
+            // indicate success
+            g.players[player].hasNonLiveUnits = false;
+            g.players[player].timeGoLiveFail = long.MaxValue;
+        }
+    }
+
+    /// <summary>
     /// event to update various things at regular intervals
     /// </summary>
     public class UpdateEvt : SimEvt
@@ -264,7 +315,7 @@ namespace Decoherence
             // this shouldn't be done in Sim.update() because addTileMoveEvts() sometimes adds events before timeSim
             for (i = 0; i < g.nUnits; i++)
             {
-                g.u[i].addTileMoveEvts(ref g.events, time, time + g.updateInterval);
+                if (g.u[i].timeSimPast == long.MaxValue) g.u[i].addTileMoveEvts(ref g.events, time, time + g.updateInterval);
             }
             g.movedUnits.Clear();
             // add next UpdateEvt

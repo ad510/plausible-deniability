@@ -22,11 +22,22 @@ namespace Decoherence
         // game objects
         public class Player
         {
+            // stored in scenario files
             public string name;
             public bool isUser; // whether actively controlled by either a human or AI
             public short user; // -1 = nobody, 0 = computer, 1+ = human
             public long[] startRsc; // resources at beginning of game
             public bool[] mayAttack; // if this player's units may attack each other player's units
+            // not stored in scenario files
+            public bool hasNonLiveUnits; // whether currently might have time traveling units (ok to sometimes incorrectly be set to true)
+            public long timeGoLiveFail; // latest time that player's time traveling units failed to go live (resets to long.MaxValue after success)
+            public long timeNegRsc; // time that player could have negative resources if time traveling units went live
+
+            public Player()
+            {
+                hasNonLiveUnits = false;
+                timeGoLiveFail = long.MaxValue;
+            }
         }
 
         public class UnitType
@@ -45,8 +56,8 @@ namespace Decoherence
             public double selRadius;
             public int[] damage; // damage done per attack to each unit type
             public bool[] canMake; // whether can make each unit type
-            public long[] rscCost; // cost to make unit
-            public long[] rscCollectRate; // resources collected per each millisecond that unit exists
+            public long[] rscCost; // cost to make unit (may not be negative)
+            public long[] rscCollectRate; // resources collected per each millisecond that unit exists (may not be negative)
         }
 
         public class Tile
@@ -278,7 +289,7 @@ namespace Decoherence
         /// <summary>
         /// master update method which updates the live game simulation to the specified time
         /// </summary>
-        /// <remarks>this doesn't update time traveling units, must call Unit.updatePast() separately for each time traveling unit that needs updating</remarks>
+        /// <remarks>this doesn't update time traveling units, must call updatePast() separately for each player</remarks>
         public void update(long curTime)
         {
             SimEvt evt;
@@ -304,13 +315,31 @@ namespace Decoherence
                     }
                     foreach (int unit in movedUnits)
                     {
-                        u[unit].addTileMoveEvts(ref events, timeSim, timeUpdateEvt + updateInterval);
+                        if (u[unit].timeSimPast == long.MaxValue) u[unit].addTileMoveEvts(ref events, timeSim, timeUpdateEvt + updateInterval);
                     }
                     movedUnits.Clear();
                 }
             }
             // update simulation time
             timeSim = timeSimNext;
+        }
+
+        /// <summary>
+        /// update specified player's non-live (time traveling) units
+        /// </summary>
+        public void updatePast(int player, long curTime)
+        {
+            if (players[player].hasNonLiveUnits)
+            {
+                for (int i = 0; i < nUnits; i++)
+                {
+                    if (u[i].player == player) u[i].updatePast(curTime);
+                }
+                if (curTime >= timeSim && (players[player].timeGoLiveFail == long.MaxValue || timeSim >= players[player].timeGoLiveFail + updateInterval))
+                {
+                    events.add(new GoLiveCmdEvt(timeSim, player));
+                }
+            }
         }
 
         /// <summary>
@@ -385,14 +414,39 @@ namespace Decoherence
         /// since different paths can have collected different resource amounts,
         /// determines whether to use paths that collected least or most resources in calculation
         /// </param>
-        public long playerResource(int player, long time, int rscType, bool max)
+        public long playerResource(int player, long time, int rscType, bool max, bool includeNonLiveChildren, bool alwaysUseReplacementPaths)
         {
             long ret = players[player].startRsc[rscType];
             for (int i = 0; i < nUnits; i++)
             {
-                if (u[i].player == player && u[i].parent < 0) ret += u[i].rscCollected(time, rscType, max);
+                if (u[i].player == player && u[i].parent < 0) ret += u[i].rscCollected(time, rscType, max, includeNonLiveChildren, alwaysUseReplacementPaths);
             }
             return ret;
+        }
+
+        /// <summary>
+        /// checks whether specified player could have negative resources since timeMin in worst case decoherence scenario
+        /// </summary>
+        /// <returns>a time that player could have negative resources, or -1 if no such time found</returns>
+        public long playerCheckNegRsc(int player, long timeMin, bool includeNonLiveChildren, bool alwaysUseReplacementPaths)
+        {
+            int i, j;
+            for (i = 0; i < nUnits; i++)
+            {
+                // check all times since timeMin that a unit of specified player was made
+                // note that new units are made at timeCmd + 1
+                if (player == u[i].player && u[i].m[0].timeStart >= timeMin && u[i].m[0].timeStart <= timeSim + 1)
+                {
+                    for (j = 0; j < nRsc; j++)
+                    {
+                        if (playerResource(player, u[i].m[0].timeStart, j, false, includeNonLiveChildren, alwaysUseReplacementPaths) < 0)
+                        {
+                            return u[i].m[0].timeStart;
+                        }
+                    }
+                }
+            }
+            return -1;
         }
 
         /// <summary>

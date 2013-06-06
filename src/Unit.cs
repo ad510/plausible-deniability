@@ -127,17 +127,18 @@ namespace Decoherence
         /// </summary>
         public void updatePast(long curTime)
         {
+            if (curTime <= timeSimPast || !exists(curTime)) return;
+            long timeSimPastNext = Math.Min(curTime, g.timeSim);
             SimEvtList pastEvents = new SimEvtList();
             TileMoveEvt evt;
             FP.Vector pos;
             int tX, tY, coherenceIndex;
-            if (curTime <= timeSimPast || !exists(curTime)) return;
             // delete unit if tile that unit starts on stops being coherent since timeSimPast
             pos = calcPos(timeSimPast);
             tX = (int)(pos.x >> FP.Precision);
             tY = (int)(pos.y >> FP.Precision);
             // without modifications, line below may cause syncing problems in multiplayer b/c addTileMoveEvts() sometimes adds events before timeSimPast
-            addTileMoveEvts(ref pastEvents, timeSimPast, Math.Min(curTime, g.timeSim));
+            addTileMoveEvts(ref pastEvents, timeSimPast, timeSimPastNext);
             evt = (TileMoveEvt)pastEvents.pop();
             coherenceIndex = g.tiles[tX, tY].coherentIndexWhen(player, (evt != null) ? evt.time - 1 : curTime);
             if (!g.tiles[tX, tY].coherentWhen(player, (evt != null) ? evt.time - 1 : curTime)
@@ -155,32 +156,15 @@ namespace Decoherence
                     if (evt.tileY != int.MinValue) tY = evt.tileY;
                     coherenceIndex = g.tiles[tX, tY].coherentIndexWhen(player, evt.time);
                     if (!g.tiles[tX, tY].coherentWhen(player, evt.time)
-                        || (coherenceIndex + 1 < g.tiles[tX, tY].coherence[player].Count() && g.tiles[tX, tY].coherence[player][coherenceIndex + 1] <= Math.Min(g.events.peekTime(), Math.Min(curTime, g.timeSim))))
+                        || (coherenceIndex + 1 < g.tiles[tX, tY].coherence[player].Count() && g.tiles[tX, tY].coherence[player][coherenceIndex + 1] <= Math.Min(g.events.peekTime(), timeSimPastNext)))
                     {
                         if (!delete(g.timeSim)) throw new SystemException("unit not deleted successfully after moving off coherent area");
                         return;
                     }
                 } while ((evt = (TileMoveEvt)pastEvents.pop()) != null);
             }
-            if (curTime >= g.timeSim)
-            {
-                // unit becomes live
-                timeSimPast = long.MaxValue;
-                if (replaceParentPath)
-                {
-                    replaceParentPath = false;
-                    g.u[parent].deleteChildrenAfter(m[0].timeStart);
-                    movePathToParent();
-                }
-                else
-                {
-                    g.events.add(new TileMoveEvt(g.timeSim, id, tX, tY));
-                }
-            }
-            else
-            {
-                timeSimPast = curTime;
-            }
+            // update past simulation time
+            timeSimPast = timeSimPastNext;
         }
 
         /// <summary>
@@ -318,6 +302,25 @@ namespace Decoherence
         }
 
         /// <summary>
+        /// let unit be updated in the present (i.e., stop time traveling) starting at timeSim
+        /// </summary>
+        public void goLive()
+        {
+            timeSimPast = long.MaxValue;
+            if (replaceParentPath)
+            {
+                replaceParentPath = false;
+                g.u[parent].deleteChildrenAfter(m[0].timeStart);
+                movePathToParent();
+            }
+            else
+            {
+                FP.Vector pos = calcPos(g.timeSim);
+                g.events.add(new TileMoveEvt(g.timeSim, id, (int)(pos.x >> FP.Precision), (int)(pos.y >> FP.Precision)));
+            }
+        }
+
+        /// <summary>
         /// allows unit to time travel and move along multiple paths starting at specified time
         /// </summary>
         public void cohere(long time)
@@ -358,14 +361,14 @@ namespace Decoherence
         /// <summary>
         /// delete this unit if doing so wouldn't affect anything that another player saw, returns whether successful
         /// </summary>
-        public bool delete(long time)
+        public bool delete(long time, bool skipRscCheck = false)
         {
             bool hasDecoheredChild = false;
-            int i, path;
+            int i;
             if (nChildren > 0)
             {
                 // take the path of the latest child path (overwriting our current moves in the process)
-                path = -1;
+                int path = -1;
                 for (i = 0; i < nChildren; i++)
                 {
                     if (g.u[children[i]].isChildPath // child unit must be a child path
@@ -390,6 +393,18 @@ namespace Decoherence
             if (parent >= 0 && timeCohere == m[0].timeStart && !hasDecoheredChild)
             {
                 // if we can't become a child unit but have a parent unit and were never seen by another player, delete this unit completely
+                if (timeSimPast == long.MaxValue && !isChildPath && !skipRscCheck)
+                {
+                    // check if deleting unit might lead to player having negative resources
+                    // (don't need to check this if taking the path of another unit b/c no combination of paths are allowed to give player negative resources)
+                    Move m0Original = m[0];
+                    m[0] = new Move(long.MaxValue - 1, new FP.Vector(Sim.OffMap, 0)); // simulate this unit (and implicitly its child units) not existing during the check
+                    if (g.playerCheckNegRsc(player, m0Original.timeStart, false, false) >= 0)
+                    {
+                        m[0] = m0Original;
+                        return false;
+                    }
+                }
                 if (replaceParentPath)
                 {
                     g.unitIdChgs.Add(id);
@@ -415,10 +430,14 @@ namespace Decoherence
                 g.u[g.nUnits - 1] = new Unit(g, g.nUnits - 1, isChildPathVal ? type : typeVal, player, time, pos);
                 // indicate that we are the new unit's parent
                 addChild(g.nUnits - 1);
-                // indicate whether new unit is a temporary unit moving along an alternate path that this unit could take
+                // if this unit isn't live, new unit can't be either
+                if (!isLive(time)) g.u[g.nUnits - 1].timeSimPast = time;
+                // set whether new unit is a temporary unit moving along an alternate path that this unit could take
                 g.u[g.nUnits - 1].isChildPath = isChildPathVal;
                 // indicate to calculate TileMoveEvts for new unit starting at timeSim
                 if (!g.movedUnits.Contains(g.nUnits - 1)) g.movedUnits.Add(g.nUnits - 1);
+                // if new unit isn't live, indicate that player now has a non-live unit
+                if (!g.u[g.nUnits - 1].isLive(time)) g.players[player].hasNonLiveUnits = true;
                 return true;
             }
             return false;
@@ -429,7 +448,27 @@ namespace Decoherence
         /// </summary>
         public bool canMakeChildUnit(long time, bool isChildPathVal, int typeVal = -1)
         {
-            return exists(time) && (isChildPathVal ? time >= timeCohere : g.unitT[type].canMake[typeVal] && (time >= g.timeSim || time >= timeCohere));
+            if (exists(time))
+            {
+                if (isChildPathVal)
+                {
+                    if (time >= timeCohere) return true;
+                }
+                else
+                {
+                    bool newUnitIsLive = (time >= g.timeSim && isLive(time));
+                    if (g.unitT[type].canMake[typeVal] && (time >= g.timeSim || time >= timeCohere))
+                    {
+                        for (int i = 0; i < g.nRsc; i++)
+                        {
+                            // TODO: may be more permissive by passing in max = true, but this really complicates delete() algorithm (see planning notes)
+                            if (g.playerResource(player, time, i, false, !newUnitIsLive, !newUnitIsLive) < g.unitT[typeVal].rscCost[i]) return false;
+                        }
+                        return true;
+                    }
+                }
+            }
+            return false;
         }
 
         /// <summary>
@@ -498,6 +537,7 @@ namespace Decoherence
         /// <summary>
         /// recursively delete all child units
         /// </summary>
+        /// <remarks>this does not check whether deleting the units may lead to player having negative resources</remarks>
         private void deleteAllChildren()
         {
             for (int i = 0; i < nChildren; i++)
@@ -512,13 +552,14 @@ namespace Decoherence
         /// <summary>
         /// delete child units made after the specified time
         /// </summary>
+        /// <remarks>this does not check whether deleting the units may lead to player having negative resources</remarks>
         private void deleteChildrenAfter(long time)
         {
             for (int i = 0; i < nChildren; i++)
             {
                 if (g.u[children[i]].m[0].timeStart > time)
                 {
-                    g.u[children[i]].delete(time);
+                    g.u[children[i]].delete(time, true);
                     i--;
                 }
             }
@@ -566,7 +607,17 @@ namespace Decoherence
         }
 
         /// <summary>
-        /// returns index of unit that is the root parent path of this unit
+        /// returns index of this unit's oldest ancestor (which was not made by another unit)
+        /// </summary>
+        public int rootParent()
+        {
+            int ret = id;
+            while (g.u[ret].parent >= 0) ret = g.u[ret].parent;
+            return ret;
+        }
+
+        /// <summary>
+        /// returns index of oldest ancestor that this unit is an alternate path for
         /// </summary>
         public int rootParentPath()
         {
@@ -582,31 +633,40 @@ namespace Decoherence
         /// since different paths can have collected different resource amounts,
         /// determines whether to use paths that collected least or most resources in calculation
         /// </param>
-        public long rscCollected(long time, int rscType, bool max)
+        public long rscCollected(long time, int rscType, bool max, bool includeNonLiveChildren, bool alwaysUseReplacementPaths)
         {
             if (time < m[0].timeStart) return 0; // if this unit isn't made yet, it can't have collected anything
             List<int> childrenList = new List<int>(children);
             long timeCollectEnd = (healthWhen(time) == 0) ? timeHealth[nTimeHealth - 1] : time;
             long pathCollected;
+            bool foundReplacementPath = false;
             long ret = 0;
             childrenList.RemoveRange(nChildren, children.Length - nChildren);
             foreach (int child in childrenList.OrderByDescending(i => g.u[i].m[0].timeStart))
             {
-                if (g.u[child].isChildPath)
+                if (includeNonLiveChildren || g.u[child].timeSimPast == long.MaxValue)
                 {
-                    // if child unit is one of this unit's paths and collected more/less (depending on max parameter) resources than this path,
-                    // use that path for resource calculation
-                    pathCollected = g.u[child].rscCollected(time, rscType, max);
-                    if (max ^ (pathCollected < ret + g.unitT[type].rscCollectRate[rscType] * (timeCollectEnd - g.u[child].m[0].timeStart)))
+                    if (g.u[child].isChildPath)
                     {
-                        ret = pathCollected;
-                        timeCollectEnd = g.u[child].m[0].timeStart;
+                        if (!alwaysUseReplacementPaths || !foundReplacementPath)
+                        {
+                            // if child unit is one of this unit's paths and collected more/less (depending on max parameter) resources than this path,
+                            // use that path for resource calculation
+                            pathCollected = g.u[child].rscCollected(time, rscType, max, includeNonLiveChildren, alwaysUseReplacementPaths);
+                            if ((alwaysUseReplacementPaths && g.u[child].replaceParentPath)
+                                || max ^ (pathCollected < ret + g.unitT[type].rscCollectRate[rscType] * (timeCollectEnd - g.u[child].m[0].timeStart)))
+                            {
+                                ret = pathCollected;
+                                timeCollectEnd = g.u[child].m[0].timeStart;
+                                if (alwaysUseReplacementPaths && g.u[child].replaceParentPath) foundReplacementPath = true;
+                            }
+                        }
                     }
-                }
-                else
-                {
-                    // add resources that non-path child unit gained
-                    ret += g.u[child].rscCollected(time, rscType, max);
+                    else
+                    {
+                        // add resources that non-path child unit gained
+                        ret += g.u[child].rscCollected(time, rscType, max, includeNonLiveChildren, alwaysUseReplacementPaths);
+                    }
                 }
             }
             // add resources collected by this unit
@@ -633,7 +693,7 @@ namespace Decoherence
         }
 
         /// <summary>
-        /// returns whether unit exists and is being updated in the present (i.e., isn't time travelling)
+        /// returns whether unit exists and is being updated in the present (i.e., isn't time traveling)
         /// </summary>
         public bool isLive(long time)
         {

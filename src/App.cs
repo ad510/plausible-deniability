@@ -380,11 +380,7 @@ namespace Decoherence
             while (runMode == 1)
             {
                 updateTime();
-                for (int i = 0; i < g.nUnits; i++)
-                {
-                    //if (timeGame > Sim.timeSim + 1000 && Sim.u[i].player == selPlayer) Sim.u[i].updatePast(timeGame);
-                    if (g.u[i].player == selPlayer) g.u[i].updatePast(timeGame);
-                }
+                g.updatePast(selPlayer, timeGame);
                 //if (timeGame > Sim.timeSim + 1000) Sim.update(timeGame);
                 g.update(timeGame);
                 updateInput();
@@ -689,11 +685,12 @@ namespace Decoherence
             if (paused) fnt.DrawString(null, "PAUSED", new Rectangle(0, 0, DX.resX, (int)(DX.resY * FntSize)), DrawTextFormat.Center | DrawTextFormat.Top, new Color4(1, 1, 1, 1));
             if (Environment.TickCount < timeSpeedChg) timeSpeedChg -= UInt32.MaxValue;
             if (Environment.TickCount < timeSpeedChg + 1000) DX.textDraw(fnt, new Color4(1, 1, 1, 1), "SPEED: " + Math.Pow(2, speed) + "x", 0, (int)(DX.resY * FntSize));
+            if (g.players[selPlayer].timeGoLiveFail != long.MaxValue) DX.textDraw(fnt, new Color4(1, 1, 0, 0), "ERROR: Going live may cause you to have negative resources " + (timeGame - g.players[selPlayer].timeNegRsc) / 1000 + " second(s) ago.", 0, (int)(2 * DX.resY * FntSize));
             for (i = 0; i < g.nRsc; i++)
             {
-                long rscMin = (long)Math.Floor(FP.toDouble(g.playerResource(selPlayer, timeGame, i, false)));
-                long rscMax = (long)Math.Floor(FP.toDouble(g.playerResource(selPlayer, timeGame, i, true)));
-                DX.textDraw(fnt, new Color4(1, 1, 1, 1), g.rscNames[i] + ": " + rscMin + ((rscMax != rscMin) ? " to " + rscMax : ""), 0, (int)(DX.resY + (i - g.nRsc) * DX.resY * FntSize));
+                long rscMin = (long)Math.Floor(FP.toDouble(g.playerResource(selPlayer, timeGame, i, false, true, false)));
+                long rscMax = (long)Math.Floor(FP.toDouble(g.playerResource(selPlayer, timeGame, i, true, true, false)));
+                DX.textDraw(fnt, (rscMin >= 0) ? new Color4(1, 1, 1, 1) : new Color4(1, 1, 0, 0), g.rscNames[i] + ": " + rscMin + ((rscMax != rscMin) ? " to " + rscMax : ""), 0, (int)(DX.resY + (i - g.nRsc) * DX.resY * FntSize));
             }
             DX.d3dDevice.EndScene();
             DX.d3dDevice.Present();
