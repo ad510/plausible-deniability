@@ -180,6 +180,10 @@ namespace Decoherence
                         }
                     }
                 }
+                for (i = 0; i < g.nPlayers; i++)
+                {
+                    g.players[i].immutable = g.calcPlayerImmutable(i);
+                }
             }
             // unit types
             g.nUnitT = 0;
@@ -245,7 +249,13 @@ namespace Decoherence
                 {
                     k = i * g.nUnitT + j;
                     imgUnit[k].init();
-                    if (!imgUnit[k].open(appPath + modPath + g.players[j].name + '.' + g.unitT[i].imgPath, Color.White.ToArgb())) MessageBox.Show("Warning: failed to load " + modPath + g.players[j].name + '.' + g.unitT[i].imgPath);
+                    if (!imgUnit[k].open(appPath + modPath + g.players[j].name + '.' + g.unitT[i].imgPath, Color.White.ToArgb()))
+                    {
+                        if (!imgUnit[k].open(appPath + modPath + g.unitT[i].imgPath, Color.White.ToArgb()))
+                        {
+                            MessageBox.Show("Warning: failed to load " + modPath + g.unitT[i].imgPath);
+                        }
+                    }
                     imgUnit[k].rotCenter.X = imgUnit[k].srcWidth / 2;
                     imgUnit[k].rotCenter.Y = imgUnit[k].srcHeight / 2;
                 }
@@ -433,7 +443,10 @@ namespace Decoherence
                 if (DX.keysChanged[i] == Key.Space && DX.keyState.IsPressed(DX.keysChanged[i]))
                 {
                     // change selected player
-                    selPlayer = (selPlayer + 1) % g.nPlayers;
+                    do
+                    {
+                        selPlayer = (selPlayer + 1) % g.nPlayers;
+                    } while (g.players[selPlayer].user != Sim.HumanPlayer);
                     selUnits.Clear();
                 }
                 else if (DX.keysChanged[i] == Key.P && DX.keyState.IsPressed(DX.keysChanged[i]))

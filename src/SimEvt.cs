@@ -387,9 +387,9 @@ namespace Decoherence
                 {
                     g.u[unit].decohere();
                 }
-                if (tXPrev >= 0 && tXPrev < g.tileLen() && tYPrev >= 0 && tYPrev < g.tileLen())
+                // if this unit moved out of another player's visibility, remove that player's visibility here
+                if (!g.players[g.u[unit].player].immutable && tXPrev >= 0 && tXPrev < g.tileLen() && tYPrev >= 0 && tYPrev < g.tileLen())
                 {
-                    // if this unit moved out of another player's visibility, remove that player's visibility here
                     for (i = 0; i < g.nPlayers; i++)
                     {
                         if (i != g.u[unit].player && g.tiles[tXPrev, tYPrev].playerDirectVisLatest(i) && !g.tiles[tileX, tileY].playerDirectVisLatest(i))
@@ -411,7 +411,8 @@ namespace Decoherence
                 // if this player can no longer directly see another player's unit, remove this player's visibility there
                 foreach (int j in g.tiles[tXPrev, tYPrev].unitVis.Keys)
                 {
-                    if (g.u[j].player != g.u[unit].player && g.u[j].healthLatest() > 0 && g.inVis(g.u[j].tileX - tXPrev, g.u[j].tileY - tYPrev) && !g.tiles[g.u[j].tileX, g.u[j].tileY].playerDirectVisLatest(g.u[unit].player))
+                    if (g.u[j].player != g.u[unit].player && !g.players[g.u[j].player].immutable && g.u[j].healthLatest() > 0
+                        && g.inVis(g.u[j].tileX - tXPrev, g.u[j].tileY - tYPrev) && !g.tiles[g.u[j].tileX, g.u[j].tileY].playerDirectVisLatest(g.u[unit].player))
                     {
                         for (tX = Math.Max(0, g.u[j].tileX - 1); tX <= Math.Min(g.tileLen() - 1, g.u[j].tileX + 1); tX++)
                         {

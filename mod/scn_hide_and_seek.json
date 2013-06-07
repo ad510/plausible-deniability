@@ -30,7 +30,7 @@
     {
       "name": "red",
       "isUser": true,
-      "user": -1,
+      "user": 1,
       "mayAttack": ["blue"]
     }
   ],

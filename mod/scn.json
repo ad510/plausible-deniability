@@ -35,12 +35,17 @@
     {
       "name": "red",
       "isUser": true,
-      "user": -1,
+      "user": 1,
       "startRsc":
       {
         "Minerals": 20
       },
       "mayAttack": ["blue"]
+    },
+    {
+      "name": "resources",
+      "isUser": false,
+      "user": -1
     }
   ],
   "unitTypes":
@@ -80,10 +85,36 @@
       {
         "Minerals": 0.001
       }
-    }    
+    },
+    {
+      "name": "mineral",
+      "imgPath": "mineral.png",
+      "maxHealth": 1,
+      "speed": 0
+    }
   ],
   "units":
   [
+    {
+      "type": "mineral",
+      "player": "resources"
+    },
+    {
+      "type": "mineral",
+      "player": "resources"
+    },
+    {
+      "type": "mineral",
+      "player": "resources"
+    },
+    {
+      "type": "mineral",
+      "player": "resources"
+    },
+    {
+      "type": "mineral",
+      "player": "resources"
+    },
     {
       "type": "marine",
       "player": "blue",

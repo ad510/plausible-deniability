@@ -18,17 +18,20 @@ namespace Decoherence
     {
         // constants
         public const int OffMap = -10000; // don't set to int.MinValue so doesn't overflow in inVis()
+        public const short HumanPlayer = 1; // change this if multiplayer is supported
+        public const short CompPlayer = 0;
 
         // game objects
         public class Player
         {
             // stored in scenario files
             public string name;
-            public bool isUser; // whether actively controlled by either a human or AI
+            public bool isUser; // whether actively participates in the game
             public short user; // -1 = nobody, 0 = computer, 1+ = human
             public long[] startRsc; // resources at beginning of game
             public bool[] mayAttack; // if this player's units may attack each other player's units
             // not stored in scenario files
+            public bool immutable; // whether player's units will never unpredictably move or change
             public bool hasNonLiveUnits; // whether currently might have time traveling units (ok to sometimes incorrectly be set to true)
             public long timeGoLiveFail; // latest time that player's time traveling units failed to go live (resets to long.MaxValue after success)
             public long timeNegRsc; // time that player could have negative resources if time traveling units went live
@@ -402,7 +405,7 @@ namespace Decoherence
             // check that no other players can see this tile
             for (i = 0; i < nPlayers; i++)
             {
-                if (i != player && tiles[tileX, tileY].playerVisLatest(i)) return false;
+                if (i != player && !players[i].immutable && tiles[tileX, tileY].playerVisLatest(i)) return false;
             }
             return true;
         }
@@ -447,6 +450,21 @@ namespace Decoherence
                 }
             }
             return -1;
+        }
+
+        /// <summary>
+        /// returns whether specified player's units will never unpredictably move or change
+        /// </summary>
+        public bool calcPlayerImmutable(int player)
+        {
+            // check that player isn't an active participant and isn't controlled by anyone
+            if (players[player].isUser || players[player].user >= 0) return false;
+            // check that no one can attack this player
+            for (int i = 0; i < nPlayers; i++)
+            {
+                if (players[i].mayAttack[player]) return false;
+            }
+            return true;
         }
 
         /// <summary>
