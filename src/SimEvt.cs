@@ -66,14 +66,14 @@ namespace Decoherence
 
         public override void apply(Sim g)
         {
-            FP.Vector curPos, goal, rows = new FP.Vector(), offset;
+            FP.Vector goal, rows = new FP.Vector(), offset;
             long spacing = 0;
             int count = 0, i = 0;
             base.apply(g);
             // count number of units able to move
             foreach (int unit in units)
             {
-                if (unitCanMove(g, unit))
+                if (g.u[unit].canMove(timeCmd))
                 {
                     count++;
                     if (formation == Formation.Tight && g.unitT[g.u[unit].type].tightFormationSpacing > spacing) spacing = g.unitT[g.u[unit].type].tightFormationSpacing;
@@ -113,10 +113,8 @@ namespace Decoherence
             // move units
             foreach (int unit in units)
             {
-                if (unitCanMove(g, unit))
+                if (g.u[unit].canMove(timeCmd))
                 {
-                    int unit2 = unit;
-                    curPos = g.u[unit].calcPos(timeCmd);
                     if (formation == Formation.Tight || formation == Formation.Loose)
                     {
                         goal = pos + new FP.Vector((i % rows.x) * spacing - offset.x, i / rows.x * spacing - offset.y);
@@ -130,20 +128,10 @@ namespace Decoherence
                     {
                         throw new NotImplementedException("requested formation is not implemented");
                     }
-                    if (goal.x < 0) goal.x = 0;
-                    if (goal.x > g.mapSize) goal.x = g.mapSize;
-                    if (goal.y < 0) goal.y = 0;
-                    if (goal.y > g.mapSize) goal.y = g.mapSize;
-                    if (timeCmd < g.timeSim) unit2 = g.u[unit].prepareNonLivePath(timeCmd); // move replacement unit instead of live unit if in past
-                    g.u[unit2].addMove(Unit.Move.fromSpeed(timeCmd, g.unitT[g.u[unit2].type].speed, curPos, goal));
+                    g.u[unit].moveTo(timeCmd, goal);
                     i++;
                 }
             }
-        }
-
-        private bool unitCanMove(Sim g, int unit)
-        {
-            return g.u[unit].exists(timeCmd) && (timeCmd >= g.timeSim || timeCmd >= g.u[unit].timeCohere) && g.unitT[g.u[unit].type].speed > 0;
         }
     }
 
@@ -153,21 +141,56 @@ namespace Decoherence
     public class MakeUnitCmdEvt : CmdEvt
     {
         public int type;
+        public FP.Vector pos;
+        bool autoRepeat;
 
-        public MakeUnitCmdEvt(long timeVal, long timeCmdVal, int[] unitsVal, int typeVal)
+        public MakeUnitCmdEvt(long timeVal, long timeCmdVal, int[] unitsVal, int typeVal, FP.Vector posVal, bool autoRepeatVal = false)
             : base(timeVal, timeCmdVal, unitsVal)
         {
             type = typeVal;
+            pos = posVal;
+            autoRepeat = autoRepeatVal;
         }
 
         public override void apply(Sim g)
         {
-            base.apply(g);
+            if (!autoRepeat) base.apply(g);
+            // make unit at requested position, if possible
             foreach (int unit in units)
             {
-                // happens at timeCmd + 1 so addTileMoveEvts() knows to initially put new unit on visibility tiles
-                // TODO: move new unit immediately after making it
-                if (g.u[unit].makeChildUnit(timeCmd + 1, false, type)) return;
+                if (g.u[unit].canMakeChildUnit(timeCmd, false, type))
+                {
+                    FP.Vector curPos = g.u[unit].calcPos(timeCmd);
+                    if ((pos.x == curPos.x && pos.y == curPos.y) || g.unitT[type].speed > 0)
+                    {
+                        // TODO: move new unit immediately after making it
+                        // TODO: take time to make units?
+                        g.u[unit].makeChildUnit(timeCmd, false, type);
+                        // move new unit out of the way
+                        /*if ((pos.x != curPos.x || pos.y != curPos.y) && g.u[g.nUnits - 1].canMove(timeCmd))
+                        {
+                            g.u[g.nUnits - 1].moveTo(timeCmd, pos);
+                        }*/
+                        return;
+                    }
+                }
+            }
+            if (!autoRepeat)
+            {
+                // if none of specified units are at requested position,
+                // try moving one to the correct position then trying again to make the unit
+                foreach (int unit in units)
+                {
+                    if (g.u[unit].canMakeChildUnit(timeCmd, false, type) && g.u[unit].canMove(timeCmd))
+                    {
+                        int unit2 = g.u[unit].moveTo(timeCmd, pos);
+                        List<int> unitsList = new List<int>(units);
+                        unitsList.Insert(0, unit2); // in case replacement unit is moving to make the unit
+                        g.events.add(new MakeUnitCmdEvt(g.u[unit2].m[g.u[unit2].n - 1].timeEnd, g.u[unit2].m[g.u[unit2].n - 1].timeEnd + 1,
+                            unitsList.ToArray(), type, pos, true));
+                        return;
+                    }
+                }
             }
         }
     }
@@ -194,9 +217,8 @@ namespace Decoherence
             {
                 if (action == UnitAction.MakePath)
                 {
-                    // happens at timeCmd + 1 so addTileMoveEvts() knows to initially put new unit on visibility tiles
                     // TODO: move new unit immediately after making it
-                    g.u[unit].makeChildUnit(timeCmd + 1, true);
+                    g.u[unit].makeChildUnit(timeCmd, true);
                 }
                 else if (action == UnitAction.DeletePath)
                 {
@@ -206,8 +228,6 @@ namespace Decoherence
                     {
                         if (unit2 == g.unitIdChgs[i * 2]) unit2 = g.unitIdChgs[i * 2 + 1];
                     }
-                    // happens at timeCmd so that when paused, making path then deleting parent path doesn't move parent's tile pos off map
-                    // (where child's tile pos initially is)
                     if (unit2 >= 0) g.u[unit2].delete(timeCmd);
                 }
             }

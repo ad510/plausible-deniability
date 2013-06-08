@@ -18,8 +18,8 @@ namespace Decoherence
     {
         // constants
         public const int OffMap = -10000; // don't set to int.MinValue so doesn't overflow in inVis()
-        public const short HumanPlayer = 1; // change this if multiplayer is supported
-        public const short CompPlayer = 0;
+        public const short HumanUser = 1; // change this if multiplayer is supported
+        public const short CompUser = 0;
 
         // game objects
         public class Player

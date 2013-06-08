@@ -113,7 +113,7 @@ namespace Decoherence
             nTimeHealth = 0;
             timeHealth = new long[g.unitT[type].maxHealth];
             timeAttack = long.MinValue;
-            timeSimPast = (startTime >= g.timeSim) ? long.MaxValue : startTime;
+            timeSimPast = (startTime > g.timeSim) ? long.MaxValue : startTime;
             timeCohere = g.tileAt(startPos).coherentWhen(player, startTime) ? startTime : long.MaxValue;
             parent = -1;
             isChildPath = false;
@@ -170,7 +170,7 @@ namespace Decoherence
         /// <summary>
         /// intelligently resize move array to specified size
         /// </summary>
-        public void setN(int newSize)
+        private void setN(int newSize)
         {
             int i = 0;
             for (i = n; i < Math.Min(newSize, m.Length); i++)
@@ -189,11 +189,38 @@ namespace Decoherence
         /// if caller also adds a TileMoveEvt, must ensure that it isn't deleted in update()
         /// (add allowOverride variable in TileMoveEvt if necessary)
         /// </remarks>
-        public void addMove(Move newMove)
+        private void addMove(Move newMove)
         {
             setN(n + 1);
             m[n - 1] = newMove;
             if (!g.movedUnits.Contains(id)) g.movedUnits.Add(id); // indicate to delete and recalculate later TileMoveEvts for this unit
+        }
+
+        /// <summary>
+        /// move towards specified location starting at specified time,
+        /// return index of moved unit (in case moving a replacement path instead of this unit)
+        /// </summary>
+        public int moveTo(long time, FP.Vector pos)
+        {
+            int unit2 = (time < g.timeSim) ? prepareNonLivePath(time) : id; // move replacement unit instead of live unit if in past
+            FP.Vector curPos = calcPos(time);
+            FP.Vector goalPos = pos;
+            // don't move off map edge
+            if (goalPos.x < 0) goalPos.x = 0;
+            if (goalPos.x > g.mapSize) goalPos.x = g.mapSize;
+            if (goalPos.y < 0) goalPos.y = 0;
+            if (goalPos.y > g.mapSize) goalPos.y = g.mapSize;
+            // add move
+            g.u[unit2].addMove(Move.fromSpeed(time, g.unitT[g.u[unit2].type].speed, curPos, goalPos));
+            return unit2;
+        }
+
+        /// <summary>
+        /// returns whether allowed to move at specified time
+        /// </summary>
+        public bool canMove(long time)
+        {
+            return exists(time) && (time >= g.timeSim || time >= timeCohere) && g.unitT[type].speed > 0;
         }
 
         /// <summary>
@@ -474,7 +501,7 @@ namespace Decoherence
         /// <summary>
         /// returns index (in unit array) of path that isn't updated in the present and is therefore safe to move in the past
         /// </summary>
-        public int prepareNonLivePath(long time)
+        private int prepareNonLivePath(long time)
         {
             if (timeSimPast != long.MaxValue)
             {

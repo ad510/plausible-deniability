@@ -40,9 +40,11 @@ namespace Decoherence
         DX.Poly2D tlTile;
         DX.Poly2D tlPoly;
         SlimDX.Direct3D9.Font fnt;
+        FP.Vector mouseSimPos;
         Random rand;
         int selPlayer;
         List<int> selUnits;
+        int makeUnitType;
         long timeGame;
         bool paused;
         int speed;
@@ -105,6 +107,9 @@ namespace Decoherence
             g.events = new SimEvtList();
             g.cmdHistory = new SimEvtList();
             g.unitIdChgs = new List<int>();
+            g.timeSim = -1;
+            g.timeUpdateEvt = long.MinValue;
+            g.events.add(new UpdateEvt(-1));
             g.maxSpeed = 0;
             g.mapSize = jsonFP(json, "mapSize");
             g.updateInterval = (long)jsonDouble(json, "updateInterval");
@@ -282,7 +287,6 @@ namespace Decoherence
                         jsonFPVector(jsonO, "startPos", new FP.Vector((long)(rand.NextDouble() * g.mapSize), (long)(rand.NextDouble() * g.mapSize))));
                 }
             }
-            selUnits = new List<int>();
             // tile graphics
             tlTile.primitive = PrimitiveType.TriangleList;
             tlTile.setNPoly(0);
@@ -294,13 +298,14 @@ namespace Decoherence
                 tlTile.poly[0].v[i].z = 0;
             }
             // start game
+            selPlayer = 0;
+            while (g.players[selPlayer].user != Sim.HumanUser) selPlayer = (selPlayer + 1) % g.nPlayers;
+            selUnits = new List<int>();
+            makeUnitType = -1;
             paused = false;
             speed = 0;
-            timeSpeedChg = Environment.TickCount - 1000;
             timeGame = 0;
-            g.timeSim = -1;
-            g.timeUpdateEvt = long.MinValue;
-            g.events.add(new UpdateEvt(-1));
+            timeSpeedChg = Environment.TickCount - 1000;
             DX.timeNow = Environment.TickCount;
             runMode = 1;
             return true;
@@ -324,6 +329,7 @@ namespace Decoherence
         {
             int button = (int)e.Button / 0x100000;
             DX.mouseDown(button, e.X, e.Y);
+            mouseSimPos = drawToSimPos(new Vector3(DX.mouseX, DX.mouseY, 0));
         }
 
         private void App_MouseMove(object sender, MouseEventArgs e)
@@ -331,6 +337,7 @@ namespace Decoherence
             int button = (int)e.Button / 0x100000;
             int i;
             i = DX.mouseMove(button, e.X, e.Y);
+            mouseSimPos = drawToSimPos(new Vector3(DX.mouseX, DX.mouseY, 0));
             if (i != -1)
             {
                 if (DX.mouseState[i] == 0)
@@ -348,40 +355,63 @@ namespace Decoherence
         {
             int button = (int)e.Button / 0x100000;
             int mousePrevState = DX.mouseState[button];
-            FP.Vector mouseSimPos = drawToSimPos(new Vector3(e.X, e.Y, 0));
             Vector3 drawPos;
             int i;
             DX.mouseUp(button, e.X, e.Y);
-            if (button == 1) // select
+            mouseSimPos = drawToSimPos(new Vector3(DX.mouseX, DX.mouseY, 0));
+            if (button == 1)
             {
-                if (!DX.keyState.IsPressed(Key.LeftControl) && !DX.keyState.IsPressed(Key.LeftShift)) selUnits.Clear();
-                for (i = 0; i < g.nUnits; i++)
+                if (makeUnitType >= 0)
                 {
-                    if (selPlayer == g.u[i].player && timeGame >= g.u[i].m[0].timeStart)
+                    // make unit
+                    if (selUnits.Count > 0 && mouseSimPos.x >= 0 && mouseSimPos.x <= g.mapSize && mouseSimPos.y >= 0 && mouseSimPos.y <= g.mapSize)
                     {
-                        drawPos = simToDrawPos(g.u[i].calcPos(timeGame));
-                        if (drawPos.X + g.unitT[g.u[i].type].selRadius >= Math.Min(DX.mouseDX[1], DX.mouseX)
-                            && drawPos.X - g.unitT[g.u[i].type].selRadius <= Math.Max(DX.mouseDX[1], DX.mouseX)
-                            && drawPos.Y + g.unitT[g.u[i].type].selRadius >= Math.Min(DX.mouseDY[1], DX.mouseY)
-                            && drawPos.Y - g.unitT[g.u[i].type].selRadius <= Math.Max(DX.mouseDY[1], DX.mouseY))
+                        // happens at timeGame + 1 so new unit starts out live if game is live
+                        g.events.add(new MakeUnitCmdEvt(g.timeSim, timeGame + 1, selUnits.ToArray(), makeUnitType, mouseSimPos));
+                    }
+                    makeUnitType = -1;
+                }
+                else
+                {
+                    // select units
+                    if (!DX.keyState.IsPressed(Key.LeftControl) && !DX.keyState.IsPressed(Key.LeftShift)) selUnits.Clear();
+                    for (i = 0; i < g.nUnits; i++)
+                    {
+                        if (selPlayer == g.u[i].player && timeGame >= g.u[i].m[0].timeStart)
                         {
-                            if (selUnits.Contains(i))
+                            drawPos = simToDrawPos(g.u[i].calcPos(timeGame));
+                            if (drawPos.X + g.unitT[g.u[i].type].selRadius >= Math.Min(DX.mouseDX[1], DX.mouseX)
+                                && drawPos.X - g.unitT[g.u[i].type].selRadius <= Math.Max(DX.mouseDX[1], DX.mouseX)
+                                && drawPos.Y + g.unitT[g.u[i].type].selRadius >= Math.Min(DX.mouseDY[1], DX.mouseY)
+                                && drawPos.Y - g.unitT[g.u[i].type].selRadius <= Math.Max(DX.mouseDY[1], DX.mouseY))
                             {
-                                selUnits.Remove(i);
+                                if (selUnits.Contains(i))
+                                {
+                                    selUnits.Remove(i);
+                                }
+                                else
+                                {
+                                    selUnits.Add(i);
+                                }
+                                if (SelBoxMin > Math.Pow(DX.mouseDX[1] - DX.mouseX, 2) + Math.Pow(DX.mouseDY[1] - DX.mouseY, 2)) break;
                             }
-                            else
-                            {
-                                selUnits.Add(i);
-                            }
-                            if (SelBoxMin > Math.Pow(DX.mouseDX[1] - DX.mouseX, 2) + Math.Pow(DX.mouseDY[1] - DX.mouseY, 2)) break;
                         }
                     }
                 }
             }
-            else if (button == 2) // move
+            else if (button == 2)
             {
-                g.events.add(new MoveCmdEvt(g.timeSim, timeGame + 1, selUnits.ToArray(), mouseSimPos,
-                    DX.keyState.IsPressed(Key.LeftControl) ? Formation.Loose : DX.keyState.IsPressed(Key.LeftAlt) ? Formation.Ring : Formation.Tight));
+                if (makeUnitType >= 0)
+                {
+                    // cancel making unit
+                    makeUnitType = -1;
+                }
+                else
+                {
+                    // move selected units
+                    g.events.add(new MoveCmdEvt(g.timeSim, timeGame + 1, selUnits.ToArray(), mouseSimPos,
+                        DX.keyState.IsPressed(Key.LeftControl) ? Formation.Loose : DX.keyState.IsPressed(Key.LeftAlt) ? Formation.Ring : Formation.Tight));
+                }
             }
         }
 
@@ -446,8 +476,9 @@ namespace Decoherence
                     do
                     {
                         selPlayer = (selPlayer + 1) % g.nPlayers;
-                    } while (g.players[selPlayer].user != Sim.HumanPlayer);
+                    } while (g.players[selPlayer].user != Sim.HumanUser);
                     selUnits.Clear();
+                    makeUnitType = -1;
                 }
                 else if (DX.keysChanged[i] == Key.P && DX.keyState.IsPressed(DX.keysChanged[i]))
                 {
@@ -469,17 +500,35 @@ namespace Decoherence
                 else if (DX.keysChanged[i] >= Key.D1 && DX.keysChanged[i] <= Key.D9 && DX.keysChanged[i] - Key.D1 < g.nUnitT && DX.keyState.IsPressed(DX.keysChanged[i]))
                 {
                     // make unit of specified type
-                    if (selUnits.Count > 0) g.events.add(new MakeUnitCmdEvt(g.timeSim, timeGame, selUnits.ToArray(), DX.keysChanged[i] - Key.D1));
+                    int type = DX.keysChanged[i] - Key.D1;
+                    foreach (int unit in selUnits)
+                    {
+                        if (g.u[unit].canMakeChildUnit(timeGame + 1, false, type))
+                        {
+                            if (g.unitT[type].speed > 0)
+                            {
+                                // happens at timeGame + 1 so new unit starts out live if game is live
+                                g.events.add(new MakeUnitCmdEvt(g.timeSim, timeGame + 1, selUnits.ToArray(), type, new FP.Vector()));
+                            }
+                            else
+                            {
+                                makeUnitType = type;
+                            }
+                            break;
+                        }
+                    }
                 }
                 else if (DX.keysChanged[i] == Key.N && DX.keyState.IsPressed(DX.keysChanged[i]))
                 {
                     // create new paths that selected units could take
-                    g.events.add(new UnitActionCmdEvt(g.timeSim, timeGame, selUnits.ToArray(), UnitAction.MakePath));
+                    // happens at timeGame + 1 so new path starts out live if game is live
+                    if (selUnits.Count > 0) g.events.add(new UnitActionCmdEvt(g.timeSim, timeGame + 1, selUnits.ToArray(), UnitAction.MakePath));
                 }
                 else if (DX.keysChanged[i] == Key.Delete && DX.keyState.IsPressed(DX.keysChanged[i]))
                 {
                     // delete selected paths
-                    g.events.add(new UnitActionCmdEvt(g.timeSim, timeGame, selUnits.ToArray(), UnitAction.DeletePath));
+                    // happens at timeGame instead of timeGame + 1 so that when paused, making path then deleting parent path doesn't cause an error
+                    if (selUnits.Count > 0) g.events.add(new UnitActionCmdEvt(g.timeSim, timeGame, selUnits.ToArray(), UnitAction.DeletePath));
                 }
                 else if (DX.keysChanged[i] == Key.R && DX.keyState.IsPressed(DX.keysChanged[i]) && DX.keyState.IsPressed(Key.LeftControl))
                 {
@@ -636,6 +685,14 @@ namespace Decoherence
                     }
                 }
             }
+            // unit to be made
+            if (makeUnitType >= 0 && selUnits.Count > 0 && mouseSimPos.x >= 0 && mouseSimPos.x <= g.mapSize && mouseSimPos.y >= 0 && mouseSimPos.y <= g.mapSize)
+            {
+                i = makeUnitType * g.nUnitT + selPlayer;
+                imgUnit[i].color = new Color4(1, 1, 1, 1).ToArgb();
+                imgUnit[i].pos = new Vector3(DX.mouseX, DX.mouseY, 0);
+                imgUnit[i].draw();
+            }
             // health bars
             foreach (int unit in selUnits)
             {
@@ -669,7 +726,7 @@ namespace Decoherence
             }
             // select box (if needed)
             // TODO: make color customizable by mod?
-            if (DX.mouseState[1] > 0 && SelBoxMin <= Math.Pow(DX.mouseDX[1] - DX.mouseX, 2) + Math.Pow(DX.mouseDY[1] - DX.mouseY, 2))
+            if (DX.mouseState[1] > 0 && makeUnitType < 0 && SelBoxMin <= Math.Pow(DX.mouseDX[1] - DX.mouseX, 2) + Math.Pow(DX.mouseDY[1] - DX.mouseY, 2))
             {
                 DX.d3dDevice.SetTexture(0, null);
                 tlPoly.primitive = PrimitiveType.LineStrip;
