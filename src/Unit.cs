@@ -375,6 +375,7 @@ namespace Decoherence
                 if (isChildPath)
                 {
                     int parentPathTemp = parent;
+                    g.u[parent].deleteChildrenAfter(m[0].timeStart);
                     movePathToParent();
                     g.u[parentPathTemp].decohere();
                 }
