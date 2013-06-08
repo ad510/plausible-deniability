@@ -263,13 +263,9 @@ namespace Decoherence
             {
                 // next move may not be i + 1 if times are out of order
                 iNext = i + 1;
-                for (j = n - 1; j > iNext; j--)
+                for (j = iNext + 1; j < n; j++)
                 {
-                    if (m[j].timeStart <= m[iNext].timeStart)
-                    {
-                        iNext = j;
-                        break;
-                    }
+                    if (m[j].timeStart <= m[iNext].timeStart) iNext = j;
                 }
                 posLast = (i == moveLast) ? m[i].calcPos(Math.Max(timeMin, m[0].timeStart)) : m[i].vecStart;
                 pos = (i == move) ? m[i].calcPos(timeMax) : m[iNext].vecStart;
