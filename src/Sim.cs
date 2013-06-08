@@ -56,6 +56,8 @@ namespace Decoherence
             public long reload; // time needed to reload
             public long range; // range of attack
             public long tightFormationSpacing;
+            public long makeUnitMinDist; // minimum distance that units that this unit type makes should move away
+            public long makeUnitMaxDist; // maximum distance that units that this unit type makes should move away
             public double selRadius;
             public int[] damage; // damage done per attack to each unit type
             public bool[] canMake; // whether can make each unit type

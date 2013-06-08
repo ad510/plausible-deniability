@@ -44,6 +44,8 @@
       "reload": 2000,
       "range": 6,
       "tightFormationSpacing": 2,
+      "makeUnitMinDist": 2,
+      "makeUnitMaxDist": 4,
       "selRadius": 16,
       "damage":
       {

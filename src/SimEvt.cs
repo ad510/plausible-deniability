@@ -163,14 +163,9 @@ namespace Decoherence
                     FP.Vector curPos = g.u[unit].calcPos(timeCmd);
                     if ((pos.x == curPos.x && pos.y == curPos.y) || g.unitT[type].speed > 0)
                     {
-                        // TODO: move new unit immediately after making it
                         // TODO: take time to make units?
                         g.u[unit].makeChildUnit(timeCmd, false, type);
-                        // move new unit out of the way
-                        /*if ((pos.x != curPos.x || pos.y != curPos.y) && g.u[g.nUnits - 1].canMove(timeCmd))
-                        {
-                            g.u[g.nUnits - 1].moveTo(timeCmd, pos);
-                        }*/
+                        if (g.u[g.nUnits - 1].canMove(timeCmd)) g.u[g.nUnits - 1].moveTo(timeCmd, pos); // move new unit out of the way
                         return;
                     }
                 }
@@ -195,41 +190,52 @@ namespace Decoherence
         }
     }
 
-    public enum UnitAction : byte { MakePath, DeletePath };
-
     /// <summary>
-    /// command to apply an action to a set of units
+    /// command to make new path(s) that specified unit(s) could take
     /// </summary>
-    public class UnitActionCmdEvt : CmdEvt
+    public class MakePathCmdEvt : CmdEvt
     {
-        public UnitAction action;
+        public FP.Vector[] pos; // where new paths should move to
 
-        public UnitActionCmdEvt(long timeVal, long timeCmdVal, int[] unitsVal, UnitAction actionVal)
+        public MakePathCmdEvt(long timeVal, long timeCmdVal, int[] unitsVal, FP.Vector[] posVal)
             : base(timeVal, timeCmdVal, unitsVal)
         {
-            action = actionVal;
+            pos = posVal;
         }
+
+        public override void apply(Sim g)
+        {
+            base.apply(g);
+            for (int i = 0; i < units.Length; i++)
+            {
+                if (g.u[units[i]].makeChildUnit(timeCmd, true) && g.u[g.nUnits - 1].canMove(timeCmd))
+                {
+                    g.u[g.nUnits - 1].moveTo(timeCmd, pos[i]); // move new unit out of the way
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// command to delete path(s)
+    /// </summary>
+    public class DeletePathCmdEvt : CmdEvt
+    {
+        public DeletePathCmdEvt(long timeVal, long timeCmdVal, int[] unitsVal)
+            : base(timeVal, timeCmdVal, unitsVal) { }
 
         public override void apply(Sim g)
         {
             base.apply(g);
             foreach (int unit in units)
             {
-                if (action == UnitAction.MakePath)
+                // check if unit changed index due to a previous path deletion
+                int unit2 = unit;
+                for (int i = 0; i < g.unitIdChgs.Count / 2; i++)
                 {
-                    // TODO: move new unit immediately after making it
-                    g.u[unit].makeChildUnit(timeCmd, true);
+                    if (unit2 == g.unitIdChgs[i * 2]) unit2 = g.unitIdChgs[i * 2 + 1];
                 }
-                else if (action == UnitAction.DeletePath)
-                {
-                    // check if unit changed index due to a previous path deletion
-                    int unit2 = unit;
-                    for (int i = 0; i < g.unitIdChgs.Count / 2; i++)
-                    {
-                        if (unit2 == g.unitIdChgs[i * 2]) unit2 = g.unitIdChgs[i * 2 + 1];
-                    }
-                    if (unit2 >= 0) g.u[unit2].delete(timeCmd);
-                }
+                if (unit2 >= 0) g.u[unit2].delete(timeCmd);
             }
         }
     }

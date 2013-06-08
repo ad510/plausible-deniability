@@ -58,6 +58,8 @@
       "reload": 2000,
       "range": 6,
       "tightFormationSpacing": 2,
+      "makeUnitMinDist": 2,
+      "makeUnitMaxDist": 4,
       "selRadius": 16,
       "damage":
       {
@@ -75,6 +77,8 @@
       "imgPath": "building.png",
       "maxHealth": 4,
       "speed": 0,
+      "makeUnitMinDist": 4,
+      "makeUnitMaxDist": 8,
       "selRadius": 32,
       "canMake": ["marine"],
       "rscCost":

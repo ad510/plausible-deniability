@@ -208,6 +208,8 @@ namespace Decoherence
                     unitT.reload = (long)jsonDouble(jsonO, "reload");
                     unitT.range = jsonFP(jsonO, "range");
                     unitT.tightFormationSpacing = jsonFP(jsonO, "tightFormationSpacing");
+                    unitT.makeUnitMinDist = jsonFP(jsonO, "makeUnitMinDist");
+                    unitT.makeUnitMaxDist = jsonFP(jsonO, "makeUnitMaxDist");
                     unitT.selRadius = jsonDouble(jsonO, "selRadius");
                     unitT.rscCost = new long[g.nRsc];
                     unitT.rscCollectRate = new long[g.nRsc];
@@ -468,9 +470,9 @@ namespace Decoherence
             g.unitIdChgs.Clear();
             // handle changed keys
             DX.keyboardUpdate();
-            for (i = 0; i < DX.keysChanged.Count; i++)
+            foreach (Key key in DX.keysChanged)
             {
-                if (DX.keysChanged[i] == Key.Space && DX.keyState.IsPressed(DX.keysChanged[i]))
+                if (key == Key.Space && DX.keyState.IsPressed(key))
                 {
                     // change selected player
                     do
@@ -480,35 +482,37 @@ namespace Decoherence
                     selUnits.Clear();
                     makeUnitType = -1;
                 }
-                else if (DX.keysChanged[i] == Key.P && DX.keyState.IsPressed(DX.keysChanged[i]))
+                else if (key == Key.P && DX.keyState.IsPressed(key))
                 {
                     // pause/resume
                     paused = !paused;
                 }
-                else if ((DX.keysChanged[i] == Key.Equals || DX.keysChanged[i] == Key.PreviousTrack) && DX.keyState.IsPressed(DX.keysChanged[i]))
+                else if ((key == Key.Equals || key == Key.PreviousTrack) && DX.keyState.IsPressed(key))
                 {
                     // increase speed
                     speed++;
                     timeSpeedChg = Environment.TickCount;
                 }
-                else if (DX.keysChanged[i] == Key.Minus && DX.keyState.IsPressed(DX.keysChanged[i]))
+                else if (key == Key.Minus && DX.keyState.IsPressed(key))
                 {
                     // decrease speed
                     speed--;
                     timeSpeedChg = Environment.TickCount;
                 }
-                else if (DX.keysChanged[i] >= Key.D1 && DX.keysChanged[i] <= Key.D9 && DX.keysChanged[i] - Key.D1 < g.nUnitT && DX.keyState.IsPressed(DX.keysChanged[i]))
+                else if (key >= Key.D1 && key <= Key.D9 && key - Key.D1 < g.nUnitT && DX.keyState.IsPressed(key))
                 {
                     // make unit of specified type
-                    int type = DX.keysChanged[i] - Key.D1;
+                    int type = key - Key.D1;
                     foreach (int unit in selUnits)
                     {
                         if (g.u[unit].canMakeChildUnit(timeGame + 1, false, type))
                         {
                             if (g.unitT[type].speed > 0)
                             {
+                                int[] unitArray = new int[1];
+                                unitArray[0] = unit;
                                 // happens at timeGame + 1 so new unit starts out live if game is live
-                                g.events.add(new MakeUnitCmdEvt(g.timeSim, timeGame + 1, selUnits.ToArray(), type, new FP.Vector()));
+                                g.events.add(new MakeUnitCmdEvt(g.timeSim, timeGame + 1, unitArray, type, makeUnitMovePos(timeGame + 1, unit)));
                             }
                             else
                             {
@@ -518,19 +522,27 @@ namespace Decoherence
                         }
                     }
                 }
-                else if (DX.keysChanged[i] == Key.N && DX.keyState.IsPressed(DX.keysChanged[i]))
+                else if (key == Key.N && DX.keyState.IsPressed(key))
                 {
                     // create new paths that selected units could take
-                    // happens at timeGame + 1 so new path starts out live if game is live
-                    if (selUnits.Count > 0) g.events.add(new UnitActionCmdEvt(g.timeSim, timeGame + 1, selUnits.ToArray(), UnitAction.MakePath));
+                    if (selUnits.Count > 0)
+                    {
+                        FP.Vector[] pos = new FP.Vector[selUnits.Count];
+                        for (i = 0; i < selUnits.Count; i++)
+                        {
+                            pos[i] = makeUnitMovePos(timeGame + 1, selUnits[i]);
+                        }
+                        // happens at timeGame + 1 so new path starts out live if game is live
+                        g.events.add(new MakePathCmdEvt(g.timeSim, timeGame + 1, selUnits.ToArray(), pos));
+                    }
                 }
-                else if (DX.keysChanged[i] == Key.Delete && DX.keyState.IsPressed(DX.keysChanged[i]))
+                else if (key == Key.Delete && DX.keyState.IsPressed(key))
                 {
                     // delete selected paths
                     // happens at timeGame instead of timeGame + 1 so that when paused, making path then deleting parent path doesn't cause an error
-                    if (selUnits.Count > 0) g.events.add(new UnitActionCmdEvt(g.timeSim, timeGame, selUnits.ToArray(), UnitAction.DeletePath));
+                    if (selUnits.Count > 0) g.events.add(new DeletePathCmdEvt(g.timeSim, timeGame, selUnits.ToArray()));
                 }
-                else if (DX.keysChanged[i] == Key.R && DX.keyState.IsPressed(DX.keysChanged[i]) && DX.keyState.IsPressed(Key.LeftControl))
+                else if (key == Key.R && DX.keyState.IsPressed(key) && DX.keyState.IsPressed(Key.LeftControl))
                 {
                     // instant replay
                     timeGame = 0;
@@ -856,6 +868,22 @@ namespace Decoherence
                     (float)jsonDouble((Hashtable)json[key], "b", 0));
             }
             return new Color4();
+        }
+
+        /// <summary>
+        /// returns where new unit can move out of the way after specified unit makes it
+        /// </summary>
+        /// <remarks>chooses a random location between makeUnitMinDist and makeUnitMaxDist away from unit</remarks>
+        private FP.Vector makeUnitMovePos(long time, int unit)
+        {
+            FP.Vector ret;
+            do
+            {
+                ret = new FP.Vector((long)((rand.NextDouble() - 0.5) * g.unitT[g.u[unit].type].makeUnitMaxDist * 2),
+                    (long)((rand.NextDouble() - 0.5) * g.unitT[g.u[unit].type].makeUnitMaxDist * 2));
+            } while (ret.lengthSq() < g.unitT[g.u[unit].type].makeUnitMinDist * g.unitT[g.u[unit].type].makeUnitMinDist
+                && ret.lengthSq() > g.unitT[g.u[unit].type].makeUnitMaxDist * g.unitT[g.u[unit].type].makeUnitMaxDist);
+            return ret + g.u[unit].calcPos(time);
         }
 
         /// <summary>
