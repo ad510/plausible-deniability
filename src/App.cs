@@ -227,6 +227,7 @@ namespace Decoherence
                     Hashtable jsonO2 = jsonObject(jsonO, "damage");
                     ArrayList jsonA2 = jsonArray(jsonO, "canMake");
                     i = g.unitTypeNamed(jsonString(jsonO, "name"));
+                    g.unitT[i].makeOnUnitT = g.unitTypeNamed(jsonString(jsonO, "makeOnUnitT"));
                     g.unitT[i].damage = new int[g.nUnitT];
                     for (j = 0; j < g.nUnitT; j++)
                     {
@@ -254,7 +255,7 @@ namespace Decoherence
             {
                 for (j = 0; j < g.nPlayers; j++)
                 {
-                    k = i * g.nUnitT + j;
+                    k = i * g.nPlayers + j;
                     imgUnit[k].init();
                     if (!imgUnit[k].open(appPath + modPath + g.players[j].name + '.' + g.unitT[i].imgPath, Color.White.ToArgb()))
                     {
@@ -366,11 +367,9 @@ namespace Decoherence
                 if (makeUnitType >= 0)
                 {
                     // make unit
-                    if (selUnits.Count > 0 && mouseSimPos.x >= 0 && mouseSimPos.x <= g.mapSize && mouseSimPos.y >= 0 && mouseSimPos.y <= g.mapSize)
-                    {
-                        // happens at timeGame + 1 so new unit starts out live if game is live
-                        g.events.add(new MakeUnitCmdEvt(g.timeSim, timeGame + 1, selUnits.ToArray(), makeUnitType, mouseSimPos));
-                    }
+                    // happens at timeGame + 1 so new unit starts out live if game is live
+                    FP.Vector pos = makeUnitPos();
+                    if (pos.x != Sim.OffMap) g.events.add(new MakeUnitCmdEvt(g.timeSim, timeGame + 1, selUnits.ToArray(), makeUnitType, pos));
                     makeUnitType = -1;
                 }
                 else
@@ -507,7 +506,7 @@ namespace Decoherence
                     {
                         if (g.u[unit].canMakeChildUnit(timeGame + 1, false, type))
                         {
-                            if (g.unitT[type].speed > 0)
+                            if (g.unitT[type].speed > 0 && g.unitT[type].makeOnUnitT < 0)
                             {
                                 int[] unitArray = new int[1];
                                 unitArray[0] = unit;
@@ -530,7 +529,7 @@ namespace Decoherence
                         FP.Vector[] pos = new FP.Vector[selUnits.Count];
                         for (i = 0; i < selUnits.Count; i++)
                         {
-                            pos[i] = makeUnitMovePos(timeGame + 1, selUnits[i]);
+                            if (g.u[selUnits[i]].exists(timeGame + 1)) pos[i] = makeUnitMovePos(timeGame + 1, selUnits[i]);
                         }
                         // happens at timeGame + 1 so new path starts out live if game is live
                         g.events.add(new MakePathCmdEvt(g.timeSim, timeGame + 1, selUnits.ToArray(), pos));
@@ -593,6 +592,7 @@ namespace Decoherence
         private void draw()
         {
             Vector3 vec, vec2;
+            FP.Vector fpVec;
             Color4 col;
             float f;
             int i, j, tX, tY;
@@ -678,7 +678,7 @@ namespace Decoherence
             {
                 if (unitDrawPos(i, ref vec))
                 {
-                    j = g.u[i].type * g.nUnitT + g.u[i].player;
+                    j = g.u[i].type * g.nPlayers + g.u[i].player;
                     if (g.u[i].isLive(timeGame))
                     {
                         imgUnit[j].color = new Color4(1, 1, 1, 1).ToArgb();
@@ -698,11 +698,20 @@ namespace Decoherence
                 }
             }
             // unit to be made
-            if (makeUnitType >= 0 && selUnits.Count > 0 && mouseSimPos.x >= 0 && mouseSimPos.x <= g.mapSize && mouseSimPos.y >= 0 && mouseSimPos.y <= g.mapSize)
+            if (makeUnitType >= 0)
             {
-                i = makeUnitType * g.nUnitT + selPlayer;
-                imgUnit[i].color = new Color4(1, 1, 1, 1).ToArgb();
-                imgUnit[i].pos = new Vector3(DX.mouseX, DX.mouseY, 0);
+                i = makeUnitType * g.nPlayers + selPlayer;
+                fpVec = makeUnitPos();
+                if (fpVec.x != Sim.OffMap)
+                {
+                    imgUnit[i].color = new Color4(1, 1, 1, 1).ToArgb();
+                    imgUnit[i].pos = simToDrawPos(fpVec);
+                }
+                else
+                {
+                    imgUnit[i].color = new Color4(0.5f, 1, 1, 1).ToArgb(); // TODO: make transparency amount customizable
+                    imgUnit[i].pos = new Vector3(DX.mouseX, DX.mouseY, 0);
+                }
                 imgUnit[i].draw();
             }
             // health bars
@@ -710,7 +719,7 @@ namespace Decoherence
             {
                 if (unitDrawPos(unit, ref vec))
                 {
-                    j = g.u[unit].type * g.nUnitT + g.u[unit].player;
+                    j = g.u[unit].type * g.nPlayers + g.u[unit].player;
                     f = ((float)g.u[g.u[unit].rootParentPath()].healthWhen(timeGame)) / g.unitT[g.u[unit].type].maxHealth;
                     tlPoly.primitive = PrimitiveType.TriangleStrip;
                     tlPoly.setNPoly(0);
@@ -869,6 +878,40 @@ namespace Decoherence
             }
             return new Color4();
         }
+
+        /// <summary>
+        /// returns where to make new unit, or (Sim.OffMap, 0) if mouse is at invalid position
+        /// </summary>
+        private FP.Vector makeUnitPos()
+        {
+            FP.Vector vec;
+            if (mouseSimPos.x >= 0 && mouseSimPos.x <= g.mapSize && mouseSimPos.y >= 0 && mouseSimPos.y <= g.mapSize)
+            {
+                if (g.unitT[makeUnitType].makeOnUnitT >= 0)
+                {
+                    // selected unit type must be made on top of another unit of correct type
+                    // TODO: prevent putting multiple units on same unit (unless on different paths of same unit and maybe some other cases)
+                    for (int i = 0; i < g.nUnits; i++)
+                    {
+                        if (g.u[i].exists(timeGame))
+                        {
+                            vec = g.u[i].calcPos(timeGame);
+                            if (g.u[i].type == g.unitT[makeUnitType].makeOnUnitT && g.tileAt(vec).playerVisWhen(selPlayer, timeGame)
+                                && (new Vector3(DX.mouseX, DX.mouseY, 0) - simToDrawPos(vec)).LengthSquared() <= g.unitT[g.u[i].type].selRadius * g.unitT[g.u[i].type].selRadius)
+                            {
+                                return vec;
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    return mouseSimPos;
+                }
+            }
+            return new FP.Vector(Sim.OffMap, 0);
+        }
+
 
         /// <summary>
         /// returns where new unit can move out of the way after specified unit makes it

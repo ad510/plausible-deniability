@@ -161,7 +161,7 @@ namespace Decoherence
                 if (g.u[unit].canMakeChildUnit(timeCmd, false, type))
                 {
                     FP.Vector curPos = g.u[unit].calcPos(timeCmd);
-                    if ((pos.x == curPos.x && pos.y == curPos.y) || g.unitT[type].speed > 0)
+                    if ((pos.x == curPos.x && pos.y == curPos.y) || (g.unitT[type].speed > 0 && g.unitT[type].makeOnUnitT < 0))
                     {
                         // TODO: take time to make units?
                         g.u[unit].makeChildUnit(timeCmd, false, type);

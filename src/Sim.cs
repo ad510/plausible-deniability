@@ -59,6 +59,7 @@ namespace Decoherence
             public long makeUnitMinDist; // minimum distance that units that this unit type makes should move away
             public long makeUnitMaxDist; // maximum distance that units that this unit type makes should move away
             public double selRadius;
+            public int makeOnUnitT; // unit type that this unit type should be made on top of
             public int[] damage; // damage done per attack to each unit type
             public bool[] canMake; // whether can make each unit type
             public long[] rscCost; // cost to make unit (may not be negative)
