@@ -174,17 +174,22 @@ namespace Decoherence
             {
                 // if none of specified units are at requested position,
                 // try moving one to the correct position then trying again to make the unit
+                int moveUnit = -1;
                 foreach (int unit in units)
                 {
-                    if (g.u[unit].canMakeChildUnit(timeCmd, false, type) && g.u[unit].canMove(timeCmd))
+                    if (g.u[unit].canMakeChildUnit(timeCmd, false, type) && g.u[unit].canMove(timeCmd)
+                        && (moveUnit < 0 || (g.u[unit].calcPos(timeCmd) - pos).lengthSq() < (g.u[moveUnit].calcPos(timeCmd) - pos).lengthSq()))
                     {
-                        int unit2 = g.u[unit].moveTo(timeCmd, pos);
-                        List<int> unitsList = new List<int>(units);
-                        unitsList.Insert(0, unit2); // in case replacement unit is moving to make the unit
-                        g.events.add(new MakeUnitCmdEvt(g.u[unit2].m[g.u[unit2].n - 1].timeEnd, g.u[unit2].m[g.u[unit2].n - 1].timeEnd + 1,
-                            unitsList.ToArray(), type, pos, true));
-                        return;
+                        moveUnit = unit;
                     }
+                }
+                if (moveUnit >= 0)
+                {
+                    List<int> unitsList = new List<int>(units);
+                    moveUnit = g.u[moveUnit].moveTo(timeCmd, pos);
+                    unitsList.Insert(0, moveUnit); // in case replacement unit is moving to make the unit
+                    g.events.add(new MakeUnitCmdEvt(g.u[moveUnit].m[g.u[moveUnit].n - 1].timeEnd, g.u[moveUnit].m[g.u[moveUnit].n - 1].timeEnd + 1,
+                        unitsList.ToArray(), type, pos, true));
                 }
             }
         }
