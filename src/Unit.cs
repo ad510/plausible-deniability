@@ -668,7 +668,7 @@ namespace Decoherence
             childrenList.RemoveRange(nChildren, children.Length - nChildren);
             foreach (int child in childrenList.OrderByDescending(i => g.u[i].m[0].timeStart))
             {
-                if (includeNonLiveChildren || g.u[child].timeSimPast == long.MaxValue)
+                if (time >= g.u[child].m[0].timeStart && (includeNonLiveChildren || g.u[child].timeSimPast == long.MaxValue))
                 {
                     if (g.u[child].isChildPath)
                     {
