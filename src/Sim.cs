@@ -5,6 +5,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.Linq;
 using System.Text;
 using SlimDX;
@@ -346,6 +347,37 @@ namespace Decoherence
                     events.add(new GoLiveCmdEvt(timeSim, player));
                 }
             }
+        }
+
+        /// <summary>
+        /// makes specified tile not visible to specified player starting at specified time, including effects on surrounding tiles
+        /// </summary>
+        public void playerVisRemove(int player, int tileX, int tileY, long time)
+        {
+            // try adding tile to existing PlayerVisRemoveEvt with same player and time
+            foreach (SimEvt evt in events.events)
+            {
+                if (evt is PlayerVisRemoveEvt)
+                {
+                    PlayerVisRemoveEvt visEvt = (PlayerVisRemoveEvt)evt;
+                    if (player == visEvt.player && time == visEvt.time)
+                    {
+                        // check that tile pos isn't a duplicate (recently added tiles are more likely to be duplicates)
+                        for (int i = visEvt.nTiles - 1; i >= Math.Max(0, visEvt.nTiles - 20); i--)
+                        {
+                            if (tileX == visEvt.tiles[i].X && tileY == visEvt.tiles[i].Y) return;
+                        }
+                        // ok to add tile to existing event
+                        visEvt.nTiles++;
+                        if (visEvt.nTiles > visEvt.tiles.Length)
+                            Array.Resize(ref visEvt.tiles, visEvt.nTiles * 2);
+                        visEvt.tiles[visEvt.nTiles - 1] = new Point(tileX, tileY);
+                        return;
+                    }
+                }
+            }
+            // if no such PlayerVisRemoveEvt exists, add a new one
+            events.add(new PlayerVisRemoveEvt(time, player, tileX, tileY));
         }
 
         /// <summary>

@@ -469,7 +469,7 @@ namespace Decoherence
                                 for (tY = Math.Max(0, tileY - 1); tY <= Math.Min(g.tileLen() - 1, tileY + 1); tY++)
                                 {
                                     // TODO?: use more accurate time at tiles other than (tileX, tileY)
-                                    g.events.add(new PlayerVisRemoveEvt(time, i, tX, tY));
+                                    g.playerVisRemove(i, tX, tY, time);
                                 }
                             }
                         }
@@ -489,7 +489,7 @@ namespace Decoherence
                             for (tY = Math.Max(0, g.u[j].tileY - 1); tY <= Math.Min(g.tileLen() - 1, g.u[j].tileY + 1); tY++)
                             {
                                 // TODO?: use more accurate time at tiles other than (u[j].tileX, u[j].tileY)
-                                g.events.add(new PlayerVisRemoveEvt(time, g.u[unit].player, tX, tY));
+                                g.playerVisRemove(g.u[unit].player, tX, tY, time);
                             }
                         }
                     }
@@ -555,7 +555,7 @@ namespace Decoherence
                     if (timePlayerVis != long.MaxValue)
                     {
                         timePlayerVis = Math.Max(time, timePlayerVis + (1 << FP.Precision) / g.maxSpeed); // TODO: use more accurate time
-                        g.events.add(new PlayerVisRemoveEvt(timePlayerVis, g.u[unit].player, tileX, tileY));
+                        g.playerVisRemove(g.u[unit].player, tileX, tileY, timePlayerVis);
                     }
                 }
             }
@@ -568,49 +568,57 @@ namespace Decoherence
     public class PlayerVisRemoveEvt : SimEvt
     {
         public int player;
-        public int tileX, tileY;
+        public int nTiles;
+        public Point[] tiles;
 
         public PlayerVisRemoveEvt(long timeVal, int playerVal, int tileXVal, int tileYVal)
         {
             time = timeVal;
             player = playerVal;
-            tileX = tileXVal;
-            tileY = tileYVal;
+            nTiles = 1;
+            tiles = new Point[1];
+            tiles[0] = new Point(tileXVal, tileYVal);
         }
 
         public override void apply(Sim g)
         {
-            int i, tX, tY;
-            if (g.tiles[tileX, tileY].playerVisLatest(player) && !g.tiles[tileX, tileY].playerDirectVisLatest(player))
+            int i, j, tX, tY;
+            for (i = 0; i < nTiles; i++)
             {
-                g.tiles[tileX, tileY].playerVis[player].Add(time);
-                // check if a tile decohered for this player, or cohered for another player
-                for (i = 0; i < g.nPlayers; i++)
+                if (g.tiles[tiles[i].X, tiles[i].Y].playerVisLatest(player) && !g.tiles[tiles[i].X, tiles[i].Y].playerDirectVisLatest(player))
                 {
-                    for (tX = Math.Max(0, tileX - g.tileVisRadius()); tX <= Math.Min(g.tileLen() - 1, tileX + g.tileVisRadius()); tX++)
+                    g.tiles[tiles[i].X, tiles[i].Y].playerVis[player].Add(time);
+                    // check if a tile decohered for this player, or cohered for another player
+                    for (tX = Math.Max(0, tiles[i].X - g.tileVisRadius()); tX <= Math.Min(g.tileLen() - 1, tiles[i].X + g.tileVisRadius()); tX++)
                     {
-                        for (tY = Math.Max(0, tileY - g.tileVisRadius()); tY <= Math.Min(g.tileLen() - 1, tileY + g.tileVisRadius()); tY++)
+                        for (tY = Math.Max(0, tiles[i].Y - g.tileVisRadius()); tY <= Math.Min(g.tileLen() - 1, tiles[i].Y + g.tileVisRadius()); tY++)
                         {
-                            if (i == player && g.tiles[tX, tY].coherentLatest(i) && !g.calcCoherent(i, tX, tY))
+                            if (g.inVis(tX - tiles[i].X, tY - tiles[i].Y) && (i == 0 || !g.inVis(tX - tiles[i - 1].X, tY - tiles[i - 1].Y)))
                             {
-                                g.coherenceRemove(i, tX, tY, time);
-                            }
-                            else if (i != player && !g.tiles[tX, tY].coherentLatest(i) && g.calcCoherent(i, tX, tY))
-                            {
-                                g.coherenceAdd(i, tX, tY, time);
+                                for (j = 0; j < g.nPlayers; j++)
+                                {
+                                    if (j == player && g.tiles[tX, tY].coherentLatest(j) && !g.calcCoherent(j, tX, tY))
+                                    {
+                                        g.coherenceRemove(j, tX, tY, time);
+                                    }
+                                    else if (j != player && !g.tiles[tX, tY].coherentLatest(j) && g.calcCoherent(j, tX, tY))
+                                    {
+                                        g.coherenceAdd(j, tX, tY, time);
+                                    }
+                                }
                             }
                         }
                     }
-                }
-                // add events to remove visibility from surrounding tiles
-                for (tX = Math.Max(0, tileX - 1); tX <= Math.Min(g.tileLen() - 1, tileX + 1); tX++)
-                {
-                    for (tY = Math.Max(0, tileY - 1); tY <= Math.Min(g.tileLen() - 1, tileY + 1); tY++)
+                    // add events to remove visibility from surrounding tiles
+                    for (tX = Math.Max(0, tiles[i].X - 1); tX <= Math.Min(g.tileLen() - 1, tiles[i].X + 1); tX++)
                     {
-                        if ((tX != tileX || tY != tileY) && g.tiles[tX, tY].playerVisLatest(player))
+                        for (tY = Math.Max(0, tiles[i].Y - 1); tY <= Math.Min(g.tileLen() - 1, tiles[i].Y + 1); tY++)
                         {
-                            // TODO: use more accurate time
-                            g.events.add(new PlayerVisRemoveEvt(time + (1 << FP.Precision) / g.maxSpeed, player, tX, tY));
+                            if ((tX != tiles[i].X || tY != tiles[i].Y) && g.tiles[tX, tY].playerVisLatest(player))
+                            {
+                                // TODO: use more accurate time
+                                g.playerVisRemove(player, tX, tY, time + (1 << FP.Precision) / g.maxSpeed);
+                            }
                         }
                     }
                 }
