@@ -563,7 +563,7 @@ namespace Decoherence
     }
 
     /// <summary>
-    /// event in which a player stops seeing a tile
+    /// event in which a player stops seeing tiles
     /// </summary>
     public class PlayerVisRemoveEvt : SimEvt
     {
@@ -582,18 +582,41 @@ namespace Decoherence
 
         public override void apply(Sim g)
         {
-            int i, j, tX, tY;
+            int i, iPrev, j, tX, tY;
             for (i = 0; i < nTiles; i++)
             {
                 if (g.tiles[tiles[i].X, tiles[i].Y].playerVisLatest(player) && !g.tiles[tiles[i].X, tiles[i].Y].playerDirectVisLatest(player))
                 {
                     g.tiles[tiles[i].X, tiles[i].Y].playerVis[player].Add(time);
-                    // check if a tile decohered for this player, or cohered for another player
+                    // add events to remove visibility from surrounding tiles
+                    for (tX = Math.Max(0, tiles[i].X - 1); tX <= Math.Min(g.tileLen() - 1, tiles[i].X + 1); tX++)
+                    {
+                        for (tY = Math.Max(0, tiles[i].Y - 1); tY <= Math.Min(g.tileLen() - 1, tiles[i].Y + 1); tY++)
+                        {
+                            if ((tX != tiles[i].X || tY != tiles[i].Y) && g.tiles[tX, tY].playerVisLatest(player))
+                            {
+                                // TODO: use more accurate time
+                                g.playerVisRemove(player, tX, tY, time + (1 << FP.Precision) / g.maxSpeed);
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    tiles[i].X = Sim.OffMap;
+                }
+            }
+            // check if a tile decohered for this player, or cohered for another player
+            iPrev = -1;
+            for (i = 0; i < nTiles; i++)
+            {
+                if (tiles[i].X != Sim.OffMap)
+                {
                     for (tX = Math.Max(0, tiles[i].X - g.tileVisRadius()); tX <= Math.Min(g.tileLen() - 1, tiles[i].X + g.tileVisRadius()); tX++)
                     {
                         for (tY = Math.Max(0, tiles[i].Y - g.tileVisRadius()); tY <= Math.Min(g.tileLen() - 1, tiles[i].Y + g.tileVisRadius()); tY++)
                         {
-                            if (g.inVis(tX - tiles[i].X, tY - tiles[i].Y) && (i == 0 || !g.inVis(tX - tiles[i - 1].X, tY - tiles[i - 1].Y)))
+                            if (g.inVis(tX - tiles[i].X, tY - tiles[i].Y) && (iPrev == -1 || !g.inVis(tX - tiles[iPrev].X, tY - tiles[iPrev].Y)))
                             {
                                 for (j = 0; j < g.nPlayers; j++)
                                 {
@@ -609,18 +632,7 @@ namespace Decoherence
                             }
                         }
                     }
-                    // add events to remove visibility from surrounding tiles
-                    for (tX = Math.Max(0, tiles[i].X - 1); tX <= Math.Min(g.tileLen() - 1, tiles[i].X + 1); tX++)
-                    {
-                        for (tY = Math.Max(0, tiles[i].Y - 1); tY <= Math.Min(g.tileLen() - 1, tiles[i].Y + 1); tY++)
-                        {
-                            if ((tX != tiles[i].X || tY != tiles[i].Y) && g.tiles[tX, tY].playerVisLatest(player))
-                            {
-                                // TODO: use more accurate time
-                                g.playerVisRemove(player, tX, tY, time + (1 << FP.Precision) / g.maxSpeed);
-                            }
-                        }
-                    }
+                    iPrev = i;
                 }
             }
         }
