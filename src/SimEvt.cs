@@ -11,6 +11,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.Linq;
 using System.Text;
 
@@ -377,8 +378,10 @@ namespace Decoherence
 
         public override void apply(Sim g)
         {
-            int i, tXPrev, tYPrev, tX, tY;
             if (g.u[unit].tileX == Sim.OffMap) return; // skip event if unit no longer exists
+            List<Point> playerVisAddTiles = new List<Point>();
+            Rectangle coherenceRange = new Rectangle(g.tileLen() - 1, g.tileLen() - 1, 0, 0);
+            int i, tXPrev, tYPrev, tX, tY;
             if (tileX == int.MinValue) tileX = g.u[unit].tileX;
             if (tileY == int.MinValue) tileY = g.u[unit].tileY;
             tXPrev = g.u[unit].tileX;
@@ -392,7 +395,7 @@ namespace Decoherence
                 {
                     if (!g.inVis(tX - tXPrev, tY - tYPrev) && g.inVis(tX - tileX, tY - tileY))
                     {
-                        visAdd(g, unit, tX, tY, time);
+                        visAdd(g, unit, tX, tY, time, ref playerVisAddTiles);
                     }
                 }
             }
@@ -404,6 +407,42 @@ namespace Decoherence
                     if (g.inVis(tX - tXPrev, tY - tYPrev) && !g.inVis(tX - tileX, tY - tileY))
                     {
                         visRemove(g, unit, tX, tY, time);
+                    }
+                }
+            }
+            // check if tiles cohered for this player, or decohered for another player
+            foreach (Point p in playerVisAddTiles)
+            {
+                if (p.X < coherenceRange.X) coherenceRange.X = p.X;
+                if (p.X > coherenceRange.Width) coherenceRange.Width = p.X;
+                if (p.Y < coherenceRange.Y) coherenceRange.Y = p.Y;
+                if (p.Y > coherenceRange.Height) coherenceRange.Height = p.Y;
+            }
+            coherenceRange.X = Math.Max(0, coherenceRange.X - g.tileVisRadius());
+            coherenceRange.Width = Math.Min(g.tileLen() - 1, coherenceRange.Width + g.tileVisRadius());
+            coherenceRange.Y = Math.Max(0, coherenceRange.Y - g.tileVisRadius());
+            coherenceRange.Height = Math.Min(g.tileLen() - 1, coherenceRange.Height + g.tileVisRadius());
+            for (tX = coherenceRange.X; tX <= coherenceRange.Width; tX++)
+            {
+                for (tY = coherenceRange.Y; tY <= coherenceRange.Height; tY++)
+                {
+                    foreach (Point p in playerVisAddTiles)
+                    {
+                        if (g.inVis(tX - p.X, tY - p.Y))
+                        {
+                            for (i = 0; i < g.nPlayers; i++)
+                            {
+                                if (i == g.u[unit].player && !g.tiles[tX, tY].coherentLatest(i) && g.calcCoherent(i, tX, tY))
+                                {
+                                    g.coherenceAdd(i, tX, tY, time);
+                                }
+                                else if (i != g.u[unit].player && g.tiles[tX, tY].coherentLatest(i) && !g.calcCoherent(i, tX, tY))
+                                {
+                                    g.coherenceRemove(i, tX, tY, time);
+                                }
+                            }
+                            break;
+                        }
                     }
                 }
             }
@@ -461,9 +500,8 @@ namespace Decoherence
         /// <summary>
         /// makes specified tile visible to specified unit starting at specified time, including effects on player visibility
         /// </summary>
-        private static void visAdd(Sim g, int unit, int tileX, int tileY, long time)
+        private static void visAdd(Sim g, int unit, int tileX, int tileY, long time, ref List<Point> playerVisAddTiles)
         {
-            int i, tX, tY;
             if (tileX >= 0 && tileX < g.tileLen() && tileY >= 0 && tileY < g.tileLen())
             {
                 if (g.tiles[tileX, tileY].unitVisLatest(unit)) throw new InvalidOperationException("unit " + unit + " already sees tile (" + tileX + ", " + tileY + ")");
@@ -474,24 +512,7 @@ namespace Decoherence
                 if (!g.tiles[tileX, tileY].playerVisLatest(g.u[unit].player))
                 {
                     g.tiles[tileX, tileY].playerVis[g.u[unit].player].Add(time);
-                    // check if a tile cohered for this player, or decohered for another player
-                    for (i = 0; i < g.nPlayers; i++)
-                    {
-                        for (tX = Math.Max(0, tileX - g.tileVisRadius()); tX <= Math.Min(g.tileLen() - 1, tileX + g.tileVisRadius()); tX++)
-                        {
-                            for (tY = Math.Max(0, tileY - g.tileVisRadius()); tY <= Math.Min(g.tileLen() - 1, tileY + g.tileVisRadius()); tY++)
-                            {
-                                if (i == g.u[unit].player && !g.tiles[tX, tY].coherentLatest(i) && g.calcCoherent(i, tX, tY))
-                                {
-                                    g.coherenceAdd(i, tX, tY, time);
-                                }
-                                else if (i != g.u[unit].player && g.tiles[tX, tY].coherentLatest(i) && !g.calcCoherent(i, tX, tY))
-                                {
-                                    g.coherenceRemove(i, tX, tY, time);
-                                }
-                            }
-                        }
-                    }
+                    playerVisAddTiles.Add(new Point(tileX, tileY));
                 }
             }
         }
