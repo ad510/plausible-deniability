@@ -1,91 +1,12 @@
 todo:
-optimize coherence calculation
+allow selecting any player, but giving commands only on human players
+attack command
 remove floating point Sim calculations (look at csci 102 hw2 long sqrt?)
 replace DX.cs structs with classes and rename some vars?
 PolyV2d.makeLineRec method?
 pathfinding
 keep non-live paths in yellow areas w/o user help
 darker gray tiles should act more conventionally
-
-global variables:
-visibility tiles = 2d array of:
-  list of units currently seeing tile
-coherence tiles = 2d array of:
-  a 1d array (sorted by increasing time) of:
-    time changed, faction w/ coherence here (may be no faction)
-  index at current time
-  last time lost visibility (not coherence) per faction (set to max value if currently visible)
-decoherence queue = list or dict sorted by time of:
-  tile pos, direction, faction, time to lose visibility (not coherence)
-time variables:
-  prev time, sim time, current time
-  cap current time - sim time to a max amount
-
-update units function:
-for each unit:
-  calculate time will reach next tile(s), if between prev time & current time then add to dict (key = time; value = unit, tile, direction)
-sort dict by increasing time
-for each unit in dict:
-  add visiblity to tiles (including on coherence tiles), 1 tile "thick" on side of dict direction
-  remove visibility from tiles, 1 tile "thick" on opposite side of dict direction
-  if dict time > sim time:
-    if another faction could see unit at prev tile but not this tile:
-      add tile to decoherence queue for other faction
-    init list of potential tiles in unit's visibility to cohere
-      (note: doesn't work, some tiles that cohere are not directly visible)
-    for each non-visible tile (according to coherence tiles) surrounding this unit:
-      (note: doesn't work, doesn't consider other faction units that are allowed to be slightly more than minimum out of range of this unit's visibility)
-      (note: can use this property to optimize coherence check: if neighboring tile is coherent, then only need to check "new" tiles that could see this tile)
-      if unit w/ this unit's sight range (+ 1/2 tile length?) is here, remove tiles from list that this "unit" can see
-    cohere remaining tiles in list (unless only remaining tile is the tile the unit is on)
-    for each tile removed from:
-      if no one in this faction sees this tile anymore:
-        lose visibility time = lowest time each of surrounding 3 (up to 5) tiles lost visibility
-        if lose visibility time or another faction's unit on this tile:
-          lose visibility time += time it takes for light to travel 1 tile
-          lose visibility time = max(dict time, lose visibility time)
-          add tile to decoherence queue
-for each entry in decoherence queue (loop through concurrently with loop above):
-  if current time >= entry time:
-    pop entry from queue
-    if tile currently visible then continue
-    set lose visibility time
-    decohere tiles, 1 tile "thick" on side of entry direction, with radius of largest unit that faction can't see from here
-    push entries into queue for each of the 8 surrounding tiles that are not visible to faction (according to visibility tiles) and can be traveled to
-    note: correct to assume that all units can go at speed of light b/c can momentarily turn photon into particle & antiparticle
-
-retroactive visibility temporary data:
-"add vis" list item format:
-  tile
-  whether considered
-  time neighboring tile gained visibility
-"vis time" list item format: (note that items in this list already gained visibility at the correct time)
-  tile
-  time this tile gained visibility
-
-retroactive visibility algorithm:
-(consider when another player's unit dies on a tile we later see)
-(might want to start making levels before implementing this)
-(don't need global events for tile adds, since it all happens in 1 go)
-add relevant tile to "add vis" list
-while there's an unconsidered tile in "add vis" list:
-  get tile w/ latest gain visibility time from list
-  "gain visibility time" = latest time this tile gained visibility (using toggle visibility time is ok) that is <= list item time
-  if all surrounding tiles are visible at gain visiblity time + 1 ("considered" tiles count as visible):
-    (note: there's either a problem on above line or when adding original tile to list; if you quickly close "mouth" from back to front then current algorithm won't detect that more of "mouth" should be visible earlier; reminder to compare to losing visibility algorithm b/c that one is correct)
-    // this tile should be visible earlier
-    mark tile as "considered"
-    add 8 surrounding tiles to "add vis" list, time being "gain visibility time"
-    // note that we don't yet know whether surrounding tiles should be on "add vis" list or "vis time" list b/c must look at tiles in order
-  else:
-    // this tile shouldn't be visible earlier
-    add to "vis time" list, time being "gain visibility time"
-    remove from "add vis" list
-while "vis time" list isn't empty:
-  pop tile w/ earliest gain visibility time from list
-  for each adjacent tile in "add vis" list:
-    this tile gains visibility at time it takes to get between tiles
-    add this tile to "vis time" list
 
 if ever allow "min" resources to be <0, must handle these cases w/o letting max resources ever be <0 in replays:
 split worker into 2 paths, 1 path makes a mine, other path doesn't
@@ -148,15 +69,13 @@ paths levels: (find better synonym for "part 2" such as redux?)
 
 random notes:
 - phrase from AI wisdom: "expand selection by radius"
-- flip/mirror map for some players in multiplayer game
 - only share paths if option is checked for a selection of units (don't want units randomly disappearing out of nowhere)
   - if some wavefunctions don't overlap yet, send paths going between those units
 - make paths with same parent unit(s) pulse in phase with each other as excuse to say they're coherent (if not in a quantum way)
   - if multiple parent units share some but not all paths with each other, show superposition of their pulsing (maybe with offset positions so it's clearer they're separate)
   - pulse parent units at different frequencies? (faster pulsing can be done with lower amplitude b/c more noticeable)
   - pulse wavefunctions (in different colors for different parent units?) so can say they're coherent too?
-- don't bother with fastest unit going at light speed, so don't need to have relativity
-  - if need it for 1 q&a video, use command line or mod option to enable it
+- retroactive visibility assumes units don't discontinuously disappear, so would require that paths move into another unit before being deleted and that dead units don't disappear from ground
 - population limit? (or just make units expensive enough that you can't make too many)
 - introduce paths 1st, then introduce wavefunctions as paths going everywhere in a region? (skipping manual time travel)
   - but manual time travel is nice though
