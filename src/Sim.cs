@@ -275,7 +275,6 @@ namespace Decoherence
 
         // helper variables not loaded from scenario file
         public Tile[,] tiles; // each tile is 1 fixed-point unit (2^FP.Precision raw integer units) wide, so bit shift by FP.Precision to convert between position and tile position
-        public int[] tileVisBorder; // # of tiles units can see to each side, x units along an axis
         public SimEvtList events; // simulation events to be applied
         public SimEvtList cmdHistory; // user commands that have already been applied
         public List<int> movedUnits; // indices of units that moved in the latest simulation event, invalidating later TileMoveEvts for that unit
@@ -427,46 +426,15 @@ namespace Decoherence
         /// If no other player could see the specified tile in this worst case scenario,
         /// the player can infer that he/she is the only player that can see this tile.
         /// </remarks>
-        public bool calcCoherent(int player, int tileX, int tileY, bool leftTileIsAccurate, bool aboveTileIsAccurate)
+        public bool calcCoherent(int player, int tileX, int tileY)
         {
             int i, tX, tY;
             // check that this player can see all nearby tiles
-            // if an adjacent tile is known to be coherent, only need to check "new" tiles on the other side
-            if (leftTileIsAccurate && (tileX <= 0 || tiles[tileX - 1, tileY].coherentLatest(player)))
+            for (tX = Math.Max(0, tileX - tileVisRadius()); tX <= Math.Min(tileLen() - 1, tileX + tileVisRadius()); tX++)
             {
-                if (aboveTileIsAccurate && (tileY <= 0 || tiles[tileX, tileY - 1].coherentLatest(player)))
+                for (tY = Math.Max(0, tileY - tileVisRadius()); tY <= Math.Min(tileLen() - 1, tileY + tileVisRadius()); tY++)
                 {
-                    for (tX = tileX; tX <= Math.Min(tileLen() - 1, tileX + tileVisRadius()); tX++)
-                    {
-                        tY = tileY + tileVisBorder[tX - tileX];
-                        if (tY < tileLen() && !tiles[tX, tY].playerVisLatest(player)) return false;
-                    }
-                }
-                else
-                {
-                    for (tY = Math.Max(0, tileY - tileVisRadius()); tY <= Math.Min(tileLen() - 1, tileY + tileVisRadius()); tY++)
-                    {
-                        tX = tileX + tileVisBorder[Math.Abs(tY - tileY)];
-                        if (tX < tileLen() && !tiles[tX, tY].playerVisLatest(player)) return false;
-                    }
-                }
-            }
-            else if (aboveTileIsAccurate && (tileY <= 0 || tiles[tileX, tileY - 1].coherentLatest(player)))
-            {
-                for (tX = Math.Max(0, tileX - tileVisRadius()); tX <= Math.Min(tileLen() - 1, tileX + tileVisRadius()); tX++)
-                {
-                    tY = tileY + tileVisBorder[Math.Abs(tX - tileX)];
-                    if (tY < tileLen() && !tiles[tX, tY].playerVisLatest(player)) return false;
-                }
-            }
-            else
-            {
-                for (tX = Math.Max(0, tileX - tileVisRadius()); tX <= Math.Min(tileLen() - 1, tileX + tileVisRadius()); tX++)
-                {
-                    for (tY = Math.Max(0, tileY - tileVisRadius()); tY <= Math.Min(tileLen() - 1, tileY + tileVisRadius()); tY++)
-                    {
-                        if (inVis(tX - tileX, tY - tileY) && !tiles[tX, tY].playerVisLatest(player)) return false;
-                    }
+                    if (inVis(tX - tileX, tY - tileY) && !tiles[tX, tY].playerVisLatest(player)) return false;
                 }
             }
             // check that no other players can see this tile
