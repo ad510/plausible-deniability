@@ -277,6 +277,17 @@ namespace Decoherence
                     g.tiles[i, j] = new Sim.Tile(g);
                 }
             }
+            // tile visibility border
+            g.tileVisBorder = new int[g.tileVisRadius() + 1];
+            for (i = 0; i <= g.tileVisRadius(); i++)
+            {
+                for (j = g.tileVisRadius(); j >= 0; j--)
+                {
+                    if (g.inVis(i, j)) break;
+                }
+                if (j < 0) throw new SystemException("error calculating tileVisBorder; check if tileVisRadius() returns too large of a value");
+                g.tileVisBorder[i] = j;
+            }
             // units
             g.nUnits = 0;
             jsonA = jsonArray(json, "units");

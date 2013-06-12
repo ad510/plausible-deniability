@@ -432,11 +432,11 @@ namespace Decoherence
                         {
                             for (i = 0; i < g.nPlayers; i++)
                             {
-                                if (i == g.u[unit].player && !g.tiles[tX, tY].coherentLatest(i) && g.calcCoherent(i, tX, tY))
+                                if (i == g.u[unit].player && !g.tiles[tX, tY].coherentLatest(i) && g.calcCoherent(i, tX, tY, true, true))
                                 {
                                     g.coherenceAdd(i, tX, tY, time);
                                 }
-                                else if (i != g.u[unit].player && g.tiles[tX, tY].coherentLatest(i) && !g.calcCoherent(i, tX, tY))
+                                else if (i != g.u[unit].player && g.tiles[tX, tY].coherentLatest(i) && !g.calcCoherent(i, tX, tY, true, true))
                                 {
                                     g.coherenceRemove(i, tX, tY, time);
                                 }
@@ -620,11 +620,13 @@ namespace Decoherence
                             {
                                 for (j = 0; j < g.nPlayers; j++)
                                 {
-                                    if (j == player && g.tiles[tX, tY].coherentLatest(j) && !g.calcCoherent(j, tX, tY))
+                                    if (j == player && g.tiles[tX, tY].coherentLatest(j)
+                                        && !g.calcCoherent(j, tX, tY, g.inVis(tX - 1 - tiles[i].X, tY - tiles[i].Y), g.inVis(tX - tiles[i].X, tY - 1 - tiles[i].Y)))
                                     {
                                         g.coherenceRemove(j, tX, tY, time);
                                     }
-                                    else if (j != player && !g.tiles[tX, tY].coherentLatest(j) && g.calcCoherent(j, tX, tY))
+                                    else if (j != player && !g.tiles[tX, tY].coherentLatest(j)
+                                        && g.calcCoherent(j, tX, tY, g.inVis(tX - 1 - tiles[i].X, tY - tiles[i].Y), g.inVis(tX - tiles[i].X, tY - 1 - tiles[i].Y)))
                                     {
                                         g.coherenceAdd(j, tX, tY, time);
                                     }
