@@ -19,6 +19,8 @@ namespace Decoherence
         /// fixed point bit precision past decimal point
         /// </summary>
         public const int Precision = 16;
+        public const long Sqrt2 = 92681;
+        public const long Pi = 205887;
 
         /// <summary>
         /// fixed point 3D vector
@@ -50,13 +52,12 @@ namespace Decoherence
                 return x * x + y * y;
             }
 
-            // TODO: implement length and length3 using fixed point sqrt
             /// <summary>
             /// returns the 2-dimensional (x and y) length of the vector
             /// </summary>
             public long length()
             {
-                return (long)Math.Sqrt(x * x + y * y);
+                return sqrt(x * x + y * y);
             }
 
             /// <summary>
@@ -73,7 +74,7 @@ namespace Decoherence
             /// </summary>
             public long length3()
             {
-                return (long)Math.Sqrt(x * x + y * y + z * z);
+                return sqrt(x * x + y * y + z * z);
             }
 
             public override bool Equals(object obj)
@@ -156,6 +157,44 @@ namespace Decoherence
         public static long div(long left, long right)
         {
             return (left << Precision) / right;
+        }
+
+        /// <summary>
+        /// integer square root (if passing in fixed point number, left shift it by Precision first)
+        /// </summary>
+        /// <remarks>uses Babylonian method, described at https://en.wikipedia.org/wiki/Methods_of_computing_square_roots#Babylonian_method </remarks>
+        public static long sqrt(long x)
+        {
+            if (x == 0) return 0;
+            long ret = 1;
+            for (int i = 0; i < 30; i++)
+            {
+                ret = (ret + x / ret) >> 1;
+            }
+            return ret;
+        }
+
+        /// <summary>
+        /// fixed point cosine
+        /// </summary>
+        public static long cos(long x)
+        {
+            // ensure -Pi/2 <= x <= Pi/2
+            x = Math.Abs(x % (2 * Pi));
+            if (x > Pi) x = 2 * Pi - x;
+            bool flip = (x > Pi / 2);
+            if (flip) x = Pi - x;
+            // use 4th order Taylor series
+            x = (1 << Precision) - mul(x, x) / 2 + mul(mul(x, x), mul(x, x)) / 24;
+            return flip ? -x : x;
+        }
+
+        /// <summary>
+        /// fixed point sine
+        /// </summary>
+        public static long sin(long x)
+        {
+            return cos(x - Pi / 2);
         }
 
         /// <summary>

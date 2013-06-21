@@ -83,10 +83,10 @@ namespace Decoherence
             if (count == 0) return;
             // calculate spacing
             // (if tight formation, then spacing was already calculated above)
-            // TODO: loose formation should be triangular and not use sqrt
+            // TODO: loose formation should be triangular
             if (formation == Formation.Loose)
             {
-                spacing = FP.mul(g.visRadius, FP.fromDouble(Math.Sqrt(2))) >> FP.Precision << FP.Precision;
+                spacing = FP.mul(g.visRadius, FP.Sqrt2) >> FP.Precision << FP.Precision;
             }
             else if (formation == Formation.Ring)
             {
@@ -94,13 +94,13 @@ namespace Decoherence
             }
             if (formation == Formation.Tight || formation == Formation.Loose)
             {
-                rows.x = (int)Math.Ceiling(Math.Sqrt(count)); // TODO: don't use sqrt
+                rows.x = FP.sqrt(count);
                 rows.y = (count - 1) / rows.x + 1;
                 offset = (rows - new FP.Vector(1, 1)) * spacing / 2;
             }
             else if (formation == Formation.Ring)
             {
-                offset.x = (count == 1) ? 0 : FP.div(spacing / 2, FP.fromDouble(Math.Sin(Math.PI / count))); // TODO: don't use sin
+                offset.x = (count == 1) ? 0 : FP.div(spacing / 2, FP.sin(FP.Pi / count));
                 offset.y = offset.x;
             }
             else
@@ -122,8 +122,7 @@ namespace Decoherence
                     }
                     else if (formation == Formation.Ring)
                     {
-                        // TODO: don't use sin or cos
-                        goal = pos + offset.x * new FP.Vector(FP.fromDouble(Math.Cos(2 * Math.PI * i / count)), FP.fromDouble(Math.Sin(2 * Math.PI * i / count)));
+                        goal = pos + offset.x * new FP.Vector(FP.cos(2 * FP.Pi * i / count), FP.sin(2 * FP.Pi * i / count));
                     }
                     else
                     {
