@@ -107,3 +107,4 @@ age of empires multiplayer: http://www.gamasutra.com/view/feature/3094/1500_arch
 ai war optimization (including multiplayer): http://christophermpark.blogspot.com/2009/06/optimizing-30000-ships-in-realtime-in-c.html
 multiplayer debugging: http://gafferongames.com/networking-for-game-programmers/debugging-multiplayer-games/
 lidgren multiplayer library (used by AI war): https://code.google.com/p/lidgren-network-gen3
+version control with unity: https://docs.unity3d.com/Documentation/Manual/ExternalVersionControlSystemSupport.html

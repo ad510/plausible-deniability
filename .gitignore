@@ -6,3 +6,7 @@
 *.csproj
 *.unityproj
 *.sln
+
+# added by Andrew
+*.pidb
+*.userprefs
