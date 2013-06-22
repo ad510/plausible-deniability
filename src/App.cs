@@ -100,7 +100,7 @@ namespace Decoherence
             bool b = false;
             // if this ever supports multiplayer games, host should load file & send data to other players, otherwise json double parsing may not match
             if (!System.IO.File.Exists(path)) return false;
-            json = (Hashtable)Procurios.Public.JSON.JsonDecode(new System.IO.StreamReader(path).ReadToEnd(), ref b);
+            json = (Hashtable)Procurios.Public.JSON.JsonDecode(System.IO.File.ReadAllText(path), ref b);
             if (!b) return false;
             // base scenario
             g = new Sim();
@@ -911,7 +911,6 @@ namespace Decoherence
             }
             return new FP.Vector(Sim.OffMap, 0);
         }
-
 
         /// <summary>
         /// returns where new unit can move out of the way after specified unit makes it

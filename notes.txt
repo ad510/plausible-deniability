@@ -68,6 +68,7 @@ paths levels: (find better synonym for "part 2" such as redux?)
 - snipers
 
 random notes:
+- unity RPCs can send byte array (undocumented), so serialize classes to that
 - phrase from AI wisdom: "expand selection by radius"
 - only share paths if option is checked for a selection of units (don't want units randomly disappearing out of nowhere)
   - if some wavefunctions don't overlap yet, send paths going between those units
@@ -105,3 +106,4 @@ binary serialization: http://code.google.com/p/protobuf-net/
 age of empires multiplayer: http://www.gamasutra.com/view/feature/3094/1500_archers_on_a_288_network_.php
 ai war optimization (including multiplayer): http://christophermpark.blogspot.com/2009/06/optimizing-30000-ships-in-realtime-in-c.html
 multiplayer debugging: http://gafferongames.com/networking-for-game-programmers/debugging-multiplayer-games/
+lidgren multiplayer library (used by AI war): https://code.google.com/p/lidgren-network-gen3
