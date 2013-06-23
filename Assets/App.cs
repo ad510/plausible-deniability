@@ -31,6 +31,8 @@ public class App : MonoBehaviour {
 	long timeSpeedChg;
 	Vector3[] mouseDownPos;
 	Vector3[] mouseUpPos;
+	string serverAddr = "127.0.0.1";
+	int serverPort = 44247;
 	
 	/// <summary>
 	/// use this for initialization
@@ -237,7 +239,14 @@ public class App : MonoBehaviour {
 		return true;
 	}
 	
-	Texture2D loadTexture(string path) {
+	[RPC]
+	void scnOpenMultiplayer(int player, int seed) {
+		UnityEngine.Random.seed = seed;
+		scnOpen (appPath + modPath + "scn.json");
+		selPlayer = player;
+	}
+	
+	private Texture2D loadTexture(string path) {
 		if (!System.IO.File.Exists (path)) return null;
 		Texture2D tex = new Texture2D(0, 0);
 		byte[] imgBytes = System.IO.File.ReadAllBytes (path);
@@ -604,11 +613,38 @@ public class App : MonoBehaviour {
 			style.normal.textColor = (rscMin >= 0) ? Color.white : Color.red;
 			GUI.Label (new Rect(0, Screen.height + (i - g.nRsc) * Screen.height * FntSize, Screen.width, style.fontSize), g.rscNames[i] + ": " + rscMin + ((rscMax != rscMin) ? " to " + rscMax : ""), style);
 		}
+		// multiplayer GUI
+		if (Network.peerType == NetworkPeerType.Disconnected) {
+			serverAddr = GUI.TextField (new Rect(0, style.fontSize * 4, 10 * style.fontSize, style.fontSize), serverAddr);
+			serverPort = int.Parse (GUI.TextField (new Rect(0, style.fontSize * 5, 10 * style.fontSize, style.fontSize), serverPort.ToString ()));
+			if (GUI.Button (new Rect(0, style.fontSize * 6, 10 * style.fontSize, style.fontSize), "Connect as client")) {
+				Network.Connect (serverAddr, serverPort);
+			}
+			if (GUI.Button (new Rect(0, style.fontSize * 7, 10 * style.fontSize, style.fontSize), "Start server")) {
+				// TODO: users should be per user instead of per player
+				Network.InitializeServer (g.nPlayers - 1, serverPort, true);
+			}
+		}
+		else {
+			if (GUI.Button (new Rect(0, style.fontSize * 4, 10 * style.fontSize, style.fontSize), "Disconnect")) {
+				Network.Disconnect (200);
+			}
+		}
 	}
 	
 	private void drawUnit(int player, int type, Vector3 pos) {
 		int i = type * g.nPlayers + player;
 		GUI.DrawTexture (new Rect(pos.x - imgUnit[i].width / 2, pos.y - imgUnit[i].height / 2, imgUnit[i].width, imgUnit[i].height), imgUnit[i]);
+	}
+	
+	void OnPlayerConnected(NetworkPlayer player) {
+		if (Network.connections.Length == g.nPlayers - 1) {
+			int seed = UnityEngine.Random.Range (int.MinValue, int.MaxValue);
+			scnOpenMultiplayer (0, seed);
+			for (int i = 0; i < Network.connections.Length; i++) {
+				networkView.RPC ("scnOpenMultiplayer", Network.connections[i], i, seed);
+			}
+		}
 	}
 
 	private string jsonString(Hashtable json, string key, string defaultVal = "") {

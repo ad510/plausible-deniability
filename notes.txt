@@ -1,4 +1,5 @@
 todo:
+search for comments with "multiplayer"
 allow selecting any player, but giving commands only on human players
 attack command
 remove floating point Sim calculations (look at csci 102 hw2 long sqrt?)
