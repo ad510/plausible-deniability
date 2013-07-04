@@ -8,6 +8,7 @@ PolyV2d.makeLineRec method?
 pathfinding
 keep non-live paths in yellow areas w/o user help
 darker gray tiles should act more conventionally
+post to tigsource.com forums?
 
 if ever allow "min" resources to be <0, must handle these cases w/o letting max resources ever be <0 in replays:
 split worker into 2 paths, 1 path makes a mine, other path doesn't

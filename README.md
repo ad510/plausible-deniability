@@ -33,4 +33,6 @@ Controls
 
 License
 -------
-The program is licensed under the MIT License. You can view the license in copying.txt.
+Decoherence is licensed under the MIT License. You can view the license in copying.txt.
+
+Decoherence uses the protobuf-net r640 library (Assets/protobuf-net.dll), which is licensed under the Apache License 2.0. You can view the license in copying-protobuf-net.txt, and the protobuf-net website is https://code.google.com/p/protobuf-net/.

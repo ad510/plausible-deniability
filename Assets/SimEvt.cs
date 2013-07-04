@@ -13,12 +13,18 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using UnityEngine;
+using ProtoBuf;
 
 /// <summary>
 /// base class for simulation events
 /// </summary>
+[ProtoContract]
+[ProtoInclude(10, typeof(CmdEvt))]
+[ProtoInclude(15, typeof(GoLiveCmdEvt))]
 public abstract class SimEvt {
-	public long time;
+	[ProtoMember(1)]
+	public long time {get;set;}
 
 	public abstract void apply(Sim g);
 }
@@ -26,9 +32,16 @@ public abstract class SimEvt {
 /// <summary>
 /// base class for unit commands
 /// </summary>
+[ProtoContract]
+[ProtoInclude(11, typeof(MoveCmdEvt))]
+[ProtoInclude(12, typeof(MakeUnitCmdEvt))]
+[ProtoInclude(13, typeof(MakePathCmdEvt))]
+[ProtoInclude(14, typeof(DeletePathCmdEvt))]
 public abstract class CmdEvt : SimEvt {
-	public long timeCmd; // time is latest simulation time when command is given, timeCmd is when event takes place (may be in past)
-	public int[] units;
+	[ProtoMember(1)]
+	public long timeCmd {get;set;} // time is latest simulation time when command is given, timeCmd is when event takes place (may be in past)
+	[ProtoMember(2)]
+	public int[] units {get;set;}
 
 	protected CmdEvt(long timeVal, long timeCmdVal, int[] unitsVal) {
 		time = timeVal;
@@ -46,9 +59,12 @@ public enum Formation : byte { Tight, Loose, Ring };
 /// <summary>
 /// command to move unit(s)
 /// </summary>
+[ProtoContract]
 public class MoveCmdEvt : CmdEvt {
-	public FP.Vector pos; // where to move to
-	public Formation formation;
+	[ProtoMember(1)]
+	public FP.Vector pos {get;set;} // where to move to
+	[ProtoMember(2)]
+	public Formation formation {get;set;}
 
 	public MoveCmdEvt(long timeVal, long timeCmdVal, int[] unitsVal, FP.Vector posVal, Formation formationVal)
 		: base(timeVal, timeCmdVal, unitsVal) {
@@ -57,7 +73,7 @@ public class MoveCmdEvt : CmdEvt {
 	}
 
 	public override void apply(Sim g) {
-		FP.Vector goal, rows = new FP.Vector(), offset;
+		FP.Vector goalCenter, goal, rows = new FP.Vector(), offset = new FP.Vector();
 		long spacing = 0;
 		int count = 0, i = 0;
 		base.apply(g);
@@ -90,18 +106,19 @@ public class MoveCmdEvt : CmdEvt {
 		else {
 			throw new NotImplementedException("requested formation is not implemented");
 		}
-		if (pos.x < Math.Min(offset.x, g.mapSize / 2)) pos.x = Math.Min(offset.x, g.mapSize / 2);
-		if (pos.x > g.mapSize - Math.Min(offset.x, g.mapSize / 2)) pos.x = g.mapSize - Math.Min(offset.x, g.mapSize / 2);
-		if (pos.y < Math.Min(offset.y, g.mapSize / 2)) pos.y = Math.Min(offset.y, g.mapSize / 2);
-		if (pos.y > g.mapSize - Math.Min(offset.y, g.mapSize / 2)) pos.y = g.mapSize - Math.Min(offset.y, g.mapSize / 2);
+		goalCenter = pos;
+		if (goalCenter.x < Math.Min(offset.x, g.mapSize / 2)) goalCenter.x = Math.Min(offset.x, g.mapSize / 2);
+		if (goalCenter.x > g.mapSize - Math.Min(offset.x, g.mapSize / 2)) goalCenter.x = g.mapSize - Math.Min(offset.x, g.mapSize / 2);
+		if (goalCenter.y < Math.Min(offset.y, g.mapSize / 2)) goalCenter.y = Math.Min(offset.y, g.mapSize / 2);
+		if (goalCenter.y > g.mapSize - Math.Min(offset.y, g.mapSize / 2)) goalCenter.y = g.mapSize - Math.Min(offset.y, g.mapSize / 2);
 		// move units
 		foreach (int unit in units) {
 			if (g.u[unit].canMove(timeCmd)) {
 				if (formation == Formation.Tight || formation == Formation.Loose) {
-					goal = pos + new FP.Vector((i % rows.x) * spacing - offset.x, i / rows.x * spacing - offset.y);
+					goal = goalCenter + new FP.Vector((i % rows.x) * spacing - offset.x, i / rows.x * spacing - offset.y);
 				}
 				else if (formation == Formation.Ring) {
-					goal = pos + offset.x * new FP.Vector(FP.cos(2 * FP.Pi * i / count), FP.sin(2 * FP.Pi * i / count));
+					goal = goalCenter + offset.x * new FP.Vector(FP.cos(2 * FP.Pi * i / count), FP.sin(2 * FP.Pi * i / count));
 				}
 				else {
 					throw new NotImplementedException("requested formation is not implemented");
@@ -116,10 +133,14 @@ public class MoveCmdEvt : CmdEvt {
 /// <summary>
 /// command to make a new unit
 /// </summary>
+[ProtoContract]
 public class MakeUnitCmdEvt : CmdEvt {
-	public int type;
-	public FP.Vector pos;
-	bool autoRepeat;
+	[ProtoMember(1)]
+	public int type {get;set;}
+	[ProtoMember(2)]
+	public FP.Vector pos {get;set;}
+	[ProtoMember(3)]
+	bool autoRepeat {get;set;}
 
 	public MakeUnitCmdEvt(long timeVal, long timeCmdVal, int[] unitsVal, int typeVal, FP.Vector posVal, bool autoRepeatVal = false)
 		: base(timeVal, timeCmdVal, unitsVal) {
@@ -166,8 +187,10 @@ public class MakeUnitCmdEvt : CmdEvt {
 /// <summary>
 /// command to make new path(s) that specified unit(s) could take
 /// </summary>
+[ProtoContract]
 public class MakePathCmdEvt : CmdEvt {
-	public FP.Vector[] pos; // where new paths should move to
+	[ProtoMember(1)]
+	public FP.Vector[] pos {get;set;} // where new paths should move to
 
 	public MakePathCmdEvt(long timeVal, long timeCmdVal, int[] unitsVal, FP.Vector[] posVal)
 		: base(timeVal, timeCmdVal, unitsVal) {
@@ -187,6 +210,7 @@ public class MakePathCmdEvt : CmdEvt {
 /// <summary>
 /// command to delete path(s)
 /// </summary>
+[ProtoContract]
 public class DeletePathCmdEvt : CmdEvt {
 	public DeletePathCmdEvt(long timeVal, long timeCmdVal, int[] unitsVal)
 		: base(timeVal, timeCmdVal, unitsVal) { }
@@ -208,8 +232,10 @@ public class DeletePathCmdEvt : CmdEvt {
 /// command to make a player's time traveling units be updated in the present
 /// </summary>
 /// <remarks>this doesn't inherit from CmdEvt because it isn't a unit command</remarks>
+[ProtoContract]
 public class GoLiveCmdEvt : SimEvt {
-	public int player;
+	[ProtoMember(1)]
+	public int player {get;set;}
 
 	public GoLiveCmdEvt(long timeVal, int playerVal) {
 		time = timeVal;
@@ -256,10 +282,48 @@ public class UpdateEvt : SimEvt {
 	}
 
 	public override void apply(Sim g) {
+		SimEvt evt;
 		FP.Vector pos;
-		int target;
+		int cmdType, target;
 		long distSq, targetDistSq;
 		int i, j;
+		// apply received user commands
+		for (i = 0; i < g.nPlayers; i++) {
+			if (!g.players[i].cmdAllReceived) throw new InvalidOperationException("UpdateEvt is being applied before all commands were received from player " + i);
+			g.players[i].cmdAllReceived = false;
+			while ((evt = g.players[i].cmdReceived.pop()) != null) {
+				evt.apply (g);
+			}
+		}
+		// send new user commands to other players
+		while ((evt = g.cmdPending.pop ()) != null) {
+			System.IO.MemoryStream stream = new System.IO.MemoryStream();
+			Serializer.Serialize (stream, evt);
+			if (evt is MoveCmdEvt) {
+				cmdType = 11;
+			}
+			else if (evt is MakeUnitCmdEvt) {
+				cmdType = 12;
+			}
+			else if (evt is MakePathCmdEvt) {
+				cmdType = 13;
+			}
+			else if (evt is DeletePathCmdEvt) {
+				cmdType = 14;
+			}
+			else if (evt is GoLiveCmdEvt) {
+				cmdType = 15;
+			}
+			else {
+				throw new InvalidOperationException("pending command's type is not a command");
+			}
+			g.networkView.RPC ("addCmd", RPCMode.Others, g.selPlayer, cmdType, stream.ToArray ());
+		}
+		g.networkView.RPC ("allCmdsSent", RPCMode.Others, g.selPlayer);
+		// move pending commands to cmdReceived
+		g.players[g.selPlayer].cmdReceived = g.cmdPending;
+		g.players[g.selPlayer].cmdAllReceived = true;
+		g.cmdPending = new SimEvtList();
 		// update units
 		for (i = 0; i < g.nUnits; i++) {
 			if (g.u[i].isLive(time) && time >= g.u[i].timeAttack + g.unitT[g.u[i].type].reload) {

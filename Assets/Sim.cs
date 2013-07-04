@@ -31,10 +31,15 @@ public class Sim {
 		public bool hasNonLiveUnits; // whether currently might have time traveling units (ok to sometimes incorrectly be set to true)
 		public long timeGoLiveFail; // latest time that player's time traveling units failed to go live (resets to long.MaxValue after success)
 		public long timeNegRsc; // time that player could have negative resources if time traveling units went live
+		// used in multiplayer (TODO: should be per user, not per player)
+		public SimEvtList cmdReceived; // commands received from this player to be applied in next update
+		public bool cmdAllReceived; // whether all commands were received from this player for the next update
 
 		public Player() {
 			hasNonLiveUnits = false;
 			timeGoLiveFail = long.MaxValue;
+			cmdReceived = new SimEvtList();
+			cmdAllReceived = true;
 		}
 	}
 
@@ -247,8 +252,11 @@ public class Sim {
 	public Unit[] u;
 
 	// helper variables not loaded from scenario file
+	public int selPlayer;
+	public NetworkView networkView;
 	public Tile[,] tiles; // each tile is 1 fixed-point unit (2^FP.Precision raw integer units) wide, so bit shift by FP.Precision to convert between position and tile position
 	public SimEvtList events; // simulation events to be applied
+	public SimEvtList cmdPending; // user commands to be sent to other players in the next update
 	public SimEvtList cmdHistory; // user commands that have already been applied
 	public List<int> movedUnits; // indices of units that moved in the latest simulation event, invalidating later TileMoveEvts for that unit
 	public List<int> unitIdChgs; // list of units that changed indices (old index followed by new index)
@@ -306,7 +314,7 @@ public class Sim {
 				if (u[i].player == player) u[i].updatePast(curTime);
 			}
 			if (curTime >= timeSim && (players[player].timeGoLiveFail == long.MaxValue || timeSim >= players[player].timeGoLiveFail + updateInterval)) {
-				events.add(new GoLiveCmdEvt(timeSim, player));
+				cmdPending.add(new GoLiveCmdEvt(timeUpdateEvt + updateInterval * 2, player));
 			}
 		}
 	}

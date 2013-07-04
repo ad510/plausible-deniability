@@ -7,6 +7,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using ProtoBuf;
 
 /// <summary>
 /// fixed point arithmetic
@@ -22,10 +23,14 @@ public class FP {
 	/// <summary>
 	/// fixed point 3D vector
 	/// </summary>
+	[ProtoContract]
 	public struct Vector {
-		public long x;
-		public long y;
-		public long z;
+		[ProtoMember(1)]
+		public long x {get;set;}
+		[ProtoMember(2)]
+		public long y {get;set;}
+		[ProtoMember(3)]
+		public long z {get;set;}
 
 		public Vector(long xVal, long yVal, long zVal = 0) {
 			x = xVal;

@@ -7,6 +7,7 @@ using UnityEngine;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using ProtoBuf;
 
 /// <summary>
 /// contains initialization and user interface code
@@ -20,7 +21,6 @@ public class App : MonoBehaviour {
 	float winDiag;
 	Texture[] imgUnit;
 	Sim g;
-	int selPlayer;
 	List<int> selUnits;
 	int makeUnitType;
 	long timeNow;
@@ -61,7 +61,9 @@ public class App : MonoBehaviour {
 		if (!b) return false;
 		// base scenario
 		g = new Sim();
+		g.networkView = networkView;
 		g.events = new SimEvtList();
+		g.cmdPending = new SimEvtList();
 		g.cmdHistory = new SimEvtList();
 		g.unitIdChgs = new List<int>();
 		g.timeSim = -1;
@@ -227,8 +229,8 @@ public class App : MonoBehaviour {
 		}*/
 		// start game
 		Camera.main.backgroundColor = g.backCol;
-		selPlayer = 0;
-		while (g.players[selPlayer].user != Sim.HumanUser) selPlayer = (selPlayer + 1) % g.nPlayers;
+		g.selPlayer = 0;
+		while (g.players[g.selPlayer].user != Sim.HumanUser) g.selPlayer = (g.selPlayer + 1) % g.nPlayers;
 		selUnits = new List<int>();
 		makeUnitType = -1;
 		paused = false;
@@ -237,13 +239,6 @@ public class App : MonoBehaviour {
 		timeSpeedChg = (long)(Time.time * 1000) - 1000;
 		timeNow = (long)(Time.time * 1000);
 		return true;
-	}
-	
-	[RPC]
-	void scnOpenMultiplayer(int player, int seed) {
-		UnityEngine.Random.seed = seed;
-		scnOpen (appPath + modPath + "scn.json");
-		selPlayer = player;
 	}
 	
 	private Texture2D loadTexture(string path) {
@@ -259,7 +254,7 @@ public class App : MonoBehaviour {
 	/// </summary>
 	void Update () {
 		updateTime ();
-		g.updatePast (selPlayer, timeGame);
+		g.updatePast (g.selPlayer, timeGame);
 		g.update (timeGame);
 		updateInput ();
 	}
@@ -311,7 +306,8 @@ public class App : MonoBehaviour {
 				// make unit
 				// happens at timeGame + 1 so new unit starts out live if game is live
 				FP.Vector pos = makeUnitPos();
-				if (pos.x != Sim.OffMap) g.events.add(new MakeUnitCmdEvt(g.timeSim, timeGame + 1, selUnits.ToArray(), makeUnitType, pos));
+				if (pos.x != Sim.OffMap) g.cmdPending.add(new MakeUnitCmdEvt(g.timeUpdateEvt + g.updateInterval * 2,
+					Math.Min (timeGame, g.timeUpdateEvt) + g.updateInterval * 2 + 1, selUnits.ToArray(), makeUnitType, pos));
 				makeUnitType = -1;
 			}
 			else {
@@ -319,7 +315,7 @@ public class App : MonoBehaviour {
 				Vector3 drawPos;
 				if (!Input.GetKey (KeyCode.LeftControl) && !Input.GetKey (KeyCode.LeftShift)) selUnits.Clear();
 				for (i = 0; i < g.nUnits; i++) {
-					if (selPlayer == g.u[i].player && timeGame >= g.u[i].m[0].timeStart) {
+					if (g.selPlayer == g.u[i].player && timeGame >= g.u[i].m[0].timeStart) {
 						drawPos = simToDrawPos(g.u[i].calcPos(timeGame));
 						if (drawPos.x + g.unitT[g.u[i].type].selRadius >= Math.Min(mouseDownPos[0].x, mousePos ().x)
 							&& drawPos.x - g.unitT[g.u[i].type].selRadius <= Math.Max(mouseDownPos[0].x, mousePos ().x)
@@ -345,7 +341,8 @@ public class App : MonoBehaviour {
 			}
 			else {
 				// move selected units
-				g.events.add(new MoveCmdEvt(g.timeSim, timeGame + 1, selUnits.ToArray(), drawToSimPos (mousePos ()),
+				g.cmdPending.add(new MoveCmdEvt(g.timeUpdateEvt + g.updateInterval * 2,
+					Math.Min (timeGame, g.timeUpdateEvt) + g.updateInterval * 2, selUnits.ToArray(), drawToSimPos (mousePos ()),
 					Input.GetKey (KeyCode.LeftControl) ? Formation.Loose : Input.GetKey (KeyCode.LeftAlt) ? Formation.Ring : Formation.Tight));
 			}
 		}
@@ -360,8 +357,8 @@ public class App : MonoBehaviour {
 		if (Input.GetKeyDown (KeyCode.Space)) {
 			// change selected player
 			do {
-				selPlayer = (selPlayer + 1) % g.nPlayers;
-			} while (g.players[selPlayer].user != Sim.HumanUser);
+				g.selPlayer = (g.selPlayer + 1) % g.nPlayers;
+			} while (g.players[g.selPlayer].user != Sim.HumanUser);
 			selUnits.Clear();
 			makeUnitType = -1;
 		}
@@ -388,7 +385,9 @@ public class App : MonoBehaviour {
 							int[] unitArray = new int[1];
 							unitArray[0] = unit;
 							// happens at timeGame + 1 so new unit starts out live if game is live
-							g.events.add(new MakeUnitCmdEvt(g.timeSim, timeGame + 1, unitArray, i, makeUnitMovePos(timeGame + 1, unit)));
+							g.cmdPending.add(new MakeUnitCmdEvt(g.timeUpdateEvt + g.updateInterval * 2,
+								Math.Min (timeGame, g.timeUpdateEvt) + g.updateInterval * 2 + 1,
+								unitArray, i, makeUnitMovePos(timeGame + 1, unit)));
 						}
 						else {
 							makeUnitType = i;
@@ -406,13 +405,15 @@ public class App : MonoBehaviour {
 					if (g.u[selUnits[i]].exists(timeGame + 1)) pos[i] = makeUnitMovePos(timeGame + 1, selUnits[i]);
 				}
 				// happens at timeGame + 1 so new path starts out live if game is live
-				g.events.add(new MakePathCmdEvt(g.timeSim, timeGame + 1, selUnits.ToArray(), pos));
+				g.cmdPending.add(new MakePathCmdEvt(g.timeUpdateEvt + g.updateInterval * 2,
+					Math.Min (timeGame, g.timeUpdateEvt) + g.updateInterval * 2 + 1, selUnits.ToArray(), pos));
 			}
 		}
 		if (Input.GetKeyDown (KeyCode.Delete)) {
 			// delete selected paths
 			// happens at timeGame instead of timeGame + 1 so that when paused, making path then deleting parent path doesn't cause an error
-			if (selUnits.Count > 0) g.events.add(new DeletePathCmdEvt(g.timeSim, timeGame, selUnits.ToArray()));
+			if (selUnits.Count > 0) g.cmdPending.add(new DeletePathCmdEvt(g.timeUpdateEvt + g.updateInterval * 2,
+				Math.Min (timeGame, g.timeUpdateEvt) + g.updateInterval * 2, selUnits.ToArray()));
 		}
 		if (Input.GetKeyDown (KeyCode.R) && Input.GetKey (KeyCode.LeftShift)) {
 			// instant replay
@@ -468,10 +469,10 @@ public class App : MonoBehaviour {
 				vec = simToDrawPos(new FP.Vector(tX << FP.Precision, tY << FP.Precision));
 				vec2 = simToDrawPos(new FP.Vector((tX + 1) << FP.Precision, (tY + 1) << FP.Precision));
 				col = g.noVisCol;
-				if (g.tiles[tX, tY].playerVisWhen(selPlayer, timeGame)) {
+				if (g.tiles[tX, tY].playerVisWhen(g.selPlayer, timeGame)) {
 					col += g.playerVisCol;
-					if (g.tiles[tX, tY].playerDirectVisWhen(selPlayer, timeGame)) col += g.unitVisCol;
-					if (g.tiles[tX, tY].coherentWhen(selPlayer, timeGame)) col += g.coherentCol;
+					if (g.tiles[tX, tY].playerDirectVisWhen(g.selPlayer, timeGame)) col += g.unitVisCol;
+					if (g.tiles[tX, tY].coherentWhen(g.selPlayer, timeGame)) col += g.coherentCol;
 				}
 				tex.SetPixel (tX, g.tileLen () - 1 - tY, col);
 			}
@@ -544,7 +545,7 @@ public class App : MonoBehaviour {
 				//imgUnit[i].color = new Color4(0.5f, 1, 1, 1).ToArgb(); // TODO: make transparency amount customizable
 				vec = mousePos();
 			}
-			drawUnit (selPlayer, makeUnitType, vec);
+			drawUnit (g.selPlayer, makeUnitType, vec);
 		}
 		// health bars
 		foreach (int unit in selUnits) {
@@ -603,13 +604,13 @@ public class App : MonoBehaviour {
 		if (paused) GUI.Label (new Rect(0, style.fontSize, Screen.width, style.fontSize), "PAUSED", style);
 		if (Environment.TickCount < timeSpeedChg) timeSpeedChg -= UInt32.MaxValue;
 		if (Environment.TickCount < timeSpeedChg + 1000) GUI.Label (new Rect(0, style.fontSize * 2, Screen.width, style.fontSize), "SPEED: " + Math.Pow(2, speed) + "x", style);
-		if (g.players[selPlayer].timeGoLiveFail != long.MaxValue) {
+		if (g.players[g.selPlayer].timeGoLiveFail != long.MaxValue) {
 			style.normal.textColor = Color.red;
-			GUI.Label (new Rect(0, style.fontSize * 3, Screen.width, style.fontSize), "ERROR: Going live may cause you to have negative resources " + (timeGame - g.players[selPlayer].timeNegRsc) / 1000 + " second(s) ago.", style);
+			GUI.Label (new Rect(0, style.fontSize * 3, Screen.width, style.fontSize), "ERROR: Going live may cause you to have negative resources " + (timeGame - g.players[g.selPlayer].timeNegRsc) / 1000 + " second(s) ago.", style);
 		}
 		for (i = 0; i < g.nRsc; i++) {
-			long rscMin = (long)Math.Floor(FP.toDouble(g.playerResource(selPlayer, timeGame, i, false, true, false)));
-			long rscMax = (long)Math.Floor(FP.toDouble(g.playerResource(selPlayer, timeGame, i, true, true, false)));
+			long rscMin = (long)Math.Floor(FP.toDouble(g.playerResource(g.selPlayer, timeGame, i, false, true, false)));
+			long rscMax = (long)Math.Floor(FP.toDouble(g.playerResource(g.selPlayer, timeGame, i, true, true, false)));
 			style.normal.textColor = (rscMin >= 0) ? Color.white : Color.red;
 			GUI.Label (new Rect(0, Screen.height + (i - g.nRsc) * Screen.height * FntSize, Screen.width, style.fontSize), g.rscNames[i] + ": " + rscMin + ((rscMax != rscMin) ? " to " + rscMax : ""), style);
 		}
@@ -645,6 +646,42 @@ public class App : MonoBehaviour {
 				networkView.RPC ("scnOpenMultiplayer", Network.connections[i], i, seed);
 			}
 		}
+	}
+	
+	[RPC]
+	void scnOpenMultiplayer(int player, int seed) {
+		UnityEngine.Random.seed = seed;
+		scnOpen (appPath + modPath + "scn.json");
+		g.selPlayer = player;
+	}
+	
+	// cmdType is same as the SimEvt type's protobuf identifier
+	[RPC]
+	void addCmd(int player, int cmdType, byte[] cmdData) {
+		System.IO.MemoryStream stream = new System.IO.MemoryStream(cmdData);
+		if (cmdType == 11) {
+			g.players[player].cmdReceived.add (Serializer.Deserialize<MoveCmdEvt>(stream));
+		}
+		else if (cmdType == 12) {
+			g.players[player].cmdReceived.add (Serializer.Deserialize<MakeUnitCmdEvt>(stream));
+		}
+		else if (cmdType == 13) {
+			g.players[player].cmdReceived.add (Serializer.Deserialize<MakePathCmdEvt>(stream));
+		}
+		else if (cmdType == 14) {
+			g.players[player].cmdReceived.add (Serializer.Deserialize<DeletePathCmdEvt>(stream));
+		}
+		else if (cmdType == 15) {
+			g.players[player].cmdReceived.add (Serializer.Deserialize<GoLiveCmdEvt>(stream));
+		}
+		else {
+			throw new InvalidOperationException("received command of invalid type");
+		}
+	}
+	
+	[RPC]
+	void allCmdsSent(int player) {
+		g.players[player].cmdAllReceived = true;
 	}
 
 	private string jsonString(Hashtable json, string key, string defaultVal = "") {
@@ -728,7 +765,7 @@ public class App : MonoBehaviour {
 				for (int i = 0; i < g.nUnits; i++) {
 					if (g.u[i].exists(timeGame)) {
 						vec = g.u[i].calcPos(timeGame);
-						if (g.u[i].type == g.unitT[makeUnitType].makeOnUnitT && g.tileAt(vec).playerVisWhen(selPlayer, timeGame)
+						if (g.u[i].type == g.unitT[makeUnitType].makeOnUnitT && g.tileAt(vec).playerVisWhen(g.selPlayer, timeGame)
 							&& (mousePos() - simToDrawPos(vec)).sqrMagnitude <= g.unitT[g.u[i].type].selRadius * g.unitT[g.u[i].type].selRadius) {
 							return vec;
 						}
@@ -761,9 +798,9 @@ public class App : MonoBehaviour {
 	/// </summary>
 	private bool unitDrawPos(int unit, ref Vector3 pos) {
 		FP.Vector fpVec;
-		if (!g.u[unit].exists(timeGame) || (selPlayer != g.u[unit].player && !g.u[unit].isLive(timeGame))) return false;
+		if (!g.u[unit].exists(timeGame) || (g.selPlayer != g.u[unit].player && !g.u[unit].isLive(timeGame))) return false;
 		fpVec = g.u[unit].calcPos(timeGame);
-		if (selPlayer != g.u[unit].player && !g.tileAt(fpVec).playerVisWhen(selPlayer, timeGame)) return false;
+		if (g.selPlayer != g.u[unit].player && !g.tileAt(fpVec).playerVisWhen(g.selPlayer, timeGame)) return false;
 		pos = simToDrawPos(fpVec);
 		return true;
 	}
