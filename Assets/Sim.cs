@@ -287,6 +287,11 @@ public class Sim {
 		SimEvt evt;
 		long timeSimNext = Math.Max(curTime, timeSim);
 		int i;
+		if (networkView == null) {
+			// move pending user commands to event list (single player only)
+			// TODO: could command be applied after another event with same time, causing desyncs in replays?
+			while ((evt = cmdPending.pop ()) != null) events.add (evt);
+		}
 		// apply simulation events
 		movedUnits = new List<int>();
 		while (events.peekTime() <= timeSimNext) {
@@ -320,7 +325,7 @@ public class Sim {
 				if (u[i].player == player) u[i].updatePast(curTime);
 			}
 			if (curTime >= timeSim && (players[player].timeGoLiveFail == long.MaxValue || timeSim >= players[player].timeGoLiveFail + updateInterval)) {
-				cmdPending.add(new GoLiveCmdEvt(timeUpdateEvt + updateInterval * 2, player));
+				cmdPending.add(new GoLiveCmdEvt(timeSim, player));
 			}
 		}
 	}

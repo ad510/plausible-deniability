@@ -43,7 +43,7 @@ public class App : MonoBehaviour {
 		winDiag = new Vector2(Screen.width, Screen.height).magnitude;
 		mouseDownPos = new Vector3[3];
 		mouseUpPos = new Vector3[3];
-		if (!scnOpen (appPath + modPath + "scn.json", 0)) {
+		if (!scnOpen (appPath + modPath + "scn.json", 0, false)) {
 			Debug.LogError ("Scenario failed to load.");
 		}
 	}
@@ -51,7 +51,7 @@ public class App : MonoBehaviour {
 	/// <summary>
 	/// loads scenario from json file and returns whether successful
 	/// </summary>
-	private bool scnOpen(string path, int user) {
+	private bool scnOpen(string path, int user, bool multiplayer) {
 		int i, j, k;
 		Hashtable json;
 		ArrayList jsonA;
@@ -63,7 +63,7 @@ public class App : MonoBehaviour {
 		// base scenario
 		g = new Sim();
 		g.selUser = user;
-		g.networkView = networkView;
+		g.networkView = multiplayer ? networkView : null;
 		g.events = new SimEvtList();
 		g.cmdPending = new SimEvtList();
 		g.cmdHistory = new SimEvtList();
@@ -322,10 +322,9 @@ public class App : MonoBehaviour {
 			mouseUpPos[0] = mousePos();
 			if (makeUnitType >= 0) {
 				// make unit
-				// happens at timeGame + 1 so new unit starts out live if game is live
+				// happens at newCmdTime() + 1 so new unit starts out live if game is live
 				FP.Vector pos = makeUnitPos();
-				if (pos.x != Sim.OffMap) g.cmdPending.add(new MakeUnitCmdEvt(g.timeUpdateEvt + g.updateInterval * 2,
-					Math.Min (timeGame, g.timeUpdateEvt) + g.updateInterval * 2 + 1, selUnits.ToArray(), makeUnitType, pos));
+				if (pos.x != Sim.OffMap) g.cmdPending.add(new MakeUnitCmdEvt(g.timeSim, newCmdTime() + 1, selUnits.ToArray(), makeUnitType, pos));
 				makeUnitType = -1;
 			}
 			else {
@@ -359,8 +358,7 @@ public class App : MonoBehaviour {
 			}
 			else {
 				// move selected units
-				g.cmdPending.add(new MoveCmdEvt(g.timeUpdateEvt + g.updateInterval * 2,
-					Math.Min (timeGame, g.timeUpdateEvt) + g.updateInterval * 2, selUnits.ToArray(), drawToSimPos (mousePos ()),
+				g.cmdPending.add(new MoveCmdEvt(g.timeSim, newCmdTime(), selUnits.ToArray(), drawToSimPos (mousePos ()),
 					Input.GetKey (KeyCode.LeftControl) ? Formation.Loose : Input.GetKey (KeyCode.LeftAlt) ? Formation.Ring : Formation.Tight));
 			}
 		}
@@ -402,10 +400,8 @@ public class App : MonoBehaviour {
 						if (g.unitT[i].speed > 0 && g.unitT[i].makeOnUnitT < 0) {
 							int[] unitArray = new int[1];
 							unitArray[0] = unit;
-							// happens at timeGame + 1 so new unit starts out live if game is live
-							g.cmdPending.add(new MakeUnitCmdEvt(g.timeUpdateEvt + g.updateInterval * 2,
-								Math.Min (timeGame, g.timeUpdateEvt) + g.updateInterval * 2 + 1,
-								unitArray, i, makeUnitMovePos(timeGame + 1, unit)));
+							// happens at newCmdTime() + 1 so new unit starts out live if game is live
+							g.cmdPending.add(new MakeUnitCmdEvt(g.timeSim, newCmdTime() + 1, unitArray, i, makeUnitMovePos(timeGame + 1, unit)));
 						}
 						else {
 							makeUnitType = i;
@@ -422,16 +418,14 @@ public class App : MonoBehaviour {
 				for (i = 0; i < selUnits.Count; i++) {
 					if (g.u[selUnits[i]].exists(timeGame + 1)) pos[i] = makeUnitMovePos(timeGame + 1, selUnits[i]);
 				}
-				// happens at timeGame + 1 so new path starts out live if game is live
-				g.cmdPending.add(new MakePathCmdEvt(g.timeUpdateEvt + g.updateInterval * 2,
-					Math.Min (timeGame, g.timeUpdateEvt) + g.updateInterval * 2 + 1, selUnits.ToArray(), pos));
+				// happens at newCmdTime() + 1 so new path starts out live if game is live
+				g.cmdPending.add(new MakePathCmdEvt(g.timeSim, newCmdTime() + 1, selUnits.ToArray(), pos));
 			}
 		}
 		if (Input.GetKeyDown (KeyCode.Delete)) {
 			// delete selected paths
-			// happens at timeGame instead of timeGame + 1 so that when paused, making path then deleting parent path doesn't cause an error
-			if (selUnits.Count > 0) g.cmdPending.add(new DeletePathCmdEvt(g.timeUpdateEvt + g.updateInterval * 2,
-				Math.Min (timeGame, g.timeUpdateEvt) + g.updateInterval * 2, selUnits.ToArray()));
+			// happens at newCmdTime() instead of newCmdTime() + 1 so that when paused, making path then deleting parent path doesn't cause an error
+			if (selUnits.Count > 0) g.cmdPending.add(new DeletePathCmdEvt(g.timeSim, newCmdTime(), selUnits.ToArray()));
 		}
 		if (Input.GetKeyDown (KeyCode.R) && Input.GetKey (KeyCode.LeftShift)) {
 			// instant replay
@@ -668,7 +662,7 @@ public class App : MonoBehaviour {
 	[RPC]
 	void scnOpenMultiplayer(int user, int seed) {
 		UnityEngine.Random.seed = seed;
-		scnOpen (appPath + modPath + "scn.json", user);
+		scnOpen (appPath + modPath + "scn.json", user, true);
 	}
 	
 	// cmdType is same as the SimEvt type's protobuf identifier
@@ -819,6 +813,18 @@ public class App : MonoBehaviour {
 		if (selPlayer != g.u[unit].player && !g.tileAt(fpVec).playerVisWhen(selPlayer, timeGame)) return false;
 		pos = simToDrawPos(fpVec);
 		return true;
+	}
+	
+	/// <summary>
+	/// returns suggested timeCmd field for a new CmdEvt, corresponding to when it would appear to be applied
+	/// </summary>
+	public long newCmdTime() {
+		if (g.networkView != null) { // multiplayer
+			return Math.Min (timeGame, g.timeUpdateEvt) + g.updateInterval * 2;
+		}
+		else { // single player
+			return timeGame;
+		}
 	}
 	
 	/// <summary>

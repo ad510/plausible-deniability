@@ -317,43 +317,46 @@ public class UpdateEvt : SimEvt {
 		int cmdType, target;
 		long distSq, targetDistSq;
 		int i, j;
-		// apply received user commands
-		for (i = 0; i < g.nUsers; i++) {
-			if (!g.users[i].cmdAllReceived) throw new InvalidOperationException("UpdateEvt is being applied before all commands were received from user " + i);
-			g.users[i].cmdAllReceived = false;
-			while ((evt = g.users[i].cmdReceived.pop()) != null) {
-				evt.apply (g);
+		if (g.networkView != null) {
+			// apply received user commands (multiplayer only)
+			for (i = 0; i < g.nUsers; i++) {
+				if (!g.users[i].cmdAllReceived) throw new InvalidOperationException("UpdateEvt is being applied before all commands were received from user " + i);
+				g.users[i].cmdAllReceived = false;
+				while ((evt = g.users[i].cmdReceived.pop()) != null) {
+					evt.time = time; // set event time to when it is actually applied
+					evt.apply (g);
+				}
 			}
+			// send pending commands to other users
+			foreach (SimEvt evt2 in g.cmdPending.events) {
+				System.IO.MemoryStream stream = new System.IO.MemoryStream();
+				Serializer.Serialize (stream, evt2);
+				if (evt2 is MoveCmdEvt) {
+					cmdType = 11;
+				}
+				else if (evt2 is MakeUnitCmdEvt) {
+					cmdType = 12;
+				}
+				else if (evt2 is MakePathCmdEvt) {
+					cmdType = 13;
+				}
+				else if (evt2 is DeletePathCmdEvt) {
+					cmdType = 14;
+				}
+				else if (evt2 is GoLiveCmdEvt) {
+					cmdType = 15;
+				}
+				else {
+					throw new InvalidOperationException("pending command's type is not a command");
+				}
+				g.networkView.RPC ("addCmd", RPCMode.Others, g.selUser, cmdType, stream.ToArray ());
+			}
+			g.networkView.RPC ("allCmdsSent", RPCMode.Others, g.selUser);
+			// move pending commands to cmdReceived
+			g.users[g.selUser].cmdReceived = g.cmdPending;
+			g.users[g.selUser].cmdAllReceived = true;
+			g.cmdPending = new SimEvtList();
 		}
-		// send pending commands to other users
-		foreach (SimEvt evt2 in g.cmdPending.events) {
-			System.IO.MemoryStream stream = new System.IO.MemoryStream();
-			Serializer.Serialize (stream, evt2);
-			if (evt2 is MoveCmdEvt) {
-				cmdType = 11;
-			}
-			else if (evt2 is MakeUnitCmdEvt) {
-				cmdType = 12;
-			}
-			else if (evt2 is MakePathCmdEvt) {
-				cmdType = 13;
-			}
-			else if (evt2 is DeletePathCmdEvt) {
-				cmdType = 14;
-			}
-			else if (evt2 is GoLiveCmdEvt) {
-				cmdType = 15;
-			}
-			else {
-				throw new InvalidOperationException("pending command's type is not a command");
-			}
-			g.networkView.RPC ("addCmd", RPCMode.Others, g.selUser, cmdType, stream.ToArray ());
-		}
-		g.networkView.RPC ("allCmdsSent", RPCMode.Others, g.selUser);
-		// move pending commands to cmdReceived
-		g.users[g.selUser].cmdReceived = g.cmdPending;
-		g.users[g.selUser].cmdAllReceived = true;
-		g.cmdPending = new SimEvtList();
 		// update units
 		for (i = 0; i < g.nUnits; i++) {
 			if (g.u[i].isLive(time) && time >= g.u[i].timeAttack + g.unitT[g.u[i].type].reload) {
