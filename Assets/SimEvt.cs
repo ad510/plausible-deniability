@@ -42,6 +42,11 @@ public abstract class CmdEvt : SimEvt {
 	public long timeCmd {get;set;} // time is latest simulation time when command is given, timeCmd is when event takes place (may be in past)
 	[ProtoMember(2)]
 	public int[] units {get;set;}
+	
+	/// <summary>
+	/// empty constructor for protobuf-net use only
+	/// </summary>
+	protected CmdEvt() { }
 
 	protected CmdEvt(long timeVal, long timeCmdVal, int[] unitsVal) {
 		time = timeVal;
@@ -65,6 +70,11 @@ public class MoveCmdEvt : CmdEvt {
 	public FP.Vector pos {get;set;} // where to move to
 	[ProtoMember(2)]
 	public Formation formation {get;set;}
+	
+	/// <summary>
+	/// empty constructor for protobuf-net use only
+	/// </summary>
+	public MoveCmdEvt() { }
 
 	public MoveCmdEvt(long timeVal, long timeCmdVal, int[] unitsVal, FP.Vector posVal, Formation formationVal)
 		: base(timeVal, timeCmdVal, unitsVal) {
@@ -141,6 +151,11 @@ public class MakeUnitCmdEvt : CmdEvt {
 	public FP.Vector pos {get;set;}
 	[ProtoMember(3)]
 	bool autoRepeat {get;set;}
+	
+	/// <summary>
+	/// empty constructor for protobuf-net use only
+	/// </summary>
+	public MakeUnitCmdEvt() { }
 
 	public MakeUnitCmdEvt(long timeVal, long timeCmdVal, int[] unitsVal, int typeVal, FP.Vector posVal, bool autoRepeatVal = false)
 		: base(timeVal, timeCmdVal, unitsVal) {
@@ -191,6 +206,11 @@ public class MakeUnitCmdEvt : CmdEvt {
 public class MakePathCmdEvt : CmdEvt {
 	[ProtoMember(1)]
 	public FP.Vector[] pos {get;set;} // where new paths should move to
+	
+	/// <summary>
+	/// empty constructor for protobuf-net use only
+	/// </summary>
+	public MakePathCmdEvt() { }
 
 	public MakePathCmdEvt(long timeVal, long timeCmdVal, int[] unitsVal, FP.Vector[] posVal)
 		: base(timeVal, timeCmdVal, unitsVal) {
@@ -212,6 +232,11 @@ public class MakePathCmdEvt : CmdEvt {
 /// </summary>
 [ProtoContract]
 public class DeletePathCmdEvt : CmdEvt {
+	/// <summary>
+	/// empty constructor for protobuf-net use only
+	/// </summary>
+	public DeletePathCmdEvt() { }
+
 	public DeletePathCmdEvt(long timeVal, long timeCmdVal, int[] unitsVal)
 		: base(timeVal, timeCmdVal, unitsVal) { }
 
@@ -236,6 +261,11 @@ public class DeletePathCmdEvt : CmdEvt {
 public class GoLiveCmdEvt : SimEvt {
 	[ProtoMember(1)]
 	public int player {get;set;}
+
+	/// <summary>
+	/// empty constructor for protobuf-net use only
+	/// </summary>
+	public GoLiveCmdEvt() { }
 
 	public GoLiveCmdEvt(long timeVal, int playerVal) {
 		time = timeVal;
@@ -288,41 +318,41 @@ public class UpdateEvt : SimEvt {
 		long distSq, targetDistSq;
 		int i, j;
 		// apply received user commands
-		for (i = 0; i < g.nPlayers; i++) {
-			if (!g.players[i].cmdAllReceived) throw new InvalidOperationException("UpdateEvt is being applied before all commands were received from player " + i);
-			g.players[i].cmdAllReceived = false;
-			while ((evt = g.players[i].cmdReceived.pop()) != null) {
+		for (i = 0; i < g.nUsers; i++) {
+			if (!g.users[i].cmdAllReceived) throw new InvalidOperationException("UpdateEvt is being applied before all commands were received from user " + i);
+			g.users[i].cmdAllReceived = false;
+			while ((evt = g.users[i].cmdReceived.pop()) != null) {
 				evt.apply (g);
 			}
 		}
-		// send new user commands to other players
-		while ((evt = g.cmdPending.pop ()) != null) {
+		// send pending commands to other users
+		foreach (SimEvt evt2 in g.cmdPending.events) {
 			System.IO.MemoryStream stream = new System.IO.MemoryStream();
-			Serializer.Serialize (stream, evt);
-			if (evt is MoveCmdEvt) {
+			Serializer.Serialize (stream, evt2);
+			if (evt2 is MoveCmdEvt) {
 				cmdType = 11;
 			}
-			else if (evt is MakeUnitCmdEvt) {
+			else if (evt2 is MakeUnitCmdEvt) {
 				cmdType = 12;
 			}
-			else if (evt is MakePathCmdEvt) {
+			else if (evt2 is MakePathCmdEvt) {
 				cmdType = 13;
 			}
-			else if (evt is DeletePathCmdEvt) {
+			else if (evt2 is DeletePathCmdEvt) {
 				cmdType = 14;
 			}
-			else if (evt is GoLiveCmdEvt) {
+			else if (evt2 is GoLiveCmdEvt) {
 				cmdType = 15;
 			}
 			else {
 				throw new InvalidOperationException("pending command's type is not a command");
 			}
-			g.networkView.RPC ("addCmd", RPCMode.Others, g.selPlayer, cmdType, stream.ToArray ());
+			g.networkView.RPC ("addCmd", RPCMode.Others, g.selUser, cmdType, stream.ToArray ());
 		}
-		g.networkView.RPC ("allCmdsSent", RPCMode.Others, g.selPlayer);
+		g.networkView.RPC ("allCmdsSent", RPCMode.Others, g.selUser);
 		// move pending commands to cmdReceived
-		g.players[g.selPlayer].cmdReceived = g.cmdPending;
-		g.players[g.selPlayer].cmdAllReceived = true;
+		g.users[g.selUser].cmdReceived = g.cmdPending;
+		g.users[g.selUser].cmdAllReceived = true;
 		g.cmdPending = new SimEvtList();
 		// update units
 		for (i = 0; i < g.nUnits; i++) {

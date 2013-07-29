@@ -125,7 +125,7 @@ public class Unit {
 		pos = calcPos(timeSimPast);
 		tX = (int)(pos.x >> FP.Precision);
 		tY = (int)(pos.y >> FP.Precision);
-		// without modifications, line below may cause syncing problems in multiplayer b/c addTileMoveEvts() sometimes adds events before timeSimPast
+		// TODO: without modifications, line below may cause syncing problems in multiplayer b/c addTileMoveEvts() sometimes adds events before timeSimPast
 		addTileMoveEvts(ref pastEvents, timeSimPast, timeSimPastNext);
 		evt = (TileMoveEvt)pastEvents.pop();
 		coherenceIndex = g.tiles[tX, tY].coherentIndexWhen(player, (evt != null) ? evt.time - 1 : curTime);

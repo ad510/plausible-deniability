@@ -24,13 +24,13 @@
     {
       "name": "blue",
       "isUser": true,
-      "user": 1,
+      "user": 0,
       "mayAttack": ["red"]
     },
     {
       "name": "red",
       "isUser": true,
-      "user": 1,
+      "user": 0,
       "mayAttack": ["blue"]
     }
   ],

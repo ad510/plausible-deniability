@@ -25,7 +25,7 @@
     {
       "name": "blue",
       "isUser": true,
-      "user": 1,
+      "user": 0,
       "startRsc":
       {
         "Minerals": 20
@@ -45,7 +45,7 @@
     {
       "name": "resources",
       "isUser": false,
-      "user": -1
+      "user": -2
     }
   ],
   "unitTypes":

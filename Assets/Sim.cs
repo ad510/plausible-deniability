@@ -15,10 +15,19 @@ using UnityEngine;
 public class Sim {
 	// constants
 	public const int OffMap = -10000; // don't set to int.MinValue so doesn't overflow in inVis()
-	public const short HumanUser = 1; // change this if multiplayer is supported
-	public const short CompUser = 0;
+	public const short CompUser = -1;
 
 	// game objects
+	public class User {
+		public SimEvtList cmdReceived; // commands received from this user to be applied in next update
+		public bool cmdAllReceived; // whether all commands were received from this user for the next update
+		
+		public User() {
+			cmdReceived = new SimEvtList();
+			cmdAllReceived = true;
+		}
+	}
+	
 	public class Player {
 		// stored in scenario files
 		public string name;
@@ -31,15 +40,10 @@ public class Sim {
 		public bool hasNonLiveUnits; // whether currently might have time traveling units (ok to sometimes incorrectly be set to true)
 		public long timeGoLiveFail; // latest time that player's time traveling units failed to go live (resets to long.MaxValue after success)
 		public long timeNegRsc; // time that player could have negative resources if time traveling units went live
-		// used in multiplayer (TODO: should be per user, not per player)
-		public SimEvtList cmdReceived; // commands received from this player to be applied in next update
-		public bool cmdAllReceived; // whether all commands were received from this player for the next update
 
 		public Player() {
 			hasNonLiveUnits = false;
 			timeGoLiveFail = long.MaxValue;
-			cmdReceived = new SimEvtList();
-			cmdAllReceived = true;
 		}
 	}
 
@@ -242,21 +246,23 @@ public class Sim {
 	public Color healthBarFullCol;
 	public Color healthBarEmptyCol;
 	//public string music;
+	public int nUsers;
 	public int nRsc;
 	public int nPlayers;
 	public int nUnitT;
 	public int nUnits;
+	public User[] users;
 	public string[] rscNames;
 	public Player[] players;
 	public UnitType[] unitT;
 	public Unit[] u;
 
 	// helper variables not loaded from scenario file
-	public int selPlayer;
+	public int selUser;
 	public NetworkView networkView;
 	public Tile[,] tiles; // each tile is 1 fixed-point unit (2^FP.Precision raw integer units) wide, so bit shift by FP.Precision to convert between position and tile position
 	public SimEvtList events; // simulation events to be applied
-	public SimEvtList cmdPending; // user commands to be sent to other players in the next update
+	public SimEvtList cmdPending; // user commands to be sent to other users in the next update
 	public SimEvtList cmdHistory; // user commands that have already been applied
 	public List<int> movedUnits; // indices of units that moved in the latest simulation event, invalidating later TileMoveEvts for that unit
 	public List<int> unitIdChgs; // list of units that changed indices (old index followed by new index)
@@ -440,7 +446,7 @@ public class Sim {
 	/// </summary>
 	public bool calcPlayerImmutable(int player) {
 		// check that player isn't an active participant and isn't controlled by anyone
-		if (players[player].isUser || players[player].user >= 0) return false;
+		if (players[player].isUser || players[player].user >= CompUser) return false;
 		// check that no one can attack this player
 		for (int i = 0; i < nPlayers; i++) {
 			if (players[i].mayAttack[player]) return false;
