@@ -12,6 +12,11 @@ UI:
 have visibility circle (like in menu), when hovering over Q&A box all of it becomes visible
 after pressing continue button, nothing changes but moving mouse away shows level map/menu
 
+after 1st paths level:
+...That means that even when watching the replay, your opponents will never see your units taking multiple paths, and in fact the most suspicious evidence they'll see will be seemingly "lucky" coincidences in which your units were in the right place at the right time. But taken together, these carefully chosen "lucky" coincidences may well make the difference between winning and losing the game.
+
+By the way, this is analagous to the way a quantum computer works. In quantum mechanics, particles simultaneously take every path available to them until you see them, and these paths can interact in strange ways that sometimes create "lucky" coincidences more often than you'd have a right to expect. Scientists can arrange these paths so that they each correspond to a possible outcome in a problem. Then, when the computer is run, the particles simultaneously evaluate every possible solution to the problem, and when they are measured, they will often be found in places that are "lucky" coincidences. A quantum computer would then use these coincidences to solve the problem much faster than otherwise possible.
+
 Q: Can *real* particles change what they did in the past?
 
 Well, just like none of the antimatter particles "saw" you changing anything in the past, we've never seen a particle in real life change what it did in the past. But we have seen real life particles do some *very strange* things, and soon you will learn how to do some very strange things too. ;)
@@ -40,6 +45,10 @@ Notice you could do that without ever seeing the other player time travel. But t
 
 (note: experiment to detect in real physics more complicated due to additional restrictions from prev answer, but used for particle physics "discoveries" such as higgs)
 
-(note: after sniper level, say how distinguish radio waves from 1 source vs 2 close sources when can't tell which star the photon came from (from QED))
+(note: after sharing paths level, explain how in laser photon being in 1 place increases chance of another atom having emitted photon to same place (from QED))
 
-(note: after seeing the entire map level, show how paths/amplitudes and wavefunctions are equivalent in 1 player game/nature)
+(note: after sniper level, say how finding electron at 1 location decreases chance to find another nearby, emphasizing they don't make up their mind about where they are until you see them, and how this "exclusion principle" creates chemical properties of atoms (from QED))
+
+(note: after identical twins level, say how distinguish radio waves from 1 source vs 2 close sources when can't tell which star the photon came from (from QED))
+
+(note: after seeing the entire map level, show how paths/amplitudes and wavefunctions are equivalent in 1 player game/nature with option to explain how decoherence really works)

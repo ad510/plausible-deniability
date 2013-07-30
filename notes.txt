@@ -1,10 +1,6 @@
 todo:
-search for comments with "multiplayer"
 allow selecting any player, but giving commands only on human players
 attack command
-remove floating point Sim calculations (look at csci 102 hw2 long sqrt?)
-replace DX.cs structs with classes and rename some vars?
-PolyV2d.makeLineRec method?
 pathfinding
 keep non-live paths in yellow areas w/o user help
 darker gray tiles should act more conventionally
@@ -70,7 +66,6 @@ paths levels: (find better synonym for "part 2" such as redux?)
 - snipers
 
 random notes:
-- unity RPCs can send byte array (undocumented), so serialize classes to that
 - phrase from AI wisdom: "expand selection by radius"
 - only share paths if option is checked for a selection of units (don't want units randomly disappearing out of nowhere)
   - if some wavefunctions don't overlap yet, send paths going between those units
@@ -79,6 +74,7 @@ random notes:
   - pulse parent units at different frequencies? (faster pulsing can be done with lower amplitude b/c more noticeable)
   - pulse wavefunctions (in different colors for different parent units?) so can say they're coherent too?
 - retroactive visibility assumes units don't discontinuously disappear, so would require that paths move into another unit before being deleted and that dead units don't disappear from ground
+- when adding saved replays, add timeSim field to Unit.Move
 - population limit? (or just make units expensive enough that you can't make too many)
 - introduce paths 1st, then introduce wavefunctions as paths going everywhere in a region? (skipping manual time travel)
   - but manual time travel is nice though
@@ -102,11 +98,11 @@ random notes:
   - marines (generic shooting unit)
 
 links:
-play ogg: http://christophermpark.blogspot.com/2009/06/how-to-stream-ogg-file-using.html
-binary serialization: http://code.google.com/p/protobuf-net/
-.net sockets: http://www.codeproject.com/Articles/10649/An-Introduction-to-Socket-Programming-in-NET-using
+binary serialization: https://code.google.com/p/protobuf-net/
+serialize at stream position: http://stackoverflow.com/questions/2441608/deserializing-a-type-at-the-current-stream-position-with-protobuf-net
 age of empires multiplayer: http://www.gamasutra.com/view/feature/3094/1500_archers_on_a_288_network_.php
 ai war optimization (including multiplayer): http://christophermpark.blogspot.com/2009/06/optimizing-30000-ships-in-realtime-in-c.html
 multiplayer debugging: http://gafferongames.com/networking-for-game-programmers/debugging-multiplayer-games/
-lidgren multiplayer library (used by AI war): https://code.google.com/p/lidgren-network-gen3
 version control with unity: https://docs.unity3d.com/Documentation/Manual/ExternalVersionControlSystemSupport.html
+unity multiplayer tutorial: http://docs.unity3d.ru/Tutorials/M2H_Networking_Tutorial/M2H_Networking_Tutorial_Original.pdf
+unity multiplayer project files: http://docs.unity3d.ru/Tutorials/M2H_Networking_Tutorial/M2H_Networking_Tutorial_Files.zip
