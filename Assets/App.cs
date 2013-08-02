@@ -660,41 +660,47 @@ public class App : MonoBehaviour {
 	
 	void OnGUI() {
 		int i;
-		// text
 		// TODO: make font, size, and color customizable by mod
 		GUIStyle style = GUIStyle.none;
 		style.fontSize = (int)(Screen.height * FntSize);
 		style.normal.textColor = Color.white;
-		GUI.Label (new Rect(0, 0, Screen.width, style.fontSize), (timeGame >= g.timeSim) ? "LIVE" : "TIME TRAVELING", style);
-		if (paused) GUI.Label (new Rect(0, style.fontSize, Screen.width, style.fontSize), "PAUSED", style);
+		// text at top left
+		GUILayout.BeginArea (new Rect(0, 0, Screen.width, Screen.height));
+		GUILayout.Label ((timeGame >= g.timeSim) ? "LIVE" : "TIME TRAVELING", style);
+		if (paused) GUILayout.Label ("PAUSED", style);
 		if (Environment.TickCount < timeSpeedChg) timeSpeedChg -= UInt32.MaxValue;
-		if (Environment.TickCount < timeSpeedChg + 1000) GUI.Label (new Rect(0, style.fontSize * 2, Screen.width, style.fontSize), "SPEED: " + Math.Pow(2, speed) + "x", style);
+		if (Environment.TickCount < timeSpeedChg + 1000) GUILayout.Label ("SPEED: " + Math.Pow(2, speed) + "x", style);
 		if (g.players[selPlayer].timeGoLiveFail != long.MaxValue) {
 			style.normal.textColor = Color.red;
-			GUI.Label (new Rect(0, style.fontSize * 3, Screen.width, style.fontSize), "ERROR: Going live may cause you to have negative resources " + (timeGame - g.players[selPlayer].timeNegRsc) / 1000 + " second(s) ago.", style);
+			GUILayout.Label ("ERROR: Going live may cause you to have negative resources " + (timeGame - g.players[selPlayer].timeNegRsc) / 1000 + " second(s) ago.", style);
 		}
+		// text at bottom left
+		GUILayout.FlexibleSpace ();
 		for (i = 0; i < g.nRsc; i++) {
 			long rscMin = (long)Math.Floor(FP.toDouble(g.playerResource(selPlayer, timeGame, i, false, true, false)));
 			long rscMax = (long)Math.Floor(FP.toDouble(g.playerResource(selPlayer, timeGame, i, true, true, false)));
 			style.normal.textColor = (rscMin >= 0) ? Color.white : Color.red;
-			GUI.Label (new Rect(0, Screen.height + (i - g.nRsc) * Screen.height * FntSize, Screen.width, style.fontSize), g.rscNames[i] + ": " + rscMin + ((rscMax != rscMin) ? " to " + rscMax : ""), style);
+			GUILayout.Label (g.rscNames[i] + ": " + rscMin + ((rscMax != rscMin) ? " to " + rscMax : ""), style);
 		}
+		GUILayout.EndArea ();
 		// multiplayer GUI
+		GUILayout.BeginArea (new Rect(0, Screen.height / 3, 120, Screen.height));
 		if (Network.peerType == NetworkPeerType.Disconnected) {
-			serverAddr = GUI.TextField (new Rect(0, style.fontSize * 4, 10 * style.fontSize, style.fontSize), serverAddr);
-			serverPort = int.Parse (GUI.TextField (new Rect(0, style.fontSize * 5, 10 * style.fontSize, style.fontSize), serverPort.ToString ()));
-			if (GUI.Button (new Rect(0, style.fontSize * 6, 10 * style.fontSize, style.fontSize), "Connect as client")) {
+			serverAddr = GUILayout.TextField (serverAddr);
+			serverPort = int.Parse (GUILayout.TextField (serverPort.ToString ()));
+			if (GUILayout.Button ("Connect as client")) {
 				Network.Connect (serverAddr, serverPort);
 			}
-			if (GUI.Button (new Rect(0, style.fontSize * 7, 10 * style.fontSize, style.fontSize), "Start server")) {
+			if (GUILayout.Button ("Start server")) {
 				Network.InitializeServer (g.nUsers - 1, serverPort, !Network.HavePublicAddress ());
 			}
 		}
 		else {
-			if (GUI.Button (new Rect(0, style.fontSize * 4, 10 * style.fontSize, style.fontSize), "Disconnect")) {
+			if (GUILayout.Button ("Disconnect")) {
 				Network.Disconnect (200);
 			}
 		}
+		GUILayout.EndArea ();
 	}
 	
 	void OnPlayerConnected(NetworkPlayer player) {
