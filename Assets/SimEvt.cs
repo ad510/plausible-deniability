@@ -323,6 +323,7 @@ public class UpdateEvt : SimEvt {
 				if (!g.users[i].cmdAllReceived) throw new InvalidOperationException("UpdateEvt is being applied before all commands were received from user " + i);
 				g.users[i].cmdAllReceived = false;
 				while ((evt = g.users[i].cmdReceived.pop()) != null) {
+					// TODO: could command be applied after another event with same time, causing desyncs in replays?
 					evt.time = time; // set event time to when it is actually applied
 					evt.apply (g);
 				}
@@ -515,8 +516,6 @@ public class TileMoveEvt : SimEvt {
 			if (g.tiles[tileX, tileY].unitVisLatest(unit)) throw new InvalidOperationException("unit " + unit + " already sees tile (" + tileX + ", " + tileY + ")");
 			// add unit to unit visibility tile
 			g.tiles[tileX, tileY].unitVisToggle(unit, time);
-			// TODO: use smarter playerVis adding algorithm
-			// also, if opponent units that can't make anything enter then exit region previously indirectly visible, should use smarter playerVis adding algorithm where last one exited
 			if (!g.tiles[tileX, tileY].playerVisLatest(g.u[unit].player)) {
 				g.tiles[tileX, tileY].playerVis[g.u[unit].player].Add(time);
 				playerVisAddTiles.Add(new FP.Vector(tileX, tileY));

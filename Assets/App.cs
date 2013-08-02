@@ -330,7 +330,7 @@ public class App : MonoBehaviour {
 			timeGame += (long)(timeGameDiff * Math.Pow(2, speed)); // adjust game speed based on user setting
 		}
 		// only apply next UpdateEvt when received all users' commands across network
-		if (timeGame >= g.timeUpdateEvt + g.updateInterval) {
+		if (g.networkView != null && timeGame >= g.timeUpdateEvt + g.updateInterval) {
 			for (int i = 0; i < g.nUsers; i++) {
 				if (!g.users[i].cmdAllReceived) {
 					timeGame = g.timeUpdateEvt + g.updateInterval - 1;
