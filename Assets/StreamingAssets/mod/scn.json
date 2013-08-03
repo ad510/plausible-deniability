@@ -6,6 +6,7 @@
   "drawScl": 0.01,
   "drawSclMin": 0.001,
   "drawSclMax": 0.1,
+  "uiBarSize": 0.2,
   "healthBarSize": {"x": 0.017, "y": 0.005},
   "healthBarYOffset": 0.005,
   "backCol": {"r": 0, "g": 0, "b": 0},

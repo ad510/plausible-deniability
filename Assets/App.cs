@@ -13,6 +13,10 @@ using ProtoBuf;
 /// contains initialization and user interface code
 /// </summary>
 public class App : MonoBehaviour {
+	private enum UnitMenu {
+		Main, MakeUnit
+	}
+	
 	private class UnitSprite {
 		public GameObject sprite;
 		public GameObject preview; // for showing unit at final position
@@ -53,6 +57,10 @@ public class App : MonoBehaviour {
 	List<UnitSprite> sprUnits;
 	GameObject sprMakeUnit;
 	GameObject[] sprSelectBox;
+	GUIStyle lblStyle;
+	UnitMenu unitMenu;
+	Vector2 unitMenuScrollPos;
+	Vector2 selUnitsScrollPos;
 	Sim g;
 	int selPlayer;
 	List<int> selUnits;
@@ -85,6 +93,10 @@ public class App : MonoBehaviour {
 		sprTile = Instantiate (quadPrefab) as GameObject;
 		sprMakeUnit = Instantiate (quadPrefab) as GameObject;
 		sprSelectBox = new GameObject[4];
+		// TODO: make font, size, and color customizable by mod
+		lblStyle = GUIStyle.none;
+		lblStyle.fontSize = (int)(Screen.height * FntSize);
+		lblStyle.normal.textColor = Color.white;
 		for (int i = 0; i < sprSelectBox.Length; i++) {
 			sprSelectBox[i] = Instantiate (quadPrefab) as GameObject;
 		}
@@ -125,6 +137,7 @@ public class App : MonoBehaviour {
 		g.drawScl = (float)jsonDouble(json, "drawScl");
 		g.drawSclMin = (float)jsonDouble(json, "drawSclMin");
 		g.drawSclMax = (float)jsonDouble(json, "drawSclMax");
+		g.uiBarSize = (float)jsonDouble (json, "uiBarSize");
 		g.healthBarSize = jsonVector2(json, "healthBarSize");
 		g.healthBarYOffset = (float)jsonDouble(json, "healthBarYOffset");
 		g.backCol = jsonColor(json, "backCol");
@@ -362,46 +375,51 @@ public class App : MonoBehaviour {
 		}
 		if (Input.GetMouseButtonUp (0)) { // left button up
 			mouseUpPos[0] = Input.mousePosition;
-			if (makeUnitType >= 0) {
-				// make unit
-				// happens at newCmdTime() + 1 so new unit starts out live if game is live
-				FP.Vector pos = makeUnitPos();
-				if (pos.x != Sim.OffMap) g.cmdPending.add(new MakeUnitCmdEvt(g.timeSim, newCmdTime() + 1, selUnits.ToArray(), makeUnitType, pos));
-				makeUnitType = -1;
-			}
-			else {
-				// select units
-				Vector3 drawPos;
-				if (!Input.GetKey (KeyCode.LeftControl) && !Input.GetKey (KeyCode.LeftShift)) selUnits.Clear();
-				for (i = 0; i < g.nUnits; i++) {
-					if (selPlayer == g.u[i].player && timeGame >= g.u[i].m[0].timeStart) {
-						drawPos = simToDrawPos(g.u[i].calcPos(timeGame));
-						if (drawPos.x + g.unitT[g.u[i].type].selRadius >= Math.Min(mouseDownPos[0].x, Input.mousePosition.x)
-							&& drawPos.x - g.unitT[g.u[i].type].selRadius <= Math.Max(mouseDownPos[0].x, Input.mousePosition.x)
-							&& drawPos.y + g.unitT[g.u[i].type].selRadius >= Math.Min(mouseDownPos[0].y, Input.mousePosition.y)
-							&& drawPos.y - g.unitT[g.u[i].type].selRadius <= Math.Max(mouseDownPos[0].y, Input.mousePosition.y)) {
-							if (selUnits.Contains(i)) {
-								selUnits.Remove(i);
+			if (mouseDownPos[0].y > Screen.height * g.uiBarSize) {
+				if (makeUnitType >= 0) {
+					// make unit
+					// happens at newCmdTime() + 1 so new unit starts out live if game is live
+					FP.Vector pos = makeUnitPos();
+					if (pos.x != Sim.OffMap) g.cmdPending.add(new MakeUnitCmdEvt(g.timeSim, newCmdTime() + 1, selUnits.ToArray(), makeUnitType, pos));
+					makeUnitType = -1;
+				}
+				else {
+					// select units
+					Vector3 drawPos;
+					if (!Input.GetKey (KeyCode.LeftControl) && !Input.GetKey (KeyCode.LeftShift)) selUnits.Clear();
+					for (i = 0; i < g.nUnits; i++) {
+						if (selPlayer == g.u[i].player && timeGame >= g.u[i].m[0].timeStart) {
+							drawPos = simToDrawPos(g.u[i].calcPos(timeGame));
+							if (drawPos.x + g.unitT[g.u[i].type].selRadius >= Math.Min(mouseDownPos[0].x, Input.mousePosition.x)
+								&& drawPos.x - g.unitT[g.u[i].type].selRadius <= Math.Max(mouseDownPos[0].x, Input.mousePosition.x)
+								&& drawPos.y + g.unitT[g.u[i].type].selRadius >= Math.Min(mouseDownPos[0].y, Input.mousePosition.y)
+								&& drawPos.y - g.unitT[g.u[i].type].selRadius <= Math.Max(mouseDownPos[0].y, Input.mousePosition.y)) {
+								if (selUnits.Contains(i)) {
+									selUnits.Remove(i);
+								}
+								else {
+									selUnits.Add(i);
+								}
+								if (SelBoxMin > (Input.mousePosition - mouseDownPos[0]).sqrMagnitude) break;
 							}
-							else {
-								selUnits.Add(i);
-							}
-							if (SelBoxMin > (Input.mousePosition - mouseDownPos[0]).sqrMagnitude) break;
 						}
 					}
+					unitMenu = UnitMenu.Main;
 				}
 			}
 		}
 		if (Input.GetMouseButtonUp (1)) { // right button up
 			mouseUpPos[1] = Input.mousePosition;
-			if (makeUnitType >= 0) {
-				// cancel making unit
-				makeUnitType = -1;
-			}
-			else {
-				// move selected units
-				g.cmdPending.add(new MoveCmdEvt(g.timeSim, newCmdTime(), selUnits.ToArray(), drawToSimPos (Input.mousePosition),
-					Input.GetKey (KeyCode.LeftControl) ? Formation.Loose : Input.GetKey (KeyCode.LeftAlt) ? Formation.Ring : Formation.Tight));
+			if (mouseDownPos[1].y > Screen.height * g.uiBarSize) {
+				if (makeUnitType >= 0) {
+					// cancel making unit
+					makeUnitType = -1;
+				}
+				else {
+					// move selected units
+					g.cmdPending.add(new MoveCmdEvt(g.timeSim, newCmdTime(), selUnits.ToArray(), drawToSimPos (Input.mousePosition),
+						Input.GetKey (KeyCode.LeftControl) ? Formation.Loose : Input.GetKey (KeyCode.LeftAlt) ? Formation.Ring : Formation.Tight));
+				}
 			}
 		}
 		if (Input.GetMouseButtonUp (2)) { // middle button up
@@ -434,40 +452,13 @@ public class App : MonoBehaviour {
 			speed--;
 			timeSpeedChg = Environment.TickCount;
 		}
-		for (i = 0; i < 9; i++) {
-			if (Input.GetKeyDown (KeyCode.Alpha1 + i)) {
-				// make unit of specified type
-				foreach (int unit in selUnits) {
-					if (g.u[unit].canMakeChildUnit(timeGame + 1, false, i)) {
-						if (g.unitT[i].speed > 0 && g.unitT[i].makeOnUnitT < 0) {
-							int[] unitArray = new int[1];
-							unitArray[0] = unit;
-							// happens at newCmdTime() + 1 so new unit starts out live if game is live
-							g.cmdPending.add(new MakeUnitCmdEvt(g.timeSim, newCmdTime() + 1, unitArray, i, makeUnitMovePos(timeGame + 1, unit)));
-						}
-						else {
-							makeUnitType = i;
-						}
-						break;
-					}
-				}
-			}
-		}
 		if (Input.GetKeyDown (KeyCode.N)) {
 			// create new paths that selected units could take
-			if (selUnits.Count > 0) {
-				FP.Vector[] pos = new FP.Vector[selUnits.Count];
-				for (i = 0; i < selUnits.Count; i++) {
-					if (g.u[selUnits[i]].exists(timeGame + 1)) pos[i] = makeUnitMovePos(timeGame + 1, selUnits[i]);
-				}
-				// happens at newCmdTime() + 1 so new path starts out live if game is live
-				g.cmdPending.add(new MakePathCmdEvt(g.timeSim, newCmdTime() + 1, selUnits.ToArray(), pos));
-			}
+			makePaths ();
 		}
 		if (Input.GetKeyDown (KeyCode.Delete)) {
 			// delete selected paths
-			// happens at newCmdTime() instead of newCmdTime() + 1 so that when paused, making path then deleting parent path doesn't cause an error
-			if (selUnits.Count > 0) g.cmdPending.add(new DeletePathCmdEvt(g.timeSim, newCmdTime(), selUnits.ToArray()));
+			deletePaths ();
 		}
 		if (Input.GetKeyDown (KeyCode.R) && Input.GetKey (KeyCode.LeftShift)) {
 			// instant replay
@@ -636,7 +627,7 @@ public class App : MonoBehaviour {
 		}
 		// select box (if needed)
 		// TODO: make color and width customizable by mod?
-		if (Input.GetMouseButton (0) && makeUnitType < 0 && SelBoxMin <= (Input.mousePosition - mouseDownPos[0]).sqrMagnitude) {
+		if (Input.GetMouseButton (0) && makeUnitType < 0 && SelBoxMin <= (Input.mousePosition - mouseDownPos[0]).sqrMagnitude && mouseDownPos[0].y > Screen.height * g.uiBarSize) {
 			vec = (Input.mousePosition + mouseDownPos[0]) / 2;
 			sprSelectBox[0].transform.position = new Vector3(vec.x, mouseDownPos[0].y, SelectBoxDepth);
 			sprSelectBox[1].transform.position = new Vector3(vec.x, Input.mousePosition.y, SelectBoxDepth);
@@ -660,38 +651,88 @@ public class App : MonoBehaviour {
 	
 	void OnGUI() {
 		int i;
-		// TODO: make font, size, and color customizable by mod
-		GUIStyle style = GUIStyle.none;
-		style.fontSize = (int)(Screen.height * FntSize);
-		style.normal.textColor = Color.white;
+		GUI.skin.button.fontSize = lblStyle.fontSize;
+		GUI.skin.textField.fontSize = lblStyle.fontSize;
 		// text at top left
-		GUILayout.BeginArea (new Rect(0, 0, Screen.width, Screen.height));
-		GUILayout.Label ((timeGame >= g.timeSim) ? "LIVE" : "TIME TRAVELING", style);
-		if (paused) GUILayout.Label ("PAUSED", style);
+		GUILayout.BeginArea (new Rect(0, 0, Screen.width, Screen.height * (1 - g.uiBarSize)));
+		GUILayout.Label ((timeGame >= g.timeSim) ? "LIVE" : "TIME TRAVELING", lblStyle);
+		if (paused) GUILayout.Label ("PAUSED", lblStyle);
 		if (Environment.TickCount < timeSpeedChg) timeSpeedChg -= UInt32.MaxValue;
-		if (Environment.TickCount < timeSpeedChg + 1000) GUILayout.Label ("SPEED: " + Math.Pow(2, speed) + "x", style);
+		if (Environment.TickCount < timeSpeedChg + 1000) GUILayout.Label ("SPEED: " + Math.Pow(2, speed) + "x", lblStyle);
 		if (g.players[selPlayer].timeGoLiveFail != long.MaxValue) {
-			style.normal.textColor = Color.red;
-			GUILayout.Label ("ERROR: Going live may cause you to have negative resources " + (timeGame - g.players[selPlayer].timeNegRsc) / 1000 + " second(s) ago.", style);
+			lblStyle.normal.textColor = Color.red;
+			GUILayout.Label ("ERROR: Going live may cause you to have negative resources " + (timeGame - g.players[selPlayer].timeNegRsc) / 1000 + " second(s) ago.", lblStyle);
 		}
 		// text at bottom left
 		GUILayout.FlexibleSpace ();
 		for (i = 0; i < g.nRsc; i++) {
 			long rscMin = (long)Math.Floor(FP.toDouble(g.playerResource(selPlayer, timeGame, i, false, true, false)));
 			long rscMax = (long)Math.Floor(FP.toDouble(g.playerResource(selPlayer, timeGame, i, true, true, false)));
-			style.normal.textColor = (rscMin >= 0) ? Color.white : Color.red;
-			GUILayout.Label (g.rscNames[i] + ": " + rscMin + ((rscMax != rscMin) ? " to " + rscMax : ""), style);
+			lblStyle.normal.textColor = (rscMin >= 0) ? Color.white : Color.red;
+			GUILayout.Label (g.rscNames[i] + ": " + rscMin + ((rscMax != rscMin) ? " to " + rscMax : ""), lblStyle);
 		}
 		GUILayout.EndArea ();
+		// TODO: formation buttons
+		// TODO: timeline
+		// TODO: mini map
+		// command menu
+		GUI.Box (new Rect(0, Screen.height * (1 - g.uiBarSize), Screen.width / 2, Screen.height * g.uiBarSize), new GUIContent());
+		GUILayout.BeginArea (new Rect(0, Screen.height * (1 - g.uiBarSize), Screen.width / 2, Screen.height * g.uiBarSize));
+		unitMenuScrollPos = GUILayout.BeginScrollView (unitMenuScrollPos);
+		if (selUnits.Count > 0) {
+			string plural = (selUnits.Count == 1) ? "" : "s";
+			if (unitMenu == UnitMenu.Main) {
+				if (GUILayout.Button ("New Path" + plural)) makePaths ();
+				if (GUILayout.Button ("Delete Path" + plural)) deletePaths ();
+				if (GUILayout.Button ("Make Unit")) unitMenu = UnitMenu.MakeUnit;
+			}
+			else if (unitMenu == UnitMenu.MakeUnit) {
+				if (GUILayout.Button ("Back")) {
+					unitMenu = UnitMenu.Main;
+				}
+				for (i = 0; i < g.nUnitT; i++) {
+					foreach (int unit in selUnits) {
+						if (g.unitT[g.u[unit].type].canMake[i]) {
+							if (GUILayout.Button ("Make " + g.unitT[i].name)) makeUnit (i);
+							break;
+						}
+					}
+				}
+			}
+		}
+		GUILayout.EndScrollView ();
+		GUILayout.EndArea ();
+		// unit selection bar
+		// TODO: group units by path
+		GUI.Box (new Rect(Screen.width / 2, Screen.height * (1 - g.uiBarSize), Screen.width, Screen.height * g.uiBarSize), new GUIContent());
+		GUILayout.BeginArea (new Rect(Screen.width / 2, Screen.height * (1 - g.uiBarSize), Screen.width / 2, Screen.height * g.uiBarSize));
+		selUnitsScrollPos = GUILayout.BeginScrollView (selUnitsScrollPos);
+		foreach (int unit in selUnits) {
+			if (GUILayout.Button (g.unitT[g.u[unit].type].name)) {
+				if (Event.current.button == 0) { // left button
+					// select unit
+					selUnits = new List<int>();
+					selUnits.Add (unit);
+				}
+				else if (Event.current.button == 1) { // right button
+					// deselect unit
+					selUnits = new List<int>(selUnits);
+					selUnits.Remove (unit);
+				}
+			}
+		}
+		GUILayout.EndScrollView ();
+		GUILayout.EndArea ();
 		// multiplayer GUI
-		GUILayout.BeginArea (new Rect(0, Screen.height / 3, 120, Screen.height));
+		// TODO: implement main menu and move this there
+		GUILayout.BeginArea (new Rect(0, Screen.height / 3, lblStyle.fontSize * 10, Screen.height));
 		if (Network.peerType == NetworkPeerType.Disconnected) {
 			serverAddr = GUILayout.TextField (serverAddr);
 			serverPort = int.Parse (GUILayout.TextField (serverPort.ToString ()));
-			if (GUILayout.Button ("Connect as client")) {
+			if (GUILayout.Button ("Connect as Client")) {
 				Network.Connect (serverAddr, serverPort);
 			}
-			if (GUILayout.Button ("Start server")) {
+			if (GUILayout.Button ("Start Server")) {
 				Network.InitializeServer (g.nUsers - 1, serverPort, !Network.HavePublicAddress ());
 			}
 		}
@@ -864,6 +905,50 @@ public class App : MonoBehaviour {
 		sprite.renderer.material.mainTexture = texUnits[type, player];
 		// TODO: scale unit images
 		sprite.transform.localScale = new Vector3(texUnits[type, player].width / 2f, texUnits[type, player].height / 2f, 1);
+	}
+	
+	/// <summary>
+	/// creates new paths that selected units could take
+	/// </summary>
+	private void makePaths() {
+		if (selUnits.Count > 0) {
+			FP.Vector[] pos = new FP.Vector[selUnits.Count];
+			for (int i = 0; i < selUnits.Count; i++) {
+				if (g.u[selUnits[i]].exists(timeGame + 1)) pos[i] = makeUnitMovePos(timeGame + 1, selUnits[i]);
+			}
+			// happens at newCmdTime() + 1 so new path starts out live if game is live
+			g.cmdPending.add(new MakePathCmdEvt(g.timeSim, newCmdTime() + 1, selUnits.ToArray(), pos));
+		}
+	}
+	
+	/// <summary>
+	/// deletes selected paths
+	/// </summary>
+	private void deletePaths() {
+		// happens at newCmdTime() instead of newCmdTime() + 1 so that when paused, making path then deleting parent path doesn't cause an error
+		if (selUnits.Count > 0) g.cmdPending.add(new DeletePathCmdEvt(g.timeSim, newCmdTime(), selUnits.ToArray()));
+	}
+	
+	/// <summary>
+	/// makes a new unit using selected units
+	/// </summary>
+	private void makeUnit(int type) {
+		foreach (int unit in selUnits) {
+			if (g.u[unit].canMakeChildUnit(timeGame + 1, false, type)) {
+				if (g.unitT[type].speed > 0 && g.unitT[type].makeOnUnitT < 0) {
+					// make unit now
+					int[] unitArray = new int[1];
+					unitArray[0] = unit;
+					// happens at newCmdTime() + 1 so new unit starts out live if game is live
+					g.cmdPending.add(new MakeUnitCmdEvt(g.timeSim, newCmdTime() + 1, unitArray, type, makeUnitMovePos(timeGame + 1, unit)));
+				}
+				else {
+					// don't make unit yet; let user pick where to place it
+					makeUnitType = type;
+				}
+				break;
+			}
+		}
 	}
 
 	/// <summary>

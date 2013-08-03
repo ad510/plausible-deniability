@@ -233,6 +233,7 @@ public class Sim {
 	public float drawScl;
 	public float drawSclMin;
 	public float drawSclMax;
+	public float uiBarSize;
 	public Vector2 healthBarSize;
 	public float healthBarYOffset;
 	public Color backCol;
