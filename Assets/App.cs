@@ -22,6 +22,7 @@ public class App : MonoBehaviour {
 		public GameObject preview; // for showing unit at final position
 		public GameObject healthBarBack;
 		public GameObject healthBarFore;
+		public LineRenderer pathLine;
 		public int type;
 		public int player;
 		
@@ -30,6 +31,9 @@ public class App : MonoBehaviour {
 			preview = Instantiate(quadPrefab) as GameObject;
 			healthBarBack = Instantiate(quadPrefab) as GameObject;
 			healthBarFore = Instantiate(quadPrefab) as GameObject;
+			pathLine = sprite.AddComponent<LineRenderer>();
+			pathLine.material.shader = Shader.Find ("Diffuse");
+			pathLine.SetVertexCount (2);
 			type = -1;
 			player = -1;
 		}
@@ -42,7 +46,8 @@ public class App : MonoBehaviour {
 	
 	public const double SelBoxMin = 100;
 	public const float FntSize = 1f / 40;
-	public const float TileDepth = 4f;
+	public const float TileDepth = 5f;
+	public const float PathLineDepth = 4f;
 	public const float UnitDepth = 3f;
 	public const float HealthBarDepth = 2f;
 	public const float SelectBoxDepth = 1f;
@@ -548,19 +553,6 @@ public class App : MonoBehaviour {
 		tlPoly.poly[0].v[3].y = vec2.Y;
 		tlPoly.poly[0].v[4] = tlPoly.poly[0].v[0];
 		tlPoly.draw();*/
-		// unit path lines
-		/*for (i = 0; i < g.nUnits; i++) {
-			if (unitDrawPos(i, ref vec) && g.u[i].isChildPath && timeGame >= g.u[g.u[i].parent].m[0].timeStart) {
-				DX.d3dDevice.SetTexture(0, null);
-				tlPoly.primitive = PrimitiveType.LineStrip;
-				tlPoly.setNPoly(0);
-				tlPoly.nV[0] = 1;
-				tlPoly.poly[0].v = new DX.TLVertex[tlPoly.nV[0] + 1];
-				tlPoly.poly[0].v[0] = new DX.TLVertex(vec, g.pathCol.ToArgb(), 0, 0);
-				tlPoly.poly[0].v[1] = new DX.TLVertex(simToDrawPos(g.u[g.u[i].parent].calcPos(timeGame)), g.pathCol.ToArgb(), 0, 0);
-				tlPoly.draw();
-			}
-		}*/
 		// units
 		for (i = 0; i < g.nUnits; i++) {
 			if (i == sprUnits.Count) sprUnits.Add (new UnitSprite(quadPrefab));
@@ -568,10 +560,12 @@ public class App : MonoBehaviour {
 			sprUnits[i].preview.renderer.enabled = false;
 			sprUnits[i].healthBarBack.renderer.enabled = false;
 			sprUnits[i].healthBarFore.renderer.enabled = false;
+			sprUnits[i].pathLine.enabled = false;
 			if (unitDrawPos(i, ref vec)) {
 				if (sprUnits[i].type != g.u[i].type || sprUnits[i].player != g.u[i].player) {
 					setUnitSprite (sprUnits[i].sprite, g.u[i].type, g.u[i].player);
 					setUnitSprite (sprUnits[i].preview, g.u[i].type, g.u[i].player);
+					sprUnits[i].pathLine.material.color = g.pathCol;
 					sprUnits[i].type = g.u[i].type;
 					sprUnits[i].player = g.u[i].player;
 				}
@@ -583,6 +577,12 @@ public class App : MonoBehaviour {
 				}
 				sprUnits[i].sprite.transform.position = vec;
 				sprUnits[i].sprite.renderer.enabled = true;
+				if (g.u[i].isChildPath && timeGame >= g.u[g.u[i].parent].m[0].timeStart) {
+					// unit path line
+					sprUnits[i].pathLine.SetPosition (0, new Vector3(vec.x, vec.y, PathLineDepth));
+					sprUnits[i].pathLine.SetPosition (1, simToDrawPos (g.u[g.u[i].parent].calcPos(timeGame), PathLineDepth));
+					sprUnits[i].pathLine.enabled = true;
+				}
 				if (Input.GetKey (KeyCode.LeftShift) && selUnits.Contains(i)) {
 					// show final position if holding shift
 					sprUnits[i].preview.renderer.material.color = sprUnits[i].sprite.renderer.material.color;
