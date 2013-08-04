@@ -650,6 +650,7 @@ public class App : MonoBehaviour {
 	}
 	
 	void OnGUI() {
+		Dictionary<int, int> selRootParentPaths = new Dictionary<int, int>();
 		int i;
 		GUI.skin.button.fontSize = lblStyle.fontSize;
 		GUI.skin.textField.fontSize = lblStyle.fontSize;
@@ -676,6 +677,7 @@ public class App : MonoBehaviour {
 		// TODO: timeline
 		// TODO: mini map
 		// command menu
+		// TODO: show text if can't do any of these actions
 		GUI.Box (new Rect(0, Screen.height * (1 - g.uiBarSize), Screen.width / 2, Screen.height * g.uiBarSize), new GUIContent());
 		GUILayout.BeginArea (new Rect(0, Screen.height * (1 - g.uiBarSize), Screen.width / 2, Screen.height * g.uiBarSize));
 		unitMenuScrollPos = GUILayout.BeginScrollView (unitMenuScrollPos);
@@ -692,7 +694,7 @@ public class App : MonoBehaviour {
 				}
 				for (i = 0; i < g.nUnitT; i++) {
 					foreach (int unit in selUnits) {
-						if (g.unitT[g.u[unit].type].canMake[i]) {
+						if (g.u[unit].exists (timeGame) && g.unitT[g.u[unit].type].canMake[i]) {
 							if (GUILayout.Button ("Make " + g.unitT[i].name)) makeUnit (i);
 							break;
 						}
@@ -703,21 +705,35 @@ public class App : MonoBehaviour {
 		GUILayout.EndScrollView ();
 		GUILayout.EndArea ();
 		// unit selection bar
-		// TODO: group units by path
 		GUI.Box (new Rect(Screen.width / 2, Screen.height * (1 - g.uiBarSize), Screen.width, Screen.height * g.uiBarSize), new GUIContent());
 		GUILayout.BeginArea (new Rect(Screen.width / 2, Screen.height * (1 - g.uiBarSize), Screen.width / 2, Screen.height * g.uiBarSize));
 		selUnitsScrollPos = GUILayout.BeginScrollView (selUnitsScrollPos);
 		foreach (int unit in selUnits) {
-			if (GUILayout.Button (g.unitT[g.u[unit].type].name)) {
+			if (g.u[unit].exists (timeGame)) {
+				i = g.u[unit].rootParentPath ();
+				if (!selRootParentPaths.ContainsKey (i)) selRootParentPaths.Add (i, 0);
+				selRootParentPaths[i]++;
+			}
+		}
+		foreach (KeyValuePair<int, int> item in selRootParentPaths) {
+			if (GUILayout.Button (g.unitT[g.u[item.Key].type].name + (item.Value != 1 ? " (" + item.Value + " paths)" : ""))) {
 				if (Event.current.button == 0) { // left button
 					// select unit
-					selUnits = new List<int>();
-					selUnits.Add (unit);
+					for (i = 0; i < selUnits.Count; i++) {
+						if (g.u[selUnits[i]].rootParentPath () != item.Key) {
+							selUnits.RemoveAt (i);
+							i--;
+						}
+					}
 				}
 				else if (Event.current.button == 1) { // right button
 					// deselect unit
-					selUnits = new List<int>(selUnits);
-					selUnits.Remove (unit);
+					for (i = 0; i < selUnits.Count; i++) {
+						if (g.u[selUnits[i]].rootParentPath () == item.Key) {
+							selUnits.RemoveAt (i);
+							i--;
+						}
+					}
 				}
 			}
 		}
