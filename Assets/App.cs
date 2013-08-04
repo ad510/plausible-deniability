@@ -84,18 +84,18 @@ public class App : MonoBehaviour {
 		winDiag = new Vector2(Screen.width, Screen.height).magnitude;
 		mouseDownPos = new Vector3[3];
 		mouseUpPos = new Vector3[3];
-		RenderSettings.ambientLight = new Color(1, 1, 1, 1);
+		RenderSettings.ambientLight = Color.white;
 		Camera.main.orthographicSize = Screen.height / 2;
 		Camera.main.transform.position = new Vector3(Screen.width / 2f, Screen.height / 2f, 0);
 		quadPrefab.renderer.material.shader = Shader.Find ("Transparent/Diffuse");
-		quadPrefab.renderer.material.color = new Color(1, 1, 1, 1);
+		quadPrefab.renderer.material.color = Color.white;
 		quadPrefab.transform.rotation = new Quaternion(0, 1, 0, 0);
 		sprTile = Instantiate (quadPrefab) as GameObject;
 		sprMakeUnit = Instantiate (quadPrefab) as GameObject;
 		// TODO: make color and width customizable by mod
 		selectBox = gameObject.AddComponent<LineRenderer>();
 		selectBox.material.shader = Shader.Find ("Diffuse");
-		selectBox.renderer.material.color = Color.white;
+		selectBox.material.color = Color.white;
 		selectBox.SetWidth (2, 2);
 		selectBox.SetVertexCount (8);
 		// TODO: make font, size, and color customizable by mod
