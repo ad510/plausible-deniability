@@ -56,7 +56,7 @@ public class App : MonoBehaviour {
 	Texture[,] texUnits;
 	List<UnitSprite> sprUnits;
 	GameObject sprMakeUnit;
-	GameObject[] sprSelectBox;
+	LineRenderer selectBox;
 	GUIStyle lblStyle;
 	UnitMenu unitMenu;
 	Vector2 unitMenuScrollPos;
@@ -92,14 +92,16 @@ public class App : MonoBehaviour {
 		quadPrefab.transform.rotation = new Quaternion(0, 1, 0, 0);
 		sprTile = Instantiate (quadPrefab) as GameObject;
 		sprMakeUnit = Instantiate (quadPrefab) as GameObject;
-		sprSelectBox = new GameObject[4];
+		// TODO: make color and width customizable by mod
+		selectBox = gameObject.AddComponent<LineRenderer>();
+		selectBox.material.shader = Shader.Find ("Diffuse");
+		selectBox.renderer.material.color = Color.white;
+		selectBox.SetWidth (2, 2);
+		selectBox.SetVertexCount (8);
 		// TODO: make font, size, and color customizable by mod
 		lblStyle = GUIStyle.none;
 		lblStyle.fontSize = (int)(Screen.height * FntSize);
 		lblStyle.normal.textColor = Color.white;
-		for (int i = 0; i < sprSelectBox.Length; i++) {
-			sprSelectBox[i] = Instantiate (quadPrefab) as GameObject;
-		}
 		if (!scnOpen (appPath + modPath + "scn.json", 0, false)) {
 			Debug.LogError ("Scenario failed to load.");
 		}
@@ -499,7 +501,7 @@ public class App : MonoBehaviour {
 	}
 	
 	private void draw() {
-		Vector3 vec = new Vector3();
+		Vector3 vec = new Vector3(), vec2;
 		FP.Vector fpVec;
 		Texture2D tex;
 		Color col;
@@ -626,26 +628,24 @@ public class App : MonoBehaviour {
 			}
 		}
 		// select box (if needed)
-		// TODO: make color and width customizable by mod?
+		// extra vertices are needed to draw >1px thick lines correctly due to LineRenderer weirdness
 		if (Input.GetMouseButton (0) && makeUnitType < 0 && SelBoxMin <= (Input.mousePosition - mouseDownPos[0]).sqrMagnitude && mouseDownPos[0].y > Screen.height * g.uiBarSize) {
-			vec = (Input.mousePosition + mouseDownPos[0]) / 2;
-			sprSelectBox[0].transform.position = new Vector3(vec.x, mouseDownPos[0].y, SelectBoxDepth);
-			sprSelectBox[1].transform.position = new Vector3(vec.x, Input.mousePosition.y, SelectBoxDepth);
-			sprSelectBox[2].transform.position = new Vector3(mouseDownPos[0].x, vec.y, SelectBoxDepth);
-			sprSelectBox[3].transform.position = new Vector3(Input.mousePosition.x, vec.y, SelectBoxDepth);
-			vec = (Input.mousePosition - mouseDownPos[0]) / 2;
-			sprSelectBox[0].transform.localScale = new Vector3(vec.x, 1, 1);
-			sprSelectBox[1].transform.localScale = new Vector3(vec.x, 1, 1);
-			sprSelectBox[2].transform.localScale = new Vector3(1, vec.y, 1);
-			sprSelectBox[3].transform.localScale = new Vector3(1, vec.y, 1);
-			foreach (GameObject spr in sprSelectBox) {
-				spr.renderer.enabled = true;
-			}
+			vec.x = Math.Min (mouseDownPos[0].x, Input.mousePosition.x);
+			vec.y = Math.Min (mouseDownPos[0].y, Input.mousePosition.y);
+			vec2.x = Math.Max (mouseDownPos[0].x, Input.mousePosition.x);
+			vec2.y = Math.Max (mouseDownPos[0].y, Input.mousePosition.y);
+			selectBox.SetPosition (0, new Vector3(vec.x, vec.y, SelectBoxDepth));
+			selectBox.SetPosition (1, new Vector3(vec2.x - 1, vec.y, SelectBoxDepth));
+			selectBox.SetPosition (2, new Vector3(vec2.x, vec.y, SelectBoxDepth));
+			selectBox.SetPosition (3, new Vector3(vec2.x, vec2.y - 1, SelectBoxDepth));
+			selectBox.SetPosition (4, new Vector3(vec2.x, vec2.y, SelectBoxDepth));
+			selectBox.SetPosition (5, new Vector3(vec.x + 1, vec2.y, SelectBoxDepth));
+			selectBox.SetPosition (6, new Vector3(vec.x, vec2.y, SelectBoxDepth));
+			selectBox.SetPosition (7, new Vector3(vec.x, vec.y, SelectBoxDepth));
+			selectBox.enabled = true;
 		}
 		else {
-			foreach (GameObject spr in sprSelectBox) {
-				spr.renderer.enabled = false;
-			}
+			selectBox.enabled = false;
 		}
 	}
 	
