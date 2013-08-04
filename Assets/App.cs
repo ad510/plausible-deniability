@@ -41,6 +41,8 @@ public class App : MonoBehaviour {
 		public void dispose() {
 			Destroy (sprite);
 			Destroy (preview);
+			Destroy (healthBarBack);
+			Destroy (healthBarFore);
 		}
 	}
 	
