@@ -442,7 +442,7 @@ public class TileMoveEvt : SimEvt {
 				}
 			}
 		}
-		// check if tiles cohered for this player, or decohered for another player
+		// check if tiles cohered for this player
 		foreach (FP.Vector vec in playerVisAddTiles) {
 			if (vec.x < coherenceMinX) coherenceMinX = (int)vec.x;
 			if (vec.x > coherenceMaxX) coherenceMaxX = (int)vec.x;
@@ -457,13 +457,8 @@ public class TileMoveEvt : SimEvt {
 			for (tY = coherenceMinY; tY <= coherenceMaxY; tY++) {
 				foreach (FP.Vector vec in playerVisAddTiles) {
 					if (g.inVis(tX - vec.x, tY - vec.y)) {
-						for (i = 0; i < g.nPlayers; i++) {
-							if (i == g.u[unit].player && !g.tiles[tX, tY].coherentLatest(i) && g.calcCoherent(i, tX, tY)) {
-								g.coherenceAdd(i, tX, tY, time);
-							}
-							else if (i != g.u[unit].player && g.tiles[tX, tY].coherentLatest(i) && !g.calcCoherent(i, tX, tY)) {
-								g.coherenceRemove(i, tX, tY, time);
-							}
+						if (!g.tiles[tX, tY].coherentLatest(g.u[unit].player) && g.calcCoherent(g.u[unit].player, tX, tY)) {
+							g.coherenceAdd(g.u[unit].player, tX, tY, time);
 						}
 						break;
 					}
@@ -512,6 +507,7 @@ public class TileMoveEvt : SimEvt {
 	/// makes specified tile visible to specified unit starting at specified time, including effects on player visibility
 	/// </summary>
 	private static void visAdd(Sim g, int unit, int tileX, int tileY, long time, ref List<FP.Vector> playerVisAddTiles) {
+		int i;
 		if (tileX >= 0 && tileX < g.tileLen() && tileY >= 0 && tileY < g.tileLen()) {
 			if (g.tiles[tileX, tileY].unitVisLatest(unit)) throw new InvalidOperationException("unit " + unit + " already sees tile (" + tileX + ", " + tileY + ")");
 			// add unit to unit visibility tile
@@ -519,6 +515,12 @@ public class TileMoveEvt : SimEvt {
 			if (!g.tiles[tileX, tileY].playerVisLatest(g.u[unit].player)) {
 				g.tiles[tileX, tileY].playerVis[g.u[unit].player].Add(time);
 				playerVisAddTiles.Add(new FP.Vector(tileX, tileY));
+				// check if this tile decohered for another player
+				for (i = 0; i < g.nPlayers; i++) {
+					if (i != g.u[unit].player && g.tiles[tileX, tileY].coherentLatest(i)) {
+						g.coherenceRemove(i, tileX, tileY, time);
+					}
+				}
 			}
 		}
 	}
@@ -602,7 +604,7 @@ public class PlayerVisRemoveEvt : SimEvt {
 					for (tY = Math.Max(0, (int)tiles[i].y - g.tileVisRadius()); tY <= Math.Min(g.tileLen() - 1, (int)tiles[i].y + g.tileVisRadius()); tY++) {
 						if (g.inVis(tX - tiles[i].x, tY - tiles[i].y) && (iPrev == -1 || !g.inVis(tX - tiles[iPrev].x, tY - tiles[iPrev].y))) {
 							for (j = 0; j < g.nPlayers; j++) {
-								if (j == player && g.tiles[tX, tY].coherentLatest(j) && !g.calcCoherent(j, tX, tY)) {
+								if (j == player && g.tiles[tX, tY].coherentLatest(j)) {
 									g.coherenceRemove(j, tX, tY, time);
 								}
 								else if (j != player && !g.tiles[tX, tY].coherentLatest(j) && g.calcCoherent(j, tX, tY)) {
