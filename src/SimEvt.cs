@@ -409,7 +409,7 @@ namespace Decoherence
                     }
                 }
             }
-            // check if tiles cohered for this player, or decohered for another player
+            // check if tiles cohered for this player
             foreach (Point p in playerVisAddTiles)
             {
                 if (p.X < coherenceRange.X) coherenceRange.X = p.X;
@@ -429,16 +429,9 @@ namespace Decoherence
                     {
                         if (g.inVis(tX - p.X, tY - p.Y))
                         {
-                            for (i = 0; i < g.nPlayers; i++)
+                            if (!g.tiles[tX, tY].coherentLatest(g.u[unit].player) && g.calcCoherent(g.u[unit].player, tX, tY))
                             {
-                                if (i == g.u[unit].player && !g.tiles[tX, tY].coherentLatest(i) && g.calcCoherent(i, tX, tY))
-                                {
-                                    g.coherenceAdd(i, tX, tY, time);
-                                }
-                                else if (i != g.u[unit].player && g.tiles[tX, tY].coherentLatest(i) && !g.calcCoherent(i, tX, tY))
-                                {
-                                    g.coherenceRemove(i, tX, tY, time);
-                                }
+                                g.coherenceAdd(g.u[unit].player, tX, tY, time);
                             }
                             break;
                         }
@@ -501,6 +494,7 @@ namespace Decoherence
         /// </summary>
         private static void visAdd(Sim g, int unit, int tileX, int tileY, long time, ref List<Point> playerVisAddTiles)
         {
+            int i;
             if (tileX >= 0 && tileX < g.tileLen() && tileY >= 0 && tileY < g.tileLen())
             {
                 if (g.tiles[tileX, tileY].unitVisLatest(unit)) throw new InvalidOperationException("unit " + unit + " already sees tile (" + tileX + ", " + tileY + ")");
@@ -510,6 +504,14 @@ namespace Decoherence
                 {
                     g.tiles[tileX, tileY].playerVis[g.u[unit].player].Add(time);
                     playerVisAddTiles.Add(new Point(tileX, tileY));
+                    // check if this tile decohered for another player
+                    for (i = 0; i < g.nPlayers; i++)
+                    {
+                        if (i != g.u[unit].player && g.tiles[tileX, tileY].coherentLatest(i))
+                        {
+                            g.coherenceRemove(i, tileX, tileY, time);
+                        }
+                    }
                 }
             }
         }
@@ -617,7 +619,7 @@ namespace Decoherence
                             {
                                 for (j = 0; j < g.nPlayers; j++)
                                 {
-                                    if (j == player && g.tiles[tX, tY].coherentLatest(j) && !g.calcCoherent(j, tX, tY))
+                                    if (j == player && g.tiles[tX, tY].coherentLatest(j))
                                     {
                                         g.coherenceRemove(j, tX, tY, time);
                                     }
