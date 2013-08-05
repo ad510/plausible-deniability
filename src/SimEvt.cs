@@ -506,8 +506,6 @@ namespace Decoherence
                 if (g.tiles[tileX, tileY].unitVisLatest(unit)) throw new InvalidOperationException("unit " + unit + " already sees tile (" + tileX + ", " + tileY + ")");
                 // add unit to unit visibility tile
                 g.tiles[tileX, tileY].unitVisToggle(unit, time);
-                // TODO: use smarter playerVis adding algorithm
-                // also, if opponent units that can't make anything enter then exit region previously indirectly visible, should use smarter playerVis adding algorithm where last one exited
                 if (!g.tiles[tileX, tileY].playerVisLatest(g.u[unit].player))
                 {
                     g.tiles[tileX, tileY].playerVis[g.u[unit].player].Add(time);
