@@ -141,11 +141,13 @@ public class App : MonoBehaviour {
 		g.mapSize = jsonFP(json, "mapSize");
 		g.updateInterval = (long)jsonDouble(json, "updateInterval");
 		g.visRadius = jsonFP(json, "visRadius");
-		g.camSpeed = jsonFP(json, "camSpeed");
 		g.camPos = jsonFPVector(json, "camPos", new FP.Vector(g.mapSize / 2, g.mapSize / 2));
-		g.drawScl = (float)jsonDouble(json, "drawScl");
-		g.drawSclMin = (float)jsonDouble(json, "drawSclMin");
-		g.drawSclMax = (float)jsonDouble(json, "drawSclMax");
+		g.camSpeed = jsonFP(json, "camSpeed");
+		g.zoom = (float)jsonDouble(json, "zoom");
+		g.zoomMin = (float)jsonDouble(json, "zoomMin");
+		g.zoomMax = (float)jsonDouble(json, "zoomMax");
+		g.zoomSpeed = (float)jsonDouble (json, "zoomSpeed");
+		g.zoomMouseWheelSpeed = (float)jsonDouble (json, "zoomMouseWheelSpeed");
 		g.uiBarSize = (float)jsonDouble (json, "uiBarSize");
 		g.healthBarSize = jsonVector2(json, "healthBarSize");
 		g.healthBarYOffset = (float)jsonDouble(json, "healthBarYOffset");
@@ -504,6 +506,20 @@ public class App : MonoBehaviour {
 		if (Input.GetKey (KeyCode.UpArrow) || Input.mousePosition.y == Screen.height - 1 || (!Screen.fullScreen && Input.mousePosition.y >= Screen.height - 15)) {
 			g.camPos.y += g.camSpeed * (timeNow - timeLast);
 			if (g.camPos.y > g.mapSize) g.camPos.y = g.mapSize;
+		}
+		// zoom camera
+		if (Input.GetKey (KeyCode.PageUp)) {
+			g.zoom /= (float)Math.Exp (g.zoomSpeed * (timeNow - timeLast));
+			if (g.zoom < g.zoomMin) g.zoom = g.zoomMin;
+		}
+		if (Input.GetKey (KeyCode.PageDown)) {
+			g.zoom *= (float)Math.Exp (g.zoomSpeed * (timeNow - timeLast));
+			if (g.zoom > g.zoomMax) g.zoom = g.zoomMax;
+		}
+		if (Input.GetAxis ("Mouse ScrollWheel") != 0) {
+			g.zoom *= (float)Math.Exp (g.zoomMouseWheelSpeed * Input.GetAxis ("Mouse ScrollWheel"));
+			if (g.zoom < g.zoomMin) g.zoom = g.zoomMin;
+			if (g.zoom > g.zoomMax) g.zoom = g.zoomMax;
 		}
 	}
 	
@@ -994,11 +1010,11 @@ public class App : MonoBehaviour {
 	}
 	
 	private float simToDrawScl(long coor) {
-		return (float)(FP.toDouble(coor) * g.drawScl * winDiag);
+		return (float)(FP.toDouble(coor) * g.zoom * winDiag);
 	}
 
 	private long drawToSimScl(float coor) {
-		return FP.fromDouble(coor / winDiag / g.drawScl);
+		return FP.fromDouble(coor / winDiag / g.zoom);
 	}
 
 	private Vector3 simToDrawScl(FP.Vector vec) {

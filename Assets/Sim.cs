@@ -228,11 +228,13 @@ public class Sim {
 	public long mapSize;
 	public long updateInterval;
 	public long visRadius;
-	public long camSpeed;
 	public FP.Vector camPos;
-	public float drawScl;
-	public float drawSclMin;
-	public float drawSclMax;
+	public long camSpeed;
+	public float zoom;
+	public float zoomMin;
+	public float zoomMax;
+	public float zoomSpeed;
+	public float zoomMouseWheelSpeed;
 	public float uiBarSize;
 	public Vector2 healthBarSize;
 	public float healthBarYOffset;
