@@ -1,10 +1,16 @@
 todo:
 allow selecting any player, but giving commands only on human players
 attack command
+sound
 pathfinding
 keep non-live paths in yellow areas w/o user help
 darker gray tiles should act more conventionally
 post to tigsource.com forums?
+unity 4.2
+  text asset serialization
+  quad primitive
+  "Texture importer now has "Alpha is Transparency" setting, which does color dilation to fix edge artifacts on semitransparent textures. It is enabled by default for GUI textures."
+  "fullscreen at native resolution" player setting"
 
 if ever allow "min" resources to be <0, must handle these cases w/o letting max resources ever be <0 in replays:
 split worker into 2 paths, 1 path makes a mine, other path doesn't
@@ -97,12 +103,17 @@ random notes:
     - make more interesting name for them?
   - marines (generic shooting unit)
 
-links:
+unity links:
+external version control: https://docs.unity3d.com/Documentation/Manual/ExternalVersionControlSystemSupport.html
+multiplayer tutorial: http://docs.unity3d.ru/Tutorials/M2H_Networking_Tutorial/M2H_Networking_Tutorial_Original.pdf
+multiplayer project files: http://docs.unity3d.ru/Tutorials/M2H_Networking_Tutorial/M2H_Networking_Tutorial_Files.zip
+2d: http://gamasutra.com/blogs/JoshSutphin/20130519/192539/Making_2D_Games_With_Unity.php
+gui guide: https://docs.unity3d.com/Documentation/Components/GUIScriptingGuide.html
+guilayout reference: https://docs.unity3d.com/Documentation/ScriptReference/GUILayout.html
+
+other links:
 binary serialization: https://code.google.com/p/protobuf-net/
 serialize at stream position: http://stackoverflow.com/questions/2441608/deserializing-a-type-at-the-current-stream-position-with-protobuf-net
 age of empires multiplayer: http://www.gamasutra.com/view/feature/3094/1500_archers_on_a_288_network_.php
 ai war optimization (including multiplayer): http://christophermpark.blogspot.com/2009/06/optimizing-30000-ships-in-realtime-in-c.html
 multiplayer debugging: http://gafferongames.com/networking-for-game-programmers/debugging-multiplayer-games/
-version control with unity: https://docs.unity3d.com/Documentation/Manual/ExternalVersionControlSystemSupport.html
-unity multiplayer tutorial: http://docs.unity3d.ru/Tutorials/M2H_Networking_Tutorial/M2H_Networking_Tutorial_Original.pdf
-unity multiplayer project files: http://docs.unity3d.ru/Tutorials/M2H_Networking_Tutorial/M2H_Networking_Tutorial_Files.zip
