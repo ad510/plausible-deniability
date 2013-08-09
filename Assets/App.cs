@@ -523,7 +523,7 @@ public class App : MonoBehaviour {
 			g.zoom *= (float)Math.Exp (g.zoomSpeed * (timeNow - timeLast));
 			if (g.zoom > g.zoomMax) g.zoom = g.zoomMax;
 		}
-		if (Input.GetAxis ("Mouse ScrollWheel") != 0) {
+		if (Input.mousePosition.y > Screen.height * g.uiBarHeight && Input.GetAxis ("Mouse ScrollWheel") != 0) {
 			g.zoom *= (float)Math.Exp (g.zoomMouseWheelSpeed * Input.GetAxis ("Mouse ScrollWheel"));
 			if (g.zoom < g.zoomMin) g.zoom = g.zoomMin;
 			if (g.zoom > g.zoomMax) g.zoom = g.zoomMax;
