@@ -60,13 +60,22 @@
       "imgHalfHeight": 2,
       "selMinPos": {"x": -1, "y": 0},
       "selMaxPos": {"x": 1, "y": 3.5},
-      "maxHealth": 4,
+      "maxHealth": 20,
       "speed": 0.004,
+      "reload": 2000,
+      "range": 3,
       "tightFormationSpacing": 2,
       "makeUnitMinDist": 2,
       "makeUnitMaxDist": 4,
       "selRadius": 16,
       "canMake": ["Building", "Mine"],
+      "damage":
+      {
+        "Worker": 2,
+        "Marine": 2,
+        "Building": 2,
+        "Mine": 2
+      },
       "rscCost":
       {
         "Minerals": 5
@@ -79,7 +88,7 @@
       "imgHalfHeight": 2,
       "selMinPos": {"x": -1, "y": 0},
       "selMaxPos": {"x": 1, "y": 3},
-      "maxHealth": 4,
+      "maxHealth": 50,
       "speed": 0.004,
       "reload": 2000,
       "range": 6,
@@ -89,8 +98,10 @@
       "selRadius": 16,
       "damage":
       {
-        "Marine": 1,
-        "Building": 1
+        "Worker": 10,
+        "Marine": 10,
+        "Building": 10,
+        "Mine": 10
       },
       "rscCost":
       {
@@ -101,7 +112,7 @@
       "name": "Building",
       "imgPath": "building.png",
       "imgHalfHeight": 2,
-      "maxHealth": 4,
+      "maxHealth": 500,
       "speed": 0,
       "makeUnitMinDist": 4,
       "makeUnitMaxDist": 8,
@@ -116,7 +127,7 @@
       "name": "Mine",
       "imgPath": "mine.png",
       "imgHalfHeight": 2,
-      "maxHealth": 4,
+      "maxHealth": 200,
       "speed": 0,
       "selRadius": 32,
       "makeOnUnitT": "Mineral",
