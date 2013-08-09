@@ -50,6 +50,10 @@ public class Sim {
 	public class UnitType {
 		public string name;
 		public string imgPath;
+		public FP.Vector imgOffset; // how much to offset center of image when drawing it
+		public long imgHalfHeight; // how tall half of image height should be drawn
+		public FP.Vector selMinPos; // minimum relative position where clicking would select the unit
+		public FP.Vector selMaxPos; // maximum relative position where clicking would select the unit
 		/*public string sndSelect;
 		public string sndMove;
 		public string sndAttack;
@@ -61,7 +65,6 @@ public class Sim {
 		public long tightFormationSpacing;
 		public long makeUnitMinDist; // minimum distance that units that this unit type makes should move away
 		public long makeUnitMaxDist; // maximum distance that units that this unit type makes should move away
-		public double selRadius;
 		public int makeOnUnitT; // unit type that this unit type should be made on top of
 		public int[] damage; // damage done per attack to each unit type
 		public bool[] canMake; // whether can make each unit type
@@ -229,15 +232,15 @@ public class Sim {
 	public long updateInterval;
 	public long visRadius;
 	public FP.Vector camPos;
-	public long camSpeed;
-	public float zoom;
+	public long camSpeed; // in position units per millisecond
+	public float zoom; // size of simulation length unit relative to diagonal length of screen
 	public float zoomMin;
 	public float zoomMax;
 	public float zoomSpeed;
 	public float zoomMouseWheelSpeed;
-	public float uiBarSize;
-	public Vector2 healthBarSize;
-	public float healthBarYOffset;
+	public float uiBarHeight; // height of UI bar relative to screen height
+	public Vector2 healthBarSize; // size of health bar relative to diagonal length of screen
+	public float healthBarYOffset; // how high to draw center of health bar above top of selectable part of unit
 	public Color backCol;
 	public Color borderCol;
 	public Color noVisCol;

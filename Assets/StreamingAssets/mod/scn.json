@@ -8,7 +8,7 @@
   "zoomMax": 0.05,
   "zoomSpeed": 0.001,
   "zoomMouseWheelSpeed": 1,
-  "uiBarSize": 0.2,
+  "uiBarHeight": 0.2,
   "healthBarSize": {"x": 0.017, "y": 0.005},
   "healthBarYOffset": 0.005,
   "backCol": {"r": 0, "g": 0, "b": 0},
@@ -26,27 +26,27 @@
   "players":
   [
     {
-      "name": "blue",
+      "name": "Blue",
       "isUser": true,
       "user": 0,
       "startRsc":
       {
         "Minerals": 20
       },
-      "mayAttack": ["red"]
+      "mayAttack": ["Red"]
     },
     {
-      "name": "red",
+      "name": "Red",
       "isUser": true,
       "user": 1,
       "startRsc":
       {
         "Minerals": 20
       },
-      "mayAttack": ["blue"]
+      "mayAttack": ["Blue"]
     },
     {
-      "name": "resources",
+      "name": "Resources",
       "isUser": false,
       "user": -2
     }
@@ -54,10 +54,33 @@
   "unitTypes":
   [
     {
-      "name": "marine",
-      "imgPath": "test.png",
+      "name": "Worker",
+      "imgPath": "worker.png",
+      "imgOffset": {"y": 2},
+      "imgHalfHeight": 2,
+      "selMinPos": {"x": -1, "y": 0},
+      "selMaxPos": {"x": 1, "y": 3.5},
       "maxHealth": 4,
-      "speed": 0.006,
+      "speed": 0.004,
+      "tightFormationSpacing": 2,
+      "makeUnitMinDist": 2,
+      "makeUnitMaxDist": 4,
+      "selRadius": 16,
+      "canMake": ["Building", "Mine"],
+      "rscCost":
+      {
+        "Minerals": 5
+      }
+    },
+    {
+      "name": "Marine",
+      "imgPath": "marine.png",
+      "imgOffset": {"y": 2},
+      "imgHalfHeight": 2,
+      "selMinPos": {"x": -1, "y": 0},
+      "selMaxPos": {"x": 1, "y": 3},
+      "maxHealth": 4,
+      "speed": 0.004,
       "reload": 2000,
       "range": 6,
       "tightFormationSpacing": 2,
@@ -66,36 +89,37 @@
       "selRadius": 16,
       "damage":
       {
-        "marine": 1,
-        "building": 1
+        "Marine": 1,
+        "Building": 1
       },
-      "canMake": ["building", "mine"],
       "rscCost":
       {
         "Minerals": 5
       }
     },
     {
-      "name": "building",
+      "name": "Building",
       "imgPath": "building.png",
+      "imgHalfHeight": 2,
       "maxHealth": 4,
       "speed": 0,
       "makeUnitMinDist": 4,
       "makeUnitMaxDist": 8,
       "selRadius": 32,
-      "canMake": ["marine"],
+      "canMake": ["Worker", "Marine"],
       "rscCost":
       {
         "Minerals": 10
       }
     },
     {
-      "name": "mine",
+      "name": "Mine",
       "imgPath": "mine.png",
+      "imgHalfHeight": 2,
       "maxHealth": 4,
       "speed": 0,
       "selRadius": 32,
-      "makeOnUnitT": "mineral",
+      "makeOnUnitT": "Mineral",
       "rscCost":
       {
         "Minerals": 10
@@ -106,8 +130,9 @@
       }
     },
     {
-      "name": "mineral",
+      "name": "Mineral",
       "imgPath": "mineral.png",
+      "imgHalfHeight": 1,
       "maxHealth": 1,
       "speed": 0,
       "selRadius": 16
@@ -116,104 +141,52 @@
   "units":
   [
     {
-      "type": "mineral",
-      "player": "resources"
+      "type": "Mineral",
+      "player": "Resources"
     },
     {
-      "type": "mineral",
-      "player": "resources"
+      "type": "Mineral",
+      "player": "Resources"
     },
     {
-      "type": "mineral",
-      "player": "resources"
+      "type": "Mineral",
+      "player": "Resources"
     },
     {
-      "type": "mineral",
-      "player": "resources"
+      "type": "Mineral",
+      "player": "Resources"
     },
     {
-      "type": "mineral",
-      "player": "resources"
+      "type": "Mineral",
+      "player": "Resources"
     },
     {
-      "type": "marine",
-      "player": "blue",
+      "type": "Mineral",
+      "player": "Resources"
     },
     {
-      "type": "marine",
-      "player": "blue",
+      "type": "Mineral",
+      "player": "Resources"
     },
     {
-      "type": "marine",
-      "player": "blue",
+      "type": "Mineral",
+      "player": "Resources"
     },
     {
-      "type": "marine",
-      "player": "blue",
+      "type": "Mineral",
+      "player": "Resources"
     },
     {
-      "type": "marine",
-      "player": "blue",
+      "type": "Mineral",
+      "player": "Resources"
     },
     {
-      "type": "marine",
-      "player": "blue",
+      "type": "Building",
+      "player": "Blue",
     },
     {
-      "type": "marine",
-      "player": "blue",
-    },
-    {
-      "type": "marine",
-      "player": "blue",
-    },
-    {
-      "type": "marine",
-      "player": "blue",
-    },
-    {
-      "type": "marine",
-      "player": "blue",
-    },
-    {
-      "type": "marine",
-      "player": "red",
-    },
-    {
-      "type": "marine",
-      "player": "red",
-    },
-    {
-      "type": "marine",
-      "player": "red",
-    },
-    {
-      "type": "marine",
-      "player": "red",
-    },
-    {
-      "type": "marine",
-      "player": "red",
-    },
-    {
-      "type": "marine",
-      "player": "red",
-    },
-    {
-      "type": "marine",
-      "player": "red",
-    },
-    {
-      "type": "marine",
-      "player": "red",
-    },
-    {
-      "type": "marine",
-      "player": "red",
-    },
-    {
-      "type": "marine",
-      "player": "red",
+      "type": "Building",
+      "player": "Red",
     }
   ]
 }

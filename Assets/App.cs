@@ -58,7 +58,7 @@ public class App : MonoBehaviour {
 	
 	string appPath;
 	string modPath = "mod/";
-	float winDiag;
+	float winDiag; // diagonal length of screen in pixels
 	GameObject sprTile;
 	Texture[,] texUnits;
 	List<UnitSprite> sprUnits;
@@ -148,7 +148,7 @@ public class App : MonoBehaviour {
 		g.zoomMax = (float)jsonDouble(json, "zoomMax");
 		g.zoomSpeed = (float)jsonDouble (json, "zoomSpeed");
 		g.zoomMouseWheelSpeed = (float)jsonDouble (json, "zoomMouseWheelSpeed");
-		g.uiBarSize = (float)jsonDouble (json, "uiBarSize");
+		g.uiBarHeight = (float)jsonDouble (json, "uiBarHeight");
 		g.healthBarSize = jsonVector2(json, "healthBarSize");
 		g.healthBarYOffset = (float)jsonDouble(json, "healthBarYOffset");
 		g.backCol = jsonColor(json, "backCol");
@@ -226,6 +226,10 @@ public class App : MonoBehaviour {
 				Sim.UnitType unitT = new Sim.UnitType();
 				unitT.name = jsonString(jsonO, "name");
 				unitT.imgPath = jsonString(jsonO, "imgPath");
+				unitT.imgOffset = jsonFPVector (jsonO, "imgOffset");
+				unitT.imgHalfHeight = jsonFP (jsonO, "imgHalfHeight");
+				unitT.selMinPos = jsonFPVector (jsonO, "selMinPos", new FP.Vector(unitT.imgOffset.x - unitT.imgHalfHeight, unitT.imgOffset.y - unitT.imgHalfHeight));
+				unitT.selMaxPos = jsonFPVector (jsonO, "selMaxPos", new FP.Vector(unitT.imgOffset.x + unitT.imgHalfHeight, unitT.imgOffset.y + unitT.imgHalfHeight));
 				unitT.maxHealth = (int)jsonDouble(jsonO, "maxHealth");
 				unitT.speed = jsonFP(jsonO, "speed");
 				if (unitT.speed > g.maxSpeed) g.maxSpeed = unitT.speed;
@@ -234,7 +238,6 @@ public class App : MonoBehaviour {
 				unitT.tightFormationSpacing = jsonFP(jsonO, "tightFormationSpacing");
 				unitT.makeUnitMinDist = jsonFP(jsonO, "makeUnitMinDist");
 				unitT.makeUnitMaxDist = jsonFP(jsonO, "makeUnitMaxDist");
-				unitT.selRadius = jsonDouble(jsonO, "selRadius");
 				unitT.rscCost = new long[g.nRsc];
 				unitT.rscCollectRate = new long[g.nRsc];
 				for (j = 0; j < g.nRsc; j++) {
@@ -289,10 +292,12 @@ public class App : MonoBehaviour {
 		jsonA = jsonArray(json, "units");
 		if (jsonA != null) {
 			foreach (Hashtable jsonO in jsonA) {
-				g.setNUnits(g.nUnits + 1);
-				g.u[g.nUnits - 1] = new Unit(g, g.nUnits - 1, g.unitTypeNamed(jsonString(jsonO, "type")),
-					g.playerNamed(jsonString(jsonO, "player")), (long)jsonDouble(jsonO, "startTime"),
-					jsonFPVector(jsonO, "startPos", new FP.Vector((long)(UnityEngine.Random.value * g.mapSize), (long)(UnityEngine.Random.value * g.mapSize))));
+				if (g.unitTypeNamed(jsonString(jsonO, "type")) >= 0 && g.playerNamed(jsonString(jsonO, "player")) >= 0) {
+					g.setNUnits(g.nUnits + 1);
+					g.u[g.nUnits - 1] = new Unit(g, g.nUnits - 1, g.unitTypeNamed(jsonString(jsonO, "type")),
+						g.playerNamed(jsonString(jsonO, "player")), (long)jsonDouble(jsonO, "startTime"),
+						jsonFPVector(jsonO, "startPos", new FP.Vector((long)(UnityEngine.Random.value * g.mapSize), (long)(UnityEngine.Random.value * g.mapSize))));
+				}
 			}
 		}
 		if (sprUnits != null) {
@@ -386,25 +391,23 @@ public class App : MonoBehaviour {
 		}
 		if (Input.GetMouseButtonUp (0)) { // left button up
 			mouseUpPos[0] = Input.mousePosition;
-			if (mouseDownPos[0].y > Screen.height * g.uiBarSize) {
+			if (mouseDownPos[0].y > Screen.height * g.uiBarHeight) {
+				FP.Vector pos;
 				if (makeUnitType >= 0) {
 					// make unit
 					// happens at newCmdTime() + 1 so new unit starts out live if game is live
-					FP.Vector pos = makeUnitPos();
+					pos = makeUnitPos();
 					if (pos.x != Sim.OffMap) g.cmdPending.add(new MakeUnitCmdEvt(g.timeSim, newCmdTime() + 1, selUnits.ToArray(), makeUnitType, pos));
 					makeUnitType = -1;
 				}
 				else {
 					// select units
-					Vector3 drawPos;
 					if (!Input.GetKey (KeyCode.LeftControl) && !Input.GetKey (KeyCode.LeftShift)) selUnits.Clear();
 					for (i = 0; i < g.nUnits; i++) {
 						if (selPlayer == g.u[i].player && timeGame >= g.u[i].m[0].timeStart) {
-							drawPos = simToDrawPos(g.u[i].calcPos(timeGame));
-							if (drawPos.x + g.unitT[g.u[i].type].selRadius >= Math.Min(mouseDownPos[0].x, Input.mousePosition.x)
-								&& drawPos.x - g.unitT[g.u[i].type].selRadius <= Math.Max(mouseDownPos[0].x, Input.mousePosition.x)
-								&& drawPos.y + g.unitT[g.u[i].type].selRadius >= Math.Min(mouseDownPos[0].y, Input.mousePosition.y)
-								&& drawPos.y - g.unitT[g.u[i].type].selRadius <= Math.Max(mouseDownPos[0].y, Input.mousePosition.y)) {
+							pos = g.u[i].calcPos(timeGame);
+							if (FP.rectIntersects (drawToSimPos (mouseDownPos[0]), drawToSimPos (Input.mousePosition),
+								pos + g.unitT[g.u[i].type].selMinPos, pos + g.unitT[g.u[i].type].selMaxPos)) {
 								if (selUnits.Contains(i)) {
 									selUnits.Remove(i);
 								}
@@ -421,7 +424,7 @@ public class App : MonoBehaviour {
 		}
 		if (Input.GetMouseButtonUp (1)) { // right button up
 			mouseUpPos[1] = Input.mousePosition;
-			if (mouseDownPos[1].y > Screen.height * g.uiBarSize) {
+			if (mouseDownPos[1].y > Screen.height * g.uiBarHeight) {
 				if (makeUnitType >= 0) {
 					// cancel making unit
 					makeUnitType = -1;
@@ -581,8 +584,8 @@ public class App : MonoBehaviour {
 			sprUnits[i].pathLine.enabled = false;
 			if (unitDrawPos(i, ref vec)) {
 				if (sprUnits[i].type != g.u[i].type || sprUnits[i].player != g.u[i].player) {
-					setUnitSprite (sprUnits[i].sprite, g.u[i].type, g.u[i].player);
-					setUnitSprite (sprUnits[i].preview, g.u[i].type, g.u[i].player);
+					sprUnits[i].sprite.renderer.material.mainTexture = texUnits[g.u[i].type, g.u[i].player];
+					sprUnits[i].preview.renderer.material.mainTexture = texUnits[g.u[i].type, g.u[i].player];
 					sprUnits[i].pathLine.material.color = g.pathCol;
 					sprUnits[i].type = g.u[i].type;
 					sprUnits[i].player = g.u[i].player;
@@ -593,7 +596,8 @@ public class App : MonoBehaviour {
 				else {
 					sprUnits[i].sprite.renderer.material.color = new Color(1, 1, 1, 0.5f); // TODO: make transparency amount customizable
 				}
-				sprUnits[i].sprite.transform.position = vec;
+				sprUnits[i].sprite.transform.position = vec + simToDrawScl (g.unitT[g.u[i].type].imgOffset);
+				sprUnits[i].sprite.transform.localScale = unitScale (g.u[i].type, g.u[i].player);
 				sprUnits[i].sprite.renderer.enabled = true;
 				if (g.u[i].isChildPath && timeGame >= g.u[g.u[i].parent].m[0].timeStart) {
 					// unit path line
@@ -604,23 +608,25 @@ public class App : MonoBehaviour {
 				if (Input.GetKey (KeyCode.LeftShift) && selUnits.Contains(i)) {
 					// show final position if holding shift
 					sprUnits[i].preview.renderer.material.color = sprUnits[i].sprite.renderer.material.color;
-					sprUnits[i].preview.transform.position = simToDrawPos(g.u[i].m[g.u[i].n - 1].vecEnd, UnitDepth);
+					sprUnits[i].preview.transform.position = simToDrawPos(g.u[i].m[g.u[i].n - 1].vecEnd + g.unitT[g.u[i].type].imgOffset, UnitDepth);
+					sprUnits[i].preview.transform.localScale = sprUnits[i].sprite.transform.localScale;
 					sprUnits[i].preview.renderer.enabled = true;
 				}
 			}
 		}
 		// unit to be made
 		if (makeUnitType >= 0) {
-			setUnitSprite (sprMakeUnit, makeUnitType, selPlayer);
+			sprMakeUnit.renderer.material.mainTexture = texUnits[makeUnitType, selPlayer];
 			fpVec = makeUnitPos();
 			if (fpVec.x != Sim.OffMap) {
 				sprMakeUnit.renderer.material.color = new Color(1, 1, 1, 1);
-				sprMakeUnit.transform.position = simToDrawPos(fpVec, UnitDepth);
+				sprMakeUnit.transform.position = simToDrawPos(fpVec + g.unitT[makeUnitType].imgOffset, UnitDepth);
 			}
 			else {
 				sprMakeUnit.renderer.material.color = new Color(1, 1, 1, 0.5f); // TODO: make transparency amount customizable
-				sprMakeUnit.transform.position = new Vector3(Input.mousePosition.x, Input.mousePosition.y, UnitDepth);
+				sprMakeUnit.transform.position = new Vector3(Input.mousePosition.x, Input.mousePosition.y, UnitDepth) + simToDrawScl (g.unitT[makeUnitType].imgOffset);
 			}
+			sprMakeUnit.transform.localScale = unitScale (makeUnitType, selPlayer);
 			sprMakeUnit.renderer.enabled = true;
 		}
 		else {
@@ -630,7 +636,7 @@ public class App : MonoBehaviour {
 		foreach (int unit in selUnits) {
 			if (unitDrawPos(unit, ref vec)) {
 				f = ((float)g.u[g.u[unit].rootParentPath()].healthWhen(timeGame)) / g.unitT[g.u[unit].type].maxHealth;
-				vec.y += texUnits[g.u[unit].type, g.u[unit].player].height / 2f + g.healthBarYOffset * winDiag;
+				vec.y += simToDrawScl (g.unitT[g.u[unit].type].selMaxPos.y) + g.healthBarYOffset * winDiag;
 				// background
 				if (g.u[unit].healthWhen(timeGame) > 0) {
 					sprUnits[unit].healthBarBack.renderer.material.color = g.healthBarBackCol;
@@ -647,7 +653,7 @@ public class App : MonoBehaviour {
 		}
 		// select box (if needed)
 		// extra vertices are needed to draw >1px thick lines correctly due to LineRenderer weirdness
-		if (Input.GetMouseButton (0) && makeUnitType < 0 && SelBoxMin <= (Input.mousePosition - mouseDownPos[0]).sqrMagnitude && mouseDownPos[0].y > Screen.height * g.uiBarSize) {
+		if (Input.GetMouseButton (0) && makeUnitType < 0 && SelBoxMin <= (Input.mousePosition - mouseDownPos[0]).sqrMagnitude && mouseDownPos[0].y > Screen.height * g.uiBarHeight) {
 			vec.x = Math.Min (mouseDownPos[0].x, Input.mousePosition.x);
 			vec.y = Math.Min (mouseDownPos[0].y, Input.mousePosition.y);
 			vec2.x = Math.Max (mouseDownPos[0].x, Input.mousePosition.x);
@@ -673,7 +679,7 @@ public class App : MonoBehaviour {
 		GUI.skin.button.fontSize = lblStyle.fontSize;
 		GUI.skin.textField.fontSize = lblStyle.fontSize;
 		// text at top left
-		GUILayout.BeginArea (new Rect(0, 0, Screen.width, Screen.height * (1 - g.uiBarSize)));
+		GUILayout.BeginArea (new Rect(0, 0, Screen.width, Screen.height * (1 - g.uiBarHeight)));
 		GUILayout.Label ((timeGame >= g.timeSim) ? "LIVE" : "TIME TRAVELING", lblStyle);
 		if (paused) GUILayout.Label ("PAUSED", lblStyle);
 		if (Environment.TickCount < timeSpeedChg) timeSpeedChg -= UInt32.MaxValue;
@@ -696,8 +702,8 @@ public class App : MonoBehaviour {
 		// TODO: mini map
 		// command menu
 		// TODO: show text if can't do any of these actions
-		GUI.Box (new Rect(0, Screen.height * (1 - g.uiBarSize), Screen.width / 2, Screen.height * g.uiBarSize), new GUIContent());
-		GUILayout.BeginArea (new Rect(0, Screen.height * (1 - g.uiBarSize), Screen.width / 2, Screen.height * g.uiBarSize));
+		GUI.Box (new Rect(0, Screen.height * (1 - g.uiBarHeight), Screen.width / 2, Screen.height * g.uiBarHeight), new GUIContent());
+		GUILayout.BeginArea (new Rect(0, Screen.height * (1 - g.uiBarHeight), Screen.width / 2, Screen.height * g.uiBarHeight));
 		unitMenuScrollPos = GUILayout.BeginScrollView (unitMenuScrollPos);
 		if (selUnits.Count > 0) {
 			string plural = (selUnits.Count == 1) ? "" : "s";
@@ -723,8 +729,8 @@ public class App : MonoBehaviour {
 		GUILayout.EndScrollView ();
 		GUILayout.EndArea ();
 		// unit selection bar
-		GUI.Box (new Rect(Screen.width / 2, Screen.height * (1 - g.uiBarSize), Screen.width, Screen.height * g.uiBarSize), new GUIContent());
-		GUILayout.BeginArea (new Rect(Screen.width / 2, Screen.height * (1 - g.uiBarSize), Screen.width / 2, Screen.height * g.uiBarSize));
+		GUI.Box (new Rect(Screen.width / 2, Screen.height * (1 - g.uiBarHeight), Screen.width, Screen.height * g.uiBarHeight), new GUIContent());
+		GUILayout.BeginArea (new Rect(Screen.width / 2, Screen.height * (1 - g.uiBarHeight), Screen.width / 2, Screen.height * g.uiBarHeight));
 		selUnitsScrollPos = GUILayout.BeginScrollView (selUnitsScrollPos);
 		foreach (int unit in selUnits) {
 			if (g.u[unit].exists (timeGame)) {
@@ -896,8 +902,7 @@ public class App : MonoBehaviour {
 	/// </summary>
 	private FP.Vector makeUnitPos() {
 		FP.Vector vec;
-		if (drawToSimPos(Input.mousePosition).x >= 0 && drawToSimPos(Input.mousePosition).x <= g.mapSize
-			&& drawToSimPos(Input.mousePosition).y >= 0 && drawToSimPos(Input.mousePosition).y <= g.mapSize) {
+		if (FP.rectContains (new FP.Vector(), new FP.Vector(g.mapSize, g.mapSize), drawToSimPos(Input.mousePosition))) {
 			if (g.unitT[makeUnitType].makeOnUnitT >= 0) {
 				// selected unit type must be made on top of another unit of correct type
 				// TODO: prevent putting multiple units on same unit (unless on different paths of same unit and maybe some other cases)
@@ -905,7 +910,7 @@ public class App : MonoBehaviour {
 					if (g.u[i].exists(timeGame)) {
 						vec = g.u[i].calcPos(timeGame);
 						if (g.u[i].type == g.unitT[makeUnitType].makeOnUnitT && g.tileAt(vec).playerVisWhen(selPlayer, timeGame)
-							&& (Input.mousePosition - simToDrawPos(vec)).sqrMagnitude <= g.unitT[g.u[i].type].selRadius * g.unitT[g.u[i].type].selRadius) {
+							&& FP.rectContains (vec + g.unitT[g.u[i].type].selMinPos, vec + g.unitT[g.u[i].type].selMaxPos, drawToSimPos (Input.mousePosition))) {
 							return vec;
 						}
 					}
@@ -930,15 +935,6 @@ public class App : MonoBehaviour {
 		} while (ret.lengthSq() < g.unitT[g.u[unit].type].makeUnitMinDist * g.unitT[g.u[unit].type].makeUnitMinDist
 			&& ret.lengthSq() > g.unitT[g.u[unit].type].makeUnitMaxDist * g.unitT[g.u[unit].type].makeUnitMaxDist);
 		return ret + g.u[unit].calcPos(time);
-	}
-	
-	/// <summary>
-	/// sets up sprite to display unit of specified type and player
-	/// </summary>
-	private void setUnitSprite(GameObject sprite, int type, int player) {
-		sprite.renderer.material.mainTexture = texUnits[type, player];
-		// TODO: scale unit images
-		sprite.transform.localScale = new Vector3(texUnits[type, player].width / 2f, texUnits[type, player].height / 2f, 1);
 	}
 	
 	/// <summary>
@@ -986,7 +982,7 @@ public class App : MonoBehaviour {
 	}
 
 	/// <summary>
-	/// sets pos to where unit should be drawn at, and returns whether it should be drawn
+	/// sets pos to where base of unit should be drawn at, and returns whether it should be drawn
 	/// </summary>
 	private bool unitDrawPos(int unit, ref Vector3 pos) {
 		FP.Vector fpVec;
@@ -995,6 +991,14 @@ public class App : MonoBehaviour {
 		if (selPlayer != g.u[unit].player && !g.tileAt(fpVec).playerVisWhen(selPlayer, timeGame)) return false;
 		pos = simToDrawPos(fpVec, UnitDepth);
 		return true;
+	}
+	
+	/// <summary>
+	/// returns localScale of unit sprite with specified properties
+	/// </summary>
+	private Vector3 unitScale(int type, int player) {
+		return new Vector3(simToDrawScl (g.unitT[type].imgHalfHeight) * texUnits[type, player].width / texUnits[type, player].height,
+			simToDrawScl (g.unitT[type].imgHalfHeight), 1);
 	}
 	
 	/// <summary>

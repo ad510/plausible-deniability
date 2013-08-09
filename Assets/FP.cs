@@ -188,6 +188,30 @@ public class FP {
 	public static double toDouble(long from) {
 		return (double)from / Math.Pow(2, Precision);
 	}
+	
+	/// <summary>
+	/// returns whether rectangle formed by r1 and r2 contains point p (checks x and y only)
+	/// </summary>
+	public static bool rectContains(Vector r1, Vector r2, Vector p) {
+		return p.x >= Math.Min (r1.x, r2.x) && p.x <= Math.Max (r1.x, r2.x)
+			&& p.y >= Math.Min (r1.y, r2.y) && p.y <= Math.Max (r1.y, r2.y);
+	}
+	
+	/// <summary>
+	/// returns whether rectangle formed by r1p1 and r2p2 fully contains rectangle formed by r2p1 and r2p2 (checks x and y only)
+	/// </summary>
+	public static bool rectContains(Vector r1p1, Vector r1p2, Vector r2p1, Vector r2p2) {
+		return Math.Min (r2p1.x, r2p2.x) >= Math.Min (r1p1.x, r1p2.x) && Math.Max (r2p1.x, r2p2.x) <= Math.Max (r1p1.x, r1p2.x)
+			&& Math.Min (r2p1.y, r2p2.y) >= Math.Min (r1p1.y, r1p2.y) && Math.Max (r2p1.y, r2p2.y) <= Math.Max (r1p1.y, r1p2.y);
+	}
+	
+	/// <summary>
+	/// returns whether rectangle formed by r1p1 and r1p2 intersects rectangle formed by r2p1 and r2p2 (checks x and y only)
+	/// </summary>
+	public static bool rectIntersects(Vector r1p1, Vector r1p2, Vector r2p1, Vector r2p2) {
+		return Math.Max (r2p1.x, r2p2.x) >= Math.Min (r1p1.x, r1p2.x) && Math.Min (r2p1.x, r2p2.x) <= Math.Max (r1p1.x, r1p2.x)
+			&& Math.Max (r2p1.y, r2p2.y) >= Math.Min (r1p1.y, r1p2.y) && Math.Min (r2p1.y, r2p2.y) <= Math.Max (r1p1.y, r1p2.y);
+	}
 
 	/// <summary>
 	/// returns x value of line between p1 and p2 at specified y value
