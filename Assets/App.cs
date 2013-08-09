@@ -17,6 +17,38 @@ public class App : MonoBehaviour {
 		Main, MakeUnit
 	}
 	
+	private class LineBox {
+		public GameObject gameObject;
+		public LineRenderer line;
+		
+		public LineBox() {
+			gameObject = new GameObject();
+			line = gameObject.AddComponent<LineRenderer>();
+			line.material.shader = Shader.Find ("Diffuse");
+			line.SetVertexCount (8);
+		}
+		
+		public void setRect(Vector3 p1, Vector3 p2, float depth) {
+			float minX = Math.Min (p1.x, p2.x);
+			float minY = Math.Min (p1.y, p2.y);
+			float maxX = Math.Max (p1.x, p2.x);
+			float maxY = Math.Max (p1.y, p2.y);
+			// extra vertices are needed to draw >1px thick lines correctly due to LineRenderer weirdness
+			line.SetPosition (0, new Vector3(minX, minY, depth));
+			line.SetPosition (1, new Vector3(maxX - 1, minY, depth));
+			line.SetPosition (2, new Vector3(maxX, minY, depth));
+			line.SetPosition (3, new Vector3(maxX, maxY - 1, depth));
+			line.SetPosition (4, new Vector3(maxX, maxY, depth));
+			line.SetPosition (5, new Vector3(minX + 1, maxY, depth));
+			line.SetPosition (6, new Vector3(minX, maxY, depth));
+			line.SetPosition (7, new Vector3(minX, minY, depth));
+		}
+		
+		public void dispose() {
+			Destroy(gameObject);
+		}
+	}
+	
 	private class UnitSprite {
 		public GameObject sprite;
 		public GameObject preview; // for showing unit at final position
@@ -48,7 +80,8 @@ public class App : MonoBehaviour {
 	
 	public const double SelBoxMin = 100;
 	public const float FntSize = 1f / 40;
-	public const float TileDepth = 5f;
+	public const float TileDepth = 6f;
+	public const float BorderDepth = 5f;
 	public const float PathLineDepth = 4f;
 	public const float UnitDepth = 3f;
 	public const float HealthBarDepth = 2f;
@@ -60,10 +93,11 @@ public class App : MonoBehaviour {
 	string modPath = "mod/";
 	float winDiag; // diagonal length of screen in pixels
 	GameObject sprTile;
+	LineBox border;
 	Texture[,] texUnits;
 	List<UnitSprite> sprUnits;
 	GameObject sprMakeUnit;
-	LineRenderer selectBox;
+	LineBox selectBox;
 	GUIStyle lblStyle;
 	UnitMenu unitMenu;
 	Vector2 unitMenuScrollPos;
@@ -98,13 +132,13 @@ public class App : MonoBehaviour {
 		quadPrefab.renderer.material.color = Color.white;
 		quadPrefab.transform.rotation = new Quaternion(0, 1, 0, 0);
 		sprTile = Instantiate (quadPrefab) as GameObject;
+		border = new LineBox();
+		border.line.SetWidth (2, 2); // TODO: make width customizable by mod
 		sprMakeUnit = Instantiate (quadPrefab) as GameObject;
 		// TODO: make color and width customizable by mod
-		selectBox = gameObject.AddComponent<LineRenderer>();
-		selectBox.material.shader = Shader.Find ("Diffuse");
-		selectBox.material.color = Color.white;
-		selectBox.SetWidth (2, 2);
-		selectBox.SetVertexCount (8);
+		selectBox = new LineBox();
+		selectBox.line.material.color = Color.white;
+		selectBox.line.SetWidth (2, 2);
 		// TODO: make font, size, and color customizable by mod
 		lblStyle = GUIStyle.none;
 		lblStyle.fontSize = (int)(Screen.height * FntSize);
@@ -308,6 +342,7 @@ public class App : MonoBehaviour {
 		sprUnits = new List<UnitSprite>();
 		// start game
 		Camera.main.backgroundColor = g.backCol;
+		border.line.material.color = g.borderCol;
 		selPlayer = 0;
 		while (g.players[selPlayer].user != g.selUser) selPlayer = (selPlayer + 1) % g.nPlayers;
 		selUnits = new List<int>();
@@ -531,7 +566,7 @@ public class App : MonoBehaviour {
 	}
 	
 	private void draw() {
-		Vector3 vec = new Vector3(), vec2;
+		Vector3 vec = new Vector3();
 		FP.Vector fpVec;
 		Texture2D tex;
 		Color col;
@@ -557,27 +592,7 @@ public class App : MonoBehaviour {
 		sprTile.transform.position = simToDrawPos (new FP.Vector((g.tileLen () << FP.Precision) / 2, (g.tileLen () << FP.Precision) / 2), TileDepth);
 		sprTile.transform.localScale = simToDrawScl (new FP.Vector((g.tileLen () << FP.Precision) / 2, (g.tileLen () << FP.Precision) / 2));
 		// map border
-		/*tlPoly.primitive = PrimitiveType.LineStrip;
-		tlPoly.setNPoly(0);
-		tlPoly.nV[0] = 4;
-		tlPoly.poly[0].v = new DX.TLVertex[tlPoly.nV[0] + 1];
-		for (i = 0; i < 4; i++) {
-			tlPoly.poly[0].v[i].color = g.borderCol.ToArgb();
-			tlPoly.poly[0].v[i].rhw = 1;
-			tlPoly.poly[0].v[i].z = 0;
-		}
-		vec = simToDrawPos(new FP.Vector());
-		vec2 = simToDrawPos(new FP.Vector(g.mapSize, g.mapSize));
-		tlPoly.poly[0].v[0].x = vec.X;
-		tlPoly.poly[0].v[0].y = vec.Y;
-		tlPoly.poly[0].v[1].x = vec2.X;
-		tlPoly.poly[0].v[1].y = vec.Y;
-		tlPoly.poly[0].v[2].x = vec2.X;
-		tlPoly.poly[0].v[2].y = vec2.Y;
-		tlPoly.poly[0].v[3].x = vec.X;
-		tlPoly.poly[0].v[3].y = vec2.Y;
-		tlPoly.poly[0].v[4] = tlPoly.poly[0].v[0];
-		tlPoly.draw();*/
+		border.setRect (simToDrawPos (new FP.Vector()), simToDrawPos(new FP.Vector(g.mapSize, g.mapSize)), BorderDepth);
 		// units
 		for (i = 0; i < g.nUnits; i++) {
 			if (i == sprUnits.Count) sprUnits.Add (new UnitSprite(quadPrefab));
@@ -656,24 +671,12 @@ public class App : MonoBehaviour {
 			}
 		}
 		// select box (if needed)
-		// extra vertices are needed to draw >1px thick lines correctly due to LineRenderer weirdness
 		if (Input.GetMouseButton (0) && makeUnitType < 0 && SelBoxMin <= (Input.mousePosition - mouseDownPos[0]).sqrMagnitude && mouseDownPos[0].y > Screen.height * g.uiBarHeight) {
-			vec.x = Math.Min (mouseDownPos[0].x, Input.mousePosition.x);
-			vec.y = Math.Min (mouseDownPos[0].y, Input.mousePosition.y);
-			vec2.x = Math.Max (mouseDownPos[0].x, Input.mousePosition.x);
-			vec2.y = Math.Max (mouseDownPos[0].y, Input.mousePosition.y);
-			selectBox.SetPosition (0, new Vector3(vec.x, vec.y, SelectBoxDepth));
-			selectBox.SetPosition (1, new Vector3(vec2.x - 1, vec.y, SelectBoxDepth));
-			selectBox.SetPosition (2, new Vector3(vec2.x, vec.y, SelectBoxDepth));
-			selectBox.SetPosition (3, new Vector3(vec2.x, vec2.y - 1, SelectBoxDepth));
-			selectBox.SetPosition (4, new Vector3(vec2.x, vec2.y, SelectBoxDepth));
-			selectBox.SetPosition (5, new Vector3(vec.x + 1, vec2.y, SelectBoxDepth));
-			selectBox.SetPosition (6, new Vector3(vec.x, vec2.y, SelectBoxDepth));
-			selectBox.SetPosition (7, new Vector3(vec.x, vec.y, SelectBoxDepth));
-			selectBox.enabled = true;
+			selectBox.setRect (mouseDownPos[0], Input.mousePosition, SelectBoxDepth);
+			selectBox.line.enabled = true;
 		}
 		else {
-			selectBox.enabled = false;
+			selectBox.line.enabled = false;
 		}
 	}
 	
