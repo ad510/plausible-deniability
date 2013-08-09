@@ -15,7 +15,8 @@ The game is made using the free version of Unity, which can be downloaded at htt
 Controls
 --------
 - esc = exit
-- arrow keys, move mouse to edge of screen = move view
+- arrow keys = move view
+- move mouse to edge of screen (fullscreen only) = move view
 - page up, page down, mouse wheel = zoom view
 - (ctrl/shift) left click/drag = select units
 - right click = move selected units in tight formation

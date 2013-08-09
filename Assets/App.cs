@@ -533,36 +533,34 @@ public class App : MonoBehaviour {
 			paused = true;
 		}
 		// move camera
-		if (Input.GetKey (KeyCode.LeftArrow) || Input.mousePosition.x == 0 || (!Screen.fullScreen && Input.mousePosition.x <= 15)) {
+		if (Input.GetKey (KeyCode.LeftArrow) || (Input.mousePosition.x == 0 && Screen.fullScreen)) {
 			g.camPos.x -= g.camSpeed * (timeNow - timeLast);
 			if (g.camPos.x < 0) g.camPos.x = 0;
 		}
-		if (Input.GetKey (KeyCode.RightArrow) || Input.mousePosition.x == Screen.width - 1 || (!Screen.fullScreen && Input.mousePosition.x >= Screen.width - 15)) {
+		if (Input.GetKey (KeyCode.RightArrow) || (Input.mousePosition.x == Screen.width - 1 && Screen.fullScreen)) {
 			g.camPos.x += g.camSpeed * (timeNow - timeLast);
 			if (g.camPos.x > g.mapSize) g.camPos.x = g.mapSize;
 		}
-		if (Input.GetKey (KeyCode.DownArrow) || Input.mousePosition.y == 0 || (!Screen.fullScreen && Input.mousePosition.y <= 15)) {
+		if (Input.GetKey (KeyCode.DownArrow) || (Input.mousePosition.y == 0 && Screen.fullScreen)) {
 			g.camPos.y -= g.camSpeed * (timeNow - timeLast);
 			if (g.camPos.y < 0) g.camPos.y = 0;
 		}
-		if (Input.GetKey (KeyCode.UpArrow) || Input.mousePosition.y == Screen.height - 1 || (!Screen.fullScreen && Input.mousePosition.y >= Screen.height - 15)) {
+		if (Input.GetKey (KeyCode.UpArrow) || (Input.mousePosition.y == Screen.height - 1 && Screen.fullScreen)) {
 			g.camPos.y += g.camSpeed * (timeNow - timeLast);
 			if (g.camPos.y > g.mapSize) g.camPos.y = g.mapSize;
 		}
 		// zoom camera
 		if (Input.GetKey (KeyCode.PageUp)) {
 			g.zoom /= (float)Math.Exp (g.zoomSpeed * (timeNow - timeLast));
-			if (g.zoom < g.zoomMin) g.zoom = g.zoomMin;
 		}
 		if (Input.GetKey (KeyCode.PageDown)) {
 			g.zoom *= (float)Math.Exp (g.zoomSpeed * (timeNow - timeLast));
-			if (g.zoom > g.zoomMax) g.zoom = g.zoomMax;
 		}
 		if (Input.mousePosition.y > Screen.height * g.uiBarHeight && Input.GetAxis ("Mouse ScrollWheel") != 0) {
 			g.zoom *= (float)Math.Exp (g.zoomMouseWheelSpeed * Input.GetAxis ("Mouse ScrollWheel"));
-			if (g.zoom < g.zoomMin) g.zoom = g.zoomMin;
-			if (g.zoom > g.zoomMax) g.zoom = g.zoomMax;
 		}
+		if (g.zoom < g.zoomMin) g.zoom = g.zoomMin;
+		if (g.zoom > g.zoomMax) g.zoom = g.zoomMax;
 	}
 	
 	private void draw() {
