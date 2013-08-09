@@ -182,7 +182,7 @@ public class App : MonoBehaviour {
 				Sim.Player player = new Sim.Player();
 				player.name = jsonString(jsonO, "name");
 				player.isUser = jsonBool(jsonO, "isUser");
-				player.user = (short)jsonDouble(jsonO, "user");
+				player.user = (int)jsonDouble(jsonO, "user");
 				if (player.user >= g.nUsers) g.nUsers = player.user + 1;
 				player.startRsc = new long[g.nRsc];
 				for (j = 0; j < g.nRsc; j++) {
@@ -491,6 +491,10 @@ public class App : MonoBehaviour {
 				g.u[i].addTileMoveEvts(ref g.events, -1, g.timeSim);
 			}
 			g.update(g.timeSim);
+			// allow selecting any player
+			for (i = 0; i < g.nPlayers; i++) {
+				if (g.players[i].isUser) g.players[i].user = g.selUser;
+			}
 			paused = true;
 		}
 		// move camera

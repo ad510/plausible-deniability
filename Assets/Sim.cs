@@ -15,7 +15,7 @@ using UnityEngine;
 public class Sim {
 	// constants
 	public const int OffMap = -10000; // don't set to int.MinValue so doesn't overflow in inVis()
-	public const short CompUser = -1;
+	public const int CompUser = -1;
 
 	// game objects
 	public class User {
@@ -32,7 +32,7 @@ public class Sim {
 		// stored in scenario files
 		public string name;
 		public bool isUser; // whether actively participates in the game
-		public short user; // -1 = nobody, 0 = computer, 1+ = human
+		public int user; // -2 = nobody, -1 = computer, 0+ = human
 		public long[] startRsc; // resources at beginning of game
 		public bool[] mayAttack; // if this player's units may attack each other player's units
 		// not stored in scenario files
