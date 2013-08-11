@@ -220,7 +220,7 @@ public class MakePathCmdEvt : CmdEvt {
 	public override void apply(Sim g) {
 		base.apply(g);
 		for (int i = 0; i < units.Length; i++) {
-			if (g.u[units[i]].makeChildUnit(timeCmd, true) && g.u[g.nUnits - 1].canMove(timeCmd)) {
+			if (g.u[units[i]].canMove(timeCmd) && g.u[units[i]].makeChildUnit(timeCmd, true)) {
 				g.u[g.nUnits - 1].moveTo(timeCmd, pos[i]); // move new unit out of the way
 			}
 		}
