@@ -312,7 +312,6 @@ public class UpdateEvt : SimEvt {
 	}
 
 	public override void apply(Sim g) {
-		SimEvt evt;
 		FP.Vector pos;
 		int cmdType, target;
 		long distSq, targetDistSq;
@@ -320,31 +319,35 @@ public class UpdateEvt : SimEvt {
 		if (g.networkView != null) {
 			// apply received user commands (multiplayer only)
 			for (i = 0; i < g.nUsers; i++) {
-				if (!g.users[i].cmdAllReceived) throw new InvalidOperationException("UpdateEvt is being applied before all commands were received from user " + i);
-				g.users[i].cmdAllReceived = false;
-				while ((evt = g.users[i].cmdReceived.pop()) != null) {
+				if (g.users[i].timeSync < time) throw new InvalidOperationException("UpdateEvt is being applied before all commands were received from user " + i);
+				if (time > 0 && g.users[i].checksums[time] != g.users[g.selUser].checksums[time]) g.synced = false;
+				while (g.users[i].cmdReceived.peekTime () == time) {
 					// TODO: could command be applied after another event with same time, causing desyncs in replays?
-					evt.time = time; // set event time to when it is actually applied
-					evt.apply (g);
+					g.users[i].cmdReceived.pop ().apply (g);
+				}
+				// delete old checksums
+				foreach (long k in g.users[i].checksums.Keys.ToArray ()) {
+					if (k < time) g.users[i].checksums.Remove (k);
 				}
 			}
 			// send pending commands to other users
-			foreach (SimEvt evt2 in g.cmdPending.events) {
+			foreach (SimEvt evt in g.cmdPending.events) {
 				System.IO.MemoryStream stream = new System.IO.MemoryStream();
-				Serializer.Serialize (stream, evt2);
-				if (evt2 is MoveCmdEvt) {
+				evt.time = time + g.updateInterval; // set event time to when it will be applied
+				Serializer.Serialize (stream, evt);
+				if (evt is MoveCmdEvt) {
 					cmdType = 11;
 				}
-				else if (evt2 is MakeUnitCmdEvt) {
+				else if (evt is MakeUnitCmdEvt) {
 					cmdType = 12;
 				}
-				else if (evt2 is MakePathCmdEvt) {
+				else if (evt is MakePathCmdEvt) {
 					cmdType = 13;
 				}
-				else if (evt2 is DeletePathCmdEvt) {
+				else if (evt is DeletePathCmdEvt) {
 					cmdType = 14;
 				}
-				else if (evt2 is GoLiveCmdEvt) {
+				else if (evt is GoLiveCmdEvt) {
 					cmdType = 15;
 				}
 				else {
@@ -352,11 +355,12 @@ public class UpdateEvt : SimEvt {
 				}
 				g.networkView.RPC ("addCmd", RPCMode.Others, g.selUser, cmdType, stream.ToArray ());
 			}
-			g.networkView.RPC ("allCmdsSent", RPCMode.Others, g.selUser);
+			g.networkView.RPC ("allCmdsSent", RPCMode.Others, g.selUser, g.checksum);
 			// move pending commands to cmdReceived
 			g.users[g.selUser].cmdReceived = g.cmdPending;
-			g.users[g.selUser].cmdAllReceived = true;
+			g.users[g.selUser].timeSync += g.updateInterval;
 			g.cmdPending = new SimEvtList();
+			g.users[g.selUser].checksums[time + g.updateInterval] = g.checksum;
 		}
 		// update units
 		for (i = 0; i < g.nUnits; i++) {
@@ -389,6 +393,7 @@ public class UpdateEvt : SimEvt {
 		}
 		g.movedUnits.Clear();
 		// add next UpdateEvt
+		g.checksum = 0;
 		g.events.add(new UpdateEvt(time + g.updateInterval));
 		g.timeUpdateEvt = time;
 	}

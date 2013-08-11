@@ -20,11 +20,13 @@ public class Sim {
 	// game objects
 	public class User {
 		public SimEvtList cmdReceived; // commands received from this user to be applied in next update
-		public bool cmdAllReceived; // whether all commands were received from this user for the next update
+		public long timeSync; // latest time at which commands from this user are ready to be applied
+		public Dictionary<long, int> checksums; // checksums calculated by this user to be compared to our checksum (key is timeSync when checksum is received)
 		
 		public User() {
 			cmdReceived = new SimEvtList();
-			cmdAllReceived = true;
+			timeSync = -1;
+			checksums = new Dictionary<long, int>();
 		}
 	}
 	
@@ -265,7 +267,7 @@ public class Sim {
 
 	// helper variables not loaded from scenario file
 	public int selUser;
-	public NetworkView networkView;
+	public NetworkView networkView; // to do RPCs in multiplayer (set to null in single player)
 	public Tile[,] tiles; // each tile is 1 fixed-point unit (2^FP.Precision raw integer units) wide, so bit shift by FP.Precision to convert between position and tile position
 	public SimEvtList events; // simulation events to be applied
 	public SimEvtList cmdPending; // user commands to be sent to other users in the next update
@@ -273,6 +275,8 @@ public class Sim {
 	public List<int> movedUnits; // indices of units that moved in the latest simulation event, invalidating later TileMoveEvts for that unit
 	public List<int> unitIdChgs; // list of units that changed indices (old index followed by new index)
 	public long maxSpeed; // speed of fastest unit (is max speed that players can gain or lose visibility)
+	public int checksum; // sent to other users during each UpdateEvt to check for multiplayer desyncs
+	public bool synced; // whether all checksums between users matched so far
 	public long timeSim; // current simulation time
 	public long timeUpdateEvt; // last time that an UpdateEvt was applied
 
@@ -317,6 +321,7 @@ public class Sim {
 				}
 				movedUnits.Clear();
 			}
+			checksum++;
 		}
 		// update simulation time
 		timeSim = timeSimNext;

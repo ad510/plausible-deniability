@@ -168,6 +168,8 @@ public class App : MonoBehaviour {
 		g.cmdPending = new SimEvtList();
 		g.cmdHistory = new SimEvtList();
 		g.unitIdChgs = new List<int>();
+		g.checksum = 0;
+		g.synced = true;
 		g.timeSim = -1;
 		g.timeUpdateEvt = long.MinValue;
 		g.events.add(new UpdateEvt(-1));
@@ -393,10 +395,10 @@ public class App : MonoBehaviour {
 			}
 			timeGame += (long)(timeGameDiff * Math.Pow(2, speed)); // adjust game speed based on user setting
 		}
-		// only apply next UpdateEvt when received all users' commands across network
+		// don't increment time past latest time that commands were synced across network
 		if (g.networkView != null && timeGame >= g.timeUpdateEvt + g.updateInterval) {
 			for (int i = 0; i < g.nUsers; i++) {
-				if (!g.users[i].cmdAllReceived) {
+				if (g.users[i].timeSync < g.timeUpdateEvt + g.updateInterval) {
 					timeGame = g.timeUpdateEvt + g.updateInterval - 1;
 					break;
 				}
@@ -685,6 +687,11 @@ public class App : MonoBehaviour {
 		GUI.skin.textField.fontSize = lblStyle.fontSize;
 		// text at top left
 		GUILayout.BeginArea (new Rect(0, 0, Screen.width, Screen.height * (1 - g.uiBarHeight)));
+		if (!g.synced) {
+			lblStyle.normal.textColor = Color.red;
+			GUILayout.Label ("OUT OF SYNC", lblStyle);
+			lblStyle.normal.textColor = Color.white;
+		}
 		GUILayout.Label ((timeGame >= g.timeSim) ? "LIVE" : "TIME TRAVELING", lblStyle);
 		if (paused) GUILayout.Label ("PAUSED", lblStyle);
 		if (Environment.TickCount < timeSpeedChg) timeSpeedChg -= UInt32.MaxValue;
@@ -830,8 +837,9 @@ public class App : MonoBehaviour {
 	}
 	
 	[RPC]
-	void allCmdsSent(int user) {
-		g.users[user].cmdAllReceived = true;
+	void allCmdsSent(int user, int checksum) {
+		g.users[user].timeSync += g.updateInterval;
+		g.users[user].checksums[g.users[user].timeSync] = checksum;
 	}
 
 	private string jsonString(Hashtable json, string key, string defaultVal = "") {
