@@ -508,8 +508,14 @@ public class App : MonoBehaviour {
 			makePaths ();
 		}
 		if (Input.GetKeyDown (KeyCode.Delete)) {
-			// delete selected paths
-			deletePaths ();
+			if (Input.GetKey (KeyCode.LeftShift) || Input.GetKey (KeyCode.RightShift)) {
+				// delete unselected paths of selected units
+				deleteOtherPaths ();
+			}
+			else {
+				// delete selected paths
+				deletePaths ();
+			}
 		}
 		if (Input.GetKeyDown (KeyCode.R) && Input.GetKey (KeyCode.LeftShift)) {
 			// instant replay
@@ -681,7 +687,6 @@ public class App : MonoBehaviour {
 	}
 	
 	void OnGUI() {
-		Dictionary<int, int> selRootParentPaths = new Dictionary<int, int>();
 		int i;
 		GUI.skin.button.fontSize = lblStyle.fontSize;
 		GUI.skin.textField.fontSize = lblStyle.fontSize;
@@ -713,7 +718,7 @@ public class App : MonoBehaviour {
 		// TODO: timeline
 		// TODO: mini map
 		// command menu
-		// TODO: show text if can't do any of these actions
+		// TODO: show text or hide button if can't do any of these actions
 		GUI.Box (new Rect(0, Screen.height * (1 - g.uiBarHeight), Screen.width / 2, Screen.height * g.uiBarHeight), new GUIContent());
 		GUILayout.BeginArea (new Rect(0, Screen.height * (1 - g.uiBarHeight), Screen.width / 2, Screen.height * g.uiBarHeight));
 		unitMenuScrollPos = GUILayout.BeginScrollView (unitMenuScrollPos);
@@ -722,6 +727,7 @@ public class App : MonoBehaviour {
 			if (unitMenu == UnitMenu.Main) {
 				if (GUILayout.Button ("New Path" + plural)) makePaths ();
 				if (GUILayout.Button ("Delete Path" + plural)) deletePaths ();
+				if (GUILayout.Button ("Delete Other Paths")) deleteOtherPaths ();
 				if (GUILayout.Button ("Make Unit")) unitMenu = UnitMenu.MakeUnit;
 			}
 			else if (unitMenu == UnitMenu.MakeUnit) {
@@ -744,14 +750,7 @@ public class App : MonoBehaviour {
 		GUI.Box (new Rect(Screen.width / 2, Screen.height * (1 - g.uiBarHeight), Screen.width, Screen.height * g.uiBarHeight), new GUIContent());
 		GUILayout.BeginArea (new Rect(Screen.width / 2, Screen.height * (1 - g.uiBarHeight), Screen.width / 2, Screen.height * g.uiBarHeight));
 		selUnitsScrollPos = GUILayout.BeginScrollView (selUnitsScrollPos);
-		foreach (int unit in selUnits) {
-			if (g.u[unit].exists (timeGame)) {
-				i = g.u[unit].rootParentPath ();
-				if (!selRootParentPaths.ContainsKey (i)) selRootParentPaths.Add (i, 0);
-				selRootParentPaths[i]++;
-			}
-		}
-		foreach (KeyValuePair<int, int> item in selRootParentPaths) {
+		foreach (KeyValuePair<int, int> item in selRootParentPaths()) {
 			if (GUILayout.Button (g.unitT[g.u[item.Key].type].name + (item.Value != 1 ? " (" + item.Value + " paths)" : ""))) {
 				if (Event.current.button == 0) { // left button
 					// select unit
@@ -909,6 +908,22 @@ public class App : MonoBehaviour {
 		}
 		return new Color();
 	}
+	
+	/// <summary>
+	/// returns dictionary of existing selected units' root parent paths (keys) and how many of their paths are selected (values)
+	/// </summary>
+	private Dictionary<int, int> selRootParentPaths() {
+		Dictionary<int, int> ret = new Dictionary<int, int>();
+		int rootParentPath;
+		foreach (int unit in selUnits) {
+			if (g.u[unit].exists (timeGame)) {
+				rootParentPath = g.u[unit].rootParentPath ();
+				if (!ret.ContainsKey (rootParentPath)) ret.Add (rootParentPath, 0);
+				ret[rootParentPath]++;
+			}
+		}
+		return ret;
+	}
 
 	/// <summary>
 	/// returns where to make new unit, or (Sim.OffMap, 0) if mouse is at invalid position
@@ -970,6 +985,20 @@ public class App : MonoBehaviour {
 	private void deletePaths() {
 		// happens at newCmdTime() instead of newCmdTime() + 1 so that when paused, making path then deleting parent path doesn't cause an error
 		if (selUnits.Count > 0) g.cmdPending.add(new DeletePathCmdEvt(g.timeSim, newCmdTime(), selUnits.ToArray()));
+	}
+	
+	/// <summary>
+	/// deletes unselected paths of selected units
+	/// </summary>
+	private void deleteOtherPaths() {
+		Dictionary<int, int> parentPaths = selRootParentPaths ();
+		List<int> otherPaths = new List<int>();
+		for (int i = 0; i < g.nUnits; i++) {
+			if (g.u[i].exists (timeGame) && !selUnits.Contains (i) && parentPaths.ContainsKey (g.u[i].rootParentPath ())) {
+				otherPaths.Add (i);
+			}
+		}
+		if (otherPaths.Count > 0) g.cmdPending.add (new DeletePathCmdEvt(g.timeSim, newCmdTime (), otherPaths.ToArray ()));
 	}
 	
 	/// <summary>
