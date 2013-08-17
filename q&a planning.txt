@@ -15,7 +15,7 @@ after pressing continue button, nothing changes but moving mouse away shows leve
 after 1st paths level:
 ...That means that even when watching the replay, your opponents will never see your units taking multiple paths, and in fact the most suspicious evidence they'll see will be seemingly "lucky" coincidences in which your units were in the right place at the right time. But taken together, these carefully chosen "lucky" coincidences may well make the difference between winning and losing the game.
 
-By the way, this is analagous to the way a quantum computer works. In quantum mechanics, particles simultaneously take every path available to them until you see them, and these paths can interact in strange ways that sometimes create "lucky" coincidences more often than you'd have a right to expect. Scientists can arrange these paths so that they each correspond to a possible outcome in a problem. Then, when the computer is run, the particles simultaneously evaluate every possible solution to the problem, and when they are measured, they will often be found in places that are "lucky" coincidences. A quantum computer would then use these coincidences to solve the problem much faster than otherwise possible.
+By the way, this is analogous to how a quantum computer works. Real particles in nature take all of the paths available to them, and they only have to make up their mind about where they are when they are seen or otherwise measured. Since this gives them a certain amount of hindsight by the time they are measured, they can often be found in places that form unlikely coincidences with respect to where other particles ended up. It is then possible to take advantage of these coincidences when they occur to make a computer that can solve certain problems much faster than otherwise possible.
 
 Q: Can *real* particles change what they did in the past?
 
@@ -49,6 +49,6 @@ Notice you could do that without ever seeing the other player time travel. But t
 
 (note: after sniper level, say how finding electron at 1 location decreases chance to find another nearby, emphasizing they don't make up their mind about where they are until you see them, and how this "exclusion principle" creates chemical properties of atoms (from QED))
 
-(note: after identical twins level, say how distinguish radio waves from 1 source vs 2 close sources when can't tell which star the photon came from (from QED))
+(note: after identical twins level, say philosophical implications of never having to make up your mind about what your units do and that replay just shows 1 way opponent could have done that, and how distinguish radio waves from 1 source vs 2 close sources when can't tell which star the photon came from (from QED))
 
 (note: after seeing the entire map level, show how paths/amplitudes and wavefunctions are equivalent in 1 player game/nature with option to explain how decoherence really works)
