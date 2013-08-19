@@ -13,10 +13,6 @@ using ProtoBuf;
 /// contains initialization and user interface code
 /// </summary>
 public class App : MonoBehaviour {
-	private enum UnitMenu {
-		Main, MakeUnit
-	}
-	
 	private class LineBox {
 		public GameObject gameObject;
 		public LineRenderer line;
@@ -99,8 +95,8 @@ public class App : MonoBehaviour {
 	GameObject sprMakeUnit;
 	LineBox selectBox;
 	GUIStyle lblStyle;
-	UnitMenu unitMenu;
-	Vector2 unitMenuScrollPos;
+	Vector2 cmdsScrollPos;
+	Vector2 makeUnitScrollPos;
 	Vector2 selUnitsScrollPos;
 	Sim g;
 	int selPlayer;
@@ -455,7 +451,6 @@ public class App : MonoBehaviour {
 							}
 						}
 					}
-					unitMenu = UnitMenu.Main;
 				}
 			}
 		}
@@ -720,26 +715,25 @@ public class App : MonoBehaviour {
 		// command menu
 		// TODO: show text or hide button if can't do any of these actions
 		GUI.Box (new Rect(0, Screen.height * (1 - g.uiBarHeight), Screen.width / 2, Screen.height * g.uiBarHeight), new GUIContent());
-		GUILayout.BeginArea (new Rect(0, Screen.height * (1 - g.uiBarHeight), Screen.width / 2, Screen.height * g.uiBarHeight));
-		unitMenuScrollPos = GUILayout.BeginScrollView (unitMenuScrollPos);
+		GUILayout.BeginArea (new Rect(0, Screen.height * (1 - g.uiBarHeight), Screen.width / 4, Screen.height * g.uiBarHeight));
+		cmdsScrollPos = GUILayout.BeginScrollView (cmdsScrollPos);
 		if (selUnits.Count > 0) {
 			string plural = (selUnits.Count == 1) ? "" : "s";
-			if (unitMenu == UnitMenu.Main) {
-				if (GUILayout.Button ("New Path" + plural)) makePaths ();
-				if (GUILayout.Button ("Delete Path" + plural)) deletePaths ();
-				if (GUILayout.Button ("Delete Other Paths")) deleteOtherPaths ();
-				if (GUILayout.Button ("Make Unit")) unitMenu = UnitMenu.MakeUnit;
-			}
-			else if (unitMenu == UnitMenu.MakeUnit) {
-				if (GUILayout.Button ("Back")) {
-					unitMenu = UnitMenu.Main;
-				}
-				for (i = 0; i < g.nUnitT; i++) {
-					foreach (int unit in selUnits) {
-						if (g.u[unit].exists (timeGame) && g.unitT[g.u[unit].type].canMake[i]) {
-							if (GUILayout.Button ("Make " + g.unitT[i].name)) makeUnit (i);
-							break;
-						}
+			if (GUILayout.Button ("New Path" + plural)) makePaths ();
+			if (GUILayout.Button ("Delete Path" + plural)) deletePaths ();
+			if (GUILayout.Button ("Delete Other Paths")) deleteOtherPaths ();
+		}
+		GUILayout.EndScrollView ();
+		GUILayout.EndArea ();
+		// make unit menu
+		GUILayout.BeginArea (new Rect(Screen.width / 4, Screen.height * (1 - g.uiBarHeight), Screen.width / 4, Screen.height * g.uiBarHeight));
+		makeUnitScrollPos = GUILayout.BeginScrollView (makeUnitScrollPos);
+		if (selUnits.Count > 0) {
+			for (i = 0; i < g.nUnitT; i++) {
+				foreach (int unit in selUnits) {
+					if (g.u[unit].exists (timeGame) && g.unitT[g.u[unit].type].canMake[i]) {
+						if (GUILayout.Button ("Make " + g.unitT[i].name)) makeUnit (i);
+						break;
 					}
 				}
 			}
