@@ -30,7 +30,7 @@ Controls
 - - = decrease speed
 - n = create new paths that selected units could take
 - delete = delete selected paths
-- shift + delete = delete unselected paths of selected units
+- shift + delete/shift + d = delete unselected paths of selected units
 - shift + r = instant replay
 
 License

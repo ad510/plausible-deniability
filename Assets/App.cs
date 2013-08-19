@@ -512,6 +512,10 @@ public class App : MonoBehaviour {
 				deletePaths ();
 			}
 		}
+		if (Input.GetKeyDown (KeyCode.D) && Input.GetKey (KeyCode.LeftShift)) {
+			// delete unselected paths of selected units (alternate shortcut)
+			deleteOtherPaths ();
+		}
 		if (Input.GetKeyDown (KeyCode.R) && Input.GetKey (KeyCode.LeftShift)) {
 			// instant replay
 			timeGame = 0;
