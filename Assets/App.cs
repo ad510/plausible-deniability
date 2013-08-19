@@ -784,6 +784,7 @@ public class App : MonoBehaviour {
 				Network.Connect (serverAddr, serverPort);
 			}
 			if (GUILayout.Button ("Start Server")) {
+				Network.InitializeSecurity ();
 				Network.InitializeServer (g.nUsers - 1, serverPort, !Network.HavePublicAddress ());
 			}
 		}
@@ -812,6 +813,7 @@ public class App : MonoBehaviour {
 	}
 	
 	// cmdType is same as the SimEvt type's protobuf identifier
+	// TODO: add NetworkMessageInfo as last parameter to authenticate user, according to http://forum.unity3d.com/threads/141156-Determine-sender-of-RPC
 	[RPC]
 	void addCmd(int user, int cmdType, byte[] cmdData) {
 		System.IO.MemoryStream stream = new System.IO.MemoryStream(cmdData);
