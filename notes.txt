@@ -1,7 +1,5 @@
 todo:
 make delete other paths consider parents of units that made it
-making moving unit shouldn't be under "make unit" (what else does building do? :) )
-if can't make anything, shouldn't have "make unit" button
 allow selecting any player, but giving commands only on human players
 attack command & animations
 don't allow attacking while moving for some units
@@ -10,7 +8,6 @@ way to make multiple paths at a time
 making new paths should select new ones as well?
 don't make units come out in random directions?
 allow selecting only 1 building at a time, and no units in addition?
-matthew thinks shift + delete is too hard to press, suggests shift + d
 sound
 pathfinding
 keep non-live paths in yellow areas w/o user help
