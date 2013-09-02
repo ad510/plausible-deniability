@@ -1,4 +1,5 @@
 todo:
+matthew says multiplayer between different LANs doesn't work, connects then can send first few commands, then units freeze and don't unfreeze
 make delete other paths consider parents of units that made it
 allow selecting any player, but giving commands only on human players
 attack command & animations
@@ -23,6 +24,24 @@ unity 4.2
   quad primitive
   "Texture importer now has "Alpha is Transparency" setting, which does color dilation to fix edge artifacts on semitransparent textures. It is enabled by default for GUI textures."
   "fullscreen at native resolution" player setting"
+
+improved delete other paths algorithm:
+for each selected unit:
+  for each parent of this unit:
+    for each child of parent:
+      if child is a path and child isn't an ancestor of a selected unit:
+        delete child (be careful of unit renumbering)
+
+stacking data structures:
+Node:
+  long time
+  int[] paths
+  int[] units
+  bool immutable
+Path:
+  Node[] nodes
+  Move[] moves
+  moved from Unit: tileX, tileY, timeSimPast
 
 if ever allow "min" resources to be <0, must handle these cases w/o letting max resources ever be <0 in replays:
 split worker into 2 paths, 1 path makes a mine, other path doesn't
