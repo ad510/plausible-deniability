@@ -326,7 +326,7 @@ public class App : MonoBehaviour {
 			foreach (Hashtable jsonO in jsonA) {
 				if (g.unitTypeNamed(jsonString(jsonO, "type")) >= 0 && g.playerNamed(jsonString(jsonO, "player")) >= 0) {
 					g.setNUnits(g.nUnits + 1);
-					g.u[g.nUnits - 1] = new Unit(g, g.nUnits - 1, g.unitTypeNamed(jsonString(jsonO, "type")),
+					g.units[g.nUnits - 1] = new Unit(g, g.nUnits - 1, g.unitTypeNamed(jsonString(jsonO, "type")),
 						g.playerNamed(jsonString(jsonO, "player")), (long)jsonDouble(jsonO, "startTime"),
 						jsonFPVector(jsonO, "startPos", new FP.Vector((long)(UnityEngine.Random.value * g.mapSize), (long)(UnityEngine.Random.value * g.mapSize))));
 				}
@@ -437,10 +437,10 @@ public class App : MonoBehaviour {
 					// select units
 					if (!Input.GetKey (KeyCode.LeftControl) && !Input.GetKey (KeyCode.LeftShift)) selUnits.Clear();
 					for (i = 0; i < g.nUnits; i++) {
-						if (selPlayer == g.u[i].player && timeGame >= g.u[i].m[0].timeStart) {
-							pos = g.u[i].calcPos(timeGame);
+						if (selPlayer == g.units[i].player && timeGame >= g.units[i].moves[0].timeStart) {
+							pos = g.units[i].calcPos(timeGame);
 							if (FP.rectIntersects (drawToSimPos (mouseDownPos[0]), drawToSimPos (Input.mousePosition),
-								pos + g.unitT[g.u[i].type].selMinPos, pos + g.unitT[g.u[i].type].selMaxPos)) {
+								pos + g.unitT[g.units[i].type].selMinPos, pos + g.unitT[g.units[i].type].selMaxPos)) {
 								if (selUnits.Contains(i)) {
 									selUnits.Remove(i);
 								}
@@ -521,8 +521,8 @@ public class App : MonoBehaviour {
 			timeGame = 0;
 			// hide traces of mischief
 			for (i = 0; i < g.nUnits; i++) {
-				g.u[i].decohere();
-				g.u[i].tileX = Sim.OffMap + 1;
+				g.units[i].decohere();
+				g.units[i].tileX = Sim.OffMap + 1;
 			}
 			for (i = 0; i < g.tileLen(); i++) {
 				for (j = 0; j < g.tileLen(); j++) {
@@ -530,7 +530,7 @@ public class App : MonoBehaviour {
 				}
 			}
 			for (i = 0; i < g.nUnits; i++) {
-				g.u[i].addTileMoveEvts(ref g.events, -1, g.timeSim);
+				g.units[i].addTileMoveEvts(ref g.events, -1, g.timeSim);
 			}
 			g.update(g.timeSim);
 			// allow selecting any player
@@ -607,32 +607,32 @@ public class App : MonoBehaviour {
 			sprUnits[i].healthBarFore.renderer.enabled = false;
 			sprUnits[i].pathLine.enabled = false;
 			if (unitDrawPos(i, ref vec)) {
-				if (sprUnits[i].type != g.u[i].type || sprUnits[i].player != g.u[i].player) {
-					sprUnits[i].sprite.renderer.material.mainTexture = texUnits[g.u[i].type, g.u[i].player];
-					sprUnits[i].preview.renderer.material.mainTexture = texUnits[g.u[i].type, g.u[i].player];
+				if (sprUnits[i].type != g.units[i].type || sprUnits[i].player != g.units[i].player) {
+					sprUnits[i].sprite.renderer.material.mainTexture = texUnits[g.units[i].type, g.units[i].player];
+					sprUnits[i].preview.renderer.material.mainTexture = texUnits[g.units[i].type, g.units[i].player];
 					sprUnits[i].pathLine.material.color = g.pathCol;
-					sprUnits[i].type = g.u[i].type;
-					sprUnits[i].player = g.u[i].player;
+					sprUnits[i].type = g.units[i].type;
+					sprUnits[i].player = g.units[i].player;
 				}
-				if (g.u[i].isLive(timeGame)) {
+				if (g.units[i].isLive(timeGame)) {
 					sprUnits[i].sprite.renderer.material.color = new Color(1, 1, 1, 1);
 				}
 				else {
 					sprUnits[i].sprite.renderer.material.color = new Color(1, 1, 1, 0.5f); // TODO: make transparency amount customizable
 				}
-				sprUnits[i].sprite.transform.position = vec + simToDrawScl (g.unitT[g.u[i].type].imgOffset);
-				sprUnits[i].sprite.transform.localScale = unitScale (g.u[i].type, g.u[i].player);
+				sprUnits[i].sprite.transform.position = vec + simToDrawScl (g.unitT[g.units[i].type].imgOffset);
+				sprUnits[i].sprite.transform.localScale = unitScale (g.units[i].type, g.units[i].player);
 				sprUnits[i].sprite.renderer.enabled = true;
-				if (g.u[i].isChildPath && timeGame >= g.u[g.u[i].parent].m[0].timeStart) {
+				if (g.units[i].isChildPath && timeGame >= g.units[g.units[i].parent].moves[0].timeStart) {
 					// unit path line
 					sprUnits[i].pathLine.SetPosition (0, new Vector3(vec.x, vec.y, PathLineDepth));
-					sprUnits[i].pathLine.SetPosition (1, simToDrawPos (g.u[g.u[i].parent].calcPos(timeGame), PathLineDepth));
+					sprUnits[i].pathLine.SetPosition (1, simToDrawPos (g.units[g.units[i].parent].calcPos(timeGame), PathLineDepth));
 					sprUnits[i].pathLine.enabled = true;
 				}
 				if (Input.GetKey (KeyCode.LeftShift) && selUnits.Contains(i)) {
 					// show final position if holding shift
 					sprUnits[i].preview.renderer.material.color = sprUnits[i].sprite.renderer.material.color;
-					sprUnits[i].preview.transform.position = simToDrawPos(g.u[i].m[g.u[i].n - 1].vecEnd + g.unitT[g.u[i].type].imgOffset, UnitDepth);
+					sprUnits[i].preview.transform.position = simToDrawPos(g.units[i].moves[g.units[i].nMoves - 1].vecEnd + g.unitT[g.units[i].type].imgOffset, UnitDepth);
 					sprUnits[i].preview.transform.localScale = sprUnits[i].sprite.transform.localScale;
 					sprUnits[i].preview.renderer.enabled = true;
 				}
@@ -659,10 +659,10 @@ public class App : MonoBehaviour {
 		// health bars
 		foreach (int unit in selUnits) {
 			if (unitDrawPos(unit, ref vec)) {
-				f = ((float)g.u[g.u[unit].rootParentPath()].healthWhen(timeGame)) / g.unitT[g.u[unit].type].maxHealth;
-				vec.y += simToDrawScl (g.unitT[g.u[unit].type].selMaxPos.y) + g.healthBarYOffset * winDiag;
+				f = ((float)g.units[g.units[unit].rootParentPath()].healthWhen(timeGame)) / g.unitT[g.units[unit].type].maxHealth;
+				vec.y += simToDrawScl (g.unitT[g.units[unit].type].selMaxPos.y) + g.healthBarYOffset * winDiag;
 				// background
-				if (g.u[unit].healthWhen(timeGame) > 0) {
+				if (g.units[unit].healthWhen(timeGame) > 0) {
 					sprUnits[unit].healthBarBack.renderer.material.color = g.healthBarBackCol;
 					sprUnits[unit].healthBarBack.transform.position = new Vector3(vec.x + g.healthBarSize.x * winDiag * f / 2, vec.y, HealthBarDepth);
 					sprUnits[unit].healthBarBack.transform.localScale = new Vector3(g.healthBarSize.x * winDiag * (1 - f) / 2, g.healthBarSize.y * winDiag / 2, 1);
@@ -735,7 +735,7 @@ public class App : MonoBehaviour {
 		if (selUnits.Count > 0) {
 			for (i = 0; i < g.nUnitT; i++) {
 				foreach (int unit in selUnits) {
-					if (g.u[unit].exists (timeGame) && g.unitT[g.u[unit].type].canMake[i]) {
+					if (g.units[unit].exists (timeGame) && g.unitT[g.units[unit].type].canMake[i]) {
 						if (GUILayout.Button ("Make " + g.unitT[i].name)) makeUnit (i);
 						break;
 					}
@@ -749,11 +749,11 @@ public class App : MonoBehaviour {
 		GUILayout.BeginArea (new Rect(Screen.width / 2, Screen.height * (1 - g.uiBarHeight), Screen.width / 2, Screen.height * g.uiBarHeight));
 		selUnitsScrollPos = GUILayout.BeginScrollView (selUnitsScrollPos);
 		foreach (KeyValuePair<int, int> item in selRootParentPaths()) {
-			if (GUILayout.Button (g.unitT[g.u[item.Key].type].name + (item.Value != 1 ? " (" + item.Value + " paths)" : ""))) {
+			if (GUILayout.Button (g.unitT[g.units[item.Key].type].name + (item.Value != 1 ? " (" + item.Value + " paths)" : ""))) {
 				if (Event.current.button == 0) { // left button
 					// select unit
 					for (i = 0; i < selUnits.Count; i++) {
-						if (g.u[selUnits[i]].rootParentPath () != item.Key) {
+						if (g.units[selUnits[i]].rootParentPath () != item.Key) {
 							selUnits.RemoveAt (i);
 							i--;
 						}
@@ -762,7 +762,7 @@ public class App : MonoBehaviour {
 				else if (Event.current.button == 1) { // right button
 					// deselect unit
 					for (i = 0; i < selUnits.Count; i++) {
-						if (g.u[selUnits[i]].rootParentPath () == item.Key) {
+						if (g.units[selUnits[i]].rootParentPath () == item.Key) {
 							selUnits.RemoveAt (i);
 							i--;
 						}
@@ -916,8 +916,8 @@ public class App : MonoBehaviour {
 		Dictionary<int, int> ret = new Dictionary<int, int>();
 		int rootParentPath;
 		foreach (int unit in selUnits) {
-			if (g.u[unit].exists (timeGame)) {
-				rootParentPath = g.u[unit].rootParentPath ();
+			if (g.units[unit].exists (timeGame)) {
+				rootParentPath = g.units[unit].rootParentPath ();
 				if (!ret.ContainsKey (rootParentPath)) ret.Add (rootParentPath, 0);
 				ret[rootParentPath]++;
 			}
@@ -935,10 +935,10 @@ public class App : MonoBehaviour {
 				// selected unit type must be made on top of another unit of correct type
 				// TODO: prevent putting multiple units on same unit (unless on different paths of same unit and maybe some other cases)
 				for (int i = 0; i < g.nUnits; i++) {
-					if (g.u[i].exists(timeGame)) {
-						vec = g.u[i].calcPos(timeGame);
-						if (g.u[i].type == g.unitT[makeUnitType].makeOnUnitT && g.tileAt(vec).playerVisWhen(selPlayer, timeGame)
-							&& FP.rectContains (vec + g.unitT[g.u[i].type].selMinPos, vec + g.unitT[g.u[i].type].selMaxPos, drawToSimPos (Input.mousePosition))) {
+					if (g.units[i].exists(timeGame)) {
+						vec = g.units[i].calcPos(timeGame);
+						if (g.units[i].type == g.unitT[makeUnitType].makeOnUnitT && g.tileAt(vec).playerVisWhen(selPlayer, timeGame)
+							&& FP.rectContains (vec + g.unitT[g.units[i].type].selMinPos, vec + g.unitT[g.units[i].type].selMaxPos, drawToSimPos (Input.mousePosition))) {
 							return vec;
 						}
 					}
@@ -958,11 +958,11 @@ public class App : MonoBehaviour {
 	private FP.Vector makeUnitMovePos(long time, int unit) {
 		FP.Vector ret;
 		do {
-			ret = new FP.Vector((long)((UnityEngine.Random.value - 0.5) * g.unitT[g.u[unit].type].makeUnitMaxDist * 2),
-				(long)((UnityEngine.Random.value - 0.5) * g.unitT[g.u[unit].type].makeUnitMaxDist * 2));
-		} while (ret.lengthSq() < g.unitT[g.u[unit].type].makeUnitMinDist * g.unitT[g.u[unit].type].makeUnitMinDist
-			&& ret.lengthSq() > g.unitT[g.u[unit].type].makeUnitMaxDist * g.unitT[g.u[unit].type].makeUnitMaxDist);
-		return ret + g.u[unit].calcPos(time);
+			ret = new FP.Vector((long)((UnityEngine.Random.value - 0.5) * g.unitT[g.units[unit].type].makeUnitMaxDist * 2),
+				(long)((UnityEngine.Random.value - 0.5) * g.unitT[g.units[unit].type].makeUnitMaxDist * 2));
+		} while (ret.lengthSq() < g.unitT[g.units[unit].type].makeUnitMinDist * g.unitT[g.units[unit].type].makeUnitMinDist
+			&& ret.lengthSq() > g.unitT[g.units[unit].type].makeUnitMaxDist * g.unitT[g.units[unit].type].makeUnitMaxDist);
+		return ret + g.units[unit].calcPos(time);
 	}
 	
 	/// <summary>
@@ -972,7 +972,7 @@ public class App : MonoBehaviour {
 		if (selUnits.Count > 0) {
 			FP.Vector[] pos = new FP.Vector[selUnits.Count];
 			for (int i = 0; i < selUnits.Count; i++) {
-				if (g.u[selUnits[i]].exists(timeGame + 1)) pos[i] = makeUnitMovePos(timeGame + 1, selUnits[i]);
+				if (g.units[selUnits[i]].exists(timeGame + 1)) pos[i] = makeUnitMovePos(timeGame + 1, selUnits[i]);
 			}
 			// happens at newCmdTime() + 1 so new path starts out live if game is live
 			g.cmdPending.add(new MakePathCmdEvt(g.timeSim, newCmdTime() + 1, selUnits.ToArray(), pos));
@@ -994,7 +994,7 @@ public class App : MonoBehaviour {
 		Dictionary<int, int> parentPaths = selRootParentPaths ();
 		List<int> otherPaths = new List<int>();
 		for (int i = 0; i < g.nUnits; i++) {
-			if (g.u[i].exists (timeGame) && !selUnits.Contains (i) && parentPaths.ContainsKey (g.u[i].rootParentPath ())) {
+			if (g.units[i].exists (timeGame) && !selUnits.Contains (i) && parentPaths.ContainsKey (g.units[i].rootParentPath ())) {
 				otherPaths.Add (i);
 			}
 		}
@@ -1006,7 +1006,7 @@ public class App : MonoBehaviour {
 	/// </summary>
 	private void makeUnit(int type) {
 		foreach (int unit in selUnits) {
-			if (g.u[unit].canMakeChildUnit(timeGame + 1, false, type)) {
+			if (g.units[unit].canMakeChildUnit(timeGame + 1, false, type)) {
 				if (g.unitT[type].speed > 0 && g.unitT[type].makeOnUnitT < 0) {
 					// make unit now
 					int[] unitArray = new int[1];
@@ -1028,9 +1028,9 @@ public class App : MonoBehaviour {
 	/// </summary>
 	private bool unitDrawPos(int unit, ref Vector3 pos) {
 		FP.Vector fpVec;
-		if (!g.u[unit].exists(timeGame) || (selPlayer != g.u[unit].player && !g.u[unit].isLive(timeGame))) return false;
-		fpVec = g.u[unit].calcPos(timeGame);
-		if (selPlayer != g.u[unit].player && !g.tileAt(fpVec).playerVisWhen(selPlayer, timeGame)) return false;
+		if (!g.units[unit].exists(timeGame) || (selPlayer != g.units[unit].player && !g.units[unit].isLive(timeGame))) return false;
+		fpVec = g.units[unit].calcPos(timeGame);
+		if (selPlayer != g.units[unit].player && !g.tileAt(fpVec).playerVisWhen(selPlayer, timeGame)) return false;
 		pos = simToDrawPos(fpVec, UnitDepth);
 		return true;
 	}

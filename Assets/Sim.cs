@@ -135,7 +135,7 @@ public class Sim {
 		/// </summary>
 		public bool playerDirectVisLatest(int player) {
 			foreach (int i in unitVis.Keys) {
-				if (player == g.u[i].player && visLatest(unitVis[i])) return true;
+				if (player == g.units[i].player && visLatest(unitVis[i])) return true;
 			}
 			return false;
 		}
@@ -145,7 +145,7 @@ public class Sim {
 		/// </summary>
 		public bool playerDirectVisWhen(int player, long time) {
 			foreach (int i in unitVis.Keys) {
-				if (player == g.u[i].player && visWhen(unitVis[i], time)) return true;
+				if (player == g.units[i].player && visWhen(unitVis[i], time)) return true;
 			}
 			return false;
 		}
@@ -263,7 +263,7 @@ public class Sim {
 	public string[] rscNames;
 	public Player[] players;
 	public UnitType[] unitT;
-	public Unit[] u;
+	public Unit[] units;
 
 	// helper variables not loaded from scenario file
 	public int selUser;
@@ -285,8 +285,8 @@ public class Sim {
 	/// </summary>
 	public void setNUnits(int newSize) {
 		nUnits = newSize;
-		if (u == null || nUnits > u.Length)
-			Array.Resize(ref u, nUnits * 2);
+		if (units == null || nUnits > units.Length)
+			Array.Resize(ref units, nUnits * 2);
 	}
 
 	/// <summary>
@@ -317,7 +317,7 @@ public class Sim {
 					}
 				}
 				foreach (int unit in movedUnits) {
-					if (u[unit].timeSimPast == long.MaxValue) u[unit].addTileMoveEvts(ref events, timeSim, timeUpdateEvt + updateInterval);
+					if (units[unit].timeSimPast == long.MaxValue) units[unit].addTileMoveEvts(ref events, timeSim, timeUpdateEvt + updateInterval);
 				}
 				movedUnits.Clear();
 			}
@@ -333,7 +333,7 @@ public class Sim {
 	public void updatePast(int player, long curTime) {
 		if (players[player].hasNonLiveUnits) {
 			for (int i = 0; i < nUnits; i++) {
-				if (u[i].player == player) u[i].updatePast(curTime);
+				if (units[i].player == player) units[i].updatePast(curTime);
 			}
 			if (curTime >= timeSim && (players[player].timeGoLiveFail == long.MaxValue || timeSim >= players[player].timeGoLiveFail + updateInterval)) {
 				cmdPending.add(new GoLiveCmdEvt(timeSim, player));
@@ -377,8 +377,8 @@ public class Sim {
 		// this player's units that are on this tile may time travel starting now
 		// TODO: actually safe to time travel at earlier times, as long as unit of same type is at same place when decoheres
 		for (int i = 0; i < nUnits; i++) {
-			if (player == u[i].player && tileX == u[i].tileX && tileY == u[i].tileY && !u[i].coherent()) {
-				u[i].cohere(time);
+			if (player == units[i].player && tileX == units[i].tileX && tileY == units[i].tileY && !units[i].coherent()) {
+				units[i].cohere(time);
 			}
 		}
 	}
@@ -392,8 +392,8 @@ public class Sim {
 		tiles[tileX, tileY].coherence[player].Add(time);
 		// this player's units that are on this tile may not time travel starting now
 		for (int i = 0; i < nUnits; i++) {
-			if (player == u[i].player && tileX == u[i].tileX && tileY == u[i].tileY && u[i].coherent()) {
-				u[i].decohere();
+			if (player == units[i].player && tileX == units[i].tileX && tileY == units[i].tileY && units[i].coherent()) {
+				units[i].decohere();
 			}
 		}
 	}
@@ -432,7 +432,7 @@ public class Sim {
 	public long playerResource(int player, long time, int rscType, bool max, bool includeNonLiveChildren, bool alwaysUseReplacementPaths) {
 		long ret = players[player].startRsc[rscType];
 		for (int i = 0; i < nUnits; i++) {
-			if (u[i].player == player && u[i].parent < 0) ret += u[i].rscCollected(time, rscType, max, includeNonLiveChildren, alwaysUseReplacementPaths);
+			if (units[i].player == player && units[i].parent < 0) ret += units[i].rscCollected(time, rscType, max, includeNonLiveChildren, alwaysUseReplacementPaths);
 		}
 		return ret;
 	}
@@ -446,10 +446,10 @@ public class Sim {
 		for (i = 0; i < nUnits; i++) {
 			// check all times since timeMin that a unit of specified player was made
 			// note that new units are made at timeCmd + 1
-			if (player == u[i].player && u[i].m[0].timeStart >= timeMin && u[i].m[0].timeStart <= timeSim + 1) {
+			if (player == units[i].player && units[i].moves[0].timeStart >= timeMin && units[i].moves[0].timeStart <= timeSim + 1) {
 				for (j = 0; j < nRsc; j++) {
-					if (playerResource(player, u[i].m[0].timeStart, j, false, includeNonLiveChildren, alwaysUseReplacementPaths) < 0) {
-						return u[i].m[0].timeStart;
+					if (playerResource(player, units[i].moves[0].timeStart, j, false, includeNonLiveChildren, alwaysUseReplacementPaths) < 0) {
+						return units[i].moves[0].timeStart;
 					}
 				}
 			}

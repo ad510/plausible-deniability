@@ -73,8 +73,8 @@ public class Unit {
 	private int id; // index in unit array
 	public int type;
 	public int player;
-	public int n; // number of moves
-	public Move[] m; // array of moves (later moves are later in array)
+	public int nMoves; // number of moves
+	public Move[] moves; // array of moves (later moves are later in array)
 	//public FP.Vector pos; // current position
 	public int tileX, tileY; // current position on visibility tiles
 	public int nTimeHealth;
@@ -93,9 +93,9 @@ public class Unit {
 		id = idVal;
 		type = typeVal;
 		player = playerVal;
-		n = 1;
-		m = new Move[n];
-		m[0] = new Move(startTime, startPos);
+		nMoves = 1;
+		moves = new Move[nMoves];
+		moves[0] = new Move(startTime, startPos);
 		//pos = startPos;
 		tileX = Sim.OffMap + 1;
 		tileY = Sim.OffMap + 1;
@@ -156,12 +156,12 @@ public class Unit {
 	/// </summary>
 	private void setN(int newSize) {
 		int i = 0;
-		for (i = n; i < Math.Min(newSize, m.Length); i++) {
-			m[i] = new Move(0, new FP.Vector());
+		for (i = nMoves; i < Math.Min(newSize, moves.Length); i++) {
+			moves[i] = new Move(0, new FP.Vector());
 		}
-		n = newSize;
-		if (n > m.Length)
-			Array.Resize(ref m, n * 2);
+		nMoves = newSize;
+		if (nMoves > moves.Length)
+			Array.Resize(ref moves, nMoves * 2);
 	}
 
 	/// <summary>
@@ -172,8 +172,8 @@ public class Unit {
 	/// (add allowOverride variable in TileMoveEvt if necessary)
 	/// </remarks>
 	private void addMove(Move newMove) {
-		setN(n + 1);
-		m[n - 1] = newMove;
+		setN(nMoves + 1);
+		moves[nMoves - 1] = newMove;
 		if (!g.movedUnits.Contains(id)) g.movedUnits.Add(id); // indicate to delete and recalculate later TileMoveEvts for this unit
 	}
 
@@ -191,7 +191,7 @@ public class Unit {
 		if (goalPos.y < 0) goalPos.y = 0;
 		if (goalPos.y > g.mapSize) goalPos.y = g.mapSize;
 		// add move
-		g.u[unit2].addMove(Move.fromSpeed(time, g.unitT[g.u[unit2].type].speed, curPos, goalPos));
+		g.units[unit2].addMove(Move.fromSpeed(time, g.unitT[g.units[unit2].type].speed, curPos, goalPos));
 		return unit2;
 	}
 
@@ -206,15 +206,15 @@ public class Unit {
 	/// returns location at specified time
 	/// </summary>
 	public FP.Vector calcPos(long time) {
-		return m[getMove(time)].calcPos(time);
+		return moves[getMove(time)].calcPos(time);
 	}
 
 	/// <summary>
 	/// returns index of move that is occurring at specified time
 	/// </summary>
 	public int getMove(long time) {
-		int ret = n - 1;
-		while (ret >= 0 && time < m[ret].timeStart) ret--;
+		int ret = nMoves - 1;
+		while (ret >= 0 && time < moves[ret].timeStart) ret--;
 		return ret;
 	}
 
@@ -226,31 +226,31 @@ public class Unit {
 		int move, moveLast;
 		FP.Vector pos, posLast;
 		int i, j, iNext, tX, tY, dir;
-		if (timeMax < m[0].timeStart) return;
+		if (timeMax < moves[0].timeStart) return;
 		moveLast = getMove(timeMin);
 		move = getMove(timeMax);
 		if (moveLast < 0) {
 			// put unit on visibility tiles for the first time
-			events.add(new TileMoveEvt(m[0].timeStart, id, (int)(m[0].vecStart.x >> FP.Precision), (int)(m[0].vecStart.y >> FP.Precision)));
+			events.add(new TileMoveEvt(moves[0].timeStart, id, (int)(moves[0].vecStart.x >> FP.Precision), (int)(moves[0].vecStart.y >> FP.Precision)));
 			moveLast = 0;
 		}
 		for (i = moveLast; i <= move; i = iNext) {
 			// next move may not be i + 1 if times are out of order
 			iNext = i + 1;
-			for (j = iNext + 1; j < n; j++) {
-				if (m[j].timeStart <= m[iNext].timeStart) iNext = j;
+			for (j = iNext + 1; j < nMoves; j++) {
+				if (moves[j].timeStart <= moves[iNext].timeStart) iNext = j;
 			}
-			posLast = (i == moveLast) ? m[i].calcPos(Math.Max(timeMin, m[0].timeStart)) : m[i].vecStart;
-			pos = (i == move) ? m[i].calcPos(timeMax) : m[iNext].vecStart;
+			posLast = (i == moveLast) ? moves[i].calcPos(Math.Max(timeMin, moves[0].timeStart)) : moves[i].vecStart;
+			pos = (i == move) ? moves[i].calcPos(timeMax) : moves[iNext].vecStart;
 			// moving between columns (x)
 			dir = (pos.x >= posLast.x) ? 0 : -1;
 			for (tX = (int)(Math.Min(pos.x, posLast.x) >> FP.Precision) + 1; tX <= (int)(Math.Max(pos.x, posLast.x) >> FP.Precision); tX++) {
-				events.add(new TileMoveEvt(m[i].timeAtX(tX << FP.Precision), id, tX + dir, int.MinValue));
+				events.add(new TileMoveEvt(moves[i].timeAtX(tX << FP.Precision), id, tX + dir, int.MinValue));
 			}
 			// moving between rows (y)
 			dir = (pos.y >= posLast.y) ? 0 : -1;
 			for (tY = (int)(Math.Min(pos.y, posLast.y) >> FP.Precision) + 1; tY <= (int)(Math.Max(pos.y, posLast.y) >> FP.Precision); tY++) {
-				events.add(new TileMoveEvt(m[i].timeAtY(tY << FP.Precision), id, int.MinValue, tY + dir));
+				events.add(new TileMoveEvt(moves[i].timeAtY(tY << FP.Precision), id, int.MinValue, tY + dir));
 			}
 		}
 		if (healthLatest() == 0 && healthWhen(timeMin) > 0) {
@@ -296,7 +296,7 @@ public class Unit {
 		timeSimPast = long.MaxValue;
 		if (replaceParentPath) {
 			replaceParentPath = false;
-			g.u[parent].deleteChildrenAfter(m[0].timeStart);
+			g.units[parent].deleteChildrenAfter(moves[0].timeStart);
 			movePathToParent();
 		}
 		else {
@@ -319,20 +319,20 @@ public class Unit {
 		if (time > timeCohere) timeCohere = time;
 		// delete all child paths made before time cohered
 		for (int i = 0; i < nChildren; i++) {
-			if (g.u[children[i]].isChildPath && g.u[children[i]].m[0].timeStart < timeCohere) {
-				if (!g.u[children[i]].delete(time)) throw new SystemException("child unit not deleted successfully");
+			if (g.units[children[i]].isChildPath && g.units[children[i]].moves[0].timeStart < timeCohere) {
+				if (!g.units[children[i]].delete(time)) throw new SystemException("child unit not deleted successfully");
 				i--;
 			}
 		}
 		if (parent >= 0) {
 			if (isChildPath) {
 				int parentPathTemp = parent;
-				g.u[parent].deleteChildrenAfter(m[0].timeStart);
+				g.units[parent].deleteChildrenAfter(moves[0].timeStart);
 				movePathToParent();
-				g.u[parentPathTemp].decohere();
+				g.units[parentPathTemp].decohere();
 			}
 			else {
-				g.u[parent].decohere(m[0].timeStart);
+				g.units[parent].decohere(moves[0].timeStart);
 			}
 		}
 	}
@@ -347,31 +347,31 @@ public class Unit {
 			// take the path of the latest child path (overwriting our current moves in the process)
 			int path = -1;
 			for (i = 0; i < nChildren; i++) {
-				if (g.u[children[i]].isChildPath // child unit must be a child path
-					&& (g.u[children[i]].isLive(time) || (!isLive(time) && g.u[children[i]].exists(time))) // child unit must be live, unless this unit isn't
-					&& g.u[children[i]].m[0].timeStart <= time // child unit may not be made after the specified time
-					&& (path < 0 || g.u[children[i]].m[0].timeStart > g.u[path].m[0].timeStart)) { // child unit must be made after current latest child
+				if (g.units[children[i]].isChildPath // child unit must be a child path
+					&& (g.units[children[i]].isLive(time) || (!isLive(time) && g.units[children[i]].exists(time))) // child unit must be live, unless this unit isn't
+					&& g.units[children[i]].moves[0].timeStart <= time // child unit may not be made after the specified time
+					&& (path < 0 || g.units[children[i]].moves[0].timeStart > g.units[path].moves[0].timeStart)) { // child unit must be made after current latest child
 					path = children[i];
 				}
-				else if (g.u[children[i]].timeCohere != g.u[children[i]].m[0].timeStart) {
+				else if (g.units[children[i]].timeCohere != g.units[children[i]].moves[0].timeStart) {
 					hasDecoheredChild = true;
 				}
 			}
 			if (path >= 0) {
-				deleteChildrenAfter(g.u[path].m[0].timeStart); // delete non-live child units made after the child path that we will take
-				g.u[path].movePathToParent();
+				deleteChildrenAfter(g.units[path].moves[0].timeStart); // delete non-live child units made after the child path that we will take
+				g.units[path].movePathToParent();
 				return true;
 			}
 		}
-		if (parent >= 0 && timeCohere == m[0].timeStart && !hasDecoheredChild) {
+		if (parent >= 0 && timeCohere == moves[0].timeStart && !hasDecoheredChild) {
 			// if we can't become a child unit but have a parent unit and were never seen by another player, delete this unit completely
 			if (timeSimPast == long.MaxValue && !isChildPath && !skipRscCheck) {
 				// check if deleting unit might lead to player having negative resources
 				// (don't need to check this if taking the path of another unit b/c no combination of paths are allowed to give player negative resources)
-				Move m0Original = m[0];
-				m[0] = new Move(long.MaxValue - 1, new FP.Vector(Sim.OffMap, 0)); // simulate this unit (and implicitly its child units) not existing during the check
+				Move m0Original = moves[0];
+				moves[0] = new Move(long.MaxValue - 1, new FP.Vector(Sim.OffMap, 0)); // simulate this unit (and implicitly its child units) not existing during the check
 				if (g.playerCheckNegRsc(player, m0Original.timeStart, false, false) >= 0) {
-					m[0] = m0Original;
+					moves[0] = m0Original;
 					return false;
 				}
 			}
@@ -380,7 +380,7 @@ public class Unit {
 				g.unitIdChgs.Add(parent);
 			}
 			deleteAllChildren();
-			g.u[parent].deleteChild(id);
+			g.units[parent].deleteChild(id);
 			return true;
 		}
 		return false; // deleting this unit would change something that another player saw (assuming they also know the scenario's starting state)
@@ -394,17 +394,17 @@ public class Unit {
 			FP.Vector pos = calcPos(time);
 			// make new unit
 			g.setNUnits(g.nUnits + 1);
-			g.u[g.nUnits - 1] = new Unit(g, g.nUnits - 1, isChildPathVal ? type : typeVal, player, time, pos);
+			g.units[g.nUnits - 1] = new Unit(g, g.nUnits - 1, isChildPathVal ? type : typeVal, player, time, pos);
 			// indicate that we are the new unit's parent
 			addChild(g.nUnits - 1);
 			// if this unit isn't live, new unit can't be either
-			if (!isLive(time)) g.u[g.nUnits - 1].timeSimPast = time;
+			if (!isLive(time)) g.units[g.nUnits - 1].timeSimPast = time;
 			// set whether new unit is a temporary unit moving along an alternate path that this unit could take
-			g.u[g.nUnits - 1].isChildPath = isChildPathVal;
+			g.units[g.nUnits - 1].isChildPath = isChildPathVal;
 			// indicate to calculate TileMoveEvts for new unit starting at timeSim
 			if (!g.movedUnits.Contains(g.nUnits - 1)) g.movedUnits.Add(g.nUnits - 1);
 			// if new unit isn't live, indicate that player now has a non-live unit
-			if (!g.u[g.nUnits - 1].isLive(time)) g.players[player].hasNonLiveUnits = true;
+			if (!g.units[g.nUnits - 1].isLive(time)) g.players[player].hasNonLiveUnits = true;
 			return true;
 		}
 		return false;
@@ -445,14 +445,14 @@ public class Unit {
 		else {
 			// this unit is live, make new child unit to replace this unit's path when the child unit becomes live
 			for (int i = 0; i < nChildren; i++) {
-				if (g.u[children[i]].replaceParentPath) {
+				if (g.units[children[i]].replaceParentPath) {
 					// delete existing replacement path before making a new one
-					g.u[children[i]].delete(g.u[children[i]].m[0].timeStart);
+					g.units[children[i]].delete(g.units[children[i]].moves[0].timeStart);
 					break;
 				}
 			}
 			makeChildUnit(time, true);
-			g.u[children[nChildren - 1]].replaceParentPath = true;
+			g.units[children[nChildren - 1]].replaceParentPath = true;
 			g.unitIdChgs.Add(id);
 			g.unitIdChgs.Add(children[nChildren - 1]);
 			return children[nChildren - 1];
@@ -467,7 +467,7 @@ public class Unit {
 		if (nChildren > children.Length)
 			Array.Resize(ref children, nChildren * 2);
 		children[nChildren - 1] = unit;
-		g.u[unit].parent = id;
+		g.units[unit].parent = id;
 	}
 
 	/// <summary>
@@ -483,8 +483,8 @@ public class Unit {
 		}
 		nChildren--;
 		// delete child unit
-		g.u[unit].deleteAllMoves();
-		g.u[unit].parent = -1;
+		g.units[unit].deleteAllMoves();
+		g.units[unit].parent = -1;
 	}
 
 	/// <summary>
@@ -493,9 +493,9 @@ public class Unit {
 	/// <remarks>this does not check whether deleting the units may lead to player having negative resources</remarks>
 	private void deleteAllChildren() {
 		for (int i = 0; i < nChildren; i++) {
-			g.u[children[i]].deleteAllMoves();
-			g.u[children[i]].parent = -1;
-			g.u[children[i]].deleteAllChildren();
+			g.units[children[i]].deleteAllMoves();
+			g.units[children[i]].parent = -1;
+			g.units[children[i]].deleteAllChildren();
 		}
 		nChildren = 0;
 	}
@@ -506,8 +506,8 @@ public class Unit {
 	/// <remarks>this does not check whether deleting the units may lead to player having negative resources</remarks>
 	private void deleteChildrenAfter(long time) {
 		for (int i = 0; i < nChildren; i++) {
-			if (g.u[children[i]].m[0].timeStart > time) {
-				g.u[children[i]].delete(time, true);
+			if (g.units[children[i]].moves[0].timeStart > time) {
+				g.units[children[i]].delete(time, true);
 				i--;
 			}
 		}
@@ -525,27 +525,27 @@ public class Unit {
 		g.unitIdChgs.Add(id);
 		g.unitIdChgs.Add(parent);
 		// move all moves to parent unit
-		for (i = 0; i < n; i++) {
-			g.u[parent].addMove(m[i]);
+		for (i = 0; i < nMoves; i++) {
+			g.units[parent].addMove(moves[i]);
 		}
 		// move parent unit onto tile that we are currently on
 		// can't pass in tileX and tileY because this unit's latest TileMoveEvts might not be applied yet
 		g.events.add(new TileMoveEvt(g.timeSim, parent, (int)(pos.x >> FP.Precision), (int)(pos.y >> FP.Precision)));
 		// move child units to parent unit
 		for (i = 0; i < nChildren; i++) {
-			g.u[parent].addChild(children[i]);
+			g.units[parent].addChild(children[i]);
 		}
 		nChildren = 0;
 		// delete this unit since it is now incorporated into its parent unit
-		g.u[parent].deleteChild(id);
+		g.units[parent].deleteChild(id);
 	}
 
 	/// <summary>
 	/// change unit movement to make it look like this unit never existed
 	/// </summary>
 	private void deleteAllMoves() {
-		n = 0;
-		m[0] = new Move(long.MaxValue - 1, new FP.Vector(Sim.OffMap, 0));
+		nMoves = 0;
+		moves[0] = new Move(long.MaxValue - 1, new FP.Vector(Sim.OffMap, 0));
 		timeCohere = long.MaxValue;
 		g.events.add(new TileMoveEvt(g.timeSim, id, Sim.OffMap, 0));
 	}
@@ -555,7 +555,7 @@ public class Unit {
 	/// </summary>
 	public int rootParent() {
 		int ret = id;
-		while (g.u[ret].parent >= 0) ret = g.u[ret].parent;
+		while (g.units[ret].parent >= 0) ret = g.units[ret].parent;
 		return ret;
 	}
 
@@ -564,7 +564,7 @@ public class Unit {
 	/// </summary>
 	public int rootParentPath() {
 		int ret = id;
-		while (g.u[ret].isChildPath) ret = g.u[ret].parent;
+		while (g.units[ret].isChildPath) ret = g.units[ret].parent;
 		return ret;
 	}
 
@@ -576,36 +576,36 @@ public class Unit {
 	/// determines whether to use paths that collected least or most resources in calculation
 	/// </param>
 	public long rscCollected(long time, int rscType, bool max, bool includeNonLiveChildren, bool alwaysUseReplacementPaths) {
-		if (time < m[0].timeStart) return 0; // if this unit isn't made yet, it can't have collected anything
+		if (time < moves[0].timeStart) return 0; // if this unit isn't made yet, it can't have collected anything
 		List<int> childrenList = new List<int>(children);
 		long timeCollectEnd = (healthWhen(time) == 0) ? timeHealth[nTimeHealth - 1] : time;
 		long pathCollected;
 		bool foundReplacementPath = false;
 		long ret = 0;
 		childrenList.RemoveRange(nChildren, children.Length - nChildren);
-		foreach (int child in childrenList.OrderByDescending(i => g.u[i].m[0].timeStart)) {
-			if (time >= g.u[child].m[0].timeStart && (includeNonLiveChildren || g.u[child].timeSimPast == long.MaxValue)) {
-				if (g.u[child].isChildPath) {
+		foreach (int child in childrenList.OrderByDescending(i => g.units[i].moves[0].timeStart)) {
+			if (time >= g.units[child].moves[0].timeStart && (includeNonLiveChildren || g.units[child].timeSimPast == long.MaxValue)) {
+				if (g.units[child].isChildPath) {
 					if (!alwaysUseReplacementPaths || !foundReplacementPath) {
 						// if child unit is one of this unit's paths and collected more/less (depending on max parameter) resources than this path,
 						// use that path for resource calculation
-						pathCollected = g.u[child].rscCollected(time, rscType, max, includeNonLiveChildren, alwaysUseReplacementPaths);
-						if ((alwaysUseReplacementPaths && g.u[child].replaceParentPath)
-								|| max ^ (pathCollected < ret + g.unitT[type].rscCollectRate[rscType] * (timeCollectEnd - g.u[child].m[0].timeStart))) {
+						pathCollected = g.units[child].rscCollected(time, rscType, max, includeNonLiveChildren, alwaysUseReplacementPaths);
+						if ((alwaysUseReplacementPaths && g.units[child].replaceParentPath)
+								|| max ^ (pathCollected < ret + g.unitT[type].rscCollectRate[rscType] * (timeCollectEnd - g.units[child].moves[0].timeStart))) {
 							ret = pathCollected;
-							timeCollectEnd = g.u[child].m[0].timeStart;
-							if (alwaysUseReplacementPaths && g.u[child].replaceParentPath) foundReplacementPath = true;
+							timeCollectEnd = g.units[child].moves[0].timeStart;
+							if (alwaysUseReplacementPaths && g.units[child].replaceParentPath) foundReplacementPath = true;
 						}
 					}
 				}
 				else {
 					// add resources that non-path child unit gained
-					ret += g.u[child].rscCollected(time, rscType, max, includeNonLiveChildren, alwaysUseReplacementPaths);
+					ret += g.units[child].rscCollected(time, rscType, max, includeNonLiveChildren, alwaysUseReplacementPaths);
 				}
 			}
 		}
 		// add resources collected by this unit
-		ret += g.unitT[type].rscCollectRate[rscType] * (timeCollectEnd - m[0].timeStart);
+		ret += g.unitT[type].rscCollectRate[rscType] * (timeCollectEnd - moves[0].timeStart);
 		// if unit was made by another unit, subtract cost to make it
 		if (parent >= 0 && !isChildPath) ret -= g.unitT[type].rscCost[rscType];
 		return ret;
@@ -622,7 +622,7 @@ public class Unit {
 	/// returns whether unit is created and has health at specified time
 	/// </summary>
 	public bool exists(long time) {
-		return time >= m[0].timeStart && healthWhen(time) > 0;
+		return time >= moves[0].timeStart && healthWhen(time) > 0;
 	}
 
 	/// <summary>
