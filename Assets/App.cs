@@ -325,15 +325,22 @@ public class App : MonoBehaviour {
 		jsonA = jsonArray(json, "units");
 		if (jsonA != null) {
 			foreach (Hashtable jsonO in jsonA) {
-				if (g.unitTypeNamed(jsonString(jsonO, "type")) >= 0 && g.playerNamed(jsonString(jsonO, "player")) >= 0) {
-					int[] units = new int[1];
-					g.setNUnits(g.nUnits + 1);
-					g.units[g.nUnits - 1] = new Unit(g, g.nUnits - 1, g.unitTypeNamed(jsonString(jsonO, "type")),
-						g.playerNamed(jsonString(jsonO, "player")), (long)jsonDouble(jsonO, "startTime"),
-						jsonFPVector(jsonO, "startPos", new FP.Vector((long)(UnityEngine.Random.value * g.mapSize), (long)(UnityEngine.Random.value * g.mapSize))));
-					units[0] = g.nUnits - 1;
+				if (g.playerNamed(jsonString(jsonO, "player")) >= 0) {
+					ArrayList jsonA2 = jsonArray (jsonO, "types");
+					List<int> units = new List<int>();
+					if (jsonA2 != null) {
+						foreach (string type in jsonA2) {
+							if (g.unitTypeNamed(type) >= 0) {
+								g.setNUnits(g.nUnits + 1);
+								g.units[g.nUnits - 1] = new Unit(g, g.nUnits - 1, g.unitTypeNamed(type),
+									g.playerNamed(jsonString(jsonO, "player")), (long)jsonDouble(jsonO, "startTime"),
+									jsonFPVector(jsonO, "startPos", new FP.Vector((long)(UnityEngine.Random.value * g.mapSize), (long)(UnityEngine.Random.value * g.mapSize))));
+								units.Add (g.nUnits - 1);
+							}
+						}
+					}
 					g.setNPaths(g.nPaths + 1);
-					g.paths[g.nPaths - 1] = new Path(g, units, (long)jsonDouble(jsonO, "startTime"),
+					g.paths[g.nPaths - 1] = new Path(g, units.ToArray (), (long)jsonDouble(jsonO, "startTime"),
 						jsonFPVector(jsonO, "startPos", new FP.Vector((long)(UnityEngine.Random.value * g.mapSize), (long)(UnityEngine.Random.value * g.mapSize))));
 				}
 			}

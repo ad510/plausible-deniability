@@ -60,12 +60,12 @@
   "units":
   [
     {
-      "type": "marine",
+      "types": ["marine"],
       "player": "blue",
       "startPos": {"x": 80, "y": 80}
     },
     {
-      "type": "marine",
+      "types": ["marine"],
       "player": "red",
       "startPos": {"x": 0, "y": 80}
     }

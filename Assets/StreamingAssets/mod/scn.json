@@ -152,52 +152,57 @@
   "units":
   [
     {
-      "type": "Mineral",
+      "types": ["Mineral"],
       "player": "Resources"
     },
     {
-      "type": "Mineral",
+      "types": ["Mineral"],
       "player": "Resources"
     },
     {
-      "type": "Mineral",
+      "types": ["Mineral"],
       "player": "Resources"
     },
     {
-      "type": "Mineral",
+      "types": ["Mineral"],
       "player": "Resources"
     },
     {
-      "type": "Mineral",
+      "types": ["Mineral"],
       "player": "Resources"
     },
     {
-      "type": "Mineral",
+      "types": ["Mineral"],
       "player": "Resources"
     },
     {
-      "type": "Mineral",
+      "types": ["Mineral"],
       "player": "Resources"
     },
     {
-      "type": "Mineral",
+      "types": ["Mineral"],
       "player": "Resources"
     },
     {
-      "type": "Mineral",
+      "types": ["Mineral"],
       "player": "Resources"
     },
     {
-      "type": "Mineral",
+      "types": ["Mineral"],
       "player": "Resources"
     },
     {
-      "type": "Building",
+      "types": ["Building"],
+      "player": "Blue"
+    },
+    {
+      "types": ["Building"],
+      "player": "Red"
+    },
+    {
+      "types": ["Worker", "Marine"],
       "player": "Blue",
-    },
-    {
-      "type": "Building",
-      "player": "Red",
+      "startPos": {"x": 40, "y": 40}
     }
   ]
 }
