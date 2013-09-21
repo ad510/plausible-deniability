@@ -259,13 +259,12 @@ public class Sim {
 	public int nPlayers;
 	public int nUnitT;
 	public int nUnits;
-	public int nPaths;
 	public User[] users;
 	public string[] rscNames;
 	public Player[] players;
 	public UnitType[] unitT;
-	public Unit[] units;
-	public Path[] paths;
+	public Unit[] units; // TODO: change this into list
+	public List<Path> paths;
 
 	// helper variables not loaded from scenario file
 	public int selUser;
@@ -289,15 +288,6 @@ public class Sim {
 		nUnits = newSize;
 		if (units == null || nUnits > units.Length)
 			Array.Resize(ref units, nUnits * 2);
-	}
-	
-	/// <summary>
-	/// intelligently resize path array to specified size
-	/// </summary>
-	public void setNPaths(int newSize) {
-		nPaths = newSize;
-		if (paths == null || nPaths > paths.Length)
-			Array.Resize(ref paths, nPaths * 2);
 	}
 
 	/// <summary>

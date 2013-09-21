@@ -11,10 +11,8 @@ using System.Text;
 public class Path {
 	public class Node {
 		public long time;
-		public int nPaths;
-		public int[] paths;
-		public int nUnits;
-		public int[] units;
+		public List<int> paths;
+		public List<int> units;
 		public bool immutable;
 	}
 	
@@ -75,27 +73,23 @@ public class Path {
 		}
 	}
 	
-	public int nNodes;
-	public Node[] nodes;
-	public int nMoves; // number of moves
-	public Move[] moves; // array of moves (later moves are later in array)
+	public List<Node> nodes;
+	public List<Move> moves; // later moves are later in list
 	public int tileX, tileY; // current position on visibility tiles
 	public long timeSimPast; // time traveling simulation time if made in the past, otherwise set to long.MaxValue
 
-	public Path(Sim simVal, int[] units, long startTime, FP.Vector startPos) {
+	public Path(Sim simVal, List<int> units, long startTime, FP.Vector startPos) {
 		Sim g = simVal; // TODO: is this needed outside constructor?
-		nNodes = 1;
-		nodes = new Node[nNodes];
-		nodes[0] = new Node(); // TODO: move node initialization to node constructor
-		nodes[0].time = startTime;
-		nodes[0].nPaths = 0;
-		nodes[0].paths = new int[nodes[0].nPaths];
-		nodes[0].nUnits = units.Length;
-		nodes[0].units = units; // TODO: ensure units all of same player, and how to set immutable if no units
-		nodes[0].immutable = !g.tileAt(startPos).coherentWhen(g.units[units[0]].player, startTime);
-		nMoves = 1;
-		moves = new Move[nMoves];
-		moves[0] = new Move(startTime, startPos);
+		Node node = new Node(); // TODO: move node initialization to node constructor
+		Move move = new Move(startTime, startPos);
+		node.time = startTime;
+		node.paths = new List<int>();
+		node.units = units; // TODO: ensure units all of same player, and how to set immutable if no units
+		node.immutable = !g.tileAt(startPos).coherentWhen(g.units[units[0]].player, startTime);
+		nodes = new List<Node>();
+		nodes.Add (node);
+		moves = new List<Move>();
+		moves.Add (move);
 		tileX = Sim.OffMap + 1;
 		tileY = Sim.OffMap + 1;
 		timeSimPast = (startTime > g.timeSim) ? long.MaxValue : startTime;
@@ -112,34 +106,20 @@ public class Path {
 	/// returns index of node that is active at specified time
 	/// </summary>
 	public int getNode(long time) {
-		int ret = nNodes - 1;
+		int ret = nodes.Count - 1;
 		while (ret >= 0 && time < nodes[ret].time) ret--;
 		return ret;
 	}
 
 	/// <summary>
-	/// intelligently resize move array to specified size
-	/// </summary>
-	private void setNMoves(int newSize) {
-		int i = 0;
-		for (i = nMoves; i < Math.Min(newSize, moves.Length); i++) {
-			moves[i] = new Move(0, new FP.Vector());
-		}
-		nMoves = newSize;
-		if (nMoves > moves.Length)
-			Array.Resize(ref moves, nMoves * 2);
-	}
-
-	/// <summary>
-	/// add specified move to end of move array
+	/// add specified move to end of move list
 	/// </summary>
 	/// <remarks>
 	/// if caller also adds a TileMoveEvt, must ensure that it isn't deleted in update()
 	/// (add allowOverride variable in TileMoveEvt if necessary)
 	/// </remarks>
 	private void addMove(Move newMove) {
-		setNMoves(nMoves + 1);
-		moves[nMoves - 1] = newMove;
+		moves.Add (newMove);
 		throw new NotImplementedException(); // for line below
 		//if (!g.movedUnits.Contains(id)) g.movedUnits.Add(id); // indicate to delete and recalculate later TileMoveEvts for this unit
 	}
@@ -170,7 +150,7 @@ public class Path {
 	/// returns index of move that is occurring at specified time
 	/// </summary>
 	public int getMove(long time) {
-		int ret = nMoves - 1;
+		int ret = moves.Count - 1;
 		while (ret >= 0 && time < moves[ret].timeStart) ret--;
 		return ret;
 	}

@@ -321,7 +321,7 @@ public class App : MonoBehaviour {
 		}
 		// units
 		g.nUnits = 0;
-		g.nPaths = 0;
+		g.paths = new List<Path>();
 		jsonA = jsonArray(json, "units");
 		if (jsonA != null) {
 			foreach (Hashtable jsonO in jsonA) {
@@ -339,9 +339,8 @@ public class App : MonoBehaviour {
 							}
 						}
 					}
-					g.setNPaths(g.nPaths + 1);
-					g.paths[g.nPaths - 1] = new Path(g, units.ToArray (), (long)jsonDouble(jsonO, "startTime"),
-						jsonFPVector(jsonO, "startPos", new FP.Vector((long)(UnityEngine.Random.value * g.mapSize), (long)(UnityEngine.Random.value * g.mapSize))));
+					g.paths.Add (new Path(g, units, (long)jsonDouble(jsonO, "startTime"),
+						jsonFPVector(jsonO, "startPos", new FP.Vector((long)(UnityEngine.Random.value * g.mapSize), (long)(UnityEngine.Random.value * g.mapSize)))));
 				}
 			}
 		}
@@ -614,10 +613,10 @@ public class App : MonoBehaviour {
 		// map border
 		border.setRect (simToDrawPos (new FP.Vector()), simToDrawPos(new FP.Vector(g.mapSize, g.mapSize)), BorderDepth);
 		// paths
-		for (i = 0; i < g.nPaths; i++) {
+		for (i = 0; i < g.paths.Count; i++) {
 			if (i == sprUnits.Count) sprUnits.Add (new List<UnitSprite>());
 			node = g.paths[i].getNode (timeGame);
-			while (sprUnits[i].Count < g.paths[i].nodes[node].nUnits) sprUnits[i].Add (new UnitSprite(quadPrefab));
+			while (sprUnits[i].Count < g.paths[i].nodes[node].units.Count) sprUnits[i].Add (new UnitSprite(quadPrefab));
 			for (j = 0; j < sprUnits[i].Count; j++) {
 			sprUnits[i][j].sprite.renderer.enabled = false;
 			sprUnits[i][j].preview.renderer.enabled = false;
@@ -626,7 +625,7 @@ public class App : MonoBehaviour {
 			sprUnits[i][j].pathLine.enabled = false;
 			}
 			if (pathDrawPos(i, ref vec)) {
-				for (j = 0; j < g.paths[i].nodes[node].nUnits; j++) {
+				for (j = 0; j < g.paths[i].nodes[node].units.Count; j++) {
 					unit = g.paths[i].nodes[node].units[j];
 					if (sprUnits[i][j].type != g.units[unit].type || sprUnits[i][j].player != g.units[unit].player) {
 						sprUnits[i][j].sprite.renderer.material.mainTexture = texUnits[g.units[unit].type, g.units[unit].player];
@@ -654,7 +653,7 @@ public class App : MonoBehaviour {
 					if (Input.GetKey (KeyCode.LeftShift) && selUnits.Contains(i)) {
 						// show final position if holding shift
 						sprUnits[i][j].preview.renderer.material.color = sprUnits[i][j].sprite.renderer.material.color;
-						sprUnits[i][j].preview.transform.position = simToDrawPos(g.paths[i].moves[g.paths[i].nMoves - 1].vecEnd + g.unitT[g.units[unit].type].imgOffset, UnitDepth);
+						sprUnits[i][j].preview.transform.position = simToDrawPos(g.paths[i].moves[g.paths[i].moves.Count - 1].vecEnd + g.unitT[g.units[unit].type].imgOffset, UnitDepth);
 						sprUnits[i][j].preview.transform.localScale = sprUnits[i][j].sprite.transform.localScale;
 						sprUnits[i][j].preview.renderer.enabled = true;
 					}
@@ -683,7 +682,7 @@ public class App : MonoBehaviour {
 		foreach (int path in selUnits) {
 			if (pathDrawPos(path, ref vec)) {
 				node = g.paths[path].getNode (timeGame);
-				for (j = 0; j < g.paths[path].nodes[node].nUnits; j++) {
+				for (j = 0; j < g.paths[path].nodes[node].units.Count; j++) {
 					unit = g.paths[path].nodes[node].units[j];
 					f = ((float)g.units[unit].healthWhen(timeGame)) / g.unitT[g.units[unit].type].maxHealth;
 					vec.y += simToDrawScl (g.unitT[g.units[unit].type].selMaxPos.y) + g.healthBarYOffset * winDiag;
