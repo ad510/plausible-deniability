@@ -46,7 +46,7 @@ public class Path {
 		}
 
 		/// <summary>
-		/// alternate method to create Unit.Move object that asks for speed (in position units per millisecond) instead of end time
+		/// alternate method to create Path.Move object that asks for speed (in position units per millisecond) instead of end time
 		/// </summary>
 		public static Move fromSpeed(long timeStartVal, long speed, FP.Vector vecStartVal, FP.Vector vecEndVal) {
 			return new Move(timeStartVal, timeStartVal + new FP.Vector(vecEndVal - vecStartVal).length() / speed, vecStartVal, vecEndVal);
@@ -82,11 +82,39 @@ public class Path {
 	public int tileX, tileY; // current position on visibility tiles
 	public long timeSimPast; // time traveling simulation time if made in the past, otherwise set to long.MaxValue
 
+	public Path(Sim simVal, int[] units, long startTime, FP.Vector startPos) {
+		Sim g = simVal; // TODO: is this needed outside constructor?
+		nNodes = 1;
+		nodes = new Node[nNodes];
+		nodes[0] = new Node(); // TODO: move node initialization to node constructor
+		nodes[0].time = startTime;
+		nodes[0].nPaths = 0;
+		nodes[0].paths = new int[nodes[0].nPaths];
+		nodes[0].nUnits = units.Length;
+		nodes[0].units = units; // TODO: ensure units all of same player, and how to set immutable if no units
+		nodes[0].immutable = !g.tileAt(startPos).coherentWhen(g.units[units[0]].player, startTime);
+		nMoves = 1;
+		moves = new Move[nMoves];
+		moves[0] = new Move(startTime, startPos);
+		tileX = Sim.OffMap + 1;
+		tileY = Sim.OffMap + 1;
+		timeSimPast = (startTime > g.timeSim) ? long.MaxValue : startTime;
+	}
+
 	/// <summary>
 	/// ensure that if unit is moving in the past, it does not move off coherent areas
 	/// </summary>
 	public void updatePast(long curTime) {
 		throw new NotImplementedException();
+	}
+	
+	/// <summary>
+	/// returns index of node that is active at specified time
+	/// </summary>
+	public int getNode(long time) {
+		int ret = nNodes - 1;
+		while (ret >= 0 && time < nodes[ret].time) ret--;
+		return ret;
 	}
 
 	/// <summary>

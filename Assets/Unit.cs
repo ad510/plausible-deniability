@@ -88,6 +88,17 @@ public class Unit {
 	public int nChildren;
 	public int[] children; // indices of units that this unit made
 
+	public Unit(int typeVal, int playerVal) {
+		type = typeVal;
+		player = playerVal;
+		nTimeHealth = 0;
+		timeHealth = new long[g.unitT[type].maxHealth];
+		timeAttack = long.MinValue;
+	}
+
+	/// <summary>
+	/// old unit constructor (before some functionality moved to Path class)
+	/// </summary>
 	public Unit(Sim simVal, int idVal, int typeVal, int playerVal, long startTime, FP.Vector startPos) {
 		g = simVal;
 		id = idVal;

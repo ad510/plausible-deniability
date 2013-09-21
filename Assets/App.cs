@@ -91,7 +91,7 @@ public class App : MonoBehaviour {
 	GameObject sprTile;
 	LineBox border;
 	Texture[,] texUnits;
-	List<UnitSprite> sprUnits;
+	List<List<UnitSprite>> sprUnits;
 	GameObject sprMakeUnit;
 	LineBox selectBox;
 	GUIStyle lblStyle;
@@ -321,23 +321,31 @@ public class App : MonoBehaviour {
 		}
 		// units
 		g.nUnits = 0;
+		g.nPaths = 0;
 		jsonA = jsonArray(json, "units");
 		if (jsonA != null) {
 			foreach (Hashtable jsonO in jsonA) {
 				if (g.unitTypeNamed(jsonString(jsonO, "type")) >= 0 && g.playerNamed(jsonString(jsonO, "player")) >= 0) {
+					int[] units = new int[1];
 					g.setNUnits(g.nUnits + 1);
 					g.units[g.nUnits - 1] = new Unit(g, g.nUnits - 1, g.unitTypeNamed(jsonString(jsonO, "type")),
 						g.playerNamed(jsonString(jsonO, "player")), (long)jsonDouble(jsonO, "startTime"),
+						jsonFPVector(jsonO, "startPos", new FP.Vector((long)(UnityEngine.Random.value * g.mapSize), (long)(UnityEngine.Random.value * g.mapSize))));
+					units[0] = g.nUnits - 1;
+					g.setNPaths(g.nPaths + 1);
+					g.paths[g.nPaths - 1] = new Path(g, units, (long)jsonDouble(jsonO, "startTime"),
 						jsonFPVector(jsonO, "startPos", new FP.Vector((long)(UnityEngine.Random.value * g.mapSize), (long)(UnityEngine.Random.value * g.mapSize))));
 				}
 			}
 		}
 		if (sprUnits != null) {
-			foreach (UnitSprite spr in sprUnits) {
-				spr.dispose ();
+			foreach (List<UnitSprite> sprs in sprUnits) {
+				foreach (UnitSprite spr in sprs) {
+					spr.dispose ();
+				}
 			}
 		}
-		sprUnits = new List<UnitSprite>();
+		sprUnits = new List<List<UnitSprite>>();
 		// start game
 		Camera.main.backgroundColor = g.backCol;
 		border.line.material.color = g.borderCol;
@@ -576,7 +584,7 @@ public class App : MonoBehaviour {
 		Texture2D tex;
 		Color col;
 		float f;
-		int i, tX, tY;
+		int i, j, tX, tY, node, unit;
 		// visibility tiles
 		// TODO: don't draw tiles off map
 		tex = new Texture2D(g.tileLen (), g.tileLen (), TextureFormat.ARGB32, false);
@@ -598,43 +606,51 @@ public class App : MonoBehaviour {
 		sprTile.transform.localScale = simToDrawScl (new FP.Vector((g.tileLen () << FP.Precision) / 2, (g.tileLen () << FP.Precision) / 2));
 		// map border
 		border.setRect (simToDrawPos (new FP.Vector()), simToDrawPos(new FP.Vector(g.mapSize, g.mapSize)), BorderDepth);
-		// units
-		for (i = 0; i < g.nUnits; i++) {
-			if (i == sprUnits.Count) sprUnits.Add (new UnitSprite(quadPrefab));
-			sprUnits[i].sprite.renderer.enabled = false;
-			sprUnits[i].preview.renderer.enabled = false;
-			sprUnits[i].healthBarBack.renderer.enabled = false;
-			sprUnits[i].healthBarFore.renderer.enabled = false;
-			sprUnits[i].pathLine.enabled = false;
-			if (unitDrawPos(i, ref vec)) {
-				if (sprUnits[i].type != g.units[i].type || sprUnits[i].player != g.units[i].player) {
-					sprUnits[i].sprite.renderer.material.mainTexture = texUnits[g.units[i].type, g.units[i].player];
-					sprUnits[i].preview.renderer.material.mainTexture = texUnits[g.units[i].type, g.units[i].player];
-					sprUnits[i].pathLine.material.color = g.pathCol;
-					sprUnits[i].type = g.units[i].type;
-					sprUnits[i].player = g.units[i].player;
-				}
-				if (g.units[i].isLive(timeGame)) {
-					sprUnits[i].sprite.renderer.material.color = new Color(1, 1, 1, 1);
-				}
-				else {
-					sprUnits[i].sprite.renderer.material.color = new Color(1, 1, 1, 0.5f); // TODO: make transparency amount customizable
-				}
-				sprUnits[i].sprite.transform.position = vec + simToDrawScl (g.unitT[g.units[i].type].imgOffset);
-				sprUnits[i].sprite.transform.localScale = unitScale (g.units[i].type, g.units[i].player);
-				sprUnits[i].sprite.renderer.enabled = true;
-				if (g.units[i].isChildPath && timeGame >= g.units[g.units[i].parent].moves[0].timeStart) {
-					// unit path line
-					sprUnits[i].pathLine.SetPosition (0, new Vector3(vec.x, vec.y, PathLineDepth));
-					sprUnits[i].pathLine.SetPosition (1, simToDrawPos (g.units[g.units[i].parent].calcPos(timeGame), PathLineDepth));
-					sprUnits[i].pathLine.enabled = true;
-				}
-				if (Input.GetKey (KeyCode.LeftShift) && selUnits.Contains(i)) {
-					// show final position if holding shift
-					sprUnits[i].preview.renderer.material.color = sprUnits[i].sprite.renderer.material.color;
-					sprUnits[i].preview.transform.position = simToDrawPos(g.units[i].moves[g.units[i].nMoves - 1].vecEnd + g.unitT[g.units[i].type].imgOffset, UnitDepth);
-					sprUnits[i].preview.transform.localScale = sprUnits[i].sprite.transform.localScale;
-					sprUnits[i].preview.renderer.enabled = true;
+		// paths
+		for (i = 0; i < g.nPaths; i++) {
+			if (i == sprUnits.Count) sprUnits.Add (new List<UnitSprite>());
+			node = g.paths[i].getNode (timeGame);
+			while (sprUnits[i].Count < g.paths[i].nodes[node].nUnits) sprUnits[i].Add (new UnitSprite(quadPrefab));
+			for (j = 0; j < sprUnits[i].Count; j++) {
+			sprUnits[i][j].sprite.renderer.enabled = false;
+			sprUnits[i][j].preview.renderer.enabled = false;
+			sprUnits[i][j].healthBarBack.renderer.enabled = false;
+			sprUnits[i][j].healthBarFore.renderer.enabled = false;
+			sprUnits[i][j].pathLine.enabled = false;
+			}
+			if (pathDrawPos(i, ref vec)) {
+				for (j = 0; j < g.paths[i].nodes[node].nUnits; j++) {
+					unit = g.paths[i].nodes[node].units[j];
+					if (sprUnits[i][j].type != g.units[unit].type || sprUnits[i][j].player != g.units[unit].player) {
+						sprUnits[i][j].sprite.renderer.material.mainTexture = texUnits[g.units[unit].type, g.units[unit].player];
+						sprUnits[i][j].preview.renderer.material.mainTexture = texUnits[g.units[unit].type, g.units[unit].player];
+						sprUnits[i][j].pathLine.material.color = g.pathCol;
+						sprUnits[i][j].type = g.units[unit].type;
+						sprUnits[i][j].player = g.units[unit].player;
+					}
+					// TODO: uncomment part below after implementing isLive()
+					/*if (g.units[i].isLive(timeGame)) {
+						sprUnits[i][j].sprite.renderer.material.color = new Color(1, 1, 1, 1);
+					}
+					else {
+						sprUnits[i][j].sprite.renderer.material.color = new Color(1, 1, 1, 0.5f); // TODO: make transparency amount customizable
+					}*/
+					sprUnits[i][j].sprite.transform.position = vec + simToDrawScl (g.unitT[g.units[unit].type].imgOffset);
+					sprUnits[i][j].sprite.transform.localScale = unitScale (g.units[unit].type, g.units[unit].player);
+					sprUnits[i][j].sprite.renderer.enabled = true;
+					/*if (g.units[i].isChildPath && timeGame >= g.units[g.units[i].parent].moves[0].timeStart) {
+						// unit path line (TODO: uncomment this when can determine parent paths)
+						sprUnits[i][j].pathLine.SetPosition (0, new Vector3(vec.x, vec.y, PathLineDepth));
+						sprUnits[i][j].pathLine.SetPosition (1, simToDrawPos (g.units[g.units[i].parent].calcPos(timeGame), PathLineDepth));
+						sprUnits[i][j].pathLine.enabled = true;
+					}*/
+					if (Input.GetKey (KeyCode.LeftShift) && selUnits.Contains(i)) {
+						// show final position if holding shift
+						sprUnits[i][j].preview.renderer.material.color = sprUnits[i][j].sprite.renderer.material.color;
+						sprUnits[i][j].preview.transform.position = simToDrawPos(g.paths[i].moves[g.paths[i].nMoves - 1].vecEnd + g.unitT[g.units[unit].type].imgOffset, UnitDepth);
+						sprUnits[i][j].preview.transform.localScale = sprUnits[i][j].sprite.transform.localScale;
+						sprUnits[i][j].preview.renderer.enabled = true;
+					}
 				}
 			}
 		}
@@ -657,22 +673,26 @@ public class App : MonoBehaviour {
 			sprMakeUnit.renderer.enabled = false;
 		}
 		// health bars
-		foreach (int unit in selUnits) {
-			if (unitDrawPos(unit, ref vec)) {
-				f = ((float)g.units[g.units[unit].rootParentPath()].healthWhen(timeGame)) / g.unitT[g.units[unit].type].maxHealth;
-				vec.y += simToDrawScl (g.unitT[g.units[unit].type].selMaxPos.y) + g.healthBarYOffset * winDiag;
-				// background
-				if (g.units[unit].healthWhen(timeGame) > 0) {
-					sprUnits[unit].healthBarBack.renderer.material.color = g.healthBarBackCol;
-					sprUnits[unit].healthBarBack.transform.position = new Vector3(vec.x + g.healthBarSize.x * winDiag * f / 2, vec.y, HealthBarDepth);
-					sprUnits[unit].healthBarBack.transform.localScale = new Vector3(g.healthBarSize.x * winDiag * (1 - f) / 2, g.healthBarSize.y * winDiag / 2, 1);
-					sprUnits[unit].healthBarBack.renderer.enabled = true;
+		foreach (int path in selUnits) {
+			if (pathDrawPos(path, ref vec)) {
+				node = g.paths[path].getNode (timeGame);
+				for (j = 0; j < g.paths[path].nodes[node].nUnits; j++) {
+					unit = g.paths[path].nodes[node].units[j];
+					f = ((float)g.units[unit].healthWhen(timeGame)) / g.unitT[g.units[unit].type].maxHealth;
+					vec.y += simToDrawScl (g.unitT[g.units[unit].type].selMaxPos.y) + g.healthBarYOffset * winDiag;
+					// background
+					if (g.units[unit].healthWhen(timeGame) > 0) {
+						sprUnits[path][j].healthBarBack.renderer.material.color = g.healthBarBackCol;
+						sprUnits[path][j].healthBarBack.transform.position = new Vector3(vec.x + g.healthBarSize.x * winDiag * f / 2, vec.y, HealthBarDepth);
+						sprUnits[path][j].healthBarBack.transform.localScale = new Vector3(g.healthBarSize.x * winDiag * (1 - f) / 2, g.healthBarSize.y * winDiag / 2, 1);
+						sprUnits[path][j].healthBarBack.renderer.enabled = true;
+					}
+					// foreground
+					sprUnits[path][j].healthBarFore.renderer.material.color = g.healthBarEmptyCol + (g.healthBarFullCol - g.healthBarEmptyCol) * f;
+					sprUnits[path][j].healthBarFore.transform.position = new Vector3(vec.x + g.healthBarSize.x * winDiag * (f - 1) / 2, vec.y, HealthBarDepth);
+					sprUnits[path][j].healthBarFore.transform.localScale = new Vector3(g.healthBarSize.x * winDiag * f / 2, g.healthBarSize.y * winDiag / 2, 1);
+					sprUnits[path][j].healthBarFore.renderer.enabled = true;
 				}
-				// foreground
-				sprUnits[unit].healthBarFore.renderer.material.color = g.healthBarEmptyCol + (g.healthBarFullCol - g.healthBarEmptyCol) * f;
-				sprUnits[unit].healthBarFore.transform.position = new Vector3(vec.x + g.healthBarSize.x * winDiag * (f - 1) / 2, vec.y, HealthBarDepth);
-				sprUnits[unit].healthBarFore.transform.localScale = new Vector3(g.healthBarSize.x * winDiag * f / 2, g.healthBarSize.y * winDiag / 2, 1);
-				sprUnits[unit].healthBarFore.renderer.enabled = true;
 			}
 		}
 		// select box (if needed)
@@ -1024,13 +1044,14 @@ public class App : MonoBehaviour {
 	}
 
 	/// <summary>
-	/// sets pos to where base of unit should be drawn at, and returns whether it should be drawn
+	/// sets pos to where base of path should be drawn at, and returns whether it should be drawn
 	/// </summary>
-	private bool unitDrawPos(int unit, ref Vector3 pos) {
+	private bool pathDrawPos(int path, ref Vector3 pos) {
 		FP.Vector fpVec;
-		if (!g.units[unit].exists(timeGame) || (selPlayer != g.units[unit].player && !g.units[unit].isLive(timeGame))) return false;
-		fpVec = g.units[unit].calcPos(timeGame);
-		if (selPlayer != g.units[unit].player && !g.tileAt(fpVec).playerVisWhen(selPlayer, timeGame)) return false;
+		if (timeGame < g.paths[path].moves[0].timeStart) return false; // TODO: use smarter checks
+		//if (!g.units[path].exists(timeGame) || (selPlayer != g.units[path].player && !g.units[path].isLive(timeGame))) return false;
+		fpVec = g.paths[path].calcPos(timeGame);
+		//if (selPlayer != g.units[path].player && !g.tileAt(fpVec).playerVisWhen(selPlayer, timeGame)) return false;
 		pos = simToDrawPos(fpVec, UnitDepth);
 		return true;
 	}
