@@ -3,6 +3,8 @@
 // The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
+// TODO: places with NotImplementedException
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -13,7 +15,7 @@ public class Path {
 		public long time;
 		public List<int> paths;
 		public List<int> units;
-		public bool immutable;
+		public bool immutable; // TODO: rename to mutable, and rename coherence tiles to exclusive
 	}
 	
 	/// <summary>
@@ -73,15 +75,15 @@ public class Path {
 		}
 	}
 	
+	private Sim g;
 	public List<Node> nodes;
 	public List<Move> moves; // later moves are later in list
 	public int tileX, tileY; // current position on visibility tiles
 	public long timeSimPast; // time traveling simulation time if made in the past, otherwise set to long.MaxValue
 
 	public Path(Sim simVal, List<int> units, long startTime, FP.Vector startPos) {
-		Sim g = simVal; // TODO: is this needed outside constructor?
+		g = simVal;
 		Node node = new Node(); // TODO: move node initialization to node constructor
-		Move move = new Move(startTime, startPos);
 		node.time = startTime;
 		node.paths = new List<int>();
 		node.units = units; // TODO: ensure units all of same player, and how to set immutable if no units
@@ -89,7 +91,7 @@ public class Path {
 		nodes = new List<Node>();
 		nodes.Add (node);
 		moves = new List<Move>();
-		moves.Add (move);
+		moves.Add (new Move(startTime, startPos));
 		tileX = Sim.OffMap + 1;
 		tileY = Sim.OffMap + 1;
 		timeSimPast = (startTime > g.timeSim) ? long.MaxValue : startTime;
@@ -262,6 +264,16 @@ public class Path {
 	/// </param>
 	public long rscCollected(long time, int rscType, bool max, bool includeNonLiveChildren, bool alwaysUseReplacementPaths) {
 		throw new NotImplementedException();
+	}
+	
+	/// <summary>
+	/// returns index of player that controls this path
+	/// </summary>
+	public int player() {
+		foreach (Node node in nodes) {
+			if (node.units.Count > 0) return g.units[node.units[0]].player;
+		}
+		throw new InvalidOperationException("path does not contain any units");
 	}
 
 	/// <summary>

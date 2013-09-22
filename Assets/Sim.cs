@@ -274,7 +274,7 @@ public class Sim {
 	public SimEvtList cmdPending; // user commands to be sent to other users in the next update
 	public SimEvtList cmdHistory; // user commands that have already been applied
 	public List<int> movedUnits; // indices of units that moved in the latest simulation event, invalidating later TileMoveEvts for that unit
-	public List<int> unitIdChgs; // list of units that changed indices (old index followed by new index)
+	public List<int> unitIdChgs; // list of units that changed indices (old index followed by new index) (STACK TODO: don't need this)
 	public long maxSpeed; // speed of fastest unit (is max speed that players can gain or lose visibility)
 	public int checksum; // sent to other users during each UpdateEvt to check for multiplayer desyncs
 	public bool synced; // whether all checksums between users matched so far
