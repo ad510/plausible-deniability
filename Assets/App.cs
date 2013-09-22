@@ -457,6 +457,7 @@ public class App : MonoBehaviour {
 								selMaxPos.y = Math.Max (selMaxPos.y, g.unitT[g.units[unit].type].selMaxPos.y);
 							}
 							if (FP.rectIntersects (drawToSimPos (mouseDownPos[0]), drawToSimPos (Input.mousePosition), pos + selMinPos, pos + selMaxPos)) {
+								// TODO: if not all units in path are selected, select remaining units instead of deselecting path
 								if (selPaths.ContainsKey (i)) {
 									selPaths.Remove(i);
 								}
@@ -774,32 +775,31 @@ public class App : MonoBehaviour {
 		GUILayout.EndScrollView ();
 		GUILayout.EndArea ();
 		// unit selection bar
-		GUI.Box (new Rect(Screen.width / 2, Screen.height * (1 - g.uiBarHeight), Screen.width, Screen.height * g.uiBarHeight), new GUIContent());
 		GUILayout.BeginArea (new Rect(Screen.width / 2, Screen.height * (1 - g.uiBarHeight), Screen.width / 2, Screen.height * g.uiBarHeight));
-		selUnitsScrollPos = GUILayout.BeginScrollView (selUnitsScrollPos);
-		// STACK TODO: implement this
-		/*foreach (KeyValuePair<int, int> item in selRootParentPaths()) {
+		selUnitsScrollPos = GUILayout.BeginScrollView (selUnitsScrollPos, "box");
+		foreach (KeyValuePair<int, int> item in selUnits()) {
 			if (GUILayout.Button (g.unitT[g.units[item.Key].type].name + (item.Value != 1 ? " (" + item.Value + " paths)" : ""))) {
 				if (Event.current.button == 0) { // left button
 					// select unit
-					for (i = 0; i < selPaths.Count; i++) {
+					// STACK TODO: implement these buttons (see http://stackoverflow.com/questions/3506121/modify-a-dictionary-which-i-am-iterating-through )
+					/*for (i = 0; i < selPaths.Count; i++) {
 						if (g.units[selPaths[i]].rootParentPath () != item.Key) {
 							selPaths.RemoveAt (i);
 							i--;
 						}
-					}
+					}*/
 				}
 				else if (Event.current.button == 1) { // right button
 					// deselect unit
-					for (i = 0; i < selPaths.Count; i++) {
+					/*for (i = 0; i < selPaths.Count; i++) {
 						if (g.units[selPaths[i]].rootParentPath () == item.Key) {
 							selPaths.RemoveAt (i);
 							i--;
 						}
-					}
+					}*/
 				}
 			}
-		}*/
+		}
 		GUILayout.EndScrollView ();
 		GUILayout.EndArea ();
 		// multiplayer GUI
@@ -940,20 +940,19 @@ public class App : MonoBehaviour {
 	}
 	
 	/// <summary>
-	/// returns dictionary of existing selected units' root parent paths (keys) and how many of their paths are selected (values)
+	/// returns dictionary of selected units (keys) and how many of their paths are selected (values)
 	/// </summary>
-	private Dictionary<int, int> selRootParentPaths() {
+	private Dictionary<int, int> selUnits() {
 		Dictionary<int, int> ret = new Dictionary<int, int>();
 		int rootParentPath;
-		throw new NotImplementedException(); // STACK TODO: implement this
-		/*foreach (int unit in selPaths) {
-			if (g.units[unit].exists (timeGame)) {
-				rootParentPath = g.units[unit].rootParentPath ();
-				if (!ret.ContainsKey (rootParentPath)) ret.Add (rootParentPath, 0);
-				ret[rootParentPath]++;
+		foreach (List<int> units in selPaths.Values) {
+			foreach (int unit in units) {
+				// STACK TODO: check for unit existence
+				if (!ret.ContainsKey (unit)) ret.Add (unit, 0);
+				ret[unit]++;
 			}
 		}
-		return ret;*/
+		return ret;
 	}
 
 	/// <summary>
