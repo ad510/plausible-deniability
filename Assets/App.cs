@@ -687,20 +687,22 @@ public class App : MonoBehaviour {
 				node = g.paths[path].getNode (timeGame);
 				for (j = 0; j < g.paths[path].nodes[node].units.Count; j++) {
 					unit = g.paths[path].nodes[node].units[j];
-					f = ((float)g.units[unit].healthWhen(timeGame)) / g.unitT[g.units[unit].type].maxHealth;
-					f2 = vec.y + simToDrawScl (g.unitT[g.units[unit].type].selMaxPos.y) + g.healthBarYOffset * winDiag;
-					// background
-					if (g.units[unit].healthWhen(timeGame) > 0) {
-						sprUnits[path][j].healthBarBack.renderer.material.color = g.healthBarBackCol;
-						sprUnits[path][j].healthBarBack.transform.position = new Vector3(vec.x + g.healthBarSize.x * winDiag * f / 2, f2, HealthBarDepth);
-						sprUnits[path][j].healthBarBack.transform.localScale = new Vector3(g.healthBarSize.x * winDiag * (1 - f) / 2, g.healthBarSize.y * winDiag / 2, 1);
-						sprUnits[path][j].healthBarBack.renderer.enabled = true;
+					if (selPaths[path].Contains (unit)) {
+						f = ((float)g.units[unit].healthWhen(timeGame)) / g.unitT[g.units[unit].type].maxHealth;
+						f2 = vec.y + simToDrawScl (g.unitT[g.units[unit].type].selMaxPos.y) + g.healthBarYOffset * winDiag;
+						// background
+						if (g.units[unit].healthWhen(timeGame) > 0) {
+							sprUnits[path][j].healthBarBack.renderer.material.color = g.healthBarBackCol;
+							sprUnits[path][j].healthBarBack.transform.position = new Vector3(vec.x + g.healthBarSize.x * winDiag * f / 2, f2, HealthBarDepth);
+							sprUnits[path][j].healthBarBack.transform.localScale = new Vector3(g.healthBarSize.x * winDiag * (1 - f) / 2, g.healthBarSize.y * winDiag / 2, 1);
+							sprUnits[path][j].healthBarBack.renderer.enabled = true;
+						}
+						// foreground
+						sprUnits[path][j].healthBarFore.renderer.material.color = g.healthBarEmptyCol + (g.healthBarFullCol - g.healthBarEmptyCol) * f;
+						sprUnits[path][j].healthBarFore.transform.position = new Vector3(vec.x + g.healthBarSize.x * winDiag * (f - 1) / 2, f2, HealthBarDepth);
+						sprUnits[path][j].healthBarFore.transform.localScale = new Vector3(g.healthBarSize.x * winDiag * f / 2, g.healthBarSize.y * winDiag / 2, 1);
+						sprUnits[path][j].healthBarFore.renderer.enabled = true;
 					}
-					// foreground
-					sprUnits[path][j].healthBarFore.renderer.material.color = g.healthBarEmptyCol + (g.healthBarFullCol - g.healthBarEmptyCol) * f;
-					sprUnits[path][j].healthBarFore.transform.position = new Vector3(vec.x + g.healthBarSize.x * winDiag * (f - 1) / 2, f2, HealthBarDepth);
-					sprUnits[path][j].healthBarFore.transform.localScale = new Vector3(g.healthBarSize.x * winDiag * f / 2, g.healthBarSize.y * winDiag / 2, 1);
-					sprUnits[path][j].healthBarFore.renderer.enabled = true;
 				}
 			}
 		}
@@ -779,24 +781,26 @@ public class App : MonoBehaviour {
 		selUnitsScrollPos = GUILayout.BeginScrollView (selUnitsScrollPos, "box");
 		foreach (KeyValuePair<int, int> item in selUnits()) {
 			if (GUILayout.Button (g.unitT[g.units[item.Key].type].name + (item.Value != 1 ? " (" + item.Value + " paths)" : ""))) {
+				int[] selPathsKeys = new int[selPaths.Keys.Count];
+				selPaths.Keys.CopyTo (selPathsKeys, 0);
 				if (Event.current.button == 0) { // left button
 					// select unit
-					// STACK TODO: implement these buttons (see http://stackoverflow.com/questions/3506121/modify-a-dictionary-which-i-am-iterating-through )
-					/*for (i = 0; i < selPaths.Count; i++) {
-						if (g.units[selPaths[i]].rootParentPath () != item.Key) {
-							selPaths.RemoveAt (i);
-							i--;
+					foreach (int path in selPathsKeys) {
+						for (i = 0; i < selPaths[path].Count; i++) {
+							if (selPaths[path][i] != item.Key) {
+								selPaths[path].RemoveAt (i);
+								i--;
+							}
 						}
-					}*/
+						if (selPaths[path].Count == 0) selPaths.Remove (path);
+					}
 				}
 				else if (Event.current.button == 1) { // right button
 					// deselect unit
-					/*for (i = 0; i < selPaths.Count; i++) {
-						if (g.units[selPaths[i]].rootParentPath () == item.Key) {
-							selPaths.RemoveAt (i);
-							i--;
-						}
-					}*/
+					foreach (int path in selPathsKeys) {
+						selPaths[path].Remove (item.Key);
+						if (selPaths[path].Count == 0) selPaths.Remove (path);
+					}
 				}
 			}
 		}
@@ -944,7 +948,6 @@ public class App : MonoBehaviour {
 	/// </summary>
 	private Dictionary<int, int> selUnits() {
 		Dictionary<int, int> ret = new Dictionary<int, int>();
-		int rootParentPath;
 		foreach (List<int> units in selPaths.Values) {
 			foreach (int unit in units) {
 				// STACK TODO: check for unit existence
