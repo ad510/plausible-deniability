@@ -339,7 +339,7 @@ public class App : MonoBehaviour {
 							}
 						}
 					}
-					g.paths.Add (new Path(g, units, (long)jsonDouble(jsonO, "startTime"),
+					g.paths.Add (new Path(g, g.paths.Count, units, (long)jsonDouble(jsonO, "startTime"),
 						jsonFPVector(jsonO, "startPos", new FP.Vector((long)(UnityEngine.Random.value * g.mapSize), (long)(UnityEngine.Random.value * g.mapSize)))));
 				}
 			}
@@ -479,9 +479,13 @@ public class App : MonoBehaviour {
 					makeUnitType = -1;
 				}
 				else {
-					// move selected units (STACK TODO: update implementation of this)
-					//g.cmdPending.add(new MoveCmdEvt(g.timeSim, newCmdTime(), selPaths.ToArray(), drawToSimPos (Input.mousePosition),
-					//	Input.GetKey (KeyCode.LeftControl) ? Formation.Loose : Input.GetKey (KeyCode.LeftAlt) ? Formation.Ring : Formation.Tight));
+					// move selected units
+					Dictionary<int, int[]> paths = new Dictionary<int, int[]>();
+					foreach (KeyValuePair<int, List<int>> item in selPaths) {
+						paths[item.Key] = item.Value.ToArray ();
+					}
+					g.cmdPending.add(new MoveCmdEvt(g.timeSim, newCmdTime(), paths, drawToSimPos (Input.mousePosition),
+						Input.GetKey (KeyCode.LeftControl) ? Formation.Loose : Input.GetKey (KeyCode.LeftAlt) ? Formation.Ring : Formation.Tight));
 				}
 			}
 		}

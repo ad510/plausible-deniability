@@ -76,13 +76,15 @@ public class Path {
 	}
 	
 	private Sim g;
+	private int id; // index in path array
 	public List<Node> nodes;
 	public List<Move> moves; // later moves are later in list
 	public int tileX, tileY; // current position on visibility tiles
 	public long timeSimPast; // time traveling simulation time if made in the past, otherwise set to long.MaxValue
 
-	public Path(Sim simVal, List<int> units, long startTime, FP.Vector startPos) {
+	public Path(Sim simVal, int idVal, List<int> units, long startTime, FP.Vector startPos) {
 		g = simVal;
+		id = idVal;
 		Node node = new Node(); // TODO: move node initialization to node constructor
 		node.time = startTime;
 		node.paths = new List<int>();
@@ -122,16 +124,26 @@ public class Path {
 	/// </remarks>
 	private void addMove(Move newMove) {
 		moves.Add (newMove);
-		throw new NotImplementedException(); // for line below
+		// TODO: implement line below
 		//if (!g.movedUnits.Contains(id)) g.movedUnits.Add(id); // indicate to delete and recalculate later TileMoveEvts for this unit
 	}
 
 	/// <summary>
 	/// move towards specified location starting at specified time,
-	/// return index of moved unit (in case moving a replacement path instead of this unit)
+	/// return index of moved path (in case moving a replacement path instead of this unit)
 	/// </summary>
 	public int moveTo(long time, FP.Vector pos) {
-		throw new NotImplementedException(); // need to figure out replacement path behavior
+		// TODO: make new path if needed, update doc comment
+		FP.Vector curPos = calcPos(time);
+		FP.Vector goalPos = pos;
+		// don't move off map edge
+		if (goalPos.x < 0) goalPos.x = 0;
+		if (goalPos.x > g.mapSize) goalPos.x = g.mapSize;
+		if (goalPos.y < 0) goalPos.y = 0;
+		if (goalPos.y > g.mapSize) goalPos.y = g.mapSize;
+		// add move
+		addMove(Move.fromSpeed(time, speed(), curPos, goalPos));
+		return id;
 	}
 
 	/// <summary>
@@ -264,6 +276,13 @@ public class Path {
 	/// </param>
 	public long rscCollected(long time, int rscType, bool max, bool includeNonLiveChildren, bool alwaysUseReplacementPaths) {
 		throw new NotImplementedException();
+	}
+	
+	public long speed() {
+		foreach (Node node in nodes) {
+			if (node.units.Count > 0) return g.unitT[g.units[node.units[0]].type].speed;
+		}
+		throw new InvalidOperationException("path does not contain any units");
 	}
 	
 	/// <summary>

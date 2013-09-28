@@ -41,17 +41,19 @@ public abstract class CmdEvt : SimEvt {
 	[ProtoMember(1)]
 	public long timeCmd {get;set;} // time is latest simulation time when command is given, timeCmd is when event takes place (may be in past)
 	[ProtoMember(2)]
-	public int[] units {get;set;}
+	public int[] units {get;set;} // STACK TODO: delete variable when no longer needed
+	[ProtoMember(3)]
+	public Dictionary<int, int[]> paths {get;set;}
 	
 	/// <summary>
 	/// empty constructor for protobuf-net use only
 	/// </summary>
 	protected CmdEvt() { }
 
-	protected CmdEvt(long timeVal, long timeCmdVal, int[] unitsVal) {
+	protected CmdEvt(long timeVal, long timeCmdVal, Dictionary<int, int[]> pathsVal) {
 		time = timeVal;
 		timeCmd = timeCmdVal;
-		units = unitsVal;
+		paths = pathsVal;
 	}
 
 	public override void apply(Sim g) {
@@ -76,8 +78,8 @@ public class MoveCmdEvt : CmdEvt {
 	/// </summary>
 	public MoveCmdEvt() { }
 
-	public MoveCmdEvt(long timeVal, long timeCmdVal, int[] unitsVal, FP.Vector posVal, Formation formationVal)
-		: base(timeVal, timeCmdVal, unitsVal) {
+	public MoveCmdEvt(long timeVal, long timeCmdVal, Dictionary<int, int[]> pathsVal, FP.Vector posVal, Formation formationVal)
+		: base(timeVal, timeCmdVal, pathsVal) {
 		pos = posVal;
 		formation = formationVal;
 	}
@@ -88,12 +90,15 @@ public class MoveCmdEvt : CmdEvt {
 		int count = 0, i = 0;
 		base.apply(g);
 		// count number of units able to move
-		foreach (int unit in units) {
+		// STACK TODO: implement this
+		count = paths.Count;
+		spacing = 0;
+		/*foreach (int unit in units) {
 			if (g.units[unit].canMove(timeCmd)) {
 				count++;
 				if (formation == Formation.Tight && g.unitT[g.units[unit].type].tightFormationSpacing > spacing) spacing = g.unitT[g.units[unit].type].tightFormationSpacing;
 			}
-		}
+		}*/
 		if (count == 0) return;
 		// calculate spacing
 		// (if tight formation, then spacing was already calculated above)
@@ -122,8 +127,8 @@ public class MoveCmdEvt : CmdEvt {
 		if (goalCenter.y < Math.Min(offset.y, g.mapSize / 2)) goalCenter.y = Math.Min(offset.y, g.mapSize / 2);
 		if (goalCenter.y > g.mapSize - Math.Min(offset.y, g.mapSize / 2)) goalCenter.y = g.mapSize - Math.Min(offset.y, g.mapSize / 2);
 		// move units
-		foreach (int unit in units) {
-			if (g.units[unit].canMove(timeCmd)) {
+		foreach (int path in paths.Keys) {
+			//if (g.units[unit].canMove(timeCmd)) { // STACK TODO: check this
 				if (formation == Formation.Tight || formation == Formation.Loose) {
 					goal = goalCenter + new FP.Vector((i % rows.x) * spacing - offset.x, i / rows.x * spacing - offset.y);
 				}
@@ -133,9 +138,9 @@ public class MoveCmdEvt : CmdEvt {
 				else {
 					throw new NotImplementedException("requested formation is not implemented");
 				}
-				g.units[unit].moveTo(timeCmd, goal);
+				g.paths[path].moveTo(timeCmd, goal);
 				i++;
-			}
+			//}
 		}
 	}
 }
@@ -157,8 +162,8 @@ public class MakeUnitCmdEvt : CmdEvt {
 	/// </summary>
 	public MakeUnitCmdEvt() { }
 
-	public MakeUnitCmdEvt(long timeVal, long timeCmdVal, int[] unitsVal, int typeVal, FP.Vector posVal, bool autoRepeatVal = false)
-		: base(timeVal, timeCmdVal, unitsVal) {
+	public MakeUnitCmdEvt(long timeVal, long timeCmdVal, Dictionary<int, int[]> pathsVal, int typeVal, FP.Vector posVal, bool autoRepeatVal = false)
+		: base(timeVal, timeCmdVal, pathsVal) {
 		type = typeVal;
 		pos = posVal;
 		autoRepeat = autoRepeatVal;
@@ -192,8 +197,9 @@ public class MakeUnitCmdEvt : CmdEvt {
 				List<int> unitsList = new List<int>(units);
 				moveUnit = g.units[moveUnit].moveTo(timeCmd, pos);
 				unitsList.Insert(0, moveUnit); // in case replacement unit is moving to make the unit
-				g.events.add(new MakeUnitCmdEvt(g.units[moveUnit].moves[g.units[moveUnit].nMoves - 1].timeEnd, g.units[moveUnit].moves[g.units[moveUnit].nMoves - 1].timeEnd + 1,
-					unitsList.ToArray(), type, pos, true));
+				// STACK TODO: constructor arguments changed
+				//g.events.add(new MakeUnitCmdEvt(g.units[moveUnit].moves[g.units[moveUnit].nMoves - 1].timeEnd, g.units[moveUnit].moves[g.units[moveUnit].nMoves - 1].timeEnd + 1,
+				//	unitsList.ToArray(), type, pos, true));
 			}
 		}
 	}
@@ -212,8 +218,8 @@ public class MakePathCmdEvt : CmdEvt {
 	/// </summary>
 	public MakePathCmdEvt() { }
 
-	public MakePathCmdEvt(long timeVal, long timeCmdVal, int[] unitsVal, FP.Vector[] posVal)
-		: base(timeVal, timeCmdVal, unitsVal) {
+	public MakePathCmdEvt(long timeVal, long timeCmdVal, Dictionary<int, int[]> pathsVal, FP.Vector[] posVal)
+		: base(timeVal, timeCmdVal, pathsVal) {
 		pos = posVal;
 	}
 
@@ -237,8 +243,8 @@ public class DeletePathCmdEvt : CmdEvt {
 	/// </summary>
 	public DeletePathCmdEvt() { }
 
-	public DeletePathCmdEvt(long timeVal, long timeCmdVal, int[] unitsVal)
-		: base(timeVal, timeCmdVal, unitsVal) { }
+	public DeletePathCmdEvt(long timeVal, long timeCmdVal, Dictionary<int, int[]> pathsVal)
+		: base(timeVal, timeCmdVal, pathsVal) { }
 
 	public override void apply(Sim g) {
 		base.apply(g);
