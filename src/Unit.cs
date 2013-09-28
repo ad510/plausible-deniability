@@ -91,7 +91,7 @@ namespace Decoherence
         public long[] timeHealth; // times at which each health increment is removed
         public long timeAttack; // latest time that attacked a unit
         public long timeSimPast; // time traveling simulation time if made in the past, otherwise set to long.MaxValue
-        public long timeCohere; // earliest time at which it's safe to time travel and move along multiple paths (set to long.MaxValue if never)
+        public long timeUnseen; // earliest time at which unit is known to not be seen by another player (set to long.MaxValue if never)
         public int parent; // index of unit that made this unit (set to <0 if none)
         public bool isChildPath; // whether this is a temporary unit moving along an alternate path that its parent unit could take
         public bool replaceParentPath; // whether should replace parent unit's path with this unit's path when this unit becomes live
@@ -114,7 +114,7 @@ namespace Decoherence
             timeHealth = new long[g.unitT[type].maxHealth];
             timeAttack = long.MinValue;
             timeSimPast = (startTime > g.timeSim) ? long.MaxValue : startTime;
-            timeCohere = g.tileAt(startPos).coherentWhen(player, startTime) ? startTime : long.MaxValue;
+            timeUnseen = g.tileAt(startPos).exclusiveWhen(player, startTime) ? startTime : long.MaxValue;
             parent = -1;
             isChildPath = false;
             replaceParentPath = false;
@@ -123,7 +123,7 @@ namespace Decoherence
         }
 
         /// <summary>
-        /// ensure that if unit is moving in the past, it does not move off coherent areas
+        /// ensure that if unit is moving in the past, it does not move off exclusively seen areas
         /// </summary>
         public void updatePast(long curTime)
         {
@@ -132,33 +132,33 @@ namespace Decoherence
             SimEvtList pastEvents = new SimEvtList();
             TileMoveEvt evt;
             FP.Vector pos;
-            int tX, tY, coherenceIndex;
-            // delete unit if tile that unit starts on stops being coherent since timeSimPast
+            int tX, tY, exclusiveIndex;
+            // delete unit if tile that unit starts on stops being exclusive since timeSimPast
             pos = calcPos(timeSimPast);
             tX = (int)(pos.x >> FP.Precision);
             tY = (int)(pos.y >> FP.Precision);
             // without modifications, line below may cause syncing problems in multiplayer b/c addTileMoveEvts() sometimes adds events before timeSimPast
             addTileMoveEvts(ref pastEvents, timeSimPast, timeSimPastNext);
             evt = (TileMoveEvt)pastEvents.pop();
-            coherenceIndex = g.tiles[tX, tY].coherentIndexWhen(player, (evt != null) ? evt.time - 1 : curTime);
-            if (!g.tiles[tX, tY].coherentWhen(player, (evt != null) ? evt.time - 1 : curTime)
-                || g.tiles[tX, tY].coherence[player][coherenceIndex] > timeSimPast)
+            exclusiveIndex = g.tiles[tX, tY].exclusiveIndexWhen(player, (evt != null) ? evt.time - 1 : curTime);
+            if (!g.tiles[tX, tY].exclusiveWhen(player, (evt != null) ? evt.time - 1 : curTime)
+                || g.tiles[tX, tY].exclusive[player][exclusiveIndex] > timeSimPast)
             {
-                if (!delete(g.timeSim)) throw new SystemException("unit not deleted successfully after moving off coherent area");
+                if (!delete(g.timeSim)) throw new SystemException("unit not deleted successfully after moving off exclusive area");
                 return;
             }
-            // delete unit if unit moves off coherent area or tile that unit is on stops being coherent
+            // delete unit if unit moves off exclusive area or tile that unit is on stops being exclusive
             if (evt != null)
             {
                 do
                 {
                     if (evt.tileX != int.MinValue) tX = evt.tileX;
                     if (evt.tileY != int.MinValue) tY = evt.tileY;
-                    coherenceIndex = g.tiles[tX, tY].coherentIndexWhen(player, evt.time);
-                    if (!g.tiles[tX, tY].coherentWhen(player, evt.time)
-                        || (coherenceIndex + 1 < g.tiles[tX, tY].coherence[player].Count() && g.tiles[tX, tY].coherence[player][coherenceIndex + 1] <= Math.Min(g.events.peekTime(), timeSimPastNext)))
+                    exclusiveIndex = g.tiles[tX, tY].exclusiveIndexWhen(player, evt.time);
+                    if (!g.tiles[tX, tY].exclusiveWhen(player, evt.time)
+                        || (exclusiveIndex + 1 < g.tiles[tX, tY].exclusive[player].Count() && g.tiles[tX, tY].exclusive[player][exclusiveIndex + 1] <= Math.Min(g.events.peekTime(), timeSimPastNext)))
                     {
-                        if (!delete(g.timeSim)) throw new SystemException("unit not deleted successfully after moving off coherent area");
+                        if (!delete(g.timeSim)) throw new SystemException("unit not deleted successfully after moving off exclusive area");
                         return;
                     }
                 } while ((evt = (TileMoveEvt)pastEvents.pop()) != null);
@@ -220,7 +220,7 @@ namespace Decoherence
         /// </summary>
         public bool canMove(long time)
         {
-            return exists(time) && (time >= g.timeSim || time >= timeCohere) && g.unitT[type].speed > 0;
+            return exists(time) && (time >= g.timeSim || time >= timeUnseen) && g.unitT[type].speed > 0;
         }
 
         /// <summary>
@@ -346,21 +346,21 @@ namespace Decoherence
         /// <summary>
         /// allows unit to time travel and move along multiple paths starting at specified time
         /// </summary>
-        public void cohere(long time)
+        public void beUnseen(long time)
         {
-            timeCohere = time;
+            timeUnseen = time;
         }
 
         /// <summary>
         /// stops allowing unit to time travel or move along multiple paths starting at timeSim
         /// </summary>
-        public void decohere(long time = long.MaxValue)
+        public void beSeen(long time = long.MaxValue)
         {
-            if (time > timeCohere) timeCohere = time;
-            // delete all child paths made before time cohered
+            if (time > timeUnseen) timeUnseen = time;
+            // delete all child paths made before time unseen
             for (int i = 0; i < nChildren; i++)
             {
-                if (g.units[children[i]].isChildPath && g.units[children[i]].moves[0].timeStart < timeCohere)
+                if (g.units[children[i]].isChildPath && g.units[children[i]].moves[0].timeStart < timeUnseen)
                 {
                     if (!g.units[children[i]].delete(time)) throw new SystemException("child unit not deleted successfully");
                     i--;
@@ -373,11 +373,11 @@ namespace Decoherence
                     int parentPathTemp = parent;
                     g.units[parent].deleteChildrenAfter(moves[0].timeStart);
                     movePathToParent();
-                    g.units[parentPathTemp].decohere();
+                    g.units[parentPathTemp].beSeen();
                 }
                 else
                 {
-                    g.units[parent].decohere(moves[0].timeStart);
+                    g.units[parent].beSeen(moves[0].timeStart);
                 }
             }
         }
@@ -387,7 +387,7 @@ namespace Decoherence
         /// </summary>
         public bool delete(long time, bool skipRscCheck = false)
         {
-            bool hasDecoheredChild = false;
+            bool hasUnseenChild = false;
             int i;
             if (nChildren > 0)
             {
@@ -402,9 +402,9 @@ namespace Decoherence
                     {
                         path = children[i];
                     }
-                    else if (g.units[children[i]].timeCohere != g.units[children[i]].moves[0].timeStart)
+                    else if (g.units[children[i]].timeUnseen != g.units[children[i]].moves[0].timeStart)
                     {
-                        hasDecoheredChild = true;
+                        hasUnseenChild = true;
                     }
                 }
                 if (path >= 0)
@@ -414,7 +414,7 @@ namespace Decoherence
                     return true;
                 }
             }
-            if (parent >= 0 && timeCohere == moves[0].timeStart && !hasDecoheredChild)
+            if (parent >= 0 && timeUnseen == moves[0].timeStart && !hasUnseenChild)
             {
                 // if we can't become a child unit but have a parent unit and were never seen by another player, delete this unit completely
                 if (timeSimPast == long.MaxValue && !isChildPath && !skipRscCheck)
@@ -476,12 +476,12 @@ namespace Decoherence
             {
                 if (isChildPathVal)
                 {
-                    if (time >= timeCohere) return true;
+                    if (time >= timeUnseen) return true;
                 }
                 else
                 {
                     bool newUnitIsLive = (time >= g.timeSim && isLive(time));
-                    if (g.unitT[type].canMake[typeVal] && (time >= g.timeSim || time >= timeCohere))
+                    if (g.unitT[type].canMake[typeVal] && (time >= g.timeSim || time >= timeUnseen))
                     {
                         for (int i = 0; i < g.nRsc; i++)
                         {
@@ -626,7 +626,7 @@ namespace Decoherence
         {
             nMoves = 0;
             moves[0] = new Move(long.MaxValue - 1, new FP.Vector(Sim.OffMap, 0));
-            timeCohere = long.MaxValue;
+            timeUnseen = long.MaxValue;
             g.events.add(new TileMoveEvt(g.timeSim, id, Sim.OffMap, 0));
         }
 
@@ -701,11 +701,11 @@ namespace Decoherence
         }
 
         /// <summary>
-        /// returns whether unit can time travel or move along multiple paths at latest known time
+        /// returns whether unit is known to not be seen by another player at latest known time
         /// </summary>
-        public bool coherent()
+        public bool unseen()
         {
-            return timeCohere != long.MaxValue;
+            return timeUnseen != long.MaxValue;
         }
 
         /// <summary>

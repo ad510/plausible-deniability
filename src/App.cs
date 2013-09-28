@@ -126,7 +126,7 @@ namespace Decoherence
             g.noVisCol = jsonColor4(json, "noVisCol");
             g.playerVisCol = jsonColor4(json, "playerVisCol");
             g.unitVisCol = jsonColor4(json, "unitVisCol");
-            g.coherentCol = jsonColor4(json, "coherentCol");
+            g.exclusiveCol = jsonColor4(json, "exclusiveCol");
             g.pathCol = jsonColor4(json, "pathCol");
             g.healthBarBackCol = jsonColor4(json, "healthBarBackCol");
             g.healthBarFullCol = jsonColor4(json, "healthBarFullCol");
@@ -548,7 +548,7 @@ namespace Decoherence
                     // hide traces of mischief
                     for (i = 0; i < g.nUnits; i++)
                     {
-                        g.units[i].decohere();
+                        g.units[i].beSeen();
                         g.units[i].tileX = Sim.OffMap + 1;
                     }
                     for (i = 0; i < g.tileLen(); i++)
@@ -625,7 +625,7 @@ namespace Decoherence
                     {
                         col += g.playerVisCol;
                         if (g.tiles[tX, tY].playerDirectVisWhen(selPlayer, timeGame)) col += g.unitVisCol;
-                        if (g.tiles[tX, tY].coherentWhen(selPlayer, timeGame)) col += g.coherentCol;
+                        if (g.tiles[tX, tY].exclusiveWhen(selPlayer, timeGame)) col += g.exclusiveCol;
                     }
                     for (j = i; j < i + 6; j++)
                     {

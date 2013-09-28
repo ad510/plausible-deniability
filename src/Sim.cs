@@ -82,24 +82,20 @@ namespace Decoherence
             public List<long>[] playerVis;
             /// <summary>
             /// stores times when each player started or stopped knowing that no other player can see this tile,
-            /// in format coherence[player][gain/lose coherence index]
+            /// in format exclusive[player][gain/lose exclusivity index]
             /// </summary>
-            /// <remarks>
-            /// This isn't the actual definition of coherence, but this is an important concept in the game and I need a name for it.
-            /// The real meaning of coherence is described at http://arstechnica.com/technopaedia/2008/03/coherence
-            /// </remarks>
-            public List<long>[] coherence;
+            public List<long>[] exclusive;
 
             public Tile(Sim simVal)
             {
                 g = simVal;
                 unitVis = new Dictionary<int,List<long>>();
                 playerVis = new List<long>[g.nPlayers];
-                coherence = new List<long>[g.nPlayers];
+                exclusive = new List<long>[g.nPlayers];
                 for (int i = 0; i < g.nPlayers; i++)
                 {
                     playerVis[i] = new List<long>();
-                    coherence[i] = new List<long>();
+                    exclusive[i] = new List<long>();
                 }
             }
 
@@ -182,25 +178,25 @@ namespace Decoherence
             /// <summary>
             /// returns if specified player can infer that no other player can see this tile at latest possible time
             /// </summary>
-            public bool coherentLatest(int player)
+            public bool exclusiveLatest(int player)
             {
-                return visLatest(coherence[player]);
+                return visLatest(exclusive[player]);
             }
 
             /// <summary>
-            /// returns coherence gain/lose visibility index associated with specified time for specified player
+            /// returns gain/lose exclusivity index associated with specified time for specified player
             /// </summary>
-            public int coherentIndexWhen(int player, long time)
+            public int exclusiveIndexWhen(int player, long time)
             {
-                return visIndexWhen(coherence[player], time);
+                return visIndexWhen(exclusive[player], time);
             }
 
             /// <summary>
             /// returns if specified player can infer that no other player can see this tile at specified time
             /// </summary>
-            public bool coherentWhen(int player, long time)
+            public bool exclusiveWhen(int player, long time)
             {
-                return visWhen(coherence[player], time);
+                return visWhen(exclusive[player], time);
             }
 
             /// <summary>
@@ -258,7 +254,7 @@ namespace Decoherence
         public Color4 noVisCol;
         public Color4 playerVisCol;
         public Color4 unitVisCol;
-        public Color4 coherentCol;
+        public Color4 exclusiveCol;
         public Color4 pathCol;
         public Color4 healthBarBackCol;
         public Color4 healthBarFullCol;
@@ -381,38 +377,38 @@ namespace Decoherence
         }
 
         /// <summary>
-        /// makes specified tile "coherent" for specified player starting at specified time,
+        /// makes specified tile exclusive to specified player starting at specified time,
         /// including how that affects units on that tile
         /// </summary>
-        public void coherenceAdd(int player, int tileX, int tileY, long time)
+        public void exclusiveAdd(int player, int tileX, int tileY, long time)
         {
-            if (tiles[tileX, tileY].coherentLatest(player)) throw new InvalidOperationException("tile (" + tileX + ", " + tileY + ") is already coherent");
-            tiles[tileX, tileY].coherence[player].Add(time);
+            if (tiles[tileX, tileY].exclusiveLatest(player)) throw new InvalidOperationException("tile (" + tileX + ", " + tileY + ") is already exclusive");
+            tiles[tileX, tileY].exclusive[player].Add(time);
             // this player's units that are on this tile may time travel starting now
-            // TODO: actually safe to time travel at earlier times, as long as unit of same type is at same place when decoheres
+            // TODO: actually safe to time travel at earlier times, as long as unit of same type is at same place when seen by another player
             for (int i = 0; i < nUnits; i++)
             {
-                if (player == units[i].player && tileX == units[i].tileX && tileY == units[i].tileY && !units[i].coherent())
+                if (player == units[i].player && tileX == units[i].tileX && tileY == units[i].tileY && !units[i].unseen())
                 {
-                    units[i].cohere(time);
+                    units[i].beUnseen(time);
                 }
             }
         }
 
         /// <summary>
-        /// makes specified tile not "coherent" for specified player starting at specified time,
+        /// makes specified tile not exclusive to specified player starting at specified time,
         /// including how that affects units on that tile
         /// </summary>
-        public void coherenceRemove(int player, int tileX, int tileY, long time)
+        public void exclusiveRemove(int player, int tileX, int tileY, long time)
         {
-            if (!tiles[tileX, tileY].coherentLatest(player)) throw new InvalidOperationException("tile (" + tileX + ", " + tileY + ") is already not coherent");
-            tiles[tileX, tileY].coherence[player].Add(time);
+            if (!tiles[tileX, tileY].exclusiveLatest(player)) throw new InvalidOperationException("tile (" + tileX + ", " + tileY + ") is already not exclusive");
+            tiles[tileX, tileY].exclusive[player].Add(time);
             // this player's units that are on this tile may not time travel starting now
             for (int i = 0; i < nUnits; i++)
             {
-                if (player == units[i].player && tileX == units[i].tileX && tileY == units[i].tileY && units[i].coherent())
+                if (player == units[i].player && tileX == units[i].tileX && tileY == units[i].tileY && units[i].unseen())
                 {
-                    units[i].decohere();
+                    units[i].beSeen();
                 }
             }
         }
@@ -426,7 +422,7 @@ namespace Decoherence
         /// If no other player could see the specified tile in this worst case scenario,
         /// the player can infer that he/she is the only player that can see this tile.
         /// </remarks>
-        public bool calcCoherent(int player, int tileX, int tileY)
+        public bool calcExclusive(int player, int tileX, int tileY)
         {
             int i, tX, tY;
             // check that this player can see all nearby tiles
@@ -463,7 +459,7 @@ namespace Decoherence
         }
 
         /// <summary>
-        /// checks whether specified player could have negative resources since timeMin in worst case decoherence scenario
+        /// checks whether specified player could have negative resources since timeMin in worst case scenario of which paths are seen
         /// </summary>
         /// <returns>a time that player could have negative resources, or -1 if no such time found</returns>
         public long playerCheckNegRsc(int player, long timeMin, bool includeNonLiveChildren, bool alwaysUseReplacementPaths)

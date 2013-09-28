@@ -268,7 +268,7 @@ namespace Decoherence
             {
                 if (player == g.units[i].player && g.units[i].exists(time) && !g.units[i].isLive(time))
                 {
-                    // ensure that time traveling units don't move off coherent areas
+                    // ensure that time traveling units don't move off exclusive areas
                     g.units[i].updatePast(time);
                     // find earliest time that player's units started time traveling
                     if (g.units[i].moves[0].timeStart < timeTravelStart) timeTravelStart = g.units[i].moves[0].timeStart;
@@ -379,7 +379,7 @@ namespace Decoherence
         {
             if (g.units[unit].tileX == Sim.OffMap) return; // skip event if unit no longer exists
             List<Point> playerVisAddTiles = new List<Point>();
-            Rectangle coherenceRange = new Rectangle(g.tileLen() - 1, g.tileLen() - 1, 0, 0);
+            Rectangle exclusiveRange = new Rectangle(g.tileLen() - 1, g.tileLen() - 1, 0, 0);
             int i, tXPrev, tYPrev, tX, tY;
             if (tileX == int.MinValue) tileX = g.units[unit].tileX;
             if (tileY == int.MinValue) tileY = g.units[unit].tileY;
@@ -409,29 +409,29 @@ namespace Decoherence
                     }
                 }
             }
-            // check if tiles cohered for this player
+            // check if tiles became exclusive to this player
             foreach (Point p in playerVisAddTiles)
             {
-                if (p.X < coherenceRange.X) coherenceRange.X = p.X;
-                if (p.X > coherenceRange.Width) coherenceRange.Width = p.X;
-                if (p.Y < coherenceRange.Y) coherenceRange.Y = p.Y;
-                if (p.Y > coherenceRange.Height) coherenceRange.Height = p.Y;
+                if (p.X < exclusiveRange.X) exclusiveRange.X = p.X;
+                if (p.X > exclusiveRange.Width) exclusiveRange.Width = p.X;
+                if (p.Y < exclusiveRange.Y) exclusiveRange.Y = p.Y;
+                if (p.Y > exclusiveRange.Height) exclusiveRange.Height = p.Y;
             }
-            coherenceRange.X = Math.Max(0, coherenceRange.X - g.tileVisRadius());
-            coherenceRange.Width = Math.Min(g.tileLen() - 1, coherenceRange.Width + g.tileVisRadius());
-            coherenceRange.Y = Math.Max(0, coherenceRange.Y - g.tileVisRadius());
-            coherenceRange.Height = Math.Min(g.tileLen() - 1, coherenceRange.Height + g.tileVisRadius());
-            for (tX = coherenceRange.X; tX <= coherenceRange.Width; tX++)
+            exclusiveRange.X = Math.Max(0, exclusiveRange.X - g.tileVisRadius());
+            exclusiveRange.Width = Math.Min(g.tileLen() - 1, exclusiveRange.Width + g.tileVisRadius());
+            exclusiveRange.Y = Math.Max(0, exclusiveRange.Y - g.tileVisRadius());
+            exclusiveRange.Height = Math.Min(g.tileLen() - 1, exclusiveRange.Height + g.tileVisRadius());
+            for (tX = exclusiveRange.X; tX <= exclusiveRange.Width; tX++)
             {
-                for (tY = coherenceRange.Y; tY <= coherenceRange.Height; tY++)
+                for (tY = exclusiveRange.Y; tY <= exclusiveRange.Height; tY++)
                 {
                     foreach (Point p in playerVisAddTiles)
                     {
                         if (g.inVis(tX - p.X, tY - p.Y))
                         {
-                            if (!g.tiles[tX, tY].coherentLatest(g.units[unit].player) && g.calcCoherent(g.units[unit].player, tX, tY))
+                            if (!g.tiles[tX, tY].exclusiveLatest(g.units[unit].player) && g.calcExclusive(g.units[unit].player, tX, tY))
                             {
-                                g.coherenceAdd(g.units[unit].player, tX, tY, time);
+                                g.exclusiveAdd(g.units[unit].player, tX, tY, time);
                             }
                             break;
                         }
@@ -440,14 +440,14 @@ namespace Decoherence
             }
             if (tileX >= 0 && tileX < g.tileLen() && tileY >= 0 && tileY < g.tileLen())
             {
-                // update whether this unit may time travel
-                if (!g.units[unit].coherent() && g.tiles[tileX, tileY].coherentLatest(g.units[unit].player))
+                // update whether this unit is known to be unseen
+                if (!g.units[unit].unseen() && g.tiles[tileX, tileY].exclusiveLatest(g.units[unit].player))
                 {
-                    g.units[unit].cohere(time);
+                    g.units[unit].beUnseen(time);
                 }
-                else if (g.units[unit].coherent() && !g.tiles[tileX, tileY].coherentLatest(g.units[unit].player))
+                else if (g.units[unit].unseen() && !g.tiles[tileX, tileY].exclusiveLatest(g.units[unit].player))
                 {
-                    g.units[unit].decohere();
+                    g.units[unit].beSeen();
                 }
                 // if this unit moved out of another player's visibility, remove that player's visibility here
                 if (!g.players[g.units[unit].player].immutable && tXPrev >= 0 && tXPrev < g.tileLen() && tYPrev >= 0 && tYPrev < g.tileLen())
@@ -504,12 +504,12 @@ namespace Decoherence
                 {
                     g.tiles[tileX, tileY].playerVis[g.units[unit].player].Add(time);
                     playerVisAddTiles.Add(new Point(tileX, tileY));
-                    // check if this tile decohered for another player
+                    // check if this tile stopped being exclusive to another player
                     for (i = 0; i < g.nPlayers; i++)
                     {
-                        if (i != g.units[unit].player && g.tiles[tileX, tileY].coherentLatest(i))
+                        if (i != g.units[unit].player && g.tiles[tileX, tileY].exclusiveLatest(i))
                         {
-                            g.coherenceRemove(i, tileX, tileY, time);
+                            g.exclusiveRemove(i, tileX, tileY, time);
                         }
                     }
                 }
@@ -605,7 +605,7 @@ namespace Decoherence
                     tiles[i].X = Sim.OffMap;
                 }
             }
-            // check if a tile decohered for this player, or cohered for another player
+            // check if a tile stopped being exclusive to this player, or became exclusive to another player
             iPrev = -1;
             for (i = 0; i < nTiles; i++)
             {
@@ -619,13 +619,13 @@ namespace Decoherence
                             {
                                 for (j = 0; j < g.nPlayers; j++)
                                 {
-                                    if (j == player && g.tiles[tX, tY].coherentLatest(j))
+                                    if (j == player && g.tiles[tX, tY].exclusiveLatest(j))
                                     {
-                                        g.coherenceRemove(j, tX, tY, time);
+                                        g.exclusiveRemove(j, tX, tY, time);
                                     }
-                                    else if (j != player && !g.tiles[tX, tY].coherentLatest(j) && g.calcCoherent(j, tX, tY))
+                                    else if (j != player && !g.tiles[tX, tY].exclusiveLatest(j) && g.calcExclusive(j, tX, tY))
                                     {
-                                        g.coherenceAdd(j, tX, tY, time);
+                                        g.exclusiveAdd(j, tX, tY, time);
                                     }
                                 }
                             }
