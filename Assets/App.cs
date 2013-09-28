@@ -189,7 +189,7 @@ public class App : MonoBehaviour {
 		g.noVisCol = jsonColor(json, "noVisCol");
 		g.playerVisCol = jsonColor(json, "playerVisCol");
 		g.unitVisCol = jsonColor(json, "unitVisCol");
-		g.coherentCol = jsonColor(json, "coherentCol");
+		g.exclusiveCol = jsonColor(json, "exclusiveCol");
 		g.pathCol = jsonColor(json, "pathCol");
 		g.healthBarBackCol = jsonColor(json, "healthBarBackCol");
 		g.healthBarFullCol = jsonColor(json, "healthBarFullCol");
@@ -523,7 +523,7 @@ public class App : MonoBehaviour {
 			timeGame = 0;
 			// hide traces of mischief
 			for (i = 0; i < g.nUnits; i++) {
-				g.units[i].decohere();
+				g.units[i].beSeen();
 				g.units[i].tileX = Sim.OffMap + 1;
 			}
 			for (i = 0; i < g.tileLen(); i++) {
@@ -586,7 +586,7 @@ public class App : MonoBehaviour {
 				if (g.tiles[tX, tY].playerVisWhen(selPlayer, timeGame)) {
 					col += g.playerVisCol;
 					if (g.tiles[tX, tY].playerDirectVisWhen(selPlayer, timeGame)) col += g.unitVisCol;
-					if (g.tiles[tX, tY].coherentWhen(selPlayer, timeGame)) col += g.coherentCol;
+					if (g.tiles[tX, tY].exclusiveWhen(selPlayer, timeGame)) col += g.exclusiveCol;
 				}
 				texTile.SetPixel (tX, tY, col);
 			}
