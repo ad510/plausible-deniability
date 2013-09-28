@@ -136,7 +136,7 @@ namespace Decoherence
             {
                 foreach (int i in unitVis.Keys)
                 {
-                    if (player == g.u[i].player && visLatest(unitVis[i])) return true;
+                    if (player == g.units[i].player && visLatest(unitVis[i])) return true;
                 }
                 return false;
             }
@@ -148,7 +148,7 @@ namespace Decoherence
             {
                 foreach (int i in unitVis.Keys)
                 {
-                    if (player == g.u[i].player && visWhen(unitVis[i], time)) return true;
+                    if (player == g.units[i].player && visWhen(unitVis[i], time)) return true;
                 }
                 return false;
             }
@@ -271,7 +271,7 @@ namespace Decoherence
         public string[] rscNames;
         public Player[] players;
         public UnitType[] unitT;
-        public Unit[] u;
+        public Unit[] units;
 
         // helper variables not loaded from scenario file
         public Tile[,] tiles; // each tile is 1 fixed-point unit (2^FP.Precision raw integer units) wide, so bit shift by FP.Precision to convert between position and tile position
@@ -289,8 +289,8 @@ namespace Decoherence
         public void setNUnits(int newSize)
         {
             nUnits = newSize;
-            if (u == null || nUnits > u.Length)
-                Array.Resize(ref u, nUnits * 2);
+            if (units == null || nUnits > units.Length)
+                Array.Resize(ref units, nUnits * 2);
         }
 
         /// <summary>
@@ -322,7 +322,7 @@ namespace Decoherence
                     }
                     foreach (int unit in movedUnits)
                     {
-                        if (u[unit].timeSimPast == long.MaxValue) u[unit].addTileMoveEvts(ref events, timeSim, timeUpdateEvt + updateInterval);
+                        if (units[unit].timeSimPast == long.MaxValue) units[unit].addTileMoveEvts(ref events, timeSim, timeUpdateEvt + updateInterval);
                     }
                     movedUnits.Clear();
                 }
@@ -340,7 +340,7 @@ namespace Decoherence
             {
                 for (int i = 0; i < nUnits; i++)
                 {
-                    if (u[i].player == player) u[i].updatePast(curTime);
+                    if (units[i].player == player) units[i].updatePast(curTime);
                 }
                 if (curTime >= timeSim && (players[player].timeGoLiveFail == long.MaxValue || timeSim >= players[player].timeGoLiveFail + updateInterval))
                 {
@@ -392,9 +392,9 @@ namespace Decoherence
             // TODO: actually safe to time travel at earlier times, as long as unit of same type is at same place when decoheres
             for (int i = 0; i < nUnits; i++)
             {
-                if (player == u[i].player && tileX == u[i].tileX && tileY == u[i].tileY && !u[i].coherent())
+                if (player == units[i].player && tileX == units[i].tileX && tileY == units[i].tileY && !units[i].coherent())
                 {
-                    u[i].cohere(time);
+                    units[i].cohere(time);
                 }
             }
         }
@@ -410,9 +410,9 @@ namespace Decoherence
             // this player's units that are on this tile may not time travel starting now
             for (int i = 0; i < nUnits; i++)
             {
-                if (player == u[i].player && tileX == u[i].tileX && tileY == u[i].tileY && u[i].coherent())
+                if (player == units[i].player && tileX == units[i].tileX && tileY == units[i].tileY && units[i].coherent())
                 {
-                    u[i].decohere();
+                    units[i].decohere();
                 }
             }
         }
@@ -457,7 +457,7 @@ namespace Decoherence
             long ret = players[player].startRsc[rscType];
             for (int i = 0; i < nUnits; i++)
             {
-                if (u[i].player == player && u[i].parent < 0) ret += u[i].rscCollected(time, rscType, max, includeNonLiveChildren, alwaysUseReplacementPaths);
+                if (units[i].player == player && units[i].parent < 0) ret += units[i].rscCollected(time, rscType, max, includeNonLiveChildren, alwaysUseReplacementPaths);
             }
             return ret;
         }
@@ -473,13 +473,13 @@ namespace Decoherence
             {
                 // check all times since timeMin that a unit of specified player was made
                 // note that new units are made at timeCmd + 1
-                if (player == u[i].player && u[i].m[0].timeStart >= timeMin && u[i].m[0].timeStart <= timeSim + 1)
+                if (player == units[i].player && units[i].moves[0].timeStart >= timeMin && units[i].moves[0].timeStart <= timeSim + 1)
                 {
                     for (j = 0; j < nRsc; j++)
                     {
-                        if (playerResource(player, u[i].m[0].timeStart, j, false, includeNonLiveChildren, alwaysUseReplacementPaths) < 0)
+                        if (playerResource(player, units[i].moves[0].timeStart, j, false, includeNonLiveChildren, alwaysUseReplacementPaths) < 0)
                         {
-                            return u[i].m[0].timeStart;
+                            return units[i].moves[0].timeStart;
                         }
                     }
                 }

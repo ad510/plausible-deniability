@@ -74,10 +74,10 @@ namespace Decoherence
             // count number of units able to move
             foreach (int unit in units)
             {
-                if (g.u[unit].canMove(timeCmd))
+                if (g.units[unit].canMove(timeCmd))
                 {
                     count++;
-                    if (formation == Formation.Tight && g.unitT[g.u[unit].type].tightFormationSpacing > spacing) spacing = g.unitT[g.u[unit].type].tightFormationSpacing;
+                    if (formation == Formation.Tight && g.unitT[g.units[unit].type].tightFormationSpacing > spacing) spacing = g.unitT[g.units[unit].type].tightFormationSpacing;
                 }
             }
             if (count == 0) return;
@@ -114,7 +114,7 @@ namespace Decoherence
             // move units
             foreach (int unit in units)
             {
-                if (g.u[unit].canMove(timeCmd))
+                if (g.units[unit].canMove(timeCmd))
                 {
                     if (formation == Formation.Tight || formation == Formation.Loose)
                     {
@@ -128,7 +128,7 @@ namespace Decoherence
                     {
                         throw new NotImplementedException("requested formation is not implemented");
                     }
-                    g.u[unit].moveTo(timeCmd, goal);
+                    g.units[unit].moveTo(timeCmd, goal);
                     i++;
                 }
             }
@@ -158,14 +158,14 @@ namespace Decoherence
             // make unit at requested position, if possible
             foreach (int unit in units)
             {
-                if (g.u[unit].canMakeChildUnit(timeCmd, false, type))
+                if (g.units[unit].canMakeChildUnit(timeCmd, false, type))
                 {
-                    FP.Vector curPos = g.u[unit].calcPos(timeCmd);
+                    FP.Vector curPos = g.units[unit].calcPos(timeCmd);
                     if ((pos.x == curPos.x && pos.y == curPos.y) || (g.unitT[type].speed > 0 && g.unitT[type].makeOnUnitT < 0))
                     {
                         // TODO: take time to make units?
-                        g.u[unit].makeChildUnit(timeCmd, false, type);
-                        if (g.u[g.nUnits - 1].canMove(timeCmd)) g.u[g.nUnits - 1].moveTo(timeCmd, pos); // move new unit out of the way
+                        g.units[unit].makeChildUnit(timeCmd, false, type);
+                        if (g.units[g.nUnits - 1].canMove(timeCmd)) g.units[g.nUnits - 1].moveTo(timeCmd, pos); // move new unit out of the way
                         return;
                     }
                 }
@@ -177,8 +177,8 @@ namespace Decoherence
                 int moveUnit = -1;
                 foreach (int unit in units)
                 {
-                    if (g.u[unit].canMakeChildUnit(timeCmd, false, type) && g.u[unit].canMove(timeCmd)
-                        && (moveUnit < 0 || (g.u[unit].calcPos(timeCmd) - pos).lengthSq() < (g.u[moveUnit].calcPos(timeCmd) - pos).lengthSq()))
+                    if (g.units[unit].canMakeChildUnit(timeCmd, false, type) && g.units[unit].canMove(timeCmd)
+                        && (moveUnit < 0 || (g.units[unit].calcPos(timeCmd) - pos).lengthSq() < (g.units[moveUnit].calcPos(timeCmd) - pos).lengthSq()))
                     {
                         moveUnit = unit;
                     }
@@ -186,9 +186,9 @@ namespace Decoherence
                 if (moveUnit >= 0)
                 {
                     List<int> unitsList = new List<int>(units);
-                    moveUnit = g.u[moveUnit].moveTo(timeCmd, pos);
+                    moveUnit = g.units[moveUnit].moveTo(timeCmd, pos);
                     unitsList.Insert(0, moveUnit); // in case replacement unit is moving to make the unit
-                    g.events.add(new MakeUnitCmdEvt(g.u[moveUnit].m[g.u[moveUnit].n - 1].timeEnd, g.u[moveUnit].m[g.u[moveUnit].n - 1].timeEnd + 1,
+                    g.events.add(new MakeUnitCmdEvt(g.units[moveUnit].moves[g.units[moveUnit].nMoves - 1].timeEnd, g.units[moveUnit].moves[g.units[moveUnit].nMoves - 1].timeEnd + 1,
                         unitsList.ToArray(), type, pos, true));
                 }
             }
@@ -213,9 +213,9 @@ namespace Decoherence
             base.apply(g);
             for (int i = 0; i < units.Length; i++)
             {
-                if (g.u[units[i]].makeChildUnit(timeCmd, true) && g.u[g.nUnits - 1].canMove(timeCmd))
+                if (g.units[units[i]].makeChildUnit(timeCmd, true) && g.units[g.nUnits - 1].canMove(timeCmd))
                 {
-                    g.u[g.nUnits - 1].moveTo(timeCmd, pos[i]); // move new unit out of the way
+                    g.units[g.nUnits - 1].moveTo(timeCmd, pos[i]); // move new unit out of the way
                 }
             }
         }
@@ -240,7 +240,7 @@ namespace Decoherence
                 {
                     if (unit2 == g.unitIdChgs[i * 2]) unit2 = g.unitIdChgs[i * 2 + 1];
                 }
-                if (unit2 >= 0) g.u[unit2].delete(timeCmd);
+                if (unit2 >= 0) g.units[unit2].delete(timeCmd);
             }
         }
     }
@@ -266,12 +266,12 @@ namespace Decoherence
             g.cmdHistory.add(this); // copy event to command history list (it should've already been popped from event list)
             for (i = 0; i < g.nUnits; i++)
             {
-                if (player == g.u[i].player && g.u[i].exists(time) && !g.u[i].isLive(time))
+                if (player == g.units[i].player && g.units[i].exists(time) && !g.units[i].isLive(time))
                 {
                     // ensure that time traveling units don't move off coherent areas
-                    g.u[i].updatePast(time);
+                    g.units[i].updatePast(time);
                     // find earliest time that player's units started time traveling
-                    if (g.u[i].m[0].timeStart < timeTravelStart) timeTravelStart = g.u[i].m[0].timeStart;
+                    if (g.units[i].moves[0].timeStart < timeTravelStart) timeTravelStart = g.units[i].moves[0].timeStart;
                 }
             }
             if (timeTravelStart != long.MaxValue) // skip if player has no time traveling units
@@ -287,7 +287,7 @@ namespace Decoherence
                 // safe for units to become live, so do so
                 for (i = 0; i < g.nUnits; i++)
                 {
-                    if (player == g.u[i].player && g.u[i].exists(time) && !g.u[i].isLive(time)) g.u[i].goLive();
+                    if (player == g.units[i].player && g.units[i].exists(time) && !g.units[i].isLive(time)) g.units[i].goLive();
                 }
             }
             // indicate success
@@ -315,17 +315,17 @@ namespace Decoherence
             // update units
             for (i = 0; i < g.nUnits; i++)
             {
-                if (g.u[i].isLive(time) && time >= g.u[i].timeAttack + g.unitT[g.u[i].type].reload)
+                if (g.units[i].isLive(time) && time >= g.units[i].timeAttack + g.unitT[g.units[i].type].reload)
                 {
                     // done reloading, look for closest target to potentially attack
-                    pos = g.u[i].calcPos(time);
+                    pos = g.units[i].calcPos(time);
                     target = -1;
-                    targetDistSq = g.unitT[g.u[i].type].range * g.unitT[g.u[i].type].range + 1;
+                    targetDistSq = g.unitT[g.units[i].type].range * g.unitT[g.units[i].type].range + 1;
                     for (j = 0; j < g.nUnits; j++)
                     {
-                        if (i != j && g.u[j].isLive(time) && g.players[g.u[i].player].mayAttack[g.u[j].player] && g.unitT[g.u[i].type].damage[g.u[j].type] > 0)
+                        if (i != j && g.units[j].isLive(time) && g.players[g.units[i].player].mayAttack[g.units[j].player] && g.unitT[g.units[i].type].damage[g.units[j].type] > 0)
                         {
-                            distSq = (g.u[j].calcPos(time) - pos).lengthSq();
+                            distSq = (g.units[j].calcPos(time) - pos).lengthSq();
                             if (distSq < targetDistSq)
                             {
                                 target = j;
@@ -337,8 +337,8 @@ namespace Decoherence
                     {
                         // attack target
                         // take health with 1 ms delay so earlier units in array don't have unfair advantage
-                        for (j = 0; j < g.unitT[g.u[i].type].damage[g.u[target].type]; j++) g.u[target].takeHealth(time + 1);
-                        g.u[i].timeAttack = time;
+                        for (j = 0; j < g.unitT[g.units[i].type].damage[g.units[target].type]; j++) g.units[target].takeHealth(time + 1);
+                        g.units[i].timeAttack = time;
                     }
                 }
             }
@@ -346,7 +346,7 @@ namespace Decoherence
             // this shouldn't be done in Sim.update() because addTileMoveEvts() sometimes adds events before timeSim
             for (i = 0; i < g.nUnits; i++)
             {
-                if (g.u[i].timeSimPast == long.MaxValue) g.u[i].addTileMoveEvts(ref g.events, time, time + g.updateInterval);
+                if (g.units[i].timeSimPast == long.MaxValue) g.units[i].addTileMoveEvts(ref g.events, time, time + g.updateInterval);
             }
             g.movedUnits.Clear();
             // add next UpdateEvt
@@ -377,16 +377,16 @@ namespace Decoherence
 
         public override void apply(Sim g)
         {
-            if (g.u[unit].tileX == Sim.OffMap) return; // skip event if unit no longer exists
+            if (g.units[unit].tileX == Sim.OffMap) return; // skip event if unit no longer exists
             List<Point> playerVisAddTiles = new List<Point>();
             Rectangle coherenceRange = new Rectangle(g.tileLen() - 1, g.tileLen() - 1, 0, 0);
             int i, tXPrev, tYPrev, tX, tY;
-            if (tileX == int.MinValue) tileX = g.u[unit].tileX;
-            if (tileY == int.MinValue) tileY = g.u[unit].tileY;
-            tXPrev = g.u[unit].tileX;
-            tYPrev = g.u[unit].tileY;
-            g.u[unit].tileX = tileX;
-            g.u[unit].tileY = tileY;
+            if (tileX == int.MinValue) tileX = g.units[unit].tileX;
+            if (tileY == int.MinValue) tileY = g.units[unit].tileY;
+            tXPrev = g.units[unit].tileX;
+            tYPrev = g.units[unit].tileY;
+            g.units[unit].tileX = tileX;
+            g.units[unit].tileY = tileY;
             // add unit to visibility tiles
             for (tX = tileX - g.tileVisRadius(); tX <= tileX + g.tileVisRadius(); tX++)
             {
@@ -429,9 +429,9 @@ namespace Decoherence
                     {
                         if (g.inVis(tX - p.X, tY - p.Y))
                         {
-                            if (!g.tiles[tX, tY].coherentLatest(g.u[unit].player) && g.calcCoherent(g.u[unit].player, tX, tY))
+                            if (!g.tiles[tX, tY].coherentLatest(g.units[unit].player) && g.calcCoherent(g.units[unit].player, tX, tY))
                             {
-                                g.coherenceAdd(g.u[unit].player, tX, tY, time);
+                                g.coherenceAdd(g.units[unit].player, tX, tY, time);
                             }
                             break;
                         }
@@ -441,20 +441,20 @@ namespace Decoherence
             if (tileX >= 0 && tileX < g.tileLen() && tileY >= 0 && tileY < g.tileLen())
             {
                 // update whether this unit may time travel
-                if (!g.u[unit].coherent() && g.tiles[tileX, tileY].coherentLatest(g.u[unit].player))
+                if (!g.units[unit].coherent() && g.tiles[tileX, tileY].coherentLatest(g.units[unit].player))
                 {
-                    g.u[unit].cohere(time);
+                    g.units[unit].cohere(time);
                 }
-                else if (g.u[unit].coherent() && !g.tiles[tileX, tileY].coherentLatest(g.u[unit].player))
+                else if (g.units[unit].coherent() && !g.tiles[tileX, tileY].coherentLatest(g.units[unit].player))
                 {
-                    g.u[unit].decohere();
+                    g.units[unit].decohere();
                 }
                 // if this unit moved out of another player's visibility, remove that player's visibility here
-                if (!g.players[g.u[unit].player].immutable && tXPrev >= 0 && tXPrev < g.tileLen() && tYPrev >= 0 && tYPrev < g.tileLen())
+                if (!g.players[g.units[unit].player].immutable && tXPrev >= 0 && tXPrev < g.tileLen() && tYPrev >= 0 && tYPrev < g.tileLen())
                 {
                     for (i = 0; i < g.nPlayers; i++)
                     {
-                        if (i != g.u[unit].player && g.tiles[tXPrev, tYPrev].playerDirectVisLatest(i) && !g.tiles[tileX, tileY].playerDirectVisLatest(i))
+                        if (i != g.units[unit].player && g.tiles[tXPrev, tYPrev].playerDirectVisLatest(i) && !g.tiles[tileX, tileY].playerDirectVisLatest(i))
                         {
                             for (tX = Math.Max(0, tileX - 1); tX <= Math.Min(g.tileLen() - 1, tileX + 1); tX++)
                             {
@@ -473,15 +473,15 @@ namespace Decoherence
                 // if this player can no longer directly see another player's unit, remove this player's visibility there
                 foreach (int j in g.tiles[tXPrev, tYPrev].unitVis.Keys)
                 {
-                    if (g.u[j].player != g.u[unit].player && !g.players[g.u[j].player].immutable && g.u[j].healthLatest() > 0
-                        && g.inVis(g.u[j].tileX - tXPrev, g.u[j].tileY - tYPrev) && !g.tiles[g.u[j].tileX, g.u[j].tileY].playerDirectVisLatest(g.u[unit].player))
+                    if (g.units[j].player != g.units[unit].player && !g.players[g.units[j].player].immutable && g.units[j].healthLatest() > 0
+                        && g.inVis(g.units[j].tileX - tXPrev, g.units[j].tileY - tYPrev) && !g.tiles[g.units[j].tileX, g.units[j].tileY].playerDirectVisLatest(g.units[unit].player))
                     {
-                        for (tX = Math.Max(0, g.u[j].tileX - 1); tX <= Math.Min(g.tileLen() - 1, g.u[j].tileX + 1); tX++)
+                        for (tX = Math.Max(0, g.units[j].tileX - 1); tX <= Math.Min(g.tileLen() - 1, g.units[j].tileX + 1); tX++)
                         {
-                            for (tY = Math.Max(0, g.u[j].tileY - 1); tY <= Math.Min(g.tileLen() - 1, g.u[j].tileY + 1); tY++)
+                            for (tY = Math.Max(0, g.units[j].tileY - 1); tY <= Math.Min(g.tileLen() - 1, g.units[j].tileY + 1); tY++)
                             {
                                 // TODO?: use more accurate time at tiles other than (u[j].tileX, u[j].tileY)
-                                g.playerVisRemove(g.u[unit].player, tX, tY, time);
+                                g.playerVisRemove(g.units[unit].player, tX, tY, time);
                             }
                         }
                     }
@@ -500,14 +500,14 @@ namespace Decoherence
                 if (g.tiles[tileX, tileY].unitVisLatest(unit)) throw new InvalidOperationException("unit " + unit + " already sees tile (" + tileX + ", " + tileY + ")");
                 // add unit to unit visibility tile
                 g.tiles[tileX, tileY].unitVisToggle(unit, time);
-                if (!g.tiles[tileX, tileY].playerVisLatest(g.u[unit].player))
+                if (!g.tiles[tileX, tileY].playerVisLatest(g.units[unit].player))
                 {
-                    g.tiles[tileX, tileY].playerVis[g.u[unit].player].Add(time);
+                    g.tiles[tileX, tileY].playerVis[g.units[unit].player].Add(time);
                     playerVisAddTiles.Add(new Point(tileX, tileY));
                     // check if this tile decohered for another player
                     for (i = 0; i < g.nPlayers; i++)
                     {
-                        if (i != g.u[unit].player && g.tiles[tileX, tileY].coherentLatest(i))
+                        if (i != g.units[unit].player && g.tiles[tileX, tileY].coherentLatest(i))
                         {
                             g.coherenceRemove(i, tileX, tileY, time);
                         }
@@ -529,22 +529,22 @@ namespace Decoherence
                 // remove unit from unit visibility tile
                 g.tiles[tileX, tileY].unitVisToggle(unit, time);
                 // check if player can't directly see this tile anymore
-                if (g.tiles[tileX, tileY].playerVisLatest(g.u[unit].player) && !g.tiles[tileX, tileY].playerDirectVisLatest(g.u[unit].player))
+                if (g.tiles[tileX, tileY].playerVisLatest(g.units[unit].player) && !g.tiles[tileX, tileY].playerDirectVisLatest(g.units[unit].player))
                 {
                     // find lowest time that surrounding tiles lost visibility
                     for (tX = Math.Max(0, tileX - 1); tX <= Math.Min(g.tileLen() - 1, tileX + 1); tX++)
                     {
                         for (tY = Math.Max(0, tileY - 1); tY <= Math.Min(g.tileLen() - 1, tileY + 1); tY++)
                         {
-                            if ((tX != tileX || tY != tileY) && !g.tiles[tX, tY].playerVisLatest(g.u[unit].player))
+                            if ((tX != tileX || tY != tileY) && !g.tiles[tX, tY].playerVisLatest(g.units[unit].player))
                             {
-                                if (g.tiles[tX, tY].playerVis[g.u[unit].player].Count == 0)
+                                if (g.tiles[tX, tY].playerVis[g.units[unit].player].Count == 0)
                                 {
                                     timePlayerVis = long.MinValue;
                                 }
-                                else if (g.tiles[tX, tY].playerVis[g.u[unit].player][g.tiles[tX, tY].playerVis[g.u[unit].player].Count - 1] < timePlayerVis)
+                                else if (g.tiles[tX, tY].playerVis[g.units[unit].player][g.tiles[tX, tY].playerVis[g.units[unit].player].Count - 1] < timePlayerVis)
                                 {
-                                    timePlayerVis = g.tiles[tX, tY].playerVis[g.u[unit].player][g.tiles[tX, tY].playerVis[g.u[unit].player].Count - 1];
+                                    timePlayerVis = g.tiles[tX, tY].playerVis[g.units[unit].player][g.tiles[tX, tY].playerVis[g.units[unit].player].Count - 1];
                                 }
                             }
                         }
@@ -554,7 +554,7 @@ namespace Decoherence
                     if (timePlayerVis != long.MaxValue)
                     {
                         timePlayerVis = Math.Max(time, timePlayerVis + (1 << FP.Precision) / g.maxSpeed); // TODO: use more accurate time
-                        g.playerVisRemove(g.u[unit].player, tileX, tileY, timePlayerVis);
+                        g.playerVisRemove(g.units[unit].player, tileX, tileY, timePlayerVis);
                     }
                 }
             }

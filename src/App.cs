@@ -285,7 +285,7 @@ namespace Decoherence
                 foreach (Hashtable jsonO in jsonA)
                 {
                     g.setNUnits(g.nUnits + 1);
-                    g.u[g.nUnits - 1] = new Unit(g, g.nUnits - 1, g.unitTypeNamed(jsonString(jsonO, "type")),
+                    g.units[g.nUnits - 1] = new Unit(g, g.nUnits - 1, g.unitTypeNamed(jsonString(jsonO, "type")),
                         g.playerNamed(jsonString(jsonO, "player")), (long)jsonDouble(jsonO, "startTime"),
                         jsonFPVector(jsonO, "startPos", new FP.Vector((long)(rand.NextDouble() * g.mapSize), (long)(rand.NextDouble() * g.mapSize))));
                 }
@@ -378,13 +378,13 @@ namespace Decoherence
                     if (!DX.keyState.IsPressed(Key.LeftControl) && !DX.keyState.IsPressed(Key.LeftShift)) selUnits.Clear();
                     for (i = 0; i < g.nUnits; i++)
                     {
-                        if (selPlayer == g.u[i].player && timeGame >= g.u[i].m[0].timeStart)
+                        if (selPlayer == g.units[i].player && timeGame >= g.units[i].moves[0].timeStart)
                         {
-                            drawPos = simToDrawPos(g.u[i].calcPos(timeGame));
-                            if (drawPos.X + g.unitT[g.u[i].type].selRadius >= Math.Min(DX.mouseDX[1], DX.mouseX)
-                                && drawPos.X - g.unitT[g.u[i].type].selRadius <= Math.Max(DX.mouseDX[1], DX.mouseX)
-                                && drawPos.Y + g.unitT[g.u[i].type].selRadius >= Math.Min(DX.mouseDY[1], DX.mouseY)
-                                && drawPos.Y - g.unitT[g.u[i].type].selRadius <= Math.Max(DX.mouseDY[1], DX.mouseY))
+                            drawPos = simToDrawPos(g.units[i].calcPos(timeGame));
+                            if (drawPos.X + g.unitT[g.units[i].type].selRadius >= Math.Min(DX.mouseDX[1], DX.mouseX)
+                                && drawPos.X - g.unitT[g.units[i].type].selRadius <= Math.Max(DX.mouseDX[1], DX.mouseX)
+                                && drawPos.Y + g.unitT[g.units[i].type].selRadius >= Math.Min(DX.mouseDY[1], DX.mouseY)
+                                && drawPos.Y - g.unitT[g.units[i].type].selRadius <= Math.Max(DX.mouseDY[1], DX.mouseY))
                             {
                                 if (selUnits.Contains(i))
                                 {
@@ -504,7 +504,7 @@ namespace Decoherence
                     int type = key - Key.D1;
                     foreach (int unit in selUnits)
                     {
-                        if (g.u[unit].canMakeChildUnit(timeGame + 1, false, type))
+                        if (g.units[unit].canMakeChildUnit(timeGame + 1, false, type))
                         {
                             if (g.unitT[type].speed > 0 && g.unitT[type].makeOnUnitT < 0)
                             {
@@ -529,7 +529,7 @@ namespace Decoherence
                         FP.Vector[] pos = new FP.Vector[selUnits.Count];
                         for (i = 0; i < selUnits.Count; i++)
                         {
-                            if (g.u[selUnits[i]].exists(timeGame + 1)) pos[i] = makeUnitMovePos(timeGame + 1, selUnits[i]);
+                            if (g.units[selUnits[i]].exists(timeGame + 1)) pos[i] = makeUnitMovePos(timeGame + 1, selUnits[i]);
                         }
                         // happens at timeGame + 1 so new path starts out live if game is live
                         g.events.add(new MakePathCmdEvt(g.timeSim, timeGame + 1, selUnits.ToArray(), pos));
@@ -548,8 +548,8 @@ namespace Decoherence
                     // hide traces of mischief
                     for (i = 0; i < g.nUnits; i++)
                     {
-                        g.u[i].decohere();
-                        g.u[i].tileX = Sim.OffMap + 1;
+                        g.units[i].decohere();
+                        g.units[i].tileX = Sim.OffMap + 1;
                     }
                     for (i = 0; i < g.tileLen(); i++)
                     {
@@ -560,7 +560,7 @@ namespace Decoherence
                     }
                     for (i = 0; i < g.nUnits; i++)
                     {
-                        g.u[i].addTileMoveEvts(ref g.events, -1, g.timeSim);
+                        g.units[i].addTileMoveEvts(ref g.events, -1, g.timeSim);
                     }
                     g.update(g.timeSim);
                     paused = true;
@@ -660,7 +660,7 @@ namespace Decoherence
             // unit path lines
             for (i = 0; i < g.nUnits; i++)
             {
-                if (unitDrawPos(i, ref vec) && g.u[i].isChildPath && timeGame >= g.u[g.u[i].parent].m[0].timeStart)
+                if (unitDrawPos(i, ref vec) && g.units[i].isChildPath && timeGame >= g.units[g.units[i].parent].moves[0].timeStart)
                 {
                     DX.d3dDevice.SetTexture(0, null);
                     tlPoly.primitive = PrimitiveType.LineStrip;
@@ -668,7 +668,7 @@ namespace Decoherence
                     tlPoly.nV[0] = 1;
                     tlPoly.poly[0].v = new DX.TLVertex[tlPoly.nV[0] + 1];
                     tlPoly.poly[0].v[0] = new DX.TLVertex(vec, g.pathCol.ToArgb(), 0, 0);
-                    tlPoly.poly[0].v[1] = new DX.TLVertex(simToDrawPos(g.u[g.u[i].parent].calcPos(timeGame)), g.pathCol.ToArgb(), 0, 0);
+                    tlPoly.poly[0].v[1] = new DX.TLVertex(simToDrawPos(g.units[g.units[i].parent].calcPos(timeGame)), g.pathCol.ToArgb(), 0, 0);
                     tlPoly.draw();
                 }
             }
@@ -678,8 +678,8 @@ namespace Decoherence
             {
                 if (unitDrawPos(i, ref vec))
                 {
-                    j = g.u[i].type * g.nPlayers + g.u[i].player;
-                    if (g.u[i].isLive(timeGame))
+                    j = g.units[i].type * g.nPlayers + g.units[i].player;
+                    if (g.units[i].isLive(timeGame))
                     {
                         imgUnit[j].color = new Color4(1, 1, 1, 1).ToArgb();
                     }
@@ -692,7 +692,7 @@ namespace Decoherence
                     if (DX.keyState.IsPressed(Key.LeftShift) && selUnits.Contains(i))
                     {
                         // show final position if holding shift
-                        imgUnit[j].pos = simToDrawPos(g.u[i].m[g.u[i].n - 1].vecEnd);
+                        imgUnit[j].pos = simToDrawPos(g.units[i].moves[g.units[i].nMoves - 1].vecEnd);
                         imgUnit[j].draw();
                     }
                 }
@@ -719,14 +719,14 @@ namespace Decoherence
             {
                 if (unitDrawPos(unit, ref vec))
                 {
-                    j = g.u[unit].type * g.nPlayers + g.u[unit].player;
-                    f = ((float)g.u[g.u[unit].rootParentPath()].healthWhen(timeGame)) / g.unitT[g.u[unit].type].maxHealth;
+                    j = g.units[unit].type * g.nPlayers + g.units[unit].player;
+                    f = ((float)g.units[g.units[unit].rootParentPath()].healthWhen(timeGame)) / g.unitT[g.units[unit].type].maxHealth;
                     tlPoly.primitive = PrimitiveType.TriangleStrip;
                     tlPoly.setNPoly(0);
                     tlPoly.nV[0] = 2;
                     DX.d3dDevice.SetTexture(0, null);
                     // background
-                    if (g.u[unit].healthWhen(timeGame) > 0)
+                    if (g.units[unit].healthWhen(timeGame) > 0)
                     {
                         tlPoly.poly[0].makeRec(vec.X + g.healthBarSize.X * winDiag * (-0.5f + f),
                             vec.X + g.healthBarSize.X * winDiag * 0.5f,
@@ -893,11 +893,11 @@ namespace Decoherence
                     // TODO: prevent putting multiple units on same unit (unless on different paths of same unit and maybe some other cases)
                     for (int i = 0; i < g.nUnits; i++)
                     {
-                        if (g.u[i].exists(timeGame))
+                        if (g.units[i].exists(timeGame))
                         {
-                            vec = g.u[i].calcPos(timeGame);
-                            if (g.u[i].type == g.unitT[makeUnitType].makeOnUnitT && g.tileAt(vec).playerVisWhen(selPlayer, timeGame)
-                                && (new Vector3(DX.mouseX, DX.mouseY, 0) - simToDrawPos(vec)).LengthSquared() <= g.unitT[g.u[i].type].selRadius * g.unitT[g.u[i].type].selRadius)
+                            vec = g.units[i].calcPos(timeGame);
+                            if (g.units[i].type == g.unitT[makeUnitType].makeOnUnitT && g.tileAt(vec).playerVisWhen(selPlayer, timeGame)
+                                && (new Vector3(DX.mouseX, DX.mouseY, 0) - simToDrawPos(vec)).LengthSquared() <= g.unitT[g.units[i].type].selRadius * g.unitT[g.units[i].type].selRadius)
                             {
                                 return vec;
                             }
@@ -921,11 +921,11 @@ namespace Decoherence
             FP.Vector ret;
             do
             {
-                ret = new FP.Vector((long)((rand.NextDouble() - 0.5) * g.unitT[g.u[unit].type].makeUnitMaxDist * 2),
-                    (long)((rand.NextDouble() - 0.5) * g.unitT[g.u[unit].type].makeUnitMaxDist * 2));
-            } while (ret.lengthSq() < g.unitT[g.u[unit].type].makeUnitMinDist * g.unitT[g.u[unit].type].makeUnitMinDist
-                && ret.lengthSq() > g.unitT[g.u[unit].type].makeUnitMaxDist * g.unitT[g.u[unit].type].makeUnitMaxDist);
-            return ret + g.u[unit].calcPos(time);
+                ret = new FP.Vector((long)((rand.NextDouble() - 0.5) * g.unitT[g.units[unit].type].makeUnitMaxDist * 2),
+                    (long)((rand.NextDouble() - 0.5) * g.unitT[g.units[unit].type].makeUnitMaxDist * 2));
+            } while (ret.lengthSq() < g.unitT[g.units[unit].type].makeUnitMinDist * g.unitT[g.units[unit].type].makeUnitMinDist
+                && ret.lengthSq() > g.unitT[g.units[unit].type].makeUnitMaxDist * g.unitT[g.units[unit].type].makeUnitMaxDist);
+            return ret + g.units[unit].calcPos(time);
         }
 
         /// <summary>
@@ -934,9 +934,9 @@ namespace Decoherence
         private bool unitDrawPos(int unit, ref Vector3 pos)
         {
             FP.Vector fpVec;
-            if (!g.u[unit].exists(timeGame) || (selPlayer != g.u[unit].player && !g.u[unit].isLive(timeGame))) return false;
-            fpVec = g.u[unit].calcPos(timeGame);
-            if (selPlayer != g.u[unit].player && !g.tileAt(fpVec).playerVisWhen(selPlayer, timeGame)) return false;
+            if (!g.units[unit].exists(timeGame) || (selPlayer != g.units[unit].player && !g.units[unit].isLive(timeGame))) return false;
+            fpVec = g.units[unit].calcPos(timeGame);
+            if (selPlayer != g.units[unit].player && !g.tileAt(fpVec).playerVisWhen(selPlayer, timeGame)) return false;
             pos = simToDrawPos(fpVec);
             return true;
         }
