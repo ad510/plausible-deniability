@@ -88,6 +88,7 @@ public class App : MonoBehaviour {
 	string appPath;
 	string modPath = "mod/";
 	float winDiag; // diagonal length of screen in pixels
+	Texture2D texTile;
 	GameObject sprTile;
 	LineBox border;
 	Texture[,] texUnits;
@@ -319,6 +320,7 @@ public class App : MonoBehaviour {
 				g.tiles[i, j] = new Sim.Tile(g);
 			}
 		}
+		texTile = new Texture2D(g.tileLen (), g.tileLen (), TextureFormat.ARGB32, false);
 		// units
 		g.nUnits = 0;
 		jsonA = jsonArray(json, "units");
@@ -573,13 +575,11 @@ public class App : MonoBehaviour {
 	private void draw() {
 		Vector3 vec = new Vector3();
 		FP.Vector fpVec;
-		Texture2D tex;
 		Color col;
 		float f;
 		int i, tX, tY;
 		// visibility tiles
 		// TODO: don't draw tiles off map
-		tex = new Texture2D(g.tileLen (), g.tileLen (), TextureFormat.ARGB32, false);
 		for (tX = 0; tX < g.tileLen(); tX++) {
 			for (tY = 0; tY < g.tileLen(); tY++) {
 				col = g.noVisCol;
@@ -588,12 +588,12 @@ public class App : MonoBehaviour {
 					if (g.tiles[tX, tY].playerDirectVisWhen(selPlayer, timeGame)) col += g.unitVisCol;
 					if (g.tiles[tX, tY].coherentWhen(selPlayer, timeGame)) col += g.coherentCol;
 				}
-				tex.SetPixel (tX, tY, col);
+				texTile.SetPixel (tX, tY, col);
 			}
 		}
-		tex.Apply ();
-		tex.filterMode = FilterMode.Point;
-		sprTile.renderer.material.mainTexture = tex;
+		texTile.Apply ();
+		texTile.filterMode = FilterMode.Point;
+		sprTile.renderer.material.mainTexture = texTile;
 		sprTile.transform.position = simToDrawPos (new FP.Vector((g.tileLen () << FP.Precision) / 2, (g.tileLen () << FP.Precision) / 2), TileDepth);
 		sprTile.transform.localScale = simToDrawScl (new FP.Vector((g.tileLen () << FP.Precision) / 2, (g.tileLen () << FP.Precision) / 2));
 		// map border
