@@ -90,15 +90,13 @@ public class MoveCmdEvt : CmdEvt {
 		int count = 0, i = 0;
 		base.apply(g);
 		// count number of units able to move
-		// STACK TODO: implement this
-		count = paths.Count;
-		spacing = 0;
-		/*foreach (int unit in units) {
-			if (g.units[unit].canMove(timeCmd)) {
+		foreach (int path in paths.Keys) {
+			if (g.paths[path].canMove(timeCmd)) {
 				count++;
-				if (formation == Formation.Tight && g.unitT[g.units[unit].type].tightFormationSpacing > spacing) spacing = g.unitT[g.units[unit].type].tightFormationSpacing;
+				// STACK TODO: implement line below
+				//if (formation == Formation.Tight && g.unitT[g.paths[path].type].tightFormationSpacing > spacing) spacing = g.unitT[g.units[unit].type].tightFormationSpacing;
 			}
-		}*/
+		}
 		if (count == 0) return;
 		// calculate spacing
 		// (if tight formation, then spacing was already calculated above)
@@ -128,7 +126,7 @@ public class MoveCmdEvt : CmdEvt {
 		if (goalCenter.y > g.mapSize - Math.Min(offset.y, g.mapSize / 2)) goalCenter.y = g.mapSize - Math.Min(offset.y, g.mapSize / 2);
 		// move units
 		foreach (int path in paths.Keys) {
-			//if (g.units[unit].canMove(timeCmd)) { // STACK TODO: check this
+			if (g.paths[path].canMove(timeCmd)) {
 				if (formation == Formation.Tight || formation == Formation.Loose) {
 					goal = goalCenter + new FP.Vector((i % rows.x) * spacing - offset.x, i / rows.x * spacing - offset.y);
 				}
@@ -140,7 +138,7 @@ public class MoveCmdEvt : CmdEvt {
 				}
 				g.paths[path].moveTo(timeCmd, goal);
 				i++;
-			//}
+			}
 		}
 	}
 }
@@ -206,28 +204,28 @@ public class MakeUnitCmdEvt : CmdEvt {
 }
 
 /// <summary>
-/// command to make new path(s) that specified unit(s) could take
+/// command to make new path(s) that specified path(s) could take
 /// </summary>
 [ProtoContract]
 public class MakePathCmdEvt : CmdEvt {
 	[ProtoMember(1)]
-	public FP.Vector[] pos {get;set;} // where new paths should move to
+	public Dictionary<int, FP.Vector> pos {get;set;} // where new paths should move to
 	
 	/// <summary>
 	/// empty constructor for protobuf-net use only
 	/// </summary>
 	public MakePathCmdEvt() { }
 
-	public MakePathCmdEvt(long timeVal, long timeCmdVal, Dictionary<int, int[]> pathsVal, FP.Vector[] posVal)
+	public MakePathCmdEvt(long timeVal, long timeCmdVal, Dictionary<int, int[]> pathsVal, Dictionary<int, FP.Vector> posVal)
 		: base(timeVal, timeCmdVal, pathsVal) {
 		pos = posVal;
 	}
 
 	public override void apply(Sim g) {
 		base.apply(g);
-		for (int i = 0; i < units.Length; i++) {
-			if (g.units[units[i]].canMove(timeCmd) && g.units[units[i]].makeChildUnit(timeCmd, true)) {
-				g.units[g.nUnits - 1].moveTo(timeCmd, pos[i]); // move new unit out of the way
+		foreach (KeyValuePair<int, int[]> path in paths) {
+			if (g.paths[path.Key].canMove(timeCmd) && g.paths[path.Key].makePath (timeCmd, new List<int>(path.Value))) {
+				g.paths[g.paths.Count - 1].moveTo(timeCmd, pos[path.Key]); // move new path out of the way
 			}
 		}
 	}

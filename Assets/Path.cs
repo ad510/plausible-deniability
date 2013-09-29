@@ -15,7 +15,14 @@ public class Path {
 		public long time;
 		public List<int> paths;
 		public List<int> units;
-		public bool immutable; // TODO: rename to mutable, and rename coherence tiles to exclusive
+		public bool unseen;
+		
+		public Node(long timeVal, List<int> unitsVal, bool unseenVal) {
+			time = timeVal;
+			paths = new List<int>();
+			units = unitsVal;
+			unseenVal = unseen;
+		}
 	}
 	
 	/// <summary>
@@ -82,21 +89,21 @@ public class Path {
 	public int tileX, tileY; // current position on visibility tiles
 	public long timeSimPast; // time traveling simulation time if made in the past, otherwise set to long.MaxValue
 
-	public Path(Sim simVal, int idVal, List<int> units, long startTime, FP.Vector startPos) {
+	public Path(Sim simVal, int idVal, List<int> units, long startTime, FP.Vector startPos, bool startUnseen) {
 		g = simVal;
 		id = idVal;
-		Node node = new Node(); // TODO: move node initialization to node constructor
-		node.time = startTime;
-		node.paths = new List<int>();
-		node.units = units; // TODO: ensure units all of same player, and how to set immutable if no units
-		node.immutable = !g.tileAt(startPos).coherentWhen(g.units[units[0]].player, startTime);
 		nodes = new List<Node>();
-		nodes.Add (node);
+		// TODO: ensure units all of same player, and how to set unseen if no units
+		nodes.Add (new Node(startTime, units, startUnseen));
 		moves = new List<Move>();
 		moves.Add (new Move(startTime, startPos));
 		tileX = Sim.OffMap + 1;
 		tileY = Sim.OffMap + 1;
 		timeSimPast = (startTime > g.timeSim) ? long.MaxValue : startTime;
+	}
+	
+	public Path(Sim simVal, int idVal, List<int> units, long startTime, FP.Vector startPos)
+		: this(simVal, idVal, units, startTime, startPos, simVal.tileAt(startPos).coherentWhen(simVal.units[units[0]].player, startTime)) {
 	}
 
 	/// <summary>
@@ -116,19 +123,6 @@ public class Path {
 	}
 
 	/// <summary>
-	/// add specified move to end of move list
-	/// </summary>
-	/// <remarks>
-	/// if caller also adds a TileMoveEvt, must ensure that it isn't deleted in update()
-	/// (add allowOverride variable in TileMoveEvt if necessary)
-	/// </remarks>
-	private void addMove(Move newMove) {
-		moves.Add (newMove);
-		// TODO: implement line below
-		//if (!g.movedUnits.Contains(id)) g.movedUnits.Add(id); // indicate to delete and recalculate later TileMoveEvts for this unit
-	}
-
-	/// <summary>
 	/// move towards specified location starting at specified time,
 	/// return index of moved path (in case moving a replacement path instead of this unit)
 	/// </summary>
@@ -142,7 +136,9 @@ public class Path {
 		if (goalPos.y < 0) goalPos.y = 0;
 		if (goalPos.y > g.mapSize) goalPos.y = g.mapSize;
 		// add move
-		addMove(Move.fromSpeed(time, speed(), curPos, goalPos));
+		moves.Add (Move.fromSpeed(time, speed(), curPos, goalPos));
+		// TODO: implement line below
+		//if (!g.movedUnits.Contains(id)) g.movedUnits.Add(id); // indicate to delete and recalculate later TileMoveEvts for this unit
 		return id;
 	}
 
@@ -150,7 +146,8 @@ public class Path {
 	/// returns whether allowed to move at specified time
 	/// </summary>
 	public bool canMove(long time) {
-		throw new NotImplementedException();
+		// TODO: check existence and whether seen later
+		return speed () > 0;
 	}
 
 	/// <summary>
@@ -206,21 +203,27 @@ public class Path {
 	}
 
 	/// <summary>
-	/// makes a new unit made by this unit, returns whether successful
+	/// makes a new path containing specified units, returns whether successful
 	/// </summary>
-	public bool makeChildUnit(long time, bool isChildPathVal, int typeVal = -1) {
-		if (canMakeChildUnit(time, isChildPathVal, typeVal)) {
-			throw new NotImplementedException();
+	public bool makePath(long time, List<int> units) {
+		if (canMakePath(time, units)) {
+			int node = getNode (time);
+			g.paths.Add (new Path(g, g.paths.Count, units, time, calcPos (time), nodes[node].unseen));
+			foreach (int path in nodes[node].paths) {
+				g.paths[g.paths.Count - 1].addConnectedPath (time, path);
+			}
+			addConnectedPath (time, g.paths.Count - 1);
 			return true;
 		}
 		return false;
 	}
 
 	/// <summary>
-	/// returns whether this unit can make a new unit
+	/// returns whether this path can make a new path as specified
 	/// </summary>
-	public bool canMakeChildUnit(long time, bool isChildPathVal, int typeVal = -1) {
-		throw new NotImplementedException();
+	public bool canMakePath(long time, List<int> units) {
+		// TODO: check tile exclusivity and resources
+		return true;
 	}
 
 	/// <summary>
@@ -228,6 +231,18 @@ public class Path {
 	/// </summary>
 	private int prepareNonLivePath(long time) {
 		throw new NotImplementedException();
+	}
+	
+	private void addConnectedPath(long time, int path) {
+		int node = getNode (time);
+		if (nodes[node].time != time) {
+			nodes.Insert (node + 1, new Node(time, new List<int>(nodes[node].units), nodes[node].unseen));
+			node++;
+		}
+		if (!nodes[node].paths.Contains (path)) {
+			nodes[node].paths.Add (path);
+			g.paths[path].addConnectedPath (time, id);
+		}
 	}
 
 	/// <summary>

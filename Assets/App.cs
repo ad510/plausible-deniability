@@ -480,11 +480,7 @@ public class App : MonoBehaviour {
 				}
 				else {
 					// move selected units
-					Dictionary<int, int[]> paths = new Dictionary<int, int[]>();
-					foreach (KeyValuePair<int, List<int>> item in selPaths) {
-						paths[item.Key] = item.Value.ToArray ();
-					}
-					g.cmdPending.add(new MoveCmdEvt(g.timeSim, newCmdTime(), paths, drawToSimPos (Input.mousePosition),
+					g.cmdPending.add(new MoveCmdEvt(g.timeSim, newCmdTime(), selPathsCopy (), drawToSimPos (Input.mousePosition),
 						Input.GetKey (KeyCode.LeftControl) ? Formation.Loose : Input.GetKey (KeyCode.LeftAlt) ? Formation.Ring : Formation.Tight));
 				}
 			}
@@ -623,13 +619,13 @@ public class App : MonoBehaviour {
 		for (i = 0; i < g.paths.Count; i++) {
 			if (i == sprUnits.Count) sprUnits.Add (new List<UnitSprite>());
 			node = g.paths[i].getNode (timeGame);
-			while (sprUnits[i].Count < g.paths[i].nodes[node].units.Count) sprUnits[i].Add (new UnitSprite(quadPrefab));
+			while (node >= 0 && sprUnits[i].Count < g.paths[i].nodes[node].units.Count) sprUnits[i].Add (new UnitSprite(quadPrefab));
 			for (j = 0; j < sprUnits[i].Count; j++) {
-			sprUnits[i][j].sprite.renderer.enabled = false;
-			sprUnits[i][j].preview.renderer.enabled = false;
-			sprUnits[i][j].healthBarBack.renderer.enabled = false;
-			sprUnits[i][j].healthBarFore.renderer.enabled = false;
-			sprUnits[i][j].pathLine.enabled = false;
+				sprUnits[i][j].sprite.renderer.enabled = false;
+				sprUnits[i][j].preview.renderer.enabled = false;
+				sprUnits[i][j].healthBarBack.renderer.enabled = false;
+				sprUnits[i][j].healthBarFore.renderer.enabled = false;
+				sprUnits[i][j].pathLine.enabled = false;
 			}
 			if (pathDrawPos(i, ref vec)) {
 				for (j = 0; j < g.paths[i].nodes[node].units.Count; j++) {
@@ -961,6 +957,17 @@ public class App : MonoBehaviour {
 		}
 		return ret;
 	}
+	
+	/// <summary>
+	/// returns copy of selected paths that can be passed to CmdEvt constructors
+	/// </summary>
+	private Dictionary<int, int[]> selPathsCopy() {
+		Dictionary<int, int[]> ret = new Dictionary<int, int[]>();
+		foreach (KeyValuePair<int, List<int>> path in selPaths) {
+			ret[path.Key] = path.Value.ToArray ();
+		}
+		return ret;
+	}
 
 	/// <summary>
 	/// returns where to make new unit, or (Sim.OffMap, 0) if mouse is at invalid position
@@ -1006,15 +1013,16 @@ public class App : MonoBehaviour {
 	/// creates new paths that selected units could take
 	/// </summary>
 	private void makePaths() {
-		throw new NotImplementedException(); // TODO: implement this
-		/*if (selPaths.Count > 0) {
-			FP.Vector[] pos = new FP.Vector[selPaths.Count];
-			for (int i = 0; i < selPaths.Count; i++) {
-				if (g.units[selPaths[i]].exists(timeGame + 1)) pos[i] = makeUnitMovePos(timeGame + 1, selPaths[i]);
+		if (selPaths.Count > 0) {
+			Dictionary<int, FP.Vector> pos = new Dictionary<int, FP.Vector>();
+			foreach (KeyValuePair<int, List<int>> path in selPaths) {
+				pos[path.Key] = g.paths[path.Key].calcPos (timeGame + 1);
+				// TODO: implement line below instead of line above
+				//if (g.units[selPaths[i]].exists(timeGame + 1)) pos[i] = makeUnitMovePos(timeGame + 1, selPaths[i]);
 			}
 			// happens at newCmdTime() + 1 so new path starts out live if game is live
-			g.cmdPending.add(new MakePathCmdEvt(g.timeSim, newCmdTime() + 1, selPaths.ToArray(), pos));
-		}*/
+			g.cmdPending.add(new MakePathCmdEvt(g.timeSim, newCmdTime() + 1, selPathsCopy(), pos));
+		}
 	}
 	
 	/// <summary>
