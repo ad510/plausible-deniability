@@ -93,7 +93,7 @@ public class Path {
 		g = simVal;
 		id = idVal;
 		nodes = new List<Node>();
-		// TODO: ensure units all of same player, and how to set unseen if no units
+		// TODO: ensure units all of same player and speed, and how to set unseen if no units
 		nodes.Add (new Node(startTime, units, startUnseen));
 		moves = new List<Move>();
 		moves.Add (new Move(startTime, startPos));
@@ -146,8 +146,8 @@ public class Path {
 	/// returns whether allowed to move at specified time
 	/// </summary>
 	public bool canMove(long time) {
-		// TODO: check existence and whether seen later
-		return speed () > 0;
+		// TODO: check whether seen later
+		return time >= moves[0].timeStart && speed () > 0;
 	}
 
 	/// <summary>
@@ -222,7 +222,7 @@ public class Path {
 	/// returns whether this path can make a new path as specified
 	/// </summary>
 	public bool canMakePath(long time, List<int> units) {
-		// TODO: check tile exclusivity and resources
+		// TODO: check tile exclusivity, whether unit types can be made, resources
 		return true;
 	}
 

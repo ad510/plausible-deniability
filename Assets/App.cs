@@ -457,7 +457,7 @@ public class App : MonoBehaviour {
 								selMaxPos.y = Math.Max (selMaxPos.y, g.unitT[g.units[unit].type].selMaxPos.y);
 							}
 							if (FP.rectIntersects (drawToSimPos (mouseDownPos[0]), drawToSimPos (Input.mousePosition), pos + selMinPos, pos + selMaxPos)) {
-								// TODO: if not all units in path are selected, select remaining units instead of deselecting path
+								// STACK TODO: if not all units in path are selected, select remaining units instead of deselecting path
 								if (selPaths.ContainsKey (i)) {
 									selPaths.Remove(i);
 								}
@@ -618,8 +618,13 @@ public class App : MonoBehaviour {
 		// units
 		for (i = 0; i < g.paths.Count; i++) {
 			if (i == sprUnits.Count) sprUnits.Add (new List<UnitSprite>());
-			node = g.paths[i].getNode (timeGame);
-			while (node >= 0 && sprUnits[i].Count < g.paths[i].nodes[node].units.Count) sprUnits[i].Add (new UnitSprite(quadPrefab));
+			if (timeGame >= g.paths[i].nodes[0].time) {
+				node = g.paths[i].getNode (timeGame);
+				while (sprUnits[i].Count < g.paths[i].nodes[node].units.Count) sprUnits[i].Add (new UnitSprite(quadPrefab));
+			}
+			else {
+				node = -1;
+			}
 			for (j = 0; j < sprUnits[i].Count; j++) {
 				sprUnits[i][j].sprite.renderer.enabled = false;
 				sprUnits[i][j].preview.renderer.enabled = false;
@@ -1017,7 +1022,7 @@ public class App : MonoBehaviour {
 			Dictionary<int, FP.Vector> pos = new Dictionary<int, FP.Vector>();
 			foreach (KeyValuePair<int, List<int>> path in selPaths) {
 				pos[path.Key] = g.paths[path.Key].calcPos (timeGame + 1);
-				// TODO: implement line below instead of line above
+				// STACK TODO: implement line below instead of line above
 				//if (g.units[selPaths[i]].exists(timeGame + 1)) pos[i] = makeUnitMovePos(timeGame + 1, selPaths[i]);
 			}
 			// happens at newCmdTime() + 1 so new path starts out live if game is live
@@ -1030,7 +1035,7 @@ public class App : MonoBehaviour {
 	/// </summary>
 	private void deletePaths() {
 		// happens at newCmdTime() instead of newCmdTime() + 1 so that when paused, making path then deleting parent path doesn't cause an error
-		throw new NotImplementedException(); // TODO: implement this
+		throw new NotImplementedException(); // STACK TODO: implement this
 		//if (selPaths.Count > 0) g.cmdPending.add(new DeletePathCmdEvt(g.timeSim, newCmdTime(), selPaths.ToArray()));
 	}
 	
@@ -1038,7 +1043,7 @@ public class App : MonoBehaviour {
 	/// deletes unselected paths of selected units
 	/// </summary>
 	private void deleteOtherPaths() {
-		throw new NotImplementedException(); // TODO: implement this
+		throw new NotImplementedException(); // STACK TODO: implement this
 		/*Dictionary<int, int> parentPaths = selRootParentPaths ();
 		List<int> otherPaths = new List<int>();
 		for (int i = 0; i < g.nUnits; i++) {
@@ -1053,7 +1058,7 @@ public class App : MonoBehaviour {
 	/// makes a new unit using selected units
 	/// </summary>
 	private void makeUnit(int type) {
-		throw new NotImplementedException(); // TODO: implement this
+		throw new NotImplementedException(); // STACK TODO: implement this
 		/*foreach (int unit in selPaths) {
 			if (g.units[unit].canMakeChildUnit(timeGame + 1, false, type)) {
 				if (g.unitT[type].speed > 0 && g.unitT[type].makeOnUnitT < 0) {
