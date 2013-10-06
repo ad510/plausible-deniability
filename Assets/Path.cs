@@ -310,6 +310,33 @@ public class Path {
 		throw new NotImplementedException();
 	}
 	
+	/// <summary>
+	/// returns minimum absolute position where clicking would select the path
+	/// </summary>
+	public FP.Vector selMinPos(long time) {
+		FP.Vector ret = new FP.Vector(int.MaxValue, int.MaxValue);
+		foreach (int unit in nodes[getNode(time)].units) {
+			ret.x = Math.Min (ret.x, g.unitT[g.units[unit].type].selMinPos.x);
+			ret.y = Math.Min (ret.y, g.unitT[g.units[unit].type].selMinPos.y);
+		}
+		return ret + calcPos(time);
+	}
+	
+	/// <summary>
+	/// returns maximum absolute position where clicking would select the path
+	/// </summary>
+	public FP.Vector selMaxPos(long time) {
+		FP.Vector ret = new FP.Vector(int.MinValue, int.MinValue);
+		foreach (int unit in nodes[getNode(time)].units) {
+			ret.x = Math.Max (ret.x, g.unitT[g.units[unit].type].selMaxPos.x);
+			ret.y = Math.Max (ret.y, g.unitT[g.units[unit].type].selMaxPos.y);
+		}
+		return ret + calcPos(time);
+	}
+	
+	/// <summary>
+	/// returns speed of path, in position units per millisecond
+	/// </summary>
 	public long speed() {
 		foreach (Node node in nodes) {
 			if (node.units.Count > 0) return g.unitT[g.units[node.units[0]].type].speed;

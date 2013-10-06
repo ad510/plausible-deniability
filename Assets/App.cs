@@ -431,12 +431,10 @@ public class App : MonoBehaviour {
 		if (Input.GetMouseButtonUp (0)) { // left button up
 			mouseUpPos[0] = Input.mousePosition;
 			if (mouseDownPos[0].y > Screen.height * g.uiBarHeight) {
-				FP.Vector pos, selMinPos, selMaxPos;
-				int node;
 				if (makeUnitType >= 0) {
 					// make unit
 					// happens at newCmdTime() + 1 so new unit starts out live if game is live
-					pos = makeUnitPos();
+					FP.Vector pos = makeUnitPos();
 					// STACK TODO: update implementation of this
 					//if (pos.x != Sim.OffMap) g.cmdPending.add(new MakeUnitCmdEvt(g.timeSim, newCmdTime() + 1, selPaths.ToArray(), makeUnitType, pos));
 					makeUnitType = -1;
@@ -445,27 +443,17 @@ public class App : MonoBehaviour {
 					// select units
 					if (!Input.GetKey (KeyCode.LeftControl) && !Input.GetKey (KeyCode.LeftShift)) selPaths.Clear();
 					for (i = 0; i < g.paths.Count; i++) {
-						if (selPlayer == g.paths[i].player() && timeGame >= g.paths[i].moves[0].timeStart) {
-							pos = g.paths[i].calcPos(timeGame);
-							node = g.paths[i].getNode (timeGame);
-							selMinPos = new FP.Vector(int.MaxValue, int.MaxValue);
-							selMaxPos = new FP.Vector(int.MinValue, int.MinValue);
-							foreach (int unit in g.paths[i].nodes[node].units) {
-								selMinPos.x = Math.Min (selMinPos.x, g.unitT[g.units[unit].type].selMinPos.x);
-								selMinPos.y = Math.Min (selMinPos.y, g.unitT[g.units[unit].type].selMinPos.y);
-								selMaxPos.x = Math.Max (selMaxPos.x, g.unitT[g.units[unit].type].selMaxPos.x);
-								selMaxPos.y = Math.Max (selMaxPos.y, g.unitT[g.units[unit].type].selMaxPos.y);
+						if (selPlayer == g.paths[i].player() && timeGame >= g.paths[i].moves[0].timeStart
+							&& FP.rectIntersects (drawToSimPos (mouseDownPos[0]), drawToSimPos (Input.mousePosition),
+							g.paths[i].selMinPos(timeGame), g.paths[i].selMaxPos(timeGame))) {
+							// STACK TODO: if not all units in path are selected, select remaining units instead of deselecting path
+							if (selPaths.ContainsKey (i)) {
+								selPaths.Remove(i);
 							}
-							if (FP.rectIntersects (drawToSimPos (mouseDownPos[0]), drawToSimPos (Input.mousePosition), pos + selMinPos, pos + selMaxPos)) {
-								// STACK TODO: if not all units in path are selected, select remaining units instead of deselecting path
-								if (selPaths.ContainsKey (i)) {
-									selPaths.Remove(i);
-								}
-								else {
-									selPaths.Add(i, new List<int>(g.paths[i].nodes[node].units));
-								}
-								if (SelBoxMin > (Input.mousePosition - mouseDownPos[0]).sqrMagnitude) break;
+							else {
+								selPaths.Add(i, new List<int>(g.paths[i].nodes[g.paths[i].getNode(timeGame)].units));
 							}
+							if (SelBoxMin > (Input.mousePosition - mouseDownPos[0]).sqrMagnitude) break;
 						}
 					}
 				}
