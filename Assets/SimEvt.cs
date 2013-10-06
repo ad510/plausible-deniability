@@ -125,8 +125,8 @@ public class MoveCmdEvt : CmdEvt {
 		if (goalCenter.y < Math.Min(offset.y, g.mapSize / 2)) goalCenter.y = Math.Min(offset.y, g.mapSize / 2);
 		if (goalCenter.y > g.mapSize - Math.Min(offset.y, g.mapSize / 2)) goalCenter.y = g.mapSize - Math.Min(offset.y, g.mapSize / 2);
 		// move units
-		foreach (int path in paths.Keys) {
-			if (g.paths[path].canMove(timeCmd)) {
+		foreach (KeyValuePair<int, int[]> path in paths) {
+			if (g.paths[path.Key].canMove(timeCmd)) {
 				if (formation == Formation.Tight || formation == Formation.Loose) {
 					goal = goalCenter + new FP.Vector((i % rows.x) * spacing - offset.x, i / rows.x * spacing - offset.y);
 				}
@@ -136,7 +136,7 @@ public class MoveCmdEvt : CmdEvt {
 				else {
 					throw new NotImplementedException("requested formation is not implemented");
 				}
-				g.paths[path].moveTo(timeCmd, goal);
+				g.paths[path.Key].moveTo(timeCmd, new List<int>(path.Value), goal);
 				i++;
 			}
 		}

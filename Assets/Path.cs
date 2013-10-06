@@ -121,13 +121,31 @@ public class Path {
 		while (ret >= 0 && time < nodes[ret].time) ret--;
 		return ret;
 	}
-
+	
 	/// <summary>
 	/// move towards specified location starting at specified time,
-	/// return index of moved path (in case moving a replacement path instead of this unit)
+	/// return index of moved path (in case moving a subset of units in path)
 	/// </summary>
-	public int moveTo(long time, FP.Vector pos) {
-		// TODO: make new path if needed, update doc comment
+	public int moveTo(long time, List<int> units, FP.Vector pos) {
+		int path2 = id; // move this path by default
+		int node = getNode (time);
+		foreach (int unit in nodes[node].units) {
+			if (!units.Contains (unit)) {
+				// some units in path aren't being moved, so make a new path
+				// TODO: also try to delete unit from old path
+				if (!makePath (time, units)) throw new SystemException("make new path failed when moving units");
+				path2 = g.paths.Count - 1;
+				break;
+			}
+		}
+		g.paths[path2].moveTo (time, pos);
+		return path2;
+	}
+
+	/// <summary>
+	/// move towards specified location starting at specified time
+	/// </summary>
+	public void moveTo(long time, FP.Vector pos) {
 		FP.Vector curPos = calcPos(time);
 		FP.Vector goalPos = pos;
 		// don't move off map edge
@@ -139,14 +157,13 @@ public class Path {
 		moves.Add (Move.fromSpeed(time, speed(), curPos, goalPos));
 		// TODO: implement line below
 		//if (!g.movedUnits.Contains(id)) g.movedUnits.Add(id); // indicate to delete and recalculate later TileMoveEvts for this unit
-		return id;
 	}
 
 	/// <summary>
 	/// returns whether allowed to move at specified time
 	/// </summary>
 	public bool canMove(long time) {
-		// TODO: check whether seen later
+		// TODO: check whether seen later, maybe make overloaded version that also checks units
 		return time >= moves[0].timeStart && speed () > 0;
 	}
 
