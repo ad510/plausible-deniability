@@ -213,10 +213,13 @@ public class Path {
 	}
 
 	/// <summary>
-	/// delete this unit if doing so wouldn't affect anything that another player saw, returns whether successful
+	/// removes specified unit from path if doing so wouldn't affect anything that another player saw, returns whether successful
 	/// </summary>
-	public bool delete(long time, bool skipRscCheck = false) {
-		throw new NotImplementedException();
+	public bool removeUnit(long time, int unit) {
+		// TODO: current version of removeUnit() is dumb and can only remove units at the last node, and does not check that it is allowed to do so
+		if (time != nodes[nodes.Count - 1].time) return false;
+		nodes[nodes.Count - 1].units.Remove (unit);
+		return true;
 	}
 
 	/// <summary>
@@ -239,7 +242,7 @@ public class Path {
 	/// returns whether this path can make a new path as specified
 	/// </summary>
 	public bool canMakePath(long time, List<int> units) {
-		// TODO: check tile exclusivity, whether unit types can be made, resources
+		// TODO: check tile exclusivity if not live, whether unit types can be made, resources
 		return true;
 	}
 
@@ -250,7 +253,11 @@ public class Path {
 		throw new NotImplementedException();
 	}
 	
-	private void addConnectedPath(long time, int path) {
+	/// <summary>
+	/// connects this path to specified path (and vice versa) at specified time,
+	/// returns this path's node where the paths were connected
+	/// </summary>
+	public int addConnectedPath(long time, int path) {
 		int node = getNode (time);
 		if (nodes[node].time != time) {
 			nodes.Insert (node + 1, new Node(time, new List<int>(nodes[node].units), nodes[node].unseen));
@@ -260,6 +267,7 @@ public class Path {
 			nodes[node].paths.Add (path);
 			g.paths[path].addConnectedPath (time, id);
 		}
+		return node;
 	}
 
 	/// <summary>

@@ -37,6 +37,7 @@ public abstract class SimEvt {
 [ProtoInclude(12, typeof(MakeUnitCmdEvt))]
 [ProtoInclude(13, typeof(MakePathCmdEvt))]
 [ProtoInclude(14, typeof(DeletePathCmdEvt))]
+[ProtoInclude(16, typeof(StackCmdEvt))]
 public abstract class CmdEvt : SimEvt {
 	[ProtoMember(1)]
 	public long timeCmd {get;set;} // time is latest simulation time when command is given, timeCmd is when event takes place (may be in past)
@@ -204,7 +205,7 @@ public class MakeUnitCmdEvt : CmdEvt {
 }
 
 /// <summary>
-/// command to make new path(s) that specified path(s) could take
+/// command to make new path(s) branching off from specified path(s)
 /// </summary>
 [ProtoContract]
 public class MakePathCmdEvt : CmdEvt {
@@ -253,6 +254,47 @@ public class DeletePathCmdEvt : CmdEvt {
 				if (unit2 == g.unitIdChgs[i * 2]) unit2 = g.unitIdChgs[i * 2 + 1];
 			}
 			if (unit2 >= 0) g.units[unit2].delete(timeCmd);
+		}
+	}
+}
+
+/// <summary>
+/// command to stack specified path(s) onto another specified path
+/// </summary>
+[ProtoContract]
+public class StackCmdEvt : CmdEvt {
+	[ProtoMember(1)]
+	public int stackPath {get;set;} // path that paths will be stacked onto
+	
+	/// <summary>
+	/// empty constructor for protobuf-net use only
+	/// </summary>
+	public StackCmdEvt() { }
+	
+	public StackCmdEvt(long timeVal, long timeCmdVal, Dictionary<int, int[]> pathsVal, int stackPathVal)
+		: base(timeVal, timeCmdVal, pathsVal) {
+		stackPath = stackPathVal;
+	}
+	
+	public override void apply (Sim g)
+	{
+		List<int> movedPaths = new List<int>();
+		long timeArrive = long.MinValue;
+		base.apply (g);
+		// move paths to final location of stackPath
+		// STACK TODO: if stackPathVal < 0 (pressing stack button will do that) then move all paths to their average location
+		foreach (KeyValuePair<int, int[]> path in paths) {
+			if (g.paths[path.Key].speed () == g.paths[stackPath].speed () && g.paths[path.Key].canMove (timeCmd)) {
+				movedPaths.Add (g.paths[path.Key].moveTo (timeCmd, new List<int>(path.Value), g.paths[stackPath].moves[g.paths[stackPath].moves.Count - 1].vecEnd));
+			}
+		}
+		// if able to move any of the paths, add an event to stack them when they arrive
+		if (movedPaths.Count > 0) {
+			if (!movedPaths.Contains (stackPath)) movedPaths.Add (stackPath);
+			foreach (int path in movedPaths) {
+				timeArrive = Math.Max (timeArrive, g.paths[path].moves[g.paths[path].moves.Count - 1].timeEnd);
+			}
+			g.events.add (new StackEvt(timeArrive, movedPaths.ToArray ()));
 		}
 	}
 }
@@ -354,6 +396,9 @@ public class UpdateEvt : SimEvt {
 				else if (evt is GoLiveCmdEvt) {
 					cmdType = 15;
 				}
+				else if (evt is StackCmdEvt) {
+					cmdType = 16;
+				}
 				else {
 					throw new InvalidOperationException("pending command's type is not a command");
 				}
@@ -400,6 +445,59 @@ public class UpdateEvt : SimEvt {
 		g.checksum = 0;
 		g.events.add(new UpdateEvt(time + g.updateInterval));
 		g.timeUpdateEvt = time;
+	}
+}
+
+/// <summary>
+/// event to stack multiple paths together if they are at exactly the same place
+/// </summary>
+public class StackEvt : SimEvt {
+	public int[] paths;
+	
+	public StackEvt(long timeVal, int[] pathsVal) {
+		time = timeVal;
+		paths = pathsVal;
+	}
+	
+	public override void apply (Sim g)
+	{
+		bool[] pathsStacked = new bool[paths.Length];
+		List<int> stackUnits;
+		FP.Vector iPos, jPos;
+		int i, j, iNode, jNode;
+		for (i = 0; i < pathsStacked.Length; i++) {
+			pathsStacked[i] = (time < g.paths[paths[i]].moves[0].timeStart);
+		}
+		// loop through each pair of unstacked paths
+		for (i = 0; i < paths.Length; i++) {
+			if (!pathsStacked[i]) {
+				iPos = g.paths[paths[i]].calcPos (time);
+				iNode = g.paths[paths[i]].getNode (time);
+				for (j = i + 1; j < paths.Length; j++) {
+					jPos = g.paths[paths[j]].calcPos (time);
+					jNode = g.paths[paths[j]].getNode (time);
+					// check that paths are at same position
+					if (iPos.x == jPos.x && iPos.y == jPos.y) {
+						// check whether allowed to stack the paths' units together
+						stackUnits = new List<int>(g.paths[paths[i]].nodes[iNode].units);
+						foreach (int unit in g.paths[paths[j]].nodes[jNode].units) {
+							if (!stackUnits.Contains (unit)) stackUnits.Add (unit);
+						}
+						if (g.stackAllowed (stackUnits)) {
+							// merge the paths onto path i
+							iNode = g.paths[paths[i]].addConnectedPath (time, paths[j]);
+							jNode = g.paths[paths[j]].getNode (time);
+							g.paths[paths[i]].nodes[iNode].units = stackUnits;
+							while (g.paths[paths[j]].nodes[jNode].units.Count > 0) {
+								g.paths[paths[j]].removeUnit (time, g.paths[paths[j]].nodes[jNode].units[g.paths[paths[j]].nodes[jNode].units.Count - 1]);
+							}
+							pathsStacked[i] = true;
+							pathsStacked[j] = true;
+						}
+					}
+				}
+			}
+		}
 	}
 }
 

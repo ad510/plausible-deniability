@@ -22,6 +22,7 @@ Controls
 - right click = move selected units in tight formation
 - ctrl + right click = move selected units in loose formation
 - alt + right click = move selected units in ring formation
+- right click on friendly unit = stack selected units onto clicked unit
 - shift = show final positions of selected units
 - spacebar = change selected player
 - p = pause/resume

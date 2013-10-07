@@ -440,11 +440,13 @@ public class App : MonoBehaviour {
 					makeUnitType = -1;
 				}
 				else {
-					// select units
+					// select paths
+					Vector3 mouseMinPos = new Vector3(Math.Min (mouseDownPos[0].x, Input.mousePosition.x), Math.Min (mouseDownPos[0].y, Input.mousePosition.y), 0);
+					Vector3 mouseMaxPos = new Vector3(Math.Max (mouseDownPos[0].x, Input.mousePosition.x), Math.Max (mouseDownPos[0].y, Input.mousePosition.y), 0);
 					if (!Input.GetKey (KeyCode.LeftControl) && !Input.GetKey (KeyCode.LeftShift)) selPaths.Clear();
 					for (i = 0; i < g.paths.Count; i++) {
 						if (selPlayer == g.paths[i].player() && timeGame >= g.paths[i].moves[0].timeStart
-							&& FP.rectIntersects (drawToSimPos (mouseDownPos[0]), drawToSimPos (Input.mousePosition),
+							&& FP.rectIntersects (drawToSimPos (mouseMinPos), drawToSimPos (mouseMaxPos),
 							g.paths[i].selMinPos(timeGame), g.paths[i].selMaxPos(timeGame))) {
 							// STACK TODO: if not all units in path are selected, select remaining units instead of deselecting path
 							if (selPaths.ContainsKey (i)) {
@@ -467,9 +469,23 @@ public class App : MonoBehaviour {
 					makeUnitType = -1;
 				}
 				else {
-					// move selected units
-					g.cmdPending.add(new MoveCmdEvt(g.timeSim, newCmdTime(), selPathsCopy (), drawToSimPos (Input.mousePosition),
-						Input.GetKey (KeyCode.LeftControl) ? Formation.Loose : Input.GetKey (KeyCode.LeftAlt) ? Formation.Ring : Formation.Tight));
+					int stackPath = -1;
+					for (i = 0; i < g.paths.Count; i++) {
+						if (selPlayer == g.paths[i].player() && timeGame >= g.paths[i].moves[0].timeStart
+							&& FP.rectContains (g.paths[i].selMinPos(timeGame), g.paths[i].selMaxPos(timeGame), drawToSimPos (Input.mousePosition))) {
+							stackPath = i;
+							break;
+						}
+					}
+					if (stackPath >= 0) {
+						// stack selected paths onto clicked path
+						g.cmdPending.add (new StackCmdEvt(g.timeSim, newCmdTime (), selPathsCopy (), stackPath));
+					}
+					else {
+						// move selected paths
+						g.cmdPending.add(new MoveCmdEvt(g.timeSim, newCmdTime(), selPathsCopy (), drawToSimPos (Input.mousePosition),
+							Input.GetKey (KeyCode.LeftControl) ? Formation.Loose : Input.GetKey (KeyCode.LeftAlt) ? Formation.Ring : Formation.Tight));
+					}
 				}
 			}
 		}
@@ -856,6 +872,9 @@ public class App : MonoBehaviour {
 		}
 		else if (cmdType == 15) {
 			g.users[user].cmdReceived.add (Serializer.Deserialize<GoLiveCmdEvt>(stream));
+		}
+		else if (cmdType == 16) {
+			g.users[user].cmdReceived.add (Serializer.Deserialize<StackCmdEvt>(stream));
 		}
 		else {
 			throw new InvalidOperationException("received command of invalid type");

@@ -470,6 +470,19 @@ public class Sim {
 		}
 		return true;
 	}
+	
+	/// <summary>
+	/// returns whether the specified units are allowed to be on the same path
+	/// </summary>
+	public bool stackAllowed(List<int> stackUnits) {
+		if (stackUnits.Count == 0) return true;
+		foreach (int unit in stackUnits) {
+			if (units[unit].player != units[stackUnits[0]].player || unitT[units[unit].type].speed != unitT[units[stackUnits[0]].type].speed) {
+				return false;
+			}
+		}
+		return true;
+	}
 
 	/// <summary>
 	/// returns if a hypothetical unit at the origin could see tile with specified (positive or negative) x and y indices
