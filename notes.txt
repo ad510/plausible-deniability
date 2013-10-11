@@ -1,5 +1,8 @@
 todo:
-matthew says multiplayer between different LANs doesn't work, connects then can send first few commands, then units freeze and don't unfreeze
+profile scn_perf_test in pro trial?
+"n" variables are redundant with array length property (change after merging stacking branch b/c won't enable many foreach loops)
+don't necessarily decouple UnitSprite from paths
+click & drag line
 make delete other paths consider parents of units that made it
 allow selecting any player, but giving commands only on human players
 attack command & animations
@@ -9,6 +12,7 @@ way to make multiple paths at a time
 making new paths should select new ones as well?
 don't make units come out in random directions?
 allow selecting only 1 building at a time, and no units in addition?
+deserialize scenario instead of loading 1 field at a time (would that shorten code by enough to make up for lost flexibility?)
 sound
 pathfinding
 keep non-live paths in yellow areas w/o user help
@@ -16,12 +20,9 @@ darker gray tiles should act more conventionally
 post to tigsource.com or unity forums?
 rename to improbability?
 unity 4.2
-  builds in unity 4.2 don't display sprites correctly
-    setting shader to "Diffuse" displays sprites but without transparency
-    using quad primitive doesn't display at all (output_log.txt says "The resource Quad.fbx could not be loaded from the resource file!")
-    bug report in "decoherence 4.2.0 minimal" folder
   text asset serialization
   quad primitive
+    quad primitive doesn't display in player mode (output_log.txt says "The resource Quad.fbx could not be loaded from the resource file!")
   "Texture importer now has "Alpha is Transparency" setting, which does color dilation to fix edge artifacts on semitransparent textures. It is enabled by default for GUI textures."
   "fullscreen at native resolution" player setting"
 
@@ -37,11 +38,40 @@ Node:
   long time
   int[] paths
   int[] units
-  bool immutable
+  bool unseen
 Path:
   Node[] nodes
   Move[] moves
   moved from Unit: tileX, tileY, timeSimPast
+
+bool Path.removeUnit(time, unit):
+get node at time
+if unit not in node then return true
+loop through previous nodes & connected paths until another child path w/ this unit is found
+  may find multiple such nodes (if 2 branches split off children then joined into this node)
+  if run into node initialized by scenario (no parent paths) then return false
+for each parent node:
+  do simulated remove, if fails then return false
+for each parent node:
+  removeUnitAfter(unit, parent node)
+
+private bool Path.removeUnitAfter(unit, node):
+if unit not in node then return true
+if node is seen then return false
+if no connected path contains unit just before node time:
+  remove unit from each connected path containing unit just after node time
+  remove units that can no longer be made using units at path intersection (consider effect on resources)
+  if units in this node same as units in prev node and no units in connected paths can be made using or are the same as units in this path:
+    delete node
+    return removeUnitAfter(unit, node)
+if not last node and !removeUnitAfter(unit, node + 1) then return false
+remove unit from node
+return true
+
+rscCollected:
+can use tree (not graph) approach most of the time, but be careful not to double count new units made b/c multiple units might be able to make it
+1st calculate min or max rsc collected by each unit like usual, but also return child units made & their rsc collected
+if duplicate child units made, subtract out their rsc collected from total
 
 if ever allow "min" resources to be <0, must handle these cases w/o letting max resources ever be <0 in replays:
 split worker into 2 paths, 1 path makes a mine, other path doesn't
@@ -74,7 +104,6 @@ would graph be too big?
 
 other questions:
 puzzle brainstorming
-work on game in summer with Matthew and/or Zach, then email TJ when further along?
 
 changing the past and wavefunctions levels:
 - what they didn't see
@@ -82,6 +111,7 @@ changing the past and wavefunctions levels:
 - better than a coin flip
 - spreading coherence (objective is to see the entire map)
   - user controls electrons, but some antiprotons on map
+  - after level introduce find enemy command to automate this in future
   - in q&a explain how nature controls/sees everything (1 player game) & how we measure it, interpretations of quantum mechanics
 - retroactive coherence
 - do I need another level to show applications of switching particles, or does 1st level show this well enough?
@@ -100,9 +130,12 @@ paths levels: (find better synonym for "part 2" such as redux?)
 - better than a coin flip, part 2
 - spreading coherence, part 2
 - retroactive coherence, part 2
+- defend 10 towers, 1 tower will be attacked (or enemy king will come out 1 of them), have 1 healthy marine & 9 unhealthy marines, win w/o losing a single unit (by sharing paths)
+  - may not work as is, could just move healthy marine along multiple paths
 - snipers
 
 random notes:
+- form 2 paths of same unit, then stack those paths is example of why merging paths must be handled directly (justifying stacking branch)
 - phrase from AI wisdom: "expand selection by radius"
 - only share paths if option is checked for a selection of units (don't want units randomly disappearing out of nowhere)
   - if some wavefunctions don't overlap yet, send paths going between those units
@@ -110,11 +143,13 @@ random notes:
   - if multiple parent units share some but not all paths with each other, show superposition of their pulsing (maybe with offset positions so it's clearer they're separate)
   - pulse parent units at different frequencies? (faster pulsing can be done with lower amplitude b/c more noticeable)
   - pulse wavefunctions (in different colors for different parent units?) so can say they're coherent too?
-- retroactive visibility assumes units don't discontinuously disappear, so would require that paths move into another unit before being deleted and that dead units don't disappear from ground
+- retroactive visibility assumes units don't discontinuously disappear, so would require that paths move into another unit before being deleted (e.g. when another path of same unit is seen)
 - when adding saved replays, maybe add timeSim field to Unit.Move (but this doesn't help with tiles)
 - tile coherence can be optimized in short term by only calculating it when unit moves onto the tile
   - if happening in present, only need to check that other players can't see the tile
+- someone recommends binary space partitioning as general graphics optimizing technique
 - population limit? (or just make units expensive enough that you can't make too many)
+- company of heroes makes positioning important b/c resource gathering slow, low unit cap, controlling resource locations is important
 - introduce paths 1st, then introduce wavefunctions as paths going everywhere in a region? (skipping manual time travel)
   - but manual time travel is nice though
   - keep in mind hard to force using time travel in levels if can use paths
@@ -137,6 +172,7 @@ random notes:
   - marines (generic shooting unit)
 
 unity links:
+student discount: https://www.studica.com/unity
 external version control: https://docs.unity3d.com/Documentation/Manual/ExternalVersionControlSystemSupport.html
 multiplayer tutorial: http://docs.unity3d.ru/Tutorials/M2H_Networking_Tutorial/M2H_Networking_Tutorial_Original.pdf
 multiplayer project files: http://docs.unity3d.ru/Tutorials/M2H_Networking_Tutorial/M2H_Networking_Tutorial_Files.zip

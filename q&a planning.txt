@@ -7,6 +7,11 @@ not q&a but still good wording:
 - green area in game serves similar purpose to wavefunction in physics
   - can't call green area a wavefunction, would be like calling something a "g force" when it's really an acceleration
 - alternate catch phrase: Think like a quantum computer.
+- limitations/caveats of quantum mechanics analogy
+  - people don't understand quantum mechanics (so can't just explain QM analogy and expect people to understand the game)
+  - it's only an analogy (so be very careful how you word comparisons to QM)
+- The way Achron works is like "I reject your reality and substitute my own." Decoherence lets you substitute your reality without ever rejecting anyone else's.
+- Zach describes it as RTS in which "[the other player's] reality is determined by what you see"
 
 UI:
 have visibility circle (like in menu), when hovering over Q&A box all of it becomes visible
@@ -45,7 +50,7 @@ Notice you could do that without ever seeing the other player time travel. But t
 
 (note: experiment to detect in real physics more complicated due to additional restrictions from prev answer, but used for particle physics "discoveries" such as higgs)
 
-(note: after sharing paths level, explain how in laser photon being in 1 place increases chance of another atom having emitted photon to same place (from QED))
+(note: after sharing paths level, explain how in laser photon being in 1 place increases chance of another atom having emitted photon to same place (from QED), and is this a good place to mention entanglement?)
 
 (note: after sniper level, say how finding electron at 1 location decreases chance to find another nearby, emphasizing they don't make up their mind about where they are until you see them, and how this "exclusion principle" creates chemical properties of atoms (from QED))
 
