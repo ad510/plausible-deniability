@@ -91,11 +91,15 @@ public class MoveCmdEvt : CmdEvt {
 		int count = 0, i = 0;
 		base.apply(g);
 		// count number of units able to move
-		foreach (int path in paths.Keys) {
-			if (g.paths[path].canMove(timeCmd)) {
+		foreach (KeyValuePair<int, int[]> path in paths) {
+			if (g.paths[path.Key].canMove(timeCmd)) {
 				count++;
-				// STACK TODO: implement line below
-				//if (formation == Formation.Tight && g.unitT[g.paths[path].type].tightFormationSpacing > spacing) spacing = g.unitT[g.units[unit].type].tightFormationSpacing;
+				if (formation == Formation.Tight) {
+					// calculate spacing for tight formation
+					foreach (int unit in path.Value) {
+						if (g.unitT[g.units[unit].type].tightFormationSpacing > spacing) spacing = g.unitT[g.units[unit].type].tightFormationSpacing;
+					}
+				}
 			}
 		}
 		if (count == 0) return;
