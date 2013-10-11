@@ -103,7 +103,7 @@ public class Path {
 	}
 	
 	public Path(Sim simVal, int idVal, List<int> units, long startTime, FP.Vector startPos)
-		: this(simVal, idVal, units, startTime, startPos, simVal.tileAt(startPos).coherentWhen(simVal.units[units[0]].player, startTime)) {
+		: this(simVal, idVal, units, startTime, startPos, simVal.tileAt(startPos).exclusiveWhen(simVal.units[units[0]].player, startTime)) {
 	}
 
 	/// <summary>
