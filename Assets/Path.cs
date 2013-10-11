@@ -107,7 +107,7 @@ public class Path {
 	}
 
 	/// <summary>
-	/// ensure that if unit is moving in the past, it does not move off coherent areas
+	/// ensure that if unit is moving in the past, it does not move off exclusively seen areas
 	/// </summary>
 	public void updatePast(long curTime) {
 		throw new NotImplementedException();
@@ -201,14 +201,14 @@ public class Path {
 	/// <summary>
 	/// allows unit to time travel and move along multiple paths starting at specified time
 	/// </summary>
-	public void cohere(long time) {
+	public void beUnseen(long time) {
 		throw new NotImplementedException();
 	}
 
 	/// <summary>
 	/// stops allowing unit to time travel or move along multiple paths starting at timeSim
 	/// </summary>
-	public void decohere(long time = long.MaxValue) {
+	public void beSeen(long time = long.MaxValue) {
 		throw new NotImplementedException();
 	}
 
@@ -363,9 +363,9 @@ public class Path {
 	}
 
 	/// <summary>
-	/// returns whether unit can time travel or move along multiple paths at latest known time
+	/// returns whether unit is known to not be seen by another player at latest known time
 	/// </summary>
-	public bool coherent() {
+	public bool unseen() {
 		throw new NotImplementedException();
 	}
 
