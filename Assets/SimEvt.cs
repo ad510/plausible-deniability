@@ -324,7 +324,7 @@ public class GoLiveCmdEvt : SimEvt {
 		g.cmdHistory.add(this); // copy event to command history list (it should've already been popped from event list)
 		for (i = 0; i < g.nUnits; i++) {
 			if (player == g.units[i].player && g.units[i].exists(time) && !g.units[i].isLive(time)) {
-				// ensure that time traveling units don't move off coherent areas
+				// ensure that time traveling units don't move off exclusive areas
 				g.units[i].updatePast(time);
 				// find earliest time that player's units started time traveling
 				if (g.units[i].moves[0].timeStart < timeTravelStart) timeTravelStart = g.units[i].moves[0].timeStart;
@@ -522,10 +522,10 @@ public class TileMoveEvt : SimEvt {
 	public override void apply(Sim g) {
 		if (g.units[unit].tileX == Sim.OffMap) return; // skip event if unit no longer exists
 		List<FP.Vector> playerVisAddTiles = new List<FP.Vector>();
-		int coherenceMinX = g.tileLen() - 1;
-		int coherenceMaxX = 0;
-		int coherenceMinY = g.tileLen() - 1;
-		int coherenceMaxY = 0;
+		int exclusiveMinX = g.tileLen() - 1;
+		int exclusiveMaxX = 0;
+		int exclusiveMinY = g.tileLen() - 1;
+		int exclusiveMaxY = 0;
 		int i, tXPrev, tYPrev, tX, tY;
 		if (tileX == int.MinValue) tileX = g.units[unit].tileX;
 		if (tileY == int.MinValue) tileY = g.units[unit].tileY;
@@ -549,23 +549,23 @@ public class TileMoveEvt : SimEvt {
 				}
 			}
 		}
-		// check if tiles cohered for this player
+		// check if tiles became exclusive to this player
 		foreach (FP.Vector vec in playerVisAddTiles) {
-			if (vec.x < coherenceMinX) coherenceMinX = (int)vec.x;
-			if (vec.x > coherenceMaxX) coherenceMaxX = (int)vec.x;
-			if (vec.y < coherenceMinY) coherenceMinY = (int)vec.y;
-			if (vec.y > coherenceMaxY) coherenceMaxY = (int)vec.y;
+			if (vec.x < exclusiveMinX) exclusiveMinX = (int)vec.x;
+			if (vec.x > exclusiveMaxX) exclusiveMaxX = (int)vec.x;
+			if (vec.y < exclusiveMinY) exclusiveMinY = (int)vec.y;
+			if (vec.y > exclusiveMaxY) exclusiveMaxY = (int)vec.y;
 		}
-		coherenceMinX = Math.Max(0, coherenceMinX - g.tileVisRadius());
-		coherenceMaxX = Math.Min(g.tileLen() - 1, coherenceMaxX + g.tileVisRadius());
-		coherenceMinY = Math.Max(0, coherenceMinY - g.tileVisRadius());
-		coherenceMaxY = Math.Min(g.tileLen() - 1, coherenceMaxY + g.tileVisRadius());
-		for (tX = coherenceMinX; tX <= coherenceMaxX; tX++) {
-			for (tY = coherenceMinY; tY <= coherenceMaxY; tY++) {
+		exclusiveMinX = Math.Max(0, exclusiveMinX - g.tileVisRadius());
+		exclusiveMaxX = Math.Min(g.tileLen() - 1, exclusiveMaxX + g.tileVisRadius());
+		exclusiveMinY = Math.Max(0, exclusiveMinY - g.tileVisRadius());
+		exclusiveMaxY = Math.Min(g.tileLen() - 1, exclusiveMaxY + g.tileVisRadius());
+		for (tX = exclusiveMinX; tX <= exclusiveMaxX; tX++) {
+			for (tY = exclusiveMinY; tY <= exclusiveMaxY; tY++) {
 				foreach (FP.Vector vec in playerVisAddTiles) {
 					if (g.inVis(tX - vec.x, tY - vec.y)) {
-						if (!g.tiles[tX, tY].coherentLatest(g.units[unit].player) && g.calcCoherent(g.units[unit].player, tX, tY)) {
-							g.coherenceAdd(g.units[unit].player, tX, tY, time);
+						if (!g.tiles[tX, tY].exclusiveLatest(g.units[unit].player) && g.calcExclusive(g.units[unit].player, tX, tY)) {
+							g.exclusiveAdd(g.units[unit].player, tX, tY, time);
 						}
 						break;
 					}
@@ -573,12 +573,12 @@ public class TileMoveEvt : SimEvt {
 			}
 		}
 		if (tileX >= 0 && tileX < g.tileLen() && tileY >= 0 && tileY < g.tileLen()) {
-			// update whether this unit may time travel
-			if (!g.units[unit].coherent() && g.tiles[tileX, tileY].coherentLatest(g.units[unit].player)) {
-				g.units[unit].cohere(time);
+			// update whether this unit is known to be unseen
+			if (!g.units[unit].unseen() && g.tiles[tileX, tileY].exclusiveLatest(g.units[unit].player)) {
+				g.units[unit].beUnseen(time);
 			}
-			else if (g.units[unit].coherent() && !g.tiles[tileX, tileY].coherentLatest(g.units[unit].player)) {
-				g.units[unit].decohere();
+			else if (g.units[unit].unseen() && !g.tiles[tileX, tileY].exclusiveLatest(g.units[unit].player)) {
+				g.units[unit].beSeen();
 			}
 			// if this unit moved out of another player's visibility, remove that player's visibility here
 			if (!g.players[g.units[unit].player].immutable && tXPrev >= 0 && tXPrev < g.tileLen() && tYPrev >= 0 && tYPrev < g.tileLen()) {
@@ -622,10 +622,10 @@ public class TileMoveEvt : SimEvt {
 			if (!g.tiles[tileX, tileY].playerVisLatest(g.units[unit].player)) {
 				g.tiles[tileX, tileY].playerVis[g.units[unit].player].Add(time);
 				playerVisAddTiles.Add(new FP.Vector(tileX, tileY));
-				// check if this tile decohered for another player
+				// check if this tile stopped being exclusive to another player
 				for (i = 0; i < g.nPlayers; i++) {
-					if (i != g.units[unit].player && g.tiles[tileX, tileY].coherentLatest(i)) {
-						g.coherenceRemove(i, tileX, tileY, time);
+					if (i != g.units[unit].player && g.tiles[tileX, tileY].exclusiveLatest(i)) {
+						g.exclusiveRemove(i, tileX, tileY, time);
 					}
 				}
 			}
@@ -703,7 +703,7 @@ public class PlayerVisRemoveEvt : SimEvt {
 				tiles[i].x = Sim.OffMap;
 			}
 		}
-		// check if a tile decohered for this player, or cohered for another player
+		// check if a tile stopped being exclusive to this player, or became exclusive to another player
 		iPrev = -1;
 		for (i = 0; i < nTiles; i++) {
 			if (tiles[i].x != Sim.OffMap) {
@@ -711,11 +711,11 @@ public class PlayerVisRemoveEvt : SimEvt {
 					for (tY = Math.Max(0, (int)tiles[i].y - g.tileVisRadius()); tY <= Math.Min(g.tileLen() - 1, (int)tiles[i].y + g.tileVisRadius()); tY++) {
 						if (g.inVis(tX - tiles[i].x, tY - tiles[i].y) && (iPrev == -1 || !g.inVis(tX - tiles[iPrev].x, tY - tiles[iPrev].y))) {
 							for (j = 0; j < g.nPlayers; j++) {
-								if (j == player && g.tiles[tX, tY].coherentLatest(j)) {
-									g.coherenceRemove(j, tX, tY, time);
+								if (j == player && g.tiles[tX, tY].exclusiveLatest(j)) {
+									g.exclusiveRemove(j, tX, tY, time);
 								}
-								else if (j != player && !g.tiles[tX, tY].coherentLatest(j) && g.calcCoherent(j, tX, tY)) {
-									g.coherenceAdd(j, tX, tY, time);
+								else if (j != player && !g.tiles[tX, tY].exclusiveLatest(j) && g.calcExclusive(j, tX, tY)) {
+									g.exclusiveAdd(j, tX, tY, time);
 								}
 							}
 						}

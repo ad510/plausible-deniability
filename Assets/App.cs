@@ -88,6 +88,7 @@ public class App : MonoBehaviour {
 	string appPath;
 	string modPath = "mod/";
 	float winDiag; // diagonal length of screen in pixels
+	Texture2D texTile;
 	GameObject sprTile;
 	LineBox border;
 	Texture[,] texUnits;
@@ -188,7 +189,7 @@ public class App : MonoBehaviour {
 		g.noVisCol = jsonColor(json, "noVisCol");
 		g.playerVisCol = jsonColor(json, "playerVisCol");
 		g.unitVisCol = jsonColor(json, "unitVisCol");
-		g.coherentCol = jsonColor(json, "coherentCol");
+		g.exclusiveCol = jsonColor(json, "exclusiveCol");
 		g.pathCol = jsonColor(json, "pathCol");
 		g.healthBarBackCol = jsonColor(json, "healthBarBackCol");
 		g.healthBarFullCol = jsonColor(json, "healthBarFullCol");
@@ -319,6 +320,7 @@ public class App : MonoBehaviour {
 				g.tiles[i, j] = new Sim.Tile(g);
 			}
 		}
+		texTile = new Texture2D(g.tileLen (), g.tileLen (), TextureFormat.ARGB32, false);
 		// units
 		g.nUnits = 0;
 		g.paths = new List<Path>();
@@ -542,7 +544,7 @@ public class App : MonoBehaviour {
 			timeGame = 0;
 			// hide traces of mischief
 			for (i = 0; i < g.nUnits; i++) {
-				g.units[i].decohere();
+				g.units[i].beSeen();
 				g.units[i].tileX = Sim.OffMap + 1;
 			}
 			for (i = 0; i < g.tileLen(); i++) {
@@ -594,27 +596,25 @@ public class App : MonoBehaviour {
 	private void draw() {
 		Vector3 vec = new Vector3();
 		FP.Vector fpVec;
-		Texture2D tex;
 		Color col;
 		float f, f2;
 		int i, j, tX, tY, node, unit;
 		// visibility tiles
 		// TODO: don't draw tiles off map
-		tex = new Texture2D(g.tileLen (), g.tileLen (), TextureFormat.ARGB32, false);
 		for (tX = 0; tX < g.tileLen(); tX++) {
 			for (tY = 0; tY < g.tileLen(); tY++) {
 				col = g.noVisCol;
 				if (g.tiles[tX, tY].playerVisWhen(selPlayer, timeGame)) {
 					col += g.playerVisCol;
 					if (g.tiles[tX, tY].playerDirectVisWhen(selPlayer, timeGame)) col += g.unitVisCol;
-					if (g.tiles[tX, tY].coherentWhen(selPlayer, timeGame)) col += g.coherentCol;
+					if (g.tiles[tX, tY].exclusiveWhen(selPlayer, timeGame)) col += g.exclusiveCol;
 				}
-				tex.SetPixel (tX, tY, col);
+				texTile.SetPixel (tX, tY, col);
 			}
 		}
-		tex.Apply ();
-		tex.filterMode = FilterMode.Point;
-		sprTile.renderer.material.mainTexture = tex;
+		texTile.Apply ();
+		texTile.filterMode = FilterMode.Point;
+		sprTile.renderer.material.mainTexture = texTile;
 		sprTile.transform.position = simToDrawPos (new FP.Vector((g.tileLen () << FP.Precision) / 2, (g.tileLen () << FP.Precision) / 2), TileDepth);
 		sprTile.transform.localScale = simToDrawScl (new FP.Vector((g.tileLen () << FP.Precision) / 2, (g.tileLen () << FP.Precision) / 2));
 		// map border
