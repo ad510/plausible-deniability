@@ -437,11 +437,13 @@ public class App : MonoBehaviour {
 				}
 				else {
 					// select units
+					Vector3 mouseMinPos = new Vector3(Math.Min (mouseDownPos[0].x, Input.mousePosition.x), Math.Min (mouseDownPos[0].y, Input.mousePosition.y), 0);
+					Vector3 mouseMaxPos = new Vector3(Math.Max (mouseDownPos[0].x, Input.mousePosition.x), Math.Max (mouseDownPos[0].y, Input.mousePosition.y), 0);
 					if (!Input.GetKey (KeyCode.LeftControl) && !Input.GetKey (KeyCode.LeftShift)) selUnits.Clear();
 					for (i = 0; i < g.nUnits; i++) {
 						if (selPlayer == g.units[i].player && timeGame >= g.units[i].moves[0].timeStart) {
 							pos = g.units[i].calcPos(timeGame);
-							if (FP.rectIntersects (drawToSimPos (mouseDownPos[0]), drawToSimPos (Input.mousePosition),
+							if (FP.rectIntersects (drawToSimPos (mouseMinPos), drawToSimPos (mouseMaxPos),
 								pos + g.unitT[g.units[i].type].selMinPos, pos + g.unitT[g.units[i].type].selMaxPos)) {
 								if (selUnits.Contains(i)) {
 									selUnits.Remove(i);
