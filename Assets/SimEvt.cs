@@ -283,7 +283,6 @@ public class StackCmdEvt : CmdEvt {
 	public override void apply (Sim g)
 	{
 		List<int> movedPaths = new List<int>();
-		long timeArrive = long.MinValue;
 		base.apply (g);
 		// move paths to final location of stackPath
 		// STACK TODO: if stackPathVal < 0 (pressing stack button will do that) then move all paths to their average location
@@ -292,13 +291,14 @@ public class StackCmdEvt : CmdEvt {
 				movedPaths.Add (g.paths[path.Key].moveTo (timeCmd, new List<int>(path.Value), g.paths[stackPath].moves[g.paths[stackPath].moves.Count - 1].vecEnd));
 			}
 		}
-		// if able to move any of the paths, add an event to stack them when they arrive
+		// if able to move any of the paths, add events to stack them as they arrive
 		if (movedPaths.Count > 0) {
 			if (!movedPaths.Contains (stackPath)) movedPaths.Add (stackPath);
 			foreach (int path in movedPaths) {
-				timeArrive = Math.Max (timeArrive, g.paths[path].moves[g.paths[path].moves.Count - 1].timeEnd);
+				// in most cases only 1 path will stack onto stackPath,
+				// but request to stack all moved paths anyway in case the path they're stacking onto moves away
+				g.events.add (new StackEvt(g.paths[path].moves[g.paths[path].moves.Count - 1].timeEnd, movedPaths.ToArray ()));
 			}
-			g.events.add (new StackEvt(timeArrive, movedPaths.ToArray ()));
 		}
 	}
 }
