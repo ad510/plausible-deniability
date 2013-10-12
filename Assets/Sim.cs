@@ -61,6 +61,7 @@ public class Sim {
 		public string sndAttack;
 		public string sndNoHealth;*/
 		public int maxHealth;
+		public int maxUnitsOnTop;
 		public long speed; // in position units per millisecond
 		public long reload; // time needed to reload
 		public long range; // range of attack

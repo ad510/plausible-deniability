@@ -264,6 +264,7 @@ public class App : MonoBehaviour {
 				unitT.selMinPos = jsonFPVector (jsonO, "selMinPos", new FP.Vector(unitT.imgOffset.x - unitT.imgHalfHeight, unitT.imgOffset.y - unitT.imgHalfHeight));
 				unitT.selMaxPos = jsonFPVector (jsonO, "selMaxPos", new FP.Vector(unitT.imgOffset.x + unitT.imgHalfHeight, unitT.imgOffset.y + unitT.imgHalfHeight));
 				unitT.maxHealth = (int)jsonDouble(jsonO, "maxHealth");
+				unitT.maxUnitsOnTop = (int)jsonDouble(jsonO, "maxUnitsOnTop", -1);
 				unitT.speed = jsonFP(jsonO, "speed");
 				if (unitT.speed > g.maxSpeed) g.maxSpeed = unitT.speed;
 				unitT.reload = (long)jsonDouble(jsonO, "reload");

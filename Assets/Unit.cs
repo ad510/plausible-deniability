@@ -87,6 +87,7 @@ public class Unit {
 	public bool replaceParentPath; // whether should replace parent unit's path with this unit's path when this unit becomes live
 	public int nChildren;
 	public int[] children; // indices of units that this unit made
+  public List<int> unitIdsOnTop;
 
 	public Unit(Sim simVal, int idVal, int typeVal, int playerVal, long startTime, FP.Vector startPos) {
 		g = simVal;
@@ -109,6 +110,7 @@ public class Unit {
 		replaceParentPath = false;
 		nChildren = 0;
 		children = new int[nChildren];
+    unitIdsOnTop = new List<int>();
 	}
 
 	/// <summary>
@@ -405,6 +407,7 @@ public class Unit {
 			if (!g.movedUnits.Contains(g.nUnits - 1)) g.movedUnits.Add(g.nUnits - 1);
 			// if new unit isn't live, indicate that player now has a non-live unit
 			if (!g.units[g.nUnits - 1].isLive(time)) g.players[player].hasNonLiveUnits = true;
+      // TODO: Add check for maxUnitsOnTop
 			return true;
 		}
 		return false;

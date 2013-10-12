@@ -145,6 +145,7 @@
       "imgPath": "mineral.png",
       "imgHalfHeight": 1,
       "maxHealth": 1,
+      "maxUnitsOnTop": 1,
       "speed": 0,
       "selRadius": 16
     }
