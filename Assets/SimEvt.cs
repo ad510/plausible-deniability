@@ -60,6 +60,26 @@ public abstract class CmdEvt : SimEvt {
 	public override void apply(Sim g) {
 		g.cmdHistory.add(this); // copy event to command history list (it should've already been popped from event list)
 	}
+	
+	/// <summary>
+	/// returns commanded paths and units that exist at timeCmd
+	/// </summary>
+	protected Dictionary<int, List<int>> existingPaths(Sim g) {
+		Dictionary<int, List<int>> ret = new Dictionary<int, List<int>>();
+		foreach (KeyValuePair<int, int[]> path in paths) {
+			if (timeCmd >= g.paths[path.Key].nodes[0].time) {
+				int node = g.paths[path.Key].getNode (timeCmd);
+				List<int> existingUnits = new List<int>();
+				foreach (int unit in path.Value) {
+					if (g.paths[path.Key].nodes[node].units.Contains (unit)) {
+						if (!existingUnits.Contains (unit)) existingUnits.Add (unit);
+					}
+				}
+				if (existingUnits.Count > 0) ret.Add (path.Key, existingUnits);
+			}
+		}
+		return ret;
+	}
 }
 
 public enum Formation : byte { Tight, Loose, Ring };
@@ -86,12 +106,13 @@ public class MoveCmdEvt : CmdEvt {
 	}
 
 	public override void apply(Sim g) {
+		Dictionary<int, List<int>> exPaths = existingPaths (g);
 		FP.Vector goalCenter, goal, rows = new FP.Vector(), offset = new FP.Vector();
 		long spacing = 0;
 		int count = 0, i = 0;
 		base.apply(g);
 		// count number of units able to move
-		foreach (KeyValuePair<int, int[]> path in paths) {
+		foreach (KeyValuePair<int, List<int>> path in exPaths) {
 			if (g.paths[path.Key].canMove(timeCmd)) {
 				count++;
 				if (formation == Formation.Tight) {
@@ -130,7 +151,7 @@ public class MoveCmdEvt : CmdEvt {
 		if (goalCenter.y < Math.Min(offset.y, g.mapSize / 2)) goalCenter.y = Math.Min(offset.y, g.mapSize / 2);
 		if (goalCenter.y > g.mapSize - Math.Min(offset.y, g.mapSize / 2)) goalCenter.y = g.mapSize - Math.Min(offset.y, g.mapSize / 2);
 		// move units
-		foreach (KeyValuePair<int, int[]> path in paths) {
+		foreach (KeyValuePair<int, List<int>> path in exPaths) {
 			if (g.paths[path.Key].canMove(timeCmd)) {
 				if (formation == Formation.Tight || formation == Formation.Loose) {
 					goal = goalCenter + new FP.Vector((i % rows.x) * spacing - offset.x, i / rows.x * spacing - offset.y);
@@ -227,8 +248,9 @@ public class MakePathCmdEvt : CmdEvt {
 	}
 
 	public override void apply(Sim g) {
+		Dictionary<int, List<int>> exPaths = existingPaths (g);
 		base.apply(g);
-		foreach (KeyValuePair<int, int[]> path in paths) {
+		foreach (KeyValuePair<int, List<int>> path in exPaths) {
 			if (g.paths[path.Key].canMove(timeCmd) && g.paths[path.Key].makePath (timeCmd, new List<int>(path.Value))) {
 				g.paths[g.paths.Count - 1].moveTo(timeCmd, pos[path.Key]); // move new path out of the way
 			}
@@ -282,11 +304,12 @@ public class StackCmdEvt : CmdEvt {
 	
 	public override void apply (Sim g)
 	{
+		Dictionary<int, List<int>> exPaths = existingPaths (g);
 		List<int> movedPaths = new List<int>();
 		base.apply (g);
 		// move paths to final location of stackPath
 		// STACK TODO: if stackPathVal < 0 (pressing stack button will do that) then move all paths to their average location
-		foreach (KeyValuePair<int, int[]> path in paths) {
+		foreach (KeyValuePair<int, List<int>> path in exPaths) {
 			if (g.paths[path.Key].speed () == g.paths[stackPath].speed () && g.paths[path.Key].canMove (timeCmd)) {
 				movedPaths.Add (g.paths[path.Key].moveTo (timeCmd, new List<int>(path.Value), g.paths[stackPath].moves[g.paths[stackPath].moves.Count - 1].vecEnd));
 			}
