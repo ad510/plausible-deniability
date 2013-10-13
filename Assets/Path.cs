@@ -245,6 +245,11 @@ public class Path {
 		// TODO: check tile exclusivity if not live, whether unit types can be made, resources
 		return true;
 	}
+	
+	public bool canMakeUnitType(long time, int type) {
+		if (time < nodes[0].time) return false;
+		return g.unitsCanMake (time, nodes[getNode (time)].units, type);;
+	}
 
 	/// <summary>
 	/// returns index (in unit array) of path that isn't updated in the present and is therefore safe to move in the past

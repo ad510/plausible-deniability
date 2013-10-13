@@ -467,6 +467,13 @@ public class Sim {
 		return true;
 	}
 	
+	public bool unitsCanMake(long time, List<int> parentUnits, int type) {
+		foreach (int unit in parentUnits) {
+			if (unitT[units[unit].type].canMake[type]) return true;
+		}
+		return false;
+	}
+	
 	/// <summary>
 	/// returns whether the specified units are allowed to be on the same path
 	/// </summary>

@@ -194,36 +194,41 @@ public class MakeUnitCmdEvt : CmdEvt {
 	}
 
 	public override void apply(Sim g) {
+		Dictionary<int, List<int>> exPaths = existingPaths (g);
 		if (!autoRepeat) base.apply(g);
 		// make unit at requested position, if possible
-		foreach (int unit in units) {
-			if (g.units[unit].canMakeChildUnit(timeCmd, false, type)) {
-				FP.Vector curPos = g.units[unit].calcPos(timeCmd);
+		foreach (int path in exPaths.Keys) {
+			if (g.paths[path].canMakeUnitType (timeCmd, type)) {
+				FP.Vector curPos = g.paths[path].calcPos(timeCmd);
 				if ((pos.x == curPos.x && pos.y == curPos.y) || (g.unitT[type].speed > 0 && g.unitT[type].makeOnUnitT < 0)) {
 					// TODO: take time to make units?
-					g.units[unit].makeChildUnit(timeCmd, false, type);
-					if (g.units[g.nUnits - 1].canMove(timeCmd)) g.units[g.nUnits - 1].moveTo(timeCmd, pos); // move new unit out of the way
+					List<int> unitList = new List<int>();
+					unitList.Add (g.nUnits);
+					g.setNUnits (g.nUnits + 1);
+					g.units[g.nUnits - 1] = new Unit(g, type, g.paths[path].player());
+					g.paths[path].makePath (timeCmd, unitList);
+					if (g.paths[g.paths.Count - 1].canMove (timeCmd)) g.paths[g.paths.Count - 1].moveTo (timeCmd, pos); // move new unit out of the way
 					return;
 				}
 			}
 		}
 		if (!autoRepeat) {
-			// if none of specified units are at requested position,
+			// if none of specified paths are at requested position,
 			// try moving one to the correct position then trying again to make the unit
-			int moveUnit = -1;
-			foreach (int unit in units) {
-				if (g.units[unit].canMakeChildUnit(timeCmd, false, type) && g.units[unit].canMove(timeCmd)
-					&& (moveUnit < 0 || (g.units[unit].calcPos(timeCmd) - pos).lengthSq() < (g.units[moveUnit].calcPos(timeCmd) - pos).lengthSq())) {
-					moveUnit = unit;
+			int movePath = -1;
+			foreach (KeyValuePair<int, List<int>> path in exPaths) {
+				if (g.unitsCanMake (timeCmd, path.Value, type) && g.paths[path.Key].canMove (timeCmd)
+					&& (movePath < 0 || (g.paths[path.Key].calcPos(timeCmd) - pos).lengthSq() < (g.paths[movePath].calcPos(timeCmd) - pos).lengthSq())) {
+					movePath = path.Key;
 				}
 			}
-			if (moveUnit >= 0) {
-				List<int> unitsList = new List<int>(units);
-				moveUnit = g.units[moveUnit].moveTo(timeCmd, pos);
-				unitsList.Insert(0, moveUnit); // in case replacement unit is moving to make the unit
-				// STACK TODO: constructor arguments changed
-				//g.events.add(new MakeUnitCmdEvt(g.units[moveUnit].moves[g.units[moveUnit].nMoves - 1].timeEnd, g.units[moveUnit].moves[g.units[moveUnit].nMoves - 1].timeEnd + 1,
-				//	unitsList.ToArray(), type, pos, true));
+			if (movePath >= 0) {
+				Dictionary<int, int[]> evtPaths = new Dictionary<int, int[]>(paths);
+				movePath = g.paths[movePath].moveTo(timeCmd, new List<int>(exPaths[movePath]), pos);
+				// STACK TODO: implement line below
+				//unitsList.Insert(0, moveUnit); // in case replacement unit is moving to make the unit
+				g.events.add(new MakeUnitCmdEvt(g.paths[movePath].moves[g.paths[movePath].moves.Count - 1].timeEnd, g.paths[movePath].moves[g.paths[movePath].moves.Count - 1].timeEnd + 1,
+					evtPaths, type, pos, true));
 			}
 		}
 	}
@@ -438,8 +443,9 @@ public class UpdateEvt : SimEvt {
 			g.cmdPending = new SimEvtList();
 			g.users[g.selUser].checksums[time + g.updateInterval] = g.checksum;
 		}
+		// STACK TODO: implement this
 		// update units
-		for (i = 0; i < g.nUnits; i++) {
+		/*for (i = 0; i < g.nUnits; i++) {
 			if (g.units[i].isLive(time) && time >= g.units[i].timeAttack + g.unitT[g.units[i].type].reload) {
 				// done reloading, look for closest target to potentially attack
 				pos = g.units[i].calcPos(time);
@@ -467,7 +473,7 @@ public class UpdateEvt : SimEvt {
 		for (i = 0; i < g.nUnits; i++) {
 			if (g.units[i].timeSimPast == long.MaxValue) g.units[i].addTileMoveEvts(ref g.events, time, time + g.updateInterval);
 		}
-		g.movedUnits.Clear();
+		g.movedUnits.Clear();*/
 		// add next UpdateEvt
 		g.checksum = 0;
 		g.events.add(new UpdateEvt(time + g.updateInterval));

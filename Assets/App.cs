@@ -437,8 +437,7 @@ public class App : MonoBehaviour {
 					// make unit
 					// happens at newCmdTime() + 1 so new unit starts out live if game is live
 					FP.Vector pos = makeUnitPos();
-					// STACK TODO: update implementation of this
-					//if (pos.x != Sim.OffMap) g.cmdPending.add(new MakeUnitCmdEvt(g.timeSim, newCmdTime() + 1, selPaths.ToArray(), makeUnitType, pos));
+					if (pos.x != Sim.OffMap) g.cmdPending.add(new MakeUnitCmdEvt(g.timeSim, newCmdTime() + 1, selPathsCopy(), makeUnitType, pos));
 					makeUnitType = -1;
 				}
 				else {
@@ -774,13 +773,12 @@ public class App : MonoBehaviour {
 		makeUnitScrollPos = GUILayout.BeginScrollView (makeUnitScrollPos);
 		if (selPaths.Count > 0) {
 			for (i = 0; i < g.nUnitT; i++) {
-				// STACK TODO: implement below
-				/*foreach (int unit in selPaths) {
-					if (g.units[unit].exists (timeGame) && g.unitT[g.units[unit].type].canMake[i]) {
+				foreach (int path in selPaths.Keys) {
+					if (timeGame >= g.paths[path].moves[0].timeStart && g.paths[path].canMakeUnitType (timeGame, i)) { // STACK TODO: sometimes canMake check should use existing selected units in path
 						if (GUILayout.Button ("Make " + g.unitT[i].name)) makeUnit (i);
 						break;
 					}
-				}*/
+				}
 			}
 		}
 		GUILayout.EndScrollView ();
@@ -990,12 +988,16 @@ public class App : MonoBehaviour {
 			if (g.unitT[makeUnitType].makeOnUnitT >= 0) {
 				// selected unit type must be made on top of another unit of correct type
 				// TODO: prevent putting multiple units on same unit (unless on different paths of same unit and maybe some other cases)
-				for (int i = 0; i < g.nUnits; i++) {
-					if (g.units[i].exists(timeGame)) {
-						vec = g.units[i].calcPos(timeGame);
-						if (g.units[i].type == g.unitT[makeUnitType].makeOnUnitT && g.tileAt(vec).playerVisWhen(selPlayer, timeGame)
-							&& FP.rectContains (vec + g.unitT[g.units[i].type].selMinPos, vec + g.unitT[g.units[i].type].selMaxPos, drawToSimPos (Input.mousePosition))) {
-							return vec;
+				foreach (Path path in g.paths) {
+					if (timeGame >= path.nodes[0].time) {
+						vec = path.calcPos(timeGame);
+						// STACK TODO: master branch checked g.tileAt(vec).playerVisWhen(selPlayer, timeGame)
+						if (FP.rectContains (path.selMinPos (timeGame), path.selMaxPos (timeGame), drawToSimPos (Input.mousePosition))) {
+							foreach (int unit in path.nodes[path.getNode (timeGame)].units) {
+								if (g.units[unit].type == g.unitT[makeUnitType].makeOnUnitT) {
+									return vec;
+								}
+							}
 						}
 					}
 				}
@@ -1065,23 +1067,22 @@ public class App : MonoBehaviour {
 	/// makes a new unit using selected units
 	/// </summary>
 	private void makeUnit(int type) {
-		throw new NotImplementedException(); // STACK TODO: implement this
-		/*foreach (int unit in selPaths) {
-			if (g.units[unit].canMakeChildUnit(timeGame + 1, false, type)) {
-				if (g.unitT[type].speed > 0 && g.unitT[type].makeOnUnitT < 0) {
-					// make unit now
-					int[] unitArray = new int[1];
-					unitArray[0] = unit;
-					// happens at newCmdTime() + 1 so new unit starts out live if game is live
-					g.cmdPending.add(new MakeUnitCmdEvt(g.timeSim, newCmdTime() + 1, unitArray, type, makeUnitMovePos(timeGame + 1, unit)));
-				}
-				else {
-					// don't make unit yet; let user pick where to place it
-					makeUnitType = type;
-				}
+		// STACK TODO: this should only iterate through existing paths (fix when selPaths considers selection time)
+		foreach (KeyValuePair<int, List<int>> path in selPaths) {
+			if (g.unitT[type].speed > 0 && g.unitT[type].makeOnUnitT < 0 && g.paths[path.Key].canMakeUnitType (timeGame + 1, type)) {
+				// make unit now
+				Dictionary<int, int[]> pathArray = new Dictionary<int, int[]>();
+				pathArray.Add (path.Key, path.Value.ToArray ());
+				// happens at newCmdTime() + 1 so new unit starts out live if game is live
+				g.cmdPending.add(new MakeUnitCmdEvt(g.timeSim, newCmdTime() + 1, pathArray, type, g.paths[path.Key].calcPos (timeGame + 1))); // STACK TODO: call makeUnitMovePos instead of calcPos
 				break;
 			}
-		}*/
+			else if (g.unitsCanMake (timeGame + 1, path.Value, type)) {
+				// don't make unit yet; let user pick where to place it
+				makeUnitType = type;
+				break;
+			}
+		}
 	}
 
 	/// <summary>

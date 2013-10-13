@@ -88,7 +88,8 @@ public class Unit {
 	public int nChildren;
 	public int[] children; // indices of units that this unit made
 
-	public Unit(int typeVal, int playerVal) {
+	public Unit(Sim simVal, int typeVal, int playerVal) {
+		g = simVal;
 		type = typeVal;
 		player = playerVal;
 		nTimeHealth = 0;
