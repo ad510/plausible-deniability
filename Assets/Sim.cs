@@ -77,10 +77,10 @@ public class Sim {
 	public class Tile {
 		private Sim g;
 		/// <summary>
-		/// stores times when each unit started or stopped seeing this tile,
-		/// in format unitVis[unit][gain/lose visibility index]
+		/// stores times when each path started or stopped seeing this tile,
+		/// in format pathVis[path][gain/lose visibility index]
 		/// </summary>
-		public Dictionary<int, List<long>> unitVis;
+		public Dictionary<int, List<long>> pathVis;
 		/// <summary>
 		/// stores times when each player started or stopped seeing this tile,
 		/// in format playerVis[player][gain/lose visibility index]
@@ -94,7 +94,7 @@ public class Sim {
 
 		public Tile(Sim simVal) {
 			g = simVal;
-			unitVis = new Dictionary<int,List<long>>();
+			pathVis = new Dictionary<int,List<long>>();
 			playerVis = new List<long>[g.nPlayers];
 			exclusive = new List<long>[g.nPlayers];
 			for (int i = 0; i < g.nPlayers; i++) {
@@ -104,34 +104,34 @@ public class Sim {
 		}
 
 		/// <summary>
-		/// toggles the visibility of this tile for specified unit at specified time, without affecting player visibility
-		/// (should only be called by TileMoveEvt.visAdd() or TileMoveEvt.visRemove())
+		/// toggles the visibility of this tile for specified path at specified time, without affecting player visibility
+		/// (should only be called by TileMoveEvt.apply())
 		/// </summary>
-		public void unitVisToggle(int unit, long time) {
-			if (!unitVis.ContainsKey(unit)) unitVis.Add(unit, new List<long>());
-			unitVis[unit].Add(time);
+		public void pathVisToggle(int path, long time) {
+			if (!pathVis.ContainsKey(path)) pathVis.Add(path, new List<long>());
+			pathVis[path].Add(time);
 		}
 
 		/// <summary>
-		/// returns if specified unit can see this tile at latest possible time
+		/// returns if specified path can see this tile at latest possible time
 		/// </summary>
-		public bool unitVisLatest(int unit) {
-			return unitVis.ContainsKey(unit) && visLatest(unitVis[unit]);
+		public bool pathVisLatest(int path) {
+			return pathVis.ContainsKey(path) && visLatest(pathVis[path]);
 		}
 
 		/// <summary>
-		/// returns if specified unit can see this tile at specified time
+		/// returns if specified path can see this tile at specified time
 		/// </summary>
-		public bool unitVisWhen(int unit, long time) {
-			return unitVis.ContainsKey(unit) && visWhen(unitVis[unit], time);
+		public bool pathVisWhen(int path, long time) {
+			return pathVis.ContainsKey(path) && visWhen(pathVis[path], time);
 		}
 
 		/// <summary>
 		/// returns if this tile is in the direct line of sight of a unit of specified player at latest possible time
 		/// </summary>
 		public bool playerDirectVisLatest(int player) {
-			foreach (int i in unitVis.Keys) {
-				if (player == g.units[i].player && visLatest(unitVis[i])) return true;
+			foreach (int i in pathVis.Keys) {
+				if (player == g.paths[i].player() && visLatest(pathVis[i])) return true;
 			}
 			return false;
 		}
@@ -140,8 +140,8 @@ public class Sim {
 		/// returns if this tile is in the direct line of sight of a unit of specified player at specified time
 		/// </summary>
 		public bool playerDirectVisWhen(int player, long time) {
-			foreach (int i in unitVis.Keys) {
-				if (player == g.units[i].player && visWhen(unitVis[i], time)) return true;
+			foreach (int i in pathVis.Keys) {
+				if (player == g.paths[i].player() && visWhen(pathVis[i], time)) return true;
 			}
 			return false;
 		}
@@ -308,7 +308,7 @@ public class Sim {
 			// if event caused unit(s) to move, delete and recalculate later events moving them between tiles
 			if (movedUnits.Count > 0) {
 				for (i = 0; i < events.events.Count; i++) {
-					if (events.events[i] is TileMoveEvt && events.events[i].time > timeSim && movedUnits.Contains(((TileMoveEvt)events.events[i]).unit)) {
+					if (events.events[i] is TileMoveEvt && events.events[i].time > timeSim && movedUnits.Contains(((TileMoveEvt)events.events[i]).path)) {
 						events.events.RemoveAt(i);
 						i--;
 					}

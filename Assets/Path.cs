@@ -184,11 +184,45 @@ public class Path {
 	}
 
 	/// <summary>
-	/// inserts TileMoveEvt events for this unit into events for the time interval from timeMin to timeMax
+	/// inserts TileMoveEvt events for this path into events for the time interval from timeMin to timeMax
 	/// </summary>
 	/// <remarks>due to fixed point imprecision in lineCalcX() and lineCalcY(), this sometimes adds events outside the requested time interval</remarks>
 	public void addTileMoveEvts(ref SimEvtList events, long timeMin, long timeMax) {
-		throw new NotImplementedException(); // Unit.cs version contains health check, not sure if relevant here
+		int move, moveLast;
+		FP.Vector pos, posLast;
+		int i, j, iNext, tX, tY, dir;
+		if (timeMax < moves[0].timeStart) return;
+		moveLast = getMove(timeMin);
+		move = getMove(timeMax);
+		if (moveLast < 0) {
+			// put path on visibility tiles for the first time
+			events.add(new TileMoveEvt(moves[0].timeStart, id, (int)(moves[0].vecStart.x >> FP.Precision), (int)(moves[0].vecStart.y >> FP.Precision)));
+			moveLast = 0;
+		}
+		for (i = moveLast; i <= move; i = iNext) {
+			// next move may not be i + 1 if times are out of order
+			iNext = i + 1;
+			for (j = iNext + 1; j < moves.Count; j++) {
+				if (moves[j].timeStart <= moves[iNext].timeStart) iNext = j;
+			}
+			posLast = (i == moveLast) ? moves[i].calcPos(Math.Max(timeMin, moves[0].timeStart)) : moves[i].vecStart;
+			pos = (i == move) ? moves[i].calcPos(timeMax) : moves[iNext].vecStart;
+			// moving between columns (x)
+			dir = (pos.x >= posLast.x) ? 0 : -1;
+			for (tX = (int)(Math.Min(pos.x, posLast.x) >> FP.Precision) + 1; tX <= (int)(Math.Max(pos.x, posLast.x) >> FP.Precision); tX++) {
+				events.add(new TileMoveEvt(moves[i].timeAtX(tX << FP.Precision), id, tX + dir, int.MinValue));
+			}
+			// moving between rows (y)
+			dir = (pos.y >= posLast.y) ? 0 : -1;
+			for (tY = (int)(Math.Min(pos.y, posLast.y) >> FP.Precision) + 1; tY <= (int)(Math.Max(pos.y, posLast.y) >> FP.Precision); tY++) {
+				events.add(new TileMoveEvt(moves[i].timeAtY(tY << FP.Precision), id, int.MinValue, tY + dir));
+			}
+		}
+		// STACK TODO: maybe implement part below
+		/*if (healthLatest() == 0 && healthWhen(timeMin) > 0) {
+			// unit lost all health
+			g.events.add(new TileMoveEvt(timeHealth[nTimeHealth - 1], id, Sim.OffMap, 0));
+		}*/
 	}
 
 	/// <summary>
@@ -202,14 +236,14 @@ public class Path {
 	/// allows unit to time travel and move along multiple paths starting at specified time
 	/// </summary>
 	public void beUnseen(long time) {
-		throw new NotImplementedException();
+		// STACK TODO: implement this
 	}
 
 	/// <summary>
 	/// stops allowing unit to time travel or move along multiple paths starting at timeSim
 	/// </summary>
 	public void beSeen(long time = long.MaxValue) {
-		throw new NotImplementedException();
+		// STACK TODO: implement this
 	}
 
 	/// <summary>
@@ -368,7 +402,7 @@ public class Path {
 	}
 
 	/// <summary>
-	/// returns whether unit is known to not be seen by another player at latest known time
+	/// returns whether path is known to not be seen by another player at latest known time
 	/// </summary>
 	public bool unseen() {
 		throw new NotImplementedException();
