@@ -155,8 +155,7 @@ public class Path {
 		if (goalPos.y > g.mapSize) goalPos.y = g.mapSize;
 		// add move
 		moves.Add (Move.fromSpeed(time, speed(), curPos, goalPos));
-		// TODO: implement line below
-		//if (!g.movedUnits.Contains(id)) g.movedUnits.Add(id); // indicate to delete and recalculate later TileMoveEvts for this unit
+		if (!g.movedPaths.Contains(id)) g.movedPaths.Add(id); // indicate to delete and recalculate later TileMoveEvts for this path
 	}
 
 	/// <summary>
@@ -267,6 +266,8 @@ public class Path {
 				g.paths[g.paths.Count - 1].addConnectedPath (time, path);
 			}
 			addConnectedPath (time, g.paths.Count - 1);
+			// indicate to calculate TileMoveEvts for new path starting at timeSim
+			if (!g.movedPaths.Contains(g.paths.Count - 1)) g.movedPaths.Add(g.paths.Count - 1);
 			return true;
 		}
 		return false;

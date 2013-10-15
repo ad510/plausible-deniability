@@ -269,7 +269,7 @@ public class Sim {
 	public SimEvtList events; // simulation events to be applied
 	public SimEvtList cmdPending; // user commands to be sent to other users in the next update
 	public SimEvtList cmdHistory; // user commands that have already been applied
-	public List<int> movedUnits; // indices of units that moved in the latest simulation event, invalidating later TileMoveEvts for that unit
+	public List<int> movedPaths; // indices of paths that moved in the latest simulation event, invalidating later TileMoveEvts for that path
 	public List<int> unitIdChgs; // list of units that changed indices (old index followed by new index) (STACK TODO: don't need this)
 	public long maxSpeed; // speed of fastest unit (is max speed that players can gain or lose visibility)
 	public int checksum; // sent to other users during each UpdateEvt to check for multiplayer desyncs
@@ -300,23 +300,23 @@ public class Sim {
 			while ((evt = cmdPending.pop ()) != null) events.add (evt);
 		}
 		// apply simulation events
-		movedUnits = new List<int>();
+		movedPaths = new List<int>();
 		while (events.peekTime() <= timeSimNext) {
 			evt = events.pop();
 			timeSim = evt.time;
 			evt.apply(this);
-			// if event caused unit(s) to move, delete and recalculate later events moving them between tiles
-			if (movedUnits.Count > 0) {
+			// if event caused path(s) to move, delete and recalculate later events moving them between tiles
+			if (movedPaths.Count > 0) {
 				for (i = 0; i < events.events.Count; i++) {
-					if (events.events[i] is TileMoveEvt && events.events[i].time > timeSim && movedUnits.Contains(((TileMoveEvt)events.events[i]).path)) {
+					if (events.events[i] is TileMoveEvt && events.events[i].time > timeSim && movedPaths.Contains(((TileMoveEvt)events.events[i]).path)) {
 						events.events.RemoveAt(i);
 						i--;
 					}
 				}
-				foreach (int unit in movedUnits) {
-					if (units[unit].timeSimPast == long.MaxValue) units[unit].addTileMoveEvts(ref events, timeSim, timeUpdateEvt + updateInterval);
+				foreach (int path in movedPaths) {
+					if (paths[path].timeSimPast == long.MaxValue) paths[path].addTileMoveEvts(ref events, timeSim, timeUpdateEvt + updateInterval);
 				}
-				movedUnits.Clear();
+				movedPaths.Clear();
 			}
 			checksum++;
 		}

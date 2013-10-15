@@ -186,7 +186,7 @@ public class Unit {
 	private void addMove(Move newMove) {
 		setN(nMoves + 1);
 		moves[nMoves - 1] = newMove;
-		if (!g.movedUnits.Contains(id)) g.movedUnits.Add(id); // indicate to delete and recalculate later TileMoveEvts for this unit
+		if (!g.movedPaths.Contains(id)) g.movedPaths.Add(id); // indicate to delete and recalculate later TileMoveEvts for this unit
 	}
 
 	/// <summary>
@@ -280,7 +280,7 @@ public class Unit {
 			timeHealth[nTimeHealth - 1] = time;
 			if (nTimeHealth >= g.unitT[type].maxHealth) {
 				// unit lost all health
-				if (!g.movedUnits.Contains(id)) g.movedUnits.Add(id); // indicate to delete and recalculate later TileMoveEvts for this unit
+				if (!g.movedPaths.Contains(id)) g.movedPaths.Add(id); // indicate to delete and recalculate later TileMoveEvts for this unit
 			}
 		}
 	}
@@ -414,7 +414,7 @@ public class Unit {
 			// set whether new unit is a temporary unit moving along an alternate path that this unit could take
 			g.units[g.nUnits - 1].isChildPath = isChildPathVal;
 			// indicate to calculate TileMoveEvts for new unit starting at timeSim
-			if (!g.movedUnits.Contains(g.nUnits - 1)) g.movedUnits.Add(g.nUnits - 1);
+			if (!g.movedPaths.Contains(g.nUnits - 1)) g.movedPaths.Add(g.nUnits - 1);
 			// if new unit isn't live, indicate that player now has a non-live unit
 			if (!g.units[g.nUnits - 1].isLive(time)) g.players[player].hasNonLiveUnits = true;
 			return true;
