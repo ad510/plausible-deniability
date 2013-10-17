@@ -74,6 +74,7 @@ public class App : MonoBehaviour {
 		}
 	}
 	
+	public const bool EnableStacking = true;
 	public const double SelBoxMin = 100;
 	public const float FntSize = 1f / 40;
 	public const float TileDepth = 6f;
@@ -478,7 +479,7 @@ public class App : MonoBehaviour {
 							break;
 						}
 					}
-					if (stackPath >= 0) {
+					if (EnableStacking && stackPath >= 0) {
 						// stack selected paths onto clicked path
 						g.cmdPending.add (new StackCmdEvt(g.timeSim, newCmdTime (), selPathsCopy (), stackPath));
 					}
