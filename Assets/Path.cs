@@ -122,6 +122,13 @@ public class Path {
 		return ret;
 	}
 	
+	public int insertNode(long time) {
+		int node = getNode (time);
+		if (node < 0 || nodes[node].time == time) return node;
+		nodes.Insert (node + 1, new Node(time, new List<int>(nodes[node].units), nodes[node].unseen));
+		return node + 1;
+	}
+	
 	/// <summary>
 	/// move towards specified location starting at specified time,
 	/// return index of moved path (in case moving a subset of units in path)
@@ -133,6 +140,7 @@ public class Path {
 			if (!units.Contains (unit)) {
 				// some units in path aren't being moved, so make a new path
 				// TODO: also try to delete unit from old path
+				// TODO: this doesn't add path to tiles b/c new path's timeSimPast != long.MaxValue, should be fixed after implementing updatePast()
 				if (!makePath (time, units)) throw new SystemException("make new path failed when moving units");
 				path2 = g.paths.Count - 1;
 				break;
@@ -217,11 +225,10 @@ public class Path {
 				events.add(new TileMoveEvt(moves[i].timeAtY(tY << FP.Precision), id, int.MinValue, tY + dir));
 			}
 		}
-		// STACK TODO: maybe implement part below
-		/*if (healthLatest() == 0 && healthWhen(timeMin) > 0) {
-			// unit lost all health
-			g.events.add(new TileMoveEvt(timeHealth[nTimeHealth - 1], id, Sim.OffMap, 0));
-		}*/
+		if (nodes[nodes.Count - 1].units.Count == 0 && nodes[getNode (timeMin)].units.Count > 0) {
+			// path no longer contains any units
+			g.events.add(new TileMoveEvt(nodes[nodes.Count - 1].time, id, Sim.OffMap, 0));
+		}
 	}
 
 	/// <summary>
@@ -298,11 +305,7 @@ public class Path {
 	/// returns this path's node where the paths were connected
 	/// </summary>
 	public int addConnectedPath(long time, int path) {
-		int node = getNode (time);
-		if (nodes[node].time != time) {
-			nodes.Insert (node + 1, new Node(time, new List<int>(nodes[node].units), nodes[node].unseen));
-			node++;
-		}
+		int node = insertNode (time);
 		if (!nodes[node].paths.Contains (path)) {
 			nodes[node].paths.Add (path);
 			g.paths[path].addConnectedPath (time, id);
@@ -410,16 +413,16 @@ public class Path {
 	}
 
 	/// <summary>
-	/// returns whether unit is created and has health at specified time
+	/// returns whether path is created (TODO: and contains units?) at specified time
 	/// </summary>
 	public bool exists(long time) {
-		throw new NotImplementedException();
+		return time >= nodes[0].time && time >= moves[0].timeStart;
 	}
 
 	/// <summary>
-	/// returns whether unit exists and is being updated in the present (i.e., isn't time traveling)
+	/// returns whether path exists and is being updated in the present (i.e., isn't time traveling)
 	/// </summary>
 	public bool isLive(long time) {
-		throw new NotImplementedException();
+		return exists (time) && timeSimPast == long.MaxValue;
 	}
 }

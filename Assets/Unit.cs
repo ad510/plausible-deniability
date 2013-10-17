@@ -78,7 +78,7 @@ public class Unit {
 	//public FP.Vector pos; // current position
 	public int tileX, tileY; // current position on visibility tiles
 	public int nTimeHealth;
-	public long[] timeHealth; // times at which each health increment is removed
+	public long[] timeHealth; // times at which each health increment is removed (STACK TODO: change how this is stored to allow switching units on a path)
 	public long timeAttack; // latest time that attacked a unit
 	public long timeSimPast; // time traveling simulation time if made in the past, otherwise set to long.MaxValue
 	public long timeUnseen; // earliest time at which unit is known to not be seen by another player (set to long.MaxValue if never)
@@ -88,8 +88,9 @@ public class Unit {
 	public int nChildren;
 	public int[] children; // indices of units that this unit made
 
-	public Unit(Sim simVal, int typeVal, int playerVal) {
+	public Unit(Sim simVal, int idVal, int typeVal, int playerVal) {
 		g = simVal;
+		id = idVal;
 		type = typeVal;
 		player = playerVal;
 		nTimeHealth = 0;
@@ -274,13 +275,16 @@ public class Unit {
 	/// <summary>
 	/// remove 1 health increment at specified time
 	/// </summary>
-	public void takeHealth(long time) {
+	public void takeHealth(long time, int path) {
 		if (nTimeHealth < g.unitT[type].maxHealth) {
 			nTimeHealth++;
 			timeHealth[nTimeHealth - 1] = time;
 			if (nTimeHealth >= g.unitT[type].maxHealth) {
-				// unit lost all health
-				if (!g.movedPaths.Contains(id)) g.movedPaths.Add(id); // indicate to delete and recalculate later TileMoveEvts for this unit
+				// unit lost all health, so remove it from path
+				int node = g.paths[path].insertNode(time);
+				g.paths[path].nodes[node].units.Remove (id);
+				// if path no longer has any units, indicate to delete and recalculate later TileMoveEvts for this path
+				if (g.paths[path].nodes[node].units.Count == 0 && !g.movedPaths.Contains(path)) g.movedPaths.Add(path);
 			}
 		}
 	}

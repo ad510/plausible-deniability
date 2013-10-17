@@ -205,7 +205,7 @@ public class MakeUnitCmdEvt : CmdEvt {
 					List<int> unitList = new List<int>();
 					unitList.Add (g.nUnits);
 					g.setNUnits (g.nUnits + 1);
-					g.units[g.nUnits - 1] = new Unit(g, type, g.paths[path].player());
+					g.units[g.nUnits - 1] = new Unit(g, g.nUnits - 1, type, g.paths[path].player());
 					g.paths[path].makePath (timeCmd, unitList);
 					if (g.paths[g.paths.Count - 1].canMove (timeCmd)) g.paths[g.paths.Count - 1].moveTo (timeCmd, pos); // move new unit out of the way
 					return;
@@ -391,8 +391,7 @@ public class UpdateEvt : SimEvt {
 
 	public override void apply(Sim g) {
 		FP.Vector pos;
-		int cmdType, target;
-		long distSq, targetDistSq;
+		int cmdType;
 		int i, j;
 		if (g.networkView != null) {
 			// apply received user commands (multiplayer only)
@@ -443,31 +442,43 @@ public class UpdateEvt : SimEvt {
 			g.cmdPending = new SimEvtList();
 			g.users[g.selUser].checksums[time + g.updateInterval] = g.checksum;
 		}
-		// STACK TODO: implement this
 		// update units
-		/*for (i = 0; i < g.nUnits; i++) {
-			if (g.units[i].isLive(time) && time >= g.units[i].timeAttack + g.unitT[g.units[i].type].reload) {
-				// done reloading, look for closest target to potentially attack
-				pos = g.units[i].calcPos(time);
-				target = -1;
-				targetDistSq = g.unitT[g.units[i].type].range * g.unitT[g.units[i].type].range + 1;
-				for (j = 0; j < g.nUnits; j++) {
-					if (i != j && g.units[j].isLive(time) && g.players[g.units[i].player].mayAttack[g.units[j].player] && g.unitT[g.units[i].type].damage[g.units[j].type] > 0) {
-						distSq = (g.units[j].calcPos(time) - pos).lengthSq();
-						if (distSq < targetDistSq) {
-							target = j;
-							targetDistSq = distSq;
+		for (i = 0; i < g.paths.Count; i++) {
+			if (g.paths[i].isLive (time)) {
+				pos = g.paths[i].calcPos (time);
+				foreach (int unit in g.paths[i].nodes[g.paths[i].getNode(time)].units) {
+					if (time >= g.units[unit].timeAttack + g.unitT[g.units[unit].type].reload) {
+						// done reloading, look for closest target to potentially attack
+						int target = -1;
+						long targetDistSq = g.unitT[g.units[unit].type].range * g.unitT[g.units[unit].type].range + 1;
+						for (j = 0; j < g.paths.Count; j++) {
+							if (i != j && g.paths[j].isLive (time) && g.players[g.paths[i].player ()].mayAttack[g.paths[j].player ()]) {
+								foreach (int unit2 in g.paths[j].nodes[g.paths[j].getNode(time)].units) {
+									if (g.unitT[g.units[unit].type].damage[g.units[unit2].type] > 0) {
+										long distSq = (g.paths[j].calcPos (time) - pos).lengthSq ();
+										if (distSq < targetDistSq) {
+											target = j;
+											targetDistSq = distSq;
+											break;
+										}
+									}
+								}
+							}
+						}
+						if (target >= 0) {
+							// attack every applicable unit in target path
+							// take health with 1 ms delay so earlier units in array don't have unfair advantage
+							foreach (int unit2 in g.paths[target].nodes[g.paths[target].getNode(time)].units) {
+								if (g.unitT[g.units[unit].type].damage[g.units[unit2].type] > 0) {
+									for (j = 0; j < g.unitT[g.units[unit].type].damage[g.units[unit2].type]; j++) g.units[unit2].takeHealth(time + 1, target);
+									g.units[unit].timeAttack = time;
+								}
+							}
 						}
 					}
 				}
-				if (target >= 0) {
-					// attack target
-					// take health with 1 ms delay so earlier units in array don't have unfair advantage
-					for (j = 0; j < g.unitT[g.units[i].type].damage[g.units[target].type]; j++) g.units[target].takeHealth(time + 1);
-					g.units[i].timeAttack = time;
-				}
 			}
-		}*/
+		}
 		// add events to move paths between tiles
 		// this shouldn't be done in Sim.update() because addTileMoveEvts() sometimes adds events before timeSim
 		foreach (Path path in g.paths) {
