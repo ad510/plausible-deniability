@@ -238,18 +238,13 @@ public class Path {
 		throw new NotImplementedException();
 	}
 
-	/// <summary>
-	/// allows unit to time travel and move along multiple paths starting at specified time
-	/// </summary>
 	public void beUnseen(long time) {
-		// STACK TODO: implement this
+		nodes[insertNode(time)].unseen = true;
 	}
 
-	/// <summary>
-	/// stops allowing unit to time travel or move along multiple paths starting at timeSim
-	/// </summary>
-	public void beSeen(long time = long.MaxValue) {
-		// STACK TODO: implement this
+	public void beSeen(long time) {
+		nodes[insertNode(time)].unseen = false;
+		// TODO: delete all child paths made before time unseen
 	}
 
 	/// <summary>

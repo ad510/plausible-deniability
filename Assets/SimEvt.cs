@@ -659,7 +659,7 @@ public class TileMoveEvt : SimEvt {
 				g.paths[path].beUnseen(time);
 			}
 			else if (g.paths[path].nodes[g.paths[path].nodes.Count - 1].unseen && !g.tiles[tileX, tileY].exclusiveLatest(g.paths[path].player())) {
-				g.paths[path].beSeen();
+				g.paths[path].beSeen(time);
 			}
 			// if this path moved out of another player's visibility, remove that player's visibility here
 			if (!g.players[g.paths[path].player()].immutable && tXPrev >= 0 && tXPrev < g.tileLen() && tYPrev >= 0 && tYPrev < g.tileLen()) {
