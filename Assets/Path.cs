@@ -13,9 +13,9 @@ using System.Text;
 public class Path {
 	public class Node {
 		public long time;
-		public List<int> paths;
-		public List<int> units;
-		public bool unseen;
+		public List<int> paths; // indices of paths that connect to this path at node time
+		public List<int> units; // indices of units on this path starting at node time
+		public bool unseen; // whether path is known to not be seen by another player starting at node time
 		
 		public Node(long timeVal, List<int> unitsVal, bool unseenVal) {
 			time = timeVal;
@@ -26,7 +26,7 @@ public class Path {
 	}
 	
 	/// <summary>
-	/// represents a single unit movement that starts at a specified location,
+	/// represents a single movement that starts at a specified location,
 	/// moves at constant velocity to a specified end location, then stops
 	/// </summary>
 	public class Move {
