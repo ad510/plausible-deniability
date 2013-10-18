@@ -117,6 +117,7 @@ public class Path {
 	/// returns index of node that is active at specified time
 	/// </summary>
 	public int getNode(long time) {
+		if (time < nodes[0].time) return -1; // optimization so don't have to loop through every node if none is active yet
 		int ret = nodes.Count - 1;
 		while (ret >= 0 && time < nodes[ret].time) ret--;
 		return ret;
@@ -185,6 +186,7 @@ public class Path {
 	/// returns index of move that is occurring at specified time
 	/// </summary>
 	public int getMove(long time) {
+		if (time < moves[0].timeStart) return -1; // optimization so don't have to loop through every move if none is occurring yet
 		int ret = moves.Count - 1;
 		while (ret >= 0 && time < moves[ret].timeStart) ret--;
 		return ret;
