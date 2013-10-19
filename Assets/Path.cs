@@ -346,14 +346,67 @@ public class Path {
 	}
 
 	/// <summary>
-	/// returns resource amount gained by this unit and its child units (subtracting cost to make the units)
+	/// returns resource amount gained by specified unit and its child units (subtracting cost to make child units)
+	/// from specified node's time to specified time
 	/// </summary>
 	/// <param name="max">
 	/// since different paths can have collected different resource amounts,
 	/// determines whether to use paths that collected least or most resources in calculation
 	/// </param>
-	public long rscCollected(long time, int rscType, bool max, bool includeNonLiveChildren, bool alwaysUseReplacementPaths) {
-		throw new NotImplementedException();
+	// TODO: this currently double-counts child paths/units if paths merge, fix this before enabling stacking
+	public long rscCollected(long time, int node, int unit, int rscType, bool max, bool includeNonLiveChildren) {
+		if (time < nodes[node].time) return 0; // if this node wasn't active yet, unit can't have collected anything
+		int endNode = node;
+		long timeCollectEnd = (g.units[unit].healthWhen(time) == 0) ? g.units[unit].timeHealth[g.units[unit].nTimeHealth - 1] : time;
+		long ret = 0;
+		while (endNode < nodes.Count - 1 && nodes[endNode + 1].time <= time) endNode++;
+		for (int i = endNode; i > node && nodes[i - 1].units.Contains (unit); i--) {
+			foreach (int path in nodes[i].paths) {
+				if (includeNonLiveChildren || g.paths[path].timeSimPast == long.MaxValue) {
+					int node2 = g.paths[path].getNode (nodes[i].time);
+					if (g.paths[path].childPathOf (id, node2, unit)) {
+						// if child path is one of this unit's paths and collected more/less (depending on max parameter) resources than this path,
+						// use that path for resource calculation
+						long pathCollected = g.paths[path].rscCollected (time, node2, unit, rscType, max, includeNonLiveChildren);
+						if (max ^ (pathCollected < ret + g.unitT[g.units[unit].type].rscCollectRate[rscType] * (timeCollectEnd - g.paths[path].nodes[node2].time))) {
+							ret = pathCollected;
+							timeCollectEnd = g.paths[path].nodes[node2].time;
+						}
+					}
+					else {
+						foreach (int unit2 in g.paths[path].nodes[node2].units) {
+							if (g.paths[path].childUnitOf (unit, node2, unit2)) {
+								// add resources that non-path child unit gained
+								ret += g.paths[path].rscCollected (time, node2, unit2, rscType, max, includeNonLiveChildren);
+								// subtract cost to make child unit
+								ret -= g.unitT[g.units[unit2].type].rscCost[rscType];
+							}
+						}
+					}
+				}
+			}
+		}
+		// add resources collected by this unit
+		ret += g.unitT[g.units[unit].type].rscCollectRate[rscType] * (timeCollectEnd - nodes[node].time);
+		return ret;
+	}
+	
+	private bool childPathOf(int parentPath, int childNode, int unit) {
+		int parentNode = g.paths[parentPath].getNode (nodes[childNode].time);
+		return nodes[childNode].units.Contains (unit)
+			&& parentNode > 0 && g.paths[parentPath].nodes[parentNode - 1].units.Contains (unit);
+	}
+	
+	private bool childUnitOf(int parentUnit, int childNode, int childUnit) {
+		// if child unit is a child path of anyone, then it isn't a child unit
+		// (it's technically possible to delete the path leading to it so then it becomes a child unit,
+		//  but I'm currently not planning any GUI to make a child unit that remains in same path as its parent)
+		if (childPathOf (id, childNode, childUnit)) return false;
+		foreach (int path in nodes[childNode].paths) {
+			if (childPathOf (path, childNode, childUnit)) return false;
+		}
+		// return whether parent unit can make child unit
+		return g.unitT[g.units[parentUnit].type].canMake[g.units[childUnit].type];
 	}
 	
 	/// <summary>

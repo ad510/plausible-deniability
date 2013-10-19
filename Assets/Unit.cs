@@ -439,7 +439,7 @@ public class Unit {
 				if (g.unitT[type].canMake[typeVal] && (time >= g.timeSim || time >= timeUnseen)) {
 					for (int i = 0; i < g.nRsc; i++) {
 						// TODO: may be more permissive by passing in max = true, but this really complicates delete() algorithm (see planning notes)
-						if (g.playerResource(player, time, i, false, !newUnitIsLive, !newUnitIsLive) < g.unitT[typeVal].rscCost[i]) return false;
+						if (g.playerResource(player, time, i, false, !newUnitIsLive) < g.unitT[typeVal].rscCost[i]) return false;
 					}
 					return true;
 				}

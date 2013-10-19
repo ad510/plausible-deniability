@@ -427,10 +427,15 @@ public class Sim {
 	/// since different paths can have collected different resource amounts,
 	/// determines whether to use paths that collected least or most resources in calculation
 	/// </param>
-	public long playerResource(int player, long time, int rscType, bool max, bool includeNonLiveChildren, bool alwaysUseReplacementPaths) {
+	public long playerResource(int player, long time, int rscType, bool max, bool includeNonLiveChildren) {
 		long ret = players[player].startRsc[rscType];
-		for (int i = 0; i < nUnits; i++) {
-			if (units[i].player == player && units[i].parent < 0) ret += units[i].rscCollected(time, rscType, max, includeNonLiveChildren, alwaysUseReplacementPaths);
+		for (int i = 0; i < nRootPaths; i++) {
+			if (paths[i].player() == player) {
+				foreach (int unit in paths[i].nodes[0].units) {
+					// STACK TODO: this will double-count units that are in multiple paths at beginning of scenario
+					ret += paths[i].rscCollected(time, 0, unit, rscType, max, includeNonLiveChildren);
+				}
+			}
 		}
 		return ret;
 	}
@@ -440,7 +445,8 @@ public class Sim {
 	/// </summary>
 	/// <returns>a time that player could have negative resources, or -1 if no such time found</returns>
 	public long playerCheckNegRsc(int player, long timeMin, bool includeNonLiveChildren, bool alwaysUseReplacementPaths) {
-		int i, j;
+		throw new NotImplementedException(); // STACK TODO: implement this
+		/*int i, j;
 		for (i = 0; i < nUnits; i++) {
 			// check all times since timeMin that a unit of specified player was made
 			// note that new units are made at timeCmd + 1
@@ -452,7 +458,7 @@ public class Sim {
 				}
 			}
 		}
-		return -1;
+		return -1;*/
 	}
 
 	/// <summary>
