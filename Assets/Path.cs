@@ -364,7 +364,7 @@ public class Path {
 			foreach (int path in nodes[i].paths) {
 				if (includeNonLiveChildren || g.paths[path].timeSimPast == long.MaxValue) {
 					int node2 = g.paths[path].getNode (nodes[i].time);
-					if (g.paths[path].childPathOf (id, node2, unit)) {
+					if (g.paths[path].childPathOf (id, unit, i, node2)) {
 						// if child path is one of this unit's paths and collected more/less (depending on max parameter) resources than this path,
 						// use that path for resource calculation
 						long pathCollected = g.paths[path].rscCollected (time, node2, unit, rscType, max, includeNonLiveChildren);
@@ -375,7 +375,7 @@ public class Path {
 					}
 					else {
 						foreach (int unit2 in g.paths[path].nodes[node2].units) {
-							if (g.paths[path].childUnitOf (unit, node2, unit2)) {
+							if (g.paths[path].childUnitOf (unit, unit2, node2)) {
 								// add resources that non-path child unit gained
 								ret += g.paths[path].rscCollected (time, node2, unit2, rscType, max, includeNonLiveChildren);
 								// subtract cost to make child unit
@@ -391,19 +391,21 @@ public class Path {
 		return ret;
 	}
 	
-	private bool childPathOf(int parentPath, int childNode, int unit) {
-		int parentNode = g.paths[parentPath].getNode (nodes[childNode].time);
-		return nodes[childNode].units.Contains (unit)
-			&& parentNode > 0 && g.paths[parentPath].nodes[parentNode - 1].units.Contains (unit);
+	private bool childPathOf(int parentPath, int unit, int parentNode, int childNode) {
+		if (g.paths[parentPath].nodes[parentNode].time != nodes[childNode].time) {
+			throw new ArgumentException("parent and child nodes have different times");
+		}
+		return parentNode > 0 && g.paths[parentPath].nodes[parentNode - 1].units.Contains (unit)
+			&& nodes[childNode].units.Contains (unit);
 	}
 	
-	private bool childUnitOf(int parentUnit, int childNode, int childUnit) {
+	private bool childUnitOf(int parentUnit, int childUnit, int childNode) {
 		// if child unit is a child path of anyone, then it isn't a child unit
 		// (it's technically possible to delete the path leading to it so then it becomes a child unit,
 		//  but I'm currently not planning any GUI to make a child unit that remains in same path as its parent)
-		if (childPathOf (id, childNode, childUnit)) return false;
+		if (childPathOf (id, childUnit, childNode, childNode)) return false;
 		foreach (int path in nodes[childNode].paths) {
-			if (childPathOf (path, childNode, childUnit)) return false;
+			if (childPathOf (path, childUnit, g.paths[path].getNode (nodes[childNode].time), childNode)) return false;
 		}
 		// return whether parent unit can make child unit
 		return g.unitT[g.units[parentUnit].type].canMake[g.units[childUnit].type];
