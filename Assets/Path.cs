@@ -329,7 +329,8 @@ public class Path {
 			// check if any units in connected paths should be removed
 			foreach (int path2 in nodes[curNode].paths) {
 				int node2 = g.paths[path2].getNode (nodes[curNode].time);
-				foreach (int unit2 in g.paths[path2].nodes[node2].units) {
+				for (int i = g.paths[path2].nodes[node2].units.Count - 1; i >= 0; i--) { // iterate in reverse so don't have to decrement i when unit is removed
+					int unit2 = g.paths[path2].nodes[node2].units[i];
 					if (unit == unit2) {
 						// delete unit from child path
 						g.paths[path2].removeUnitAfter (node2, unit, ref rmPaths, ref rmNodes);
