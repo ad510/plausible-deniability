@@ -386,7 +386,7 @@ public class Unit {
 				// (don't need to check this if taking the path of another unit b/c no combination of paths are allowed to give player negative resources)
 				Move m0Original = moves[0];
 				moves[0] = new Move(long.MaxValue - 1, new FP.Vector(Sim.OffMap, 0)); // simulate this unit (and implicitly its child units) not existing during the check
-				if (g.playerCheckNegRsc(player, m0Original.timeStart, false, false) >= 0) {
+				if (g.playerCheckNegRsc(player, m0Original.timeStart, false) >= 0) {
 					moves[0] = m0Original;
 					return false;
 				}

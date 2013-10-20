@@ -445,21 +445,19 @@ public class Sim {
 	/// checks whether specified player could have negative resources since timeMin in worst case scenario of which paths are seen
 	/// </summary>
 	/// <returns>a time that player could have negative resources, or -1 if no such time found</returns>
-	public long playerCheckNegRsc(int player, long timeMin, bool includeNonLiveChildren, bool alwaysUseReplacementPaths) {
-		throw new NotImplementedException(); // STACK TODO: implement this
-		/*int i, j;
-		for (i = 0; i < nUnits; i++) {
-			// check all times since timeMin that a unit of specified player was made
-			// note that new units are made at timeCmd + 1
-			if (player == units[i].player && units[i].moves[0].timeStart >= timeMin && units[i].moves[0].timeStart <= timeSim + 1) {
-				for (j = 0; j < nRsc; j++) {
-					if (playerResource(player, units[i].moves[0].timeStart, j, false, includeNonLiveChildren, alwaysUseReplacementPaths) < 0) {
-						return units[i].moves[0].timeStart;
+	public long playerCheckNegRsc(int player, long timeMin, bool includeNonLiveChildren) {
+		foreach (Path path in paths) {
+			// check all times since timeMin that a path of specified player was made
+			// note that new paths are made at App.newCmdTime() + 1
+			if (player == path.player() && path.nodes[0].time >= timeMin && path.nodes[0].time <= timeSim + 1) {
+				for (int i = 0; i < nRsc; i++) {
+					if (playerResource(player, path.nodes[0].time, i, false, includeNonLiveChildren) < 0) {
+						return path.nodes[0].time;
 					}
 				}
 			}
 		}
-		return -1;*/
+		return -1;
 	}
 
 	/// <summary>
