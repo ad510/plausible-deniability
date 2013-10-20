@@ -362,10 +362,10 @@ public class Path {
 	/// </summary>
 	public bool makePath(long time, List<int> units) {
 		if (canMakePath(time, units)) {
-			int node = getNode (time);
+			int node = insertNode (time);
 			g.paths.Add (new Path(g, g.paths.Count, units, time, calcPos (time), nodes[node].unseen));
 			foreach (int path in nodes[node].paths) {
-				g.paths[g.paths.Count - 1].addConnectedPath (time, path);
+				g.paths[path].addConnectedPath (time, g.paths.Count - 1);
 			}
 			addConnectedPath (time, g.paths.Count - 1);
 			// indicate to calculate TileMoveEvts for new path starting at timeSim
