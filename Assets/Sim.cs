@@ -473,7 +473,7 @@ public class Sim {
 		return true;
 	}
 	
-	public bool unitsCanMake(long time, List<int> parentUnits, int type) {
+	public bool unitsCanMake(List<int> parentUnits, int type) {
 		foreach (int unit in parentUnits) {
 			if (unitT[units[unit].type].canMake[type]) return true;
 		}

@@ -251,9 +251,108 @@ public class Path {
 	/// removes specified unit from path if doing so wouldn't affect anything that another player saw, returns whether successful
 	/// </summary>
 	public bool removeUnit(long time, int unit) {
-		// TODO: current version of removeUnit() is dumb and can only remove units at the last node, and does not check that it is allowed to do so
-		if (time != nodes[nodes.Count - 1].time) return false;
-		nodes[nodes.Count - 1].units.Remove (unit);
+		List<int> parentPaths = new List<int>();
+		List<int> parentNodes = new List<int>();
+		List<int> rmPaths = new List<int>();
+		List<int> rmNodes = new List<int>();
+		long minParentNodeTime = long.MaxValue;
+		int i;
+		parentPaths.Add (id);
+		parentNodes.Add (getNode (time));
+		// if this path already doesn't contain specified unit at specified time, return true
+		if (parentNodes[0] < 0 || !nodes[parentNodes[0]].units.Contains (unit)) return true;
+		// if unit was defined in scenario file, return false (we assume other players know the scenario's starting state)
+		// TODO: this isn't quite right, if this unit created multiple paths we want to be able to delete some of them
+		if (unit < g.nRootUnits) return false;
+		// find all parent paths/nodes to start removal from
+		for (i = 0; i < parentPaths.Count; i++) {
+			while (true) {
+				bool foundSharedParent = false;
+				foreach (int path in g.paths[parentPaths[i]].nodes[parentNodes[i]].paths) {
+					int node = g.paths[path].getNode (nodes[parentNodes[i]].time);
+					if (g.paths[path].nodes[node].units.Contains (unit)) {
+						// found a path with the same child unit as us
+						int index = parentPaths.IndexOf (path);
+						if (index < 0 || parentNodes[index] != node) {
+							// currently not planning to remove unit from that path,
+							// so stop search here so that shared parent won't be deleted
+							foundSharedParent = true;
+							break;
+						}
+						// don't worry about potentially redundant entry in deletion list (if part below adds it to list again),
+						// removeUnitAfter() can take care of that
+						// TODO: as long as removeUnitAfter() doesn't delete any nodes
+					}
+					if (isChildPathOf (path, unit, node, parentNodes[i])) {
+						// found a parent path containing this unit, so remove unit from this path too
+						parentPaths.Add (path);
+						parentNodes.Add (node - 1);
+					}
+				}
+				if (foundSharedParent) break;
+				// if we are at earliest node containing this unit, break
+				if (!isChildPathOf (parentPaths[i], unit, parentNodes[i], parentNodes[i])) break;
+				// otherwise, look at previous node
+				parentNodes[i]--;
+			}
+		}
+		// remove unit recursively, starting at the parent paths/nodes we found
+		for (i = 0; i < parentPaths.Count; i++) {
+			if (!g.paths[parentPaths[i]].removeUnitAfter (parentNodes[i], unit, ref rmPaths, ref rmNodes)) break;
+			minParentNodeTime = Math.Min (minParentNodeTime, g.paths[parentPaths[i]].nodes[parentNodes[i]].time);
+		}
+		// if a removeUnitAfter() call failed or removing unit might have led to player having negative resources,
+		// add unit back to nodes it was removed from
+		if (i < parentPaths.Count || g.playerCheckNegRsc (player (), minParentNodeTime, false) >= 0) {
+			for (i = 0; i < rmPaths.Count; i++) {
+				g.paths[rmPaths[i]].nodes[rmNodes[i]].units.Add (unit);
+			}
+			return false;
+		}
+		return true;
+	}
+	
+	private bool removeUnitAfter(int node, int unit, ref List<int> rmPaths, ref List<int> rmNodes) {
+		int curNode = node;
+		while (nodes[curNode].units.Contains (unit)) {
+			if (!nodes[curNode].unseen) return false;
+			nodes[curNode].units.Remove (unit);
+			rmPaths.Add (id);
+			rmNodes.Add (curNode);
+			curNode++;
+			if (curNode == nodes.Count) break;
+			// stop if reached another parent path for unit being removed
+			foreach (int path2 in nodes[curNode].paths) {
+				int node2 = g.paths[path2].getNode (nodes[curNode].time);
+				if (node2 > 0 && g.paths[path2].nodes[node2 - 1].units.Contains (unit)) return true;
+			}
+			// check if any units in connected paths should be removed
+			foreach (int path2 in nodes[curNode].paths) {
+				int node2 = g.paths[path2].getNode (nodes[curNode].time);
+				foreach (int unit2 in g.paths[path2].nodes[node2].units) {
+					if (unit == unit2) {
+						// delete unit from child path
+						g.paths[path2].removeUnitAfter (node2, unit, ref rmPaths, ref rmNodes);
+					}
+					else if (g.unitT[g.units[unit].type].canMake[g.units[unit2].type] && !g.paths[path2].isChildPath (unit2, node2)) {
+						// found a unit that deleted unit could have made, check if any other connected unit can make it
+						// don't check path2 because I'm currently not planning any GUI to make a child unit in the same path as its parent
+						bool foundAnotherParent = false;
+						foreach (int path3 in g.paths[path2].nodes[node2].paths) {
+							int node3 = g.paths[path3].getNode (nodes[curNode].time);
+							if (node3 > 0 && g.unitsCanMake (g.paths[path3].nodes[node3 - 1].units, g.units[unit2].type)) {
+								foundAnotherParent = true;
+								break;
+							}
+						}
+						if (!foundAnotherParent) {
+							// no other connected unit can make that unit, so delete that unit too
+							g.paths[path2].removeUnitAfter (node2, unit2, ref rmPaths, ref rmNodes);
+						}
+					}
+				}
+			}
+		}
 		return true;
 	}
 
@@ -285,7 +384,7 @@ public class Path {
 	
 	public bool canMakeUnitType(long time, int type) {
 		if (time < nodes[0].time) return false;
-		return g.unitsCanMake (time, nodes[getNode (time)].units, type);;
+		return g.unitsCanMake (nodes[getNode (time)].units, type);
 	}
 
 	/// <summary>
@@ -361,23 +460,23 @@ public class Path {
 		long ret = 0;
 		while (endNode < nodes.Count - 1 && nodes[endNode + 1].time <= time) endNode++;
 		for (int i = endNode; i > node && nodes[i - 1].units.Contains (unit); i--) {
-			foreach (int path in nodes[i].paths) {
-				if (includeNonLiveChildren || g.paths[path].timeSimPast == long.MaxValue) {
-					int node2 = g.paths[path].getNode (nodes[i].time);
-					if (g.paths[path].childPathOf (id, unit, i, node2)) {
+			foreach (int path2 in nodes[i].paths) {
+				if (includeNonLiveChildren || g.paths[path2].timeSimPast == long.MaxValue) {
+					int node2 = g.paths[path2].getNode (nodes[i].time);
+					if (g.paths[path2].isChildPathOf (id, unit, i, node2)) {
 						// if child path is one of this unit's paths and collected more/less (depending on max parameter) resources than this path,
 						// use that path for resource calculation
-						long pathCollected = g.paths[path].rscCollected (time, node2, unit, rscType, max, includeNonLiveChildren);
-						if (max ^ (pathCollected < ret + g.unitT[g.units[unit].type].rscCollectRate[rscType] * (timeCollectEnd - g.paths[path].nodes[node2].time))) {
+						long pathCollected = g.paths[path2].rscCollected (time, node2, unit, rscType, max, includeNonLiveChildren);
+						if (max ^ (pathCollected < ret + g.unitT[g.units[unit].type].rscCollectRate[rscType] * (timeCollectEnd - g.paths[path2].nodes[node2].time))) {
 							ret = pathCollected;
-							timeCollectEnd = g.paths[path].nodes[node2].time;
+							timeCollectEnd = g.paths[path2].nodes[node2].time;
 						}
 					}
-					else {
-						foreach (int unit2 in g.paths[path].nodes[node2].units) {
-							if (g.paths[path].childUnitOf (unit, unit2, node2)) {
+					else if (!g.paths[path2].isChildPath (unit, node2)) {
+						foreach (int unit2 in g.paths[path2].nodes[node2].units) {
+							if (g.unitT[g.units[unit].type].canMake[g.units[unit2].type]) {
 								// add resources that non-path child unit gained
-								ret += g.paths[path].rscCollected (time, node2, unit2, rscType, max, includeNonLiveChildren);
+								ret += g.paths[path2].rscCollected (time, node2, unit2, rscType, max, includeNonLiveChildren);
 								// subtract cost to make child unit
 								ret -= g.unitT[g.units[unit2].type].rscCost[rscType];
 							}
@@ -391,24 +490,20 @@ public class Path {
 		return ret;
 	}
 	
-	private bool childPathOf(int parentPath, int unit, int parentNode, int childNode) {
+	private bool isChildPath(int unit, int node) {
+		if (isChildPathOf (id, unit, node, node)) return true;
+		foreach (int path in nodes[node].paths) {
+			if (isChildPathOf (path, unit, g.paths[path].getNode (nodes[node].time), node)) return true;
+		}
+		return false;
+	}
+	
+	private bool isChildPathOf(int parentPath, int unit, int parentNode, int childNode) {
 		if (g.paths[parentPath].nodes[parentNode].time != nodes[childNode].time) {
 			throw new ArgumentException("parent and child nodes have different times");
 		}
 		return parentNode > 0 && g.paths[parentPath].nodes[parentNode - 1].units.Contains (unit)
 			&& nodes[childNode].units.Contains (unit);
-	}
-	
-	private bool childUnitOf(int parentUnit, int childUnit, int childNode) {
-		// if child unit is a child path of anyone, then it isn't a child unit
-		// (it's technically possible to delete the path leading to it so then it becomes a child unit,
-		//  but I'm currently not planning any GUI to make a child unit that remains in same path as its parent)
-		if (childPathOf (id, childUnit, childNode, childNode)) return false;
-		foreach (int path in nodes[childNode].paths) {
-			if (childPathOf (path, childUnit, g.paths[path].getNode (nodes[childNode].time), childNode)) return false;
-		}
-		// return whether parent unit can make child unit
-		return g.unitT[g.units[parentUnit].type].canMake[g.units[childUnit].type];
 	}
 	
 	/// <summary>

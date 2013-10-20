@@ -1047,8 +1047,7 @@ public class App : MonoBehaviour {
 	/// </summary>
 	private void deletePaths() {
 		// happens at newCmdTime() instead of newCmdTime() + 1 so that when paused, making path then deleting parent path doesn't cause an error
-		throw new NotImplementedException(); // STACK TODO: implement this
-		//if (selPaths.Count > 0) g.cmdPending.add(new DeletePathCmdEvt(g.timeSim, newCmdTime(), selPaths.ToArray()));
+		if (selPaths.Count > 0) g.cmdPending.add(new DeletePathCmdEvt(g.timeSim, newCmdTime(), selPathsCopy()));
 	}
 	
 	/// <summary>
@@ -1080,7 +1079,7 @@ public class App : MonoBehaviour {
 				g.cmdPending.add(new MakeUnitCmdEvt(g.timeSim, newCmdTime() + 1, pathArray, type, g.paths[path.Key].calcPos (timeGame + 1))); // STACK TODO: call makeUnitMovePos instead of calcPos
 				break;
 			}
-			else if (g.unitsCanMake (timeGame + 1, path.Value, type)) {
+			else if (g.unitsCanMake (path.Value, type)) {
 				// don't make unit yet; let user pick where to place it
 				makeUnitType = type;
 				break;

@@ -217,7 +217,7 @@ public class MakeUnitCmdEvt : CmdEvt {
 			// try moving one to the correct position then trying again to make the unit
 			int movePath = -1;
 			foreach (KeyValuePair<int, List<int>> path in exPaths) {
-				if (g.unitsCanMake (timeCmd, path.Value, type) && g.paths[path.Key].canMove (timeCmd)
+				if (g.unitsCanMake (path.Value, type) && g.paths[path.Key].canMove (timeCmd)
 					&& (movePath < 0 || (g.paths[path.Key].calcPos(timeCmd) - pos).lengthSq() < (g.paths[movePath].calcPos(timeCmd) - pos).lengthSq())) {
 					movePath = path.Key;
 				}
@@ -264,7 +264,7 @@ public class MakePathCmdEvt : CmdEvt {
 }
 
 /// <summary>
-/// command to delete path(s)
+/// command to remove unit(s) from path(s)
 /// </summary>
 [ProtoContract]
 public class DeletePathCmdEvt : CmdEvt {
@@ -277,14 +277,12 @@ public class DeletePathCmdEvt : CmdEvt {
 		: base(timeVal, timeCmdVal, pathsVal) { }
 
 	public override void apply(Sim g) {
+		Dictionary<int, List<int>> exPaths = existingPaths (g);
 		base.apply(g);
-		foreach (int unit in units) {
-			// check if unit changed index due to a previous path deletion
-			int unit2 = unit;
-			for (int i = 0; i < g.unitIdChgs.Count / 2; i++) {
-				if (unit2 == g.unitIdChgs[i * 2]) unit2 = g.unitIdChgs[i * 2 + 1];
+		foreach (KeyValuePair<int, List<int>> path in exPaths) {
+			foreach (int unit in path.Value) {
+				g.paths[path.Key].removeUnit (timeCmd, unit);
 			}
-			if (unit2 >= 0) g.units[unit2].delete(timeCmd);
 		}
 	}
 }
@@ -506,24 +504,21 @@ public class StackEvt : SimEvt {
 	public override void apply (Sim g)
 	{
 		bool[] pathsStacked = new bool[paths.Length];
-		List<int> stackUnits;
-		FP.Vector iPos, jPos;
-		int i, j, iNode, jNode;
-		for (i = 0; i < pathsStacked.Length; i++) {
+		for (int i = 0; i < pathsStacked.Length; i++) {
 			pathsStacked[i] = (time < g.paths[paths[i]].moves[0].timeStart);
 		}
 		// loop through each pair of unstacked paths
-		for (i = 0; i < paths.Length; i++) {
+		for (int i = 0; i < paths.Length; i++) {
 			if (!pathsStacked[i]) {
-				iPos = g.paths[paths[i]].calcPos (time);
-				iNode = g.paths[paths[i]].getNode (time);
-				for (j = i + 1; j < paths.Length; j++) {
-					jPos = g.paths[paths[j]].calcPos (time);
-					jNode = g.paths[paths[j]].getNode (time);
+				FP.Vector iPos = g.paths[paths[i]].calcPos (time);
+				int iNode = g.paths[paths[i]].getNode (time);
+				for (int j = i + 1; j < paths.Length; j++) {
+					FP.Vector jPos = g.paths[paths[j]].calcPos (time);
+					int jNode = g.paths[paths[j]].getNode (time);
 					// check that paths are at same position
 					if (iPos.x == jPos.x && iPos.y == jPos.y) {
 						// check whether allowed to stack the paths' units together
-						stackUnits = new List<int>(g.paths[paths[i]].nodes[iNode].units);
+						List<int> stackUnits = new List<int>(g.paths[paths[i]].nodes[iNode].units);
 						foreach (int unit in g.paths[paths[j]].nodes[jNode].units) {
 							if (!stackUnits.Contains (unit)) stackUnits.Add (unit);
 						}
@@ -532,8 +527,9 @@ public class StackEvt : SimEvt {
 							iNode = g.paths[paths[i]].addConnectedPath (time, paths[j]);
 							jNode = g.paths[paths[j]].getNode (time);
 							g.paths[paths[i]].nodes[iNode].units = stackUnits;
-							while (g.paths[paths[j]].nodes[jNode].units.Count > 0) {
-								g.paths[paths[j]].removeUnit (time, g.paths[paths[j]].nodes[jNode].units[g.paths[paths[j]].nodes[jNode].units.Count - 1]);
+							for (int k = g.paths[paths[j]].nodes[jNode].units.Count - 1; k >= 0; k--) {
+								// STACK TODO: line below seems to always fail
+								g.paths[paths[j]].removeUnit (time, g.paths[paths[j]].nodes[jNode].units[k]);
 							}
 							pathsStacked[i] = true;
 							pathsStacked[j] = true;
