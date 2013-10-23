@@ -12,6 +12,8 @@ not q&a but still good wording:
   - it's only an analogy (so be very careful how you word comparisons to QM)
 - The way Achron works is like "I reject your reality and substitute my own." Decoherence lets you substitute your reality without ever rejecting anyone else's.
 - Zach describes it as RTS in which "[the other player's] reality is determined by what you see"
+- "inspired by quantum mechanics"
+- these should be memos/letters from The Mentor
 
 UI:
 have visibility circle (like in menu), when hovering over Q&A box all of it becomes visible
@@ -21,6 +23,15 @@ after 1st paths level:
 ...That means that even when watching the replay, your opponents will never see your units taking multiple paths, and in fact the most suspicious evidence they'll see will be seemingly "lucky" coincidences in which your units were in the right place at the right time. But taken together, these carefully chosen "lucky" coincidences may well make the difference between winning and losing the game.
 
 By the way, this is analogous to how a quantum computer works. Real particles in nature take all of the paths available to them, and they only have to make up their mind about where they are when they are seen or otherwise measured. Since this gives them a certain amount of hindsight by the time they are measured, they can often be found in places that form unlikely coincidences with respect to where other particles ended up. It is then possible to take advantage of these coincidences when they occur to make a computer that can solve certain problems much faster than otherwise possible.
+
+after discover infiltration and start following potential traitors:
+Obviously, there's a lesson from this latest incident, which is that we can't trust anyone and that we must keep an eye out to make sure no one's secretly working against us.
+
+Now we could just leave it at that and move on. But I think there's more to it than that. We know that the NSA is capable of doing crazy things, maybe even some things we don't know about yet. But we also know that no matter what mind boggling techniques they use against us, they all have one thing in common, which is that the NSA can only use them when we're not looking. Otherwise, if they try to change something that we saw happen in the past, it would violate causality and we'd get a smoking gun confirmation that they're doing something they're not supposed to. Therefore, by watching everything the NSA might be doing, not only do we ensure that no one is working against us without our knowledge, but we also prevent them from hiding their wrongdoing using those techniques that are so difficult to detect.
+
+This makes it more important than ever that we never take an eye off what anyone is doing. Ever.
+
+(note: double slit experiment)
 
 Q: Can *real* particles change what they did in the past?
 
