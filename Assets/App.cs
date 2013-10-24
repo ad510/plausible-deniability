@@ -347,7 +347,6 @@ public class App : MonoBehaviour {
 				}
 			}
 		}
-		g.nRootUnits = g.nUnits;
 		g.nRootPaths = g.paths.Count;
 		if (sprUnits != null) {
 			foreach (List<UnitSprite> sprs in sprUnits) {
