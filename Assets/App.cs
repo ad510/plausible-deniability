@@ -448,7 +448,7 @@ public class App : MonoBehaviour {
 					Vector3 mouseMaxPos = new Vector3(Math.Max (mouseDownPos[0].x, Input.mousePosition.x), Math.Max (mouseDownPos[0].y, Input.mousePosition.y), 0);
 					if (!Input.GetKey (KeyCode.LeftControl) && !Input.GetKey (KeyCode.LeftShift)) selPaths.Clear();
 					for (i = 0; i < g.paths.Count; i++) {
-						if (selPlayer == g.paths[i].player() && timeGame >= g.paths[i].moves[0].timeStart
+						if (selPlayer == g.paths[i].player && timeGame >= g.paths[i].moves[0].timeStart
 							&& FP.rectIntersects (drawToSimPos (mouseMinPos), drawToSimPos (mouseMaxPos),
 							g.paths[i].selMinPos(timeGame), g.paths[i].selMaxPos(timeGame))) {
 							// STACK TODO: if not all units in path are selected, select remaining units instead of deselecting path
@@ -474,7 +474,7 @@ public class App : MonoBehaviour {
 				else {
 					int stackPath = -1;
 					for (i = 0; i < g.paths.Count; i++) {
-						if (selPlayer == g.paths[i].player() && timeGame >= g.paths[i].moves[0].timeStart
+						if (selPlayer == g.paths[i].player && timeGame >= g.paths[i].moves[0].timeStart
 							&& FP.rectContains (g.paths[i].selMinPos(timeGame), g.paths[i].selMaxPos(timeGame), drawToSimPos (Input.mousePosition))) {
 							stackPath = i;
 							break;

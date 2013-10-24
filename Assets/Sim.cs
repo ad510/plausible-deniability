@@ -131,7 +131,7 @@ public class Sim {
 		/// </summary>
 		public bool playerDirectVisLatest(int player) {
 			foreach (int i in pathVis.Keys) {
-				if (player == g.paths[i].player() && visLatest(pathVis[i])) return true;
+				if (player == g.paths[i].player && visLatest(pathVis[i])) return true;
 			}
 			return false;
 		}
@@ -141,7 +141,7 @@ public class Sim {
 		/// </summary>
 		public bool playerDirectVisWhen(int player, long time) {
 			foreach (int i in pathVis.Keys) {
-				if (player == g.paths[i].player() && visWhen(pathVis[i], time)) return true;
+				if (player == g.paths[i].player && visWhen(pathVis[i], time)) return true;
 			}
 			return false;
 		}
@@ -430,7 +430,7 @@ public class Sim {
 	public long playerResource(int player, long time, int rscType, bool max, bool includeNonLiveChildren) {
 		long ret = players[player].startRsc[rscType];
 		for (int i = 0; i < nRootPaths; i++) {
-			if (paths[i].player() == player) {
+			if (paths[i].player == player) {
 				foreach (int unit in paths[i].nodes[0].units) {
 					// STACK TODO: this will double-count units that are in multiple paths at beginning of scenario
 					ret += paths[i].rscCollected(time, 0, unit, rscType, max, includeNonLiveChildren);
@@ -448,7 +448,7 @@ public class Sim {
 		foreach (Path path in paths) {
 			// check all times since timeMin that a path of specified player was made
 			// note that new paths are made at App.newCmdTime() + 1
-			if (player == path.player() && path.nodes[0].time >= timeMin && path.nodes[0].time <= timeSim + 1) {
+			if (player == path.player && path.nodes[0].time >= timeMin && path.nodes[0].time <= timeSim + 1) {
 				for (int i = 0; i < nRsc; i++) {
 					if (playerResource(player, path.nodes[0].time, i, false, includeNonLiveChildren) < 0) {
 						return path.nodes[0].time;
@@ -482,10 +482,10 @@ public class Sim {
 	/// <summary>
 	/// returns whether the specified units are allowed to be on the same path
 	/// </summary>
-	public bool stackAllowed(List<int> stackUnits) {
+	public bool stackAllowed(List<int> stackUnits, long speed, int player) {
 		if (stackUnits.Count == 0) return true;
 		foreach (int unit in stackUnits) {
-			if (units[unit].player != units[stackUnits[0]].player || unitT[units[unit].type].speed != unitT[units[stackUnits[0]].type].speed) {
+			if (unitT[units[unit].type].speed != speed || units[unit].player != player) {
 				return false;
 			}
 		}

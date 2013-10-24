@@ -84,16 +84,20 @@ public class Path {
 	
 	private Sim g;
 	private int id; // index in path array
+	public readonly long speed; // in position units per millisecond
+	public readonly int player;
 	public List<Node> nodes;
 	public List<Move> moves; // later moves are later in list
 	public int tileX, tileY; // current position on visibility tiles
 	public long timeSimPast; // time traveling simulation time if made in the past, otherwise set to long.MaxValue
 
-	public Path(Sim simVal, int idVal, List<int> units, long startTime, FP.Vector startPos, bool startUnseen) {
+	public Path(Sim simVal, int idVal, long speedVal, int playerVal, List<int> units, long startTime, FP.Vector startPos, bool startUnseen) {
 		g = simVal;
 		id = idVal;
+		speed = speedVal;
+		player = playerVal;
+		if (!g.stackAllowed (units, speed, player)) throw new ArgumentException("specified units may not be on the same path");
 		nodes = new List<Node>();
-		// TODO: ensure units all of same player and speed, and how to set unseen if no units
 		nodes.Add (new Node(startTime, units, startUnseen));
 		moves = new List<Move>();
 		moves.Add (new Move(startTime, startPos));
@@ -103,7 +107,8 @@ public class Path {
 	}
 	
 	public Path(Sim simVal, int idVal, List<int> units, long startTime, FP.Vector startPos)
-		: this(simVal, idVal, units, startTime, startPos, simVal.tileAt(startPos).exclusiveWhen(simVal.units[units[0]].player, startTime)) {
+		: this(simVal, idVal, simVal.unitT[simVal.units[units[0]].type].speed, simVal.units[units[0]].player, units,
+		startTime, startPos, simVal.tileAt(startPos).exclusiveWhen(simVal.units[units[0]].player, startTime)) {
 	}
 
 	/// <summary>
@@ -162,7 +167,7 @@ public class Path {
 		if (goalPos.y < 0) goalPos.y = 0;
 		if (goalPos.y > g.mapSize) goalPos.y = g.mapSize;
 		// add move
-		moves.Add (Move.fromSpeed(time, speed(), curPos, goalPos));
+		moves.Add (Move.fromSpeed(time, speed, curPos, goalPos));
 		if (!g.movedPaths.Contains(id)) g.movedPaths.Add(id); // indicate to delete and recalculate later TileMoveEvts for this path
 	}
 
@@ -171,7 +176,7 @@ public class Path {
 	/// </summary>
 	public bool canMove(long time) {
 		// TODO: check whether seen later, maybe make overloaded version that also checks units
-		return time >= moves[0].timeStart && speed () > 0;
+		return time >= moves[0].timeStart && speed > 0;
 	}
 
 	/// <summary>
@@ -302,7 +307,7 @@ public class Path {
 		}
 		// if a removeUnitAfter() call failed or removing unit might have led to player having negative resources,
 		// add unit back to nodes it was removed from
-		if (i < parentPaths.Count || g.playerCheckNegRsc (player (), minParentNodeTime, false) >= 0) {
+		if (i < parentPaths.Count || g.playerCheckNegRsc (player, minParentNodeTime, false) >= 0) {
 			for (i = 0; i < rmPaths.Count; i++) {
 				g.paths[rmPaths[i]].nodes[rmNodes[i]].units.Add (unit);
 			}
@@ -362,7 +367,7 @@ public class Path {
 	public bool makePath(long time, List<int> units) {
 		if (canMakePath(time, units)) {
 			int node = insertNode (time);
-			g.paths.Add (new Path(g, g.paths.Count, units, time, calcPos (time), nodes[node].unseen));
+			g.paths.Add (new Path(g, g.paths.Count, g.unitT[g.units[units[0]].type].speed, player, units, time, calcPos (time), nodes[node].unseen));
 			foreach (int path in nodes[node].paths) {
 				g.paths[path].addConnectedPath (time, g.paths.Count - 1);
 			}
@@ -379,7 +384,7 @@ public class Path {
 	/// </summary>
 	public bool canMakePath(long time, List<int> units) {
 		// TODO: check tile exclusivity if not live, whether unit types can be made, resources
-		return true;
+		return units.Count > 0;
 	}
 	
 	public bool canMakeUnitType(long time, int type) {
@@ -528,26 +533,6 @@ public class Path {
 			ret.y = Math.Max (ret.y, g.unitT[g.units[unit].type].selMaxPos.y);
 		}
 		return ret + calcPos(time);
-	}
-	
-	/// <summary>
-	/// returns speed of path, in position units per millisecond
-	/// </summary>
-	public long speed() {
-		foreach (Node node in nodes) {
-			if (node.units.Count > 0) return g.unitT[g.units[node.units[0]].type].speed;
-		}
-		throw new InvalidOperationException("path does not contain any units");
-	}
-	
-	/// <summary>
-	/// returns index of player that controls this path
-	/// </summary>
-	public int player() {
-		foreach (Node node in nodes) {
-			if (node.units.Count > 0) return g.units[node.units[0]].player;
-		}
-		throw new InvalidOperationException("path does not contain any units");
 	}
 
 	/// <summary>
