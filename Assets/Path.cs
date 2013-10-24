@@ -261,12 +261,11 @@ public class Path {
 		parentNodes.Add (getNode (time));
 		// if this path already doesn't contain specified unit at specified time, return true
 		if (parentNodes[0] < 0 || !nodes[parentNodes[0]].units.Contains (unit)) return true;
-		// if unit was defined in scenario file, return false (we assume other players know the scenario's starting state)
-		// TODO: this isn't quite right, if this unit created multiple paths we want to be able to delete some of them
-		if (unit < g.nRootUnits) return false;
 		// find all parent paths/nodes to start removal from
 		for (i = 0; i < parentPaths.Count; i++) {
 			while (true) {
+				// if reached beginning of a path defined in scenario file, return false (we assume other players know the scenario's starting state)
+				if (parentPaths[i] < g.nRootPaths && parentNodes[i] == 0) return false;
 				bool foundSharedParent = false;
 				foreach (int path in g.paths[parentPaths[i]].nodes[parentNodes[i]].paths) {
 					int node = g.paths[path].getNode (nodes[parentNodes[i]].time);
