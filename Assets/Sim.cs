@@ -39,12 +39,12 @@ public class Sim {
 		public bool[] mayAttack; // if this player's units may attack each other player's units
 		// not stored in scenario files
 		public bool immutable; // whether player's units will never unpredictably move or change
-		public bool hasNonLiveUnits; // whether currently might have time traveling units (ok to sometimes incorrectly be set to true)
-		public long timeGoLiveFail; // latest time that player's time traveling units failed to go live (resets to long.MaxValue after success)
-		public long timeNegRsc; // time that player could have negative resources if time traveling units went live
+		public bool hasNonLivePaths; // whether currently might have time traveling paths (ok to sometimes incorrectly be set to true)
+		public long timeGoLiveFail; // latest time that player's time traveling paths failed to go live (resets to long.MaxValue after success)
+		public long timeNegRsc; // time that player could have negative resources if time traveling paths went live
 
 		public Player() {
-			hasNonLiveUnits = false;
+			hasNonLivePaths = false;
 			timeGoLiveFail = long.MaxValue;
 		}
 	}
@@ -326,12 +326,12 @@ public class Sim {
 	}
 
 	/// <summary>
-	/// update specified player's non-live (time traveling) units
+	/// update specified player's non-live (time traveling) paths
 	/// </summary>
 	public void updatePast(int player, long curTime) {
-		if (players[player].hasNonLiveUnits) {
-			for (int i = 0; i < nUnits; i++) {
-				if (units[i].player == player) units[i].updatePast(curTime);
+		if (players[player].hasNonLivePaths) {
+			foreach (Path path in paths) {
+				if (path.player == player) path.updatePast(curTime);
 			}
 			if (curTime >= timeSim && (players[player].timeGoLiveFail == long.MaxValue || timeSim >= players[player].timeGoLiveFail + updateInterval)) {
 				cmdPending.add(new GoLiveCmdEvt(timeSim, player));

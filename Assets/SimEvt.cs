@@ -330,7 +330,7 @@ public class StackCmdEvt : CmdEvt {
 }
 
 /// <summary>
-/// command to make a player's time traveling units be updated in the present
+/// command to make a player's time traveling paths be updated in the present
 /// </summary>
 /// <remarks>this doesn't inherit from CmdEvt because it isn't a unit command</remarks>
 [ProtoContract]
@@ -350,17 +350,16 @@ public class GoLiveCmdEvt : SimEvt {
 
 	public override void apply(Sim g) {
 		long timeTravelStart = long.MaxValue;
-		int i;
 		g.cmdHistory.add(this); // copy event to command history list (it should've already been popped from event list)
-		for (i = 0; i < g.nUnits; i++) {
-			if (player == g.units[i].player && g.units[i].exists(time) && !g.units[i].isLive(time)) {
-				// ensure that time traveling units don't move off exclusive areas
-				g.units[i].updatePast(time);
-				// find earliest time that player's units started time traveling
-				if (g.units[i].moves[0].timeStart < timeTravelStart) timeTravelStart = g.units[i].moves[0].timeStart;
+		foreach (Path path in g.paths) {
+			if (player == path.player && path.nodes[path.nodes.Count - 1].units.Count > 0 && path.timeSimPast != long.MaxValue) {
+				// ensure that time traveling paths don't move off exclusive areas
+				path.updatePast(time);
+				// find earliest time that player's paths started time traveling
+				if (path.nodes[0].time < timeTravelStart) timeTravelStart = path.nodes[0].time;
 			}
 		}
-		if (timeTravelStart != long.MaxValue) { // skip if player has no time traveling units
+		if (timeTravelStart != long.MaxValue) { // skip if player has no time traveling paths
 			// check if going live might lead to player having negative resources
 			g.players[player].timeNegRsc = g.playerCheckNegRsc(player, timeTravelStart, true);
 			if (g.players[player].timeNegRsc >= 0) {
@@ -368,13 +367,13 @@ public class GoLiveCmdEvt : SimEvt {
 				g.players[player].timeGoLiveFail = time;
 				return;
 			}
-			// safe for units to become live, so do so
-			for (i = 0; i < g.nUnits; i++) {
-				if (player == g.units[i].player && g.units[i].exists(time) && !g.units[i].isLive(time)) g.units[i].goLive();
+			// safe for paths to become live, so do so
+			foreach (Path path in g.paths) {
+				if (player == path.player && path.nodes[path.nodes.Count - 1].units.Count > 0 && path.timeSimPast != long.MaxValue) path.goLive();
 			}
 		}
 		// indicate success
-		g.players[player].hasNonLiveUnits = false;
+		g.players[player].hasNonLivePaths = false;
 		g.players[player].timeGoLiveFail = long.MaxValue;
 	}
 }
@@ -527,9 +526,12 @@ public class StackEvt : SimEvt {
 							iNode = g.paths[paths[i]].addConnectedPath (time, paths[j]);
 							jNode = g.paths[paths[j]].getNode (time);
 							g.paths[paths[i]].nodes[iNode].units = stackUnits;
-							for (int k = g.paths[paths[j]].nodes[jNode].units.Count - 1; k >= 0; k--) {
+							try {
 								// STACK TODO: line below seems to always fail
-								g.paths[paths[j]].removeUnit (time, g.paths[paths[j]].nodes[jNode].units[k]);
+								g.paths[paths[j]].removeAllUnits (time);
+							}
+							catch (SystemException ex) {
+								Debug.LogException (ex);
 							}
 							pathsStacked[i] = true;
 							pathsStacked[j] = true;

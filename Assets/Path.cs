@@ -112,10 +112,43 @@ public class Path {
 	}
 
 	/// <summary>
-	/// ensure that if unit is moving in the past, it does not move off exclusively seen areas
+	/// ensure that if path is moving in the past, it does not move off exclusively seen areas
 	/// </summary>
 	public void updatePast(long curTime) {
-		throw new NotImplementedException();
+		if (curTime <= timeSimPast || nodes[nodes.Count - 1].units.Count == 0) return;
+		long timeSimPastNext = Math.Min(curTime, g.timeSim);
+		SimEvtList pastEvents = new SimEvtList();
+		TileMoveEvt evt;
+		FP.Vector pos;
+		int tX, tY, exclusiveIndex;
+		// delete path if tile that path starts on stops being exclusive since timeSimPast
+		pos = calcPos(timeSimPast);
+		tX = (int)(pos.x >> FP.Precision);
+		tY = (int)(pos.y >> FP.Precision);
+		// TODO: without modifications, line below may cause syncing problems in multiplayer b/c addTileMoveEvts() sometimes adds events before timeSimPast
+		addTileMoveEvts(ref pastEvents, timeSimPast, timeSimPastNext);
+		evt = (TileMoveEvt)pastEvents.pop();
+		exclusiveIndex = g.tiles[tX, tY].exclusiveIndexWhen(player, (evt != null) ? evt.time - 1 : curTime);
+		if (!g.tiles[tX, tY].exclusiveWhen(player, (evt != null) ? evt.time - 1 : curTime)
+			|| g.tiles[tX, tY].exclusive[player][exclusiveIndex] > timeSimPast) {
+			removeAllUnits(long.MaxValue);
+			return;
+		}
+		// delete path if path moves off exclusive area or tile that path moves to stops being exclusive
+		if (evt != null) {
+			do {
+				if (evt.tileX != int.MinValue) tX = evt.tileX;
+				if (evt.tileY != int.MinValue) tY = evt.tileY;
+				exclusiveIndex = g.tiles[tX, tY].exclusiveIndexWhen(player, evt.time);
+				if (!g.tiles[tX, tY].exclusiveWhen(player, evt.time)
+					|| (exclusiveIndex + 1 < g.tiles[tX, tY].exclusive[player].Count() && g.tiles[tX, tY].exclusive[player][exclusiveIndex + 1] <= Math.Min(g.events.peekTime(), timeSimPastNext))) {
+					removeAllUnits(long.MaxValue);
+					return;
+				}
+			} while ((evt = (TileMoveEvt)pastEvents.pop()) != null);
+		}
+		// update past simulation time
+		timeSimPast = timeSimPastNext;
 	}
 	
 	/// <summary>
@@ -141,14 +174,22 @@ public class Path {
 	public int moveTo(long time, List<int> units, FP.Vector pos) {
 		int path2 = id; // move this path by default
 		int node = getNode (time);
-		foreach (int unit in nodes[node].units) {
-			if (!units.Contains (unit)) {
-				// some units in path aren't being moved, so make a new path
-				// TODO: also try to delete unit from old path
-				// TODO: this doesn't add path to tiles b/c new path's timeSimPast != long.MaxValue, should be fixed after implementing updatePast()
-				if (!makePath (time, units)) throw new SystemException("make new path failed when moving units");
-				path2 = g.paths.Count - 1;
-				break;
+		if (time < g.timeSim) {
+			// move non-live path if in past
+			// replacement paths currently not implemented, so make a new path every time a path is moved in the past
+			if (!makePath (time, units)) throw new SystemException("make non-live path failed when moving units");
+			path2 = g.paths.Count - 1;
+		}
+		else {
+			foreach (int unit in nodes[node].units) {
+				if (!units.Contains (unit)) {
+					// some units in path aren't being moved, so make a new path
+					// TODO: also try to delete unit from old path
+					// TODO: this doesn't add path to tiles b/c new path's timeSimPast != long.MaxValue, should be fixed after implementing updatePast()
+					if (!makePath (time, units)) throw new SystemException("make new path failed when moving units");
+					path2 = g.paths.Count - 1;
+					break;
+				}
 			}
 		}
 		g.paths[path2].moveTo (time, pos);
@@ -237,10 +278,12 @@ public class Path {
 	}
 
 	/// <summary>
-	/// let unit be updated in the present (i.e., stop time traveling) starting at timeSim
+	/// let path be updated in the present (i.e., stop time traveling) starting at timeSim
 	/// </summary>
 	public void goLive() {
-		throw new NotImplementedException();
+		timeSimPast = long.MaxValue;
+		FP.Vector pos = calcPos(g.timeSim);
+		g.events.add(new TileMoveEvt(g.timeSim, id, (int)(pos.x >> FP.Precision), (int)(pos.y >> FP.Precision)));
 	}
 
 	public void beUnseen(long time) {
@@ -250,6 +293,16 @@ public class Path {
 	public void beSeen(long time) {
 		nodes[insertNode(time)].unseen = false;
 		// TODO: delete all child paths made before time unseen
+	}
+	
+	/// <summary>
+	/// removes all units from path at specified time if doing so wouldn't affect anything that another player saw
+	/// </summary>
+	public void removeAllUnits(long time) {
+		int node = getNode (time);
+		while (nodes[node].units.Count > 0) {
+			if (!removeUnit(long.MaxValue, nodes[node].units[0])) throw new SystemException("failed to remove a unit from path " + id);
+		}
 	}
 
 	/// <summary>
@@ -378,8 +431,12 @@ public class Path {
 				g.paths[path].addConnectedPath (time, g.paths.Count - 1);
 			}
 			addConnectedPath (time, g.paths.Count - 1);
+			// if this path isn't live, new path can't be either
+			if (timeSimPast != long.MaxValue) g.paths[g.paths.Count - 1].timeSimPast = time;
 			// indicate to calculate TileMoveEvts for new path starting at timeSim
 			if (!g.movedPaths.Contains(g.paths.Count - 1)) g.movedPaths.Add(g.paths.Count - 1);
+			// if new path isn't live, indicate that player now has a non-live path
+			if (g.paths[g.paths.Count - 1].timeSimPast != long.MaxValue) g.players[player].hasNonLivePaths = true;
 			return true;
 		}
 		return false;

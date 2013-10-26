@@ -147,7 +147,7 @@ public class Unit {
 			if (!delete(g.timeSim)) throw new SystemException("unit not deleted successfully after moving off exclusive area");
 			return;
 		}
-		// delete unit if unit moves off exclusive area or tile that unit is on stops being exclusive
+		// delete unit if unit moves off exclusive area or tile that unit moves to stops being exclusive
 		if (evt != null) {
 			do {
 				if (evt.tileX != int.MinValue) tX = evt.tileX;
@@ -420,7 +420,7 @@ public class Unit {
 			// indicate to calculate TileMoveEvts for new unit starting at timeSim
 			if (!g.movedPaths.Contains(g.nUnits - 1)) g.movedPaths.Add(g.nUnits - 1);
 			// if new unit isn't live, indicate that player now has a non-live unit
-			if (!g.units[g.nUnits - 1].isLive(time)) g.players[player].hasNonLiveUnits = true;
+			if (!g.units[g.nUnits - 1].isLive(time)) g.players[player].hasNonLivePaths = true;
 			return true;
 		}
 		return false;
