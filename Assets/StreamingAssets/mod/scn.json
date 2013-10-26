@@ -65,8 +65,10 @@
       "reload": 2000,
       "range": 3,
       "tightFormationSpacing": 2,
-      "makeUnitMinDist": 2,
-      "makeUnitMaxDist": 4,
+      "makeUnitMinDist": 4,
+      "makeUnitMaxDist": 8,
+      "makePathMinDist": 2,
+      "makePathMaxDist": 4,
       "selRadius": 16,
       "canMake": ["Building", "Mine"],
       "damage":
@@ -93,8 +95,10 @@
       "reload": 2000,
       "range": 6,
       "tightFormationSpacing": 2,
-      "makeUnitMinDist": 2,
-      "makeUnitMaxDist": 4,
+      "makeUnitMinDist": 4,
+      "makeUnitMaxDist": 8,
+      "makePathMinDist": 2,
+      "makePathMaxDist": 4,
       "selRadius": 16,
       "damage":
       {
@@ -114,8 +118,6 @@
       "imgHalfHeight": 2,
       "maxHealth": 500,
       "speed": 0,
-      "makeUnitMinDist": 4,
-      "makeUnitMaxDist": 8,
       "selRadius": 32,
       "canMake": ["Worker", "Marine"],
       "rscCost":

@@ -272,6 +272,8 @@ public class App : MonoBehaviour {
 				unitT.tightFormationSpacing = jsonFP(jsonO, "tightFormationSpacing");
 				unitT.makeUnitMinDist = jsonFP(jsonO, "makeUnitMinDist");
 				unitT.makeUnitMaxDist = jsonFP(jsonO, "makeUnitMaxDist");
+				unitT.makePathMinDist = jsonFP(jsonO, "makePathMinDist");
+				unitT.makePathMaxDist = jsonFP(jsonO, "makePathMaxDist");
 				unitT.rscCost = new long[g.nRsc];
 				unitT.rscCollectRate = new long[g.nRsc];
 				for (j = 0; j < g.nRsc; j++) {
@@ -1012,17 +1014,33 @@ public class App : MonoBehaviour {
 	}
 
 	/// <summary>
-	/// returns where new unit can move out of the way after specified unit makes it
+	/// returns where new unit of specified type can move out of the way after specified path makes it
 	/// </summary>
-	/// <remarks>chooses a random location between makeUnitMinDist and makeUnitMaxDist away from unit</remarks>
-	private FP.Vector makeUnitMovePos(long time, int unit) {
+	/// <remarks>chooses a random location between makeUnitMinDist and makeUnitMaxDist away from path</remarks>
+	private FP.Vector makeUnitMovePos(long time, int path, int type) {
 		FP.Vector ret;
 		do {
-			ret = new FP.Vector((long)((UnityEngine.Random.value - 0.5) * g.unitT[g.units[unit].type].makeUnitMaxDist * 2),
-				(long)((UnityEngine.Random.value - 0.5) * g.unitT[g.units[unit].type].makeUnitMaxDist * 2));
-		} while (ret.lengthSq() < g.unitT[g.units[unit].type].makeUnitMinDist * g.unitT[g.units[unit].type].makeUnitMinDist
-			&& ret.lengthSq() > g.unitT[g.units[unit].type].makeUnitMaxDist * g.unitT[g.units[unit].type].makeUnitMaxDist);
-		return ret + g.units[unit].calcPos(time);
+			ret = new FP.Vector((long)((UnityEngine.Random.value - 0.5) * g.unitT[type].makeUnitMaxDist * 2),
+				(long)((UnityEngine.Random.value - 0.5) * g.unitT[type].makeUnitMaxDist * 2));
+		} while (ret.lengthSq() < g.unitT[type].makeUnitMinDist * g.unitT[type].makeUnitMinDist
+			|| ret.lengthSq() > g.unitT[type].makeUnitMaxDist * g.unitT[type].makeUnitMaxDist);
+		return ret + g.paths[path].calcPos(time);
+	}
+
+	/// <summary>
+	/// returns where new path with specified units can move out of the way after specified path makes it
+	/// </summary>
+	/// <remarks>chooses a random location between makePathMinDist() and makePathMaxDist() away from path</remarks>
+	private FP.Vector makePathMovePos(long time, int path, List<int> units) {
+		long makePathMinDist = g.paths[path].makePathMinDist (time, units);
+		long makePathMaxDist = g.paths[path].makePathMaxDist (time, units);
+		FP.Vector ret;
+		do {
+			ret = new FP.Vector((long)((UnityEngine.Random.value - 0.5) * makePathMaxDist * 2),
+				(long)((UnityEngine.Random.value - 0.5) * makePathMaxDist * 2));
+		} while (ret.lengthSq() < makePathMinDist * makePathMinDist
+			|| ret.lengthSq() > makePathMaxDist * makePathMaxDist);
+		return ret + g.paths[path].calcPos(time);
 	}
 	
 	/// <summary>
@@ -1032,9 +1050,7 @@ public class App : MonoBehaviour {
 		if (selPaths.Count > 0) {
 			Dictionary<int, FP.Vector> pos = new Dictionary<int, FP.Vector>();
 			foreach (KeyValuePair<int, List<int>> path in selPaths) {
-				pos[path.Key] = g.paths[path.Key].calcPos (timeGame + 1);
-				// STACK TODO: implement line below instead of line above
-				//if (g.units[selPaths[i]].exists(timeGame + 1)) pos[i] = makeUnitMovePos(timeGame + 1, selPaths[i]);
+				if (timeGame + 1 >= g.paths[path.Key].nodes[0].time) pos[path.Key] = makePathMovePos(timeGame + 1, path.Key, path.Value);
 			}
 			// happens at newCmdTime() + 1 so new path starts out live if game is live
 			g.cmdPending.add(new MakePathCmdEvt(g.timeSim, newCmdTime() + 1, selPathsCopy(), pos));
@@ -1075,7 +1091,7 @@ public class App : MonoBehaviour {
 				Dictionary<int, int[]> pathArray = new Dictionary<int, int[]>();
 				pathArray.Add (path.Key, path.Value.ToArray ());
 				// happens at newCmdTime() + 1 so new unit starts out live if game is live
-				g.cmdPending.add(new MakeUnitCmdEvt(g.timeSim, newCmdTime() + 1, pathArray, type, g.paths[path.Key].calcPos (timeGame + 1))); // STACK TODO: call makeUnitMovePos instead of calcPos
+				g.cmdPending.add(new MakeUnitCmdEvt(g.timeSim, newCmdTime() + 1, pathArray, type, makeUnitMovePos (timeGame + 1, path.Key, type)));
 				break;
 			}
 			else if (g.unitsCanMake (path.Value, type)) {

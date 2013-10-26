@@ -597,6 +597,32 @@ public class Path {
 		}
 		return ret + calcPos(time);
 	}
+	
+	/// <summary>
+	/// returns minimum distance that paths branching off from this path should move away
+	/// </summary>
+	public long makePathMinDist(long time, List<int> units) {
+		long ret = 0;
+		foreach (int unit in nodes[getNode (time)].units) {
+			if (units.Contains (unit) && g.unitT[g.units[unit].type].makePathMinDist > ret) {
+				ret = g.unitT[g.units[unit].type].makePathMinDist;
+			}
+		}
+		return ret;
+	}
+	
+	/// <summary>
+	/// returns maximum distance that paths branching off from this path should move away
+	/// </summary>
+	public long makePathMaxDist(long time, List<int> units) {
+		long ret = 0;
+		foreach (int unit in nodes[getNode (time)].units) {
+			if (units.Contains (unit) && g.unitT[g.units[unit].type].makePathMaxDist > ret) {
+				ret = g.unitT[g.units[unit].type].makePathMaxDist;
+			}
+		}
+		return ret;
+	}
 
 	/// <summary>
 	/// returns whether path is known to not be seen by another player at latest known time

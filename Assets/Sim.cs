@@ -65,8 +65,10 @@ public class Sim {
 		public long reload; // time needed to reload
 		public long range; // range of attack
 		public long tightFormationSpacing;
-		public long makeUnitMinDist; // minimum distance that units that this unit type makes should move away
-		public long makeUnitMaxDist; // maximum distance that units that this unit type makes should move away
+		public long makeUnitMinDist; // minimum distance that new units of this unit type move away
+		public long makeUnitMaxDist; // maximum distance that new units of this unit type move away
+		public long makePathMinDist; // minimum distance that new paths of this unit type move away
+		public long makePathMaxDist; // maximum distance that new paths of this unit type move away
 		public int makeOnUnitT; // unit type that this unit type should be made on top of
 		public int[] damage; // damage done per attack to each unit type
 		public bool[] canMake; // whether can make each unit type

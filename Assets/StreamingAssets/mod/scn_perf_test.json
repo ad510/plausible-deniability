@@ -48,8 +48,8 @@
       "reload": 2000,
       "range": 12,
       "tightFormationSpacing": 4,
-      "makeUnitMinDist": 2,
-      "makeUnitMaxDist": 4,
+      "makePathMinDist": 2,
+      "makePathMaxDist": 4,
       "selRadius": 16,
       "damage":
       {
