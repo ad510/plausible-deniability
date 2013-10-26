@@ -185,7 +185,6 @@ public class Path {
 				if (!units.Contains (unit)) {
 					// some units in path aren't being moved, so make a new path
 					// TODO: also try to delete unit from old path
-					// TODO: this doesn't add path to tiles b/c new path's timeSimPast != long.MaxValue, should be fixed after implementing updatePast()
 					if (!makePath (time, units)) throw new SystemException("make new path failed when moving units");
 					path2 = g.paths.Count - 1;
 					break;

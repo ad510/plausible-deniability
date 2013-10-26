@@ -225,8 +225,7 @@ public class MakeUnitCmdEvt : CmdEvt {
 			if (movePath >= 0) {
 				Dictionary<int, int[]> evtPaths = new Dictionary<int, int[]>(paths);
 				movePath = g.paths[movePath].moveTo(timeCmd, new List<int>(exPaths[movePath]), pos);
-				// STACK TODO: implement line below
-				//unitsList.Insert(0, moveUnit); // in case replacement unit is moving to make the unit
+				if (!evtPaths.ContainsKey (movePath)) evtPaths.Add (movePath, g.paths[movePath].nodes[0].units.ToArray ()); // in case replacement path is moving to make the unit
 				g.events.add(new MakeUnitCmdEvt(g.paths[movePath].moves[g.paths[movePath].moves.Count - 1].timeEnd, g.paths[movePath].moves[g.paths[movePath].moves.Count - 1].timeEnd + 1,
 					evtPaths, type, pos, true));
 			}
