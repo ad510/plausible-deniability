@@ -1107,10 +1107,9 @@ public class App : MonoBehaviour {
 	/// </summary>
 	private bool pathDrawPos(int path, ref Vector3 pos) {
 		FP.Vector fpVec;
-		if (timeGame < g.paths[path].moves[0].timeStart) return false; // STACK TODO: use smarter checks
-		//if (!g.units[path].exists(timeGame) || (selPlayer != g.units[path].player && !g.units[path].isLive(timeGame))) return false;
+		if (timeGame < g.paths[path].moves[0].timeStart || (selPlayer != g.paths[path].player && g.paths[path].timeSimPast != long.MaxValue)) return false;
 		fpVec = g.paths[path].calcPos(timeGame);
-		//if (selPlayer != g.units[path].player && !g.tileAt(fpVec).playerVisWhen(selPlayer, timeGame)) return false;
+		if (selPlayer != g.paths[path].player && !g.tileAt(fpVec).playerVisWhen(selPlayer, timeGame)) return false;
 		pos = simToDrawPos(fpVec, UnitDepth);
 		return true;
 	}
