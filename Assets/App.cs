@@ -963,7 +963,7 @@ public class App : MonoBehaviour {
 			ret = new FP.Vector((long)((UnityEngine.Random.value - 0.5) * g.unitT[g.units[unit].type].makeUnitMaxDist * 2),
 				(long)((UnityEngine.Random.value - 0.5) * g.unitT[g.units[unit].type].makeUnitMaxDist * 2));
 		} while (ret.lengthSq() < g.unitT[g.units[unit].type].makeUnitMinDist * g.unitT[g.units[unit].type].makeUnitMinDist
-			&& ret.lengthSq() > g.unitT[g.units[unit].type].makeUnitMaxDist * g.unitT[g.units[unit].type].makeUnitMaxDist);
+			|| ret.lengthSq() > g.unitT[g.units[unit].type].makeUnitMaxDist * g.unitT[g.units[unit].type].makeUnitMaxDist);
 		return ret + g.units[unit].calcPos(time);
 	}
 	
