@@ -304,8 +304,7 @@ public class StackCmdEvt : CmdEvt {
 		stackPath = stackPathVal;
 	}
 	
-	public override void apply (Sim g)
-	{
+	public override void apply (Sim g) {
 		Dictionary<int, List<int>> exPaths = existingPaths (g);
 		List<int> movedPaths = new List<int>();
 		base.apply (g);
@@ -499,8 +498,7 @@ public class StackEvt : SimEvt {
 		paths = pathsVal;
 	}
 	
-	public override void apply (Sim g)
-	{
+	public override void apply (Sim g) {
 		bool[] pathsStacked = new bool[paths.Length];
 		for (int i = 0; i < pathsStacked.Length; i++) {
 			pathsStacked[i] = (time < g.paths[paths[i]].moves[0].timeStart);
@@ -525,13 +523,7 @@ public class StackEvt : SimEvt {
 							iNode = g.paths[paths[i]].addConnectedPath (time, paths[j]);
 							jNode = g.paths[paths[j]].getNode (time);
 							g.paths[paths[i]].nodes[iNode].units = stackUnits;
-							try {
-								// STACK TODO: line below seems to always fail
-								g.paths[paths[j]].removeAllUnits (time);
-							}
-							catch (SystemException ex) {
-								Debug.LogException (ex);
-							}
+							g.paths[paths[j]].removeAllUnits (time); // STACK TODO: this fails if path is seen
 							pathsStacked[i] = true;
 							pathsStacked[j] = true;
 						}
