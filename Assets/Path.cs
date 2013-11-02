@@ -21,7 +21,7 @@ public class Path {
 			time = timeVal;
 			paths = new List<int>();
 			units = unitsVal;
-			unseenVal = unseen;
+			unseen = unseenVal;
 		}
 	}
 	
