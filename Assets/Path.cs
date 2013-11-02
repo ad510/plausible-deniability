@@ -162,7 +162,7 @@ public class Path {
 	
 	public int insertNode(long time) {
 		int node = getNode (time);
-		if (node < 0 || nodes[node].time == time) return node;
+		if (node >= 0 && nodes[node].time == time) return node;
 		nodes.Insert (node + 1, new Node(time, new List<int>(nodes[node].units), nodes[node].unseen));
 		return node + 1;
 	}
