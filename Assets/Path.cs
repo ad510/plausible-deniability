@@ -326,7 +326,8 @@ public class Path {
 				bool foundSharedParent = false;
 				foreach (int path in g.paths[parentPaths[i]].nodes[parentNodes[i]].paths) {
 					int node = g.paths[path].getNode (nodes[parentNodes[i]].time);
-					if (g.paths[path].nodes[node].units.Contains (unit)) {
+					if (g.paths[path].nodes[node].units.Contains (unit)
+						&& (g.paths[path].timeSimPast == long.MaxValue || timeSimPast != long.MaxValue)) {
 						// found a path with the same child unit as us
 						int index = parentPaths.IndexOf (path);
 						if (index < 0 || parentNodes[index] != node) {
