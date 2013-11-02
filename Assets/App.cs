@@ -649,13 +649,12 @@ public class App : MonoBehaviour {
 						sprUnits[i][j].type = g.units[unit].type;
 						sprUnits[i][j].player = g.units[unit].player;
 					}
-					// STACK TODO: uncomment part below after implementing isLive()
-					/*if (g.units[i].isLive(timeGame)) {
+					if (g.paths[i].timeSimPast == long.MaxValue) {
 						sprUnits[i][j].sprite.renderer.material.color = new Color(1, 1, 1, 1);
 					}
 					else {
 						sprUnits[i][j].sprite.renderer.material.color = new Color(1, 1, 1, 0.5f); // TODO: make transparency amount customizable
-					}*/
+					}
 					sprUnits[i][j].sprite.transform.position = vec + simToDrawScl (g.unitT[g.units[unit].type].imgOffset);
 					sprUnits[i][j].sprite.transform.localScale = unitScale (g.units[unit].type, g.units[unit].player);
 					sprUnits[i][j].sprite.renderer.enabled = true;
