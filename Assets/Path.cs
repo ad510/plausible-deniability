@@ -325,7 +325,7 @@ public class Path {
 				if (parentPaths[i] < g.nRootPaths && parentNodes[i] == 0) return false;
 				bool foundSharedParent = false;
 				foreach (int path in g.paths[parentPaths[i]].nodes[parentNodes[i]].paths) {
-					int node = g.paths[path].getNode (nodes[parentNodes[i]].time);
+					int node = g.paths[path].getNode (g.paths[parentPaths[i]].nodes[parentNodes[i]].time);
 					if (g.paths[path].nodes[node].units.Contains (unit)
 						&& (g.paths[path].timeSimPast == long.MaxValue || timeSimPast != long.MaxValue)) {
 						// found a path with the same child unit as us
@@ -340,7 +340,7 @@ public class Path {
 						// removeUnitAfter() can take care of that
 						// TODO: as long as removeUnitAfter() doesn't delete any nodes
 					}
-					if (isChildPathOf (path, unit, node, parentNodes[i])) {
+					if (g.paths[parentPaths[i]].isChildPathOf (path, unit, node, parentNodes[i])) {
 						// found a parent path containing this unit, so remove unit from this path too
 						parentPaths.Add (path);
 						parentNodes.Add (node - 1);
@@ -348,7 +348,7 @@ public class Path {
 				}
 				if (foundSharedParent) break;
 				// if we are at earliest node containing this unit, break
-				if (!isChildPathOf (parentPaths[i], unit, parentNodes[i], parentNodes[i])) break;
+				if (!g.paths[parentPaths[i]].isChildPathOf (parentPaths[i], unit, parentNodes[i], parentNodes[i])) break;
 				// otherwise, look at previous node
 				parentNodes[i]--;
 			}
