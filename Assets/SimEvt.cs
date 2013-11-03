@@ -198,18 +198,22 @@ public class MakeUnitCmdEvt : CmdEvt {
 		if (!autoRepeat) base.apply(g);
 		// make unit at requested position, if possible
 		foreach (int path in exPaths.Keys) {
-			if (g.paths[path].canMakeUnitType (timeCmd, type)) {
-				FP.Vector curPos = g.paths[path].calcPos(timeCmd);
-				if ((pos.x == curPos.x && pos.y == curPos.y) || (g.unitT[type].speed > 0 && g.unitT[type].makeOnUnitT < 0)) {
-					// TODO: take time to make units?
-					List<int> unitList = new List<int>();
-					unitList.Add (g.nUnits);
-					g.setNUnits (g.nUnits + 1);
-					g.units[g.nUnits - 1] = new Unit(g, g.nUnits - 1, type, g.paths[path].player);
-					g.paths[path].makePath (timeCmd, unitList);
-					if (g.paths[g.paths.Count - 1].canMove (timeCmd)) g.paths[g.paths.Count - 1].moveTo (timeCmd, pos); // move new unit out of the way
-					return;
+			FP.Vector curPos = g.paths[path].calcPos(timeCmd);
+			if ((pos.x == curPos.x && pos.y == curPos.y) || (g.unitT[type].speed > 0 && g.unitT[type].makeOnUnitT < 0)) {
+				// TODO: take time to make units?
+				List<int> unitList = new List<int>();
+				unitList.Add (g.nUnits);
+				g.setNUnits (g.nUnits + 1);
+				g.units[g.nUnits - 1] = new Unit(g, g.nUnits - 1, type, g.paths[path].player);
+				if (g.paths[path].makePath (timeCmd, unitList)) {
+					if (g.paths[g.paths.Count - 1].canMove (timeCmd)) {
+						g.paths[g.paths.Count - 1].moveTo (timeCmd, pos); // move new unit out of the way
+					}
 				}
+				else {
+					g.setNUnits (g.nUnits - 1);
+				}
+				return;
 			}
 		}
 		if (!autoRepeat) {
@@ -219,7 +223,13 @@ public class MakeUnitCmdEvt : CmdEvt {
 			foreach (KeyValuePair<int, List<int>> path in exPaths) {
 				if (g.unitsCanMake (path.Value, type) && g.paths[path.Key].canMove (timeCmd)
 					&& (movePath < 0 || (g.paths[path.Key].calcPos(timeCmd) - pos).lengthSq() < (g.paths[movePath].calcPos(timeCmd) - pos).lengthSq())) {
-					movePath = path.Key;
+					bool newPathIsLive = (time >= g.timeSim && g.paths[path.Key].timeSimPast == long.MaxValue);
+					int i;
+					for (i = 0; i < g.nRsc; i++) {
+						// TODO: may be more permissive by passing in max = true, but this really complicates removeUnit() algorithm (see planning notes)
+						if (g.playerResource(g.paths[path.Key].player, time, i, false, !newPathIsLive) < g.unitT[type].rscCost[i]) break;
+					}
+					if (i == g.nRsc) movePath = path.Key;
 				}
 			}
 			if (movePath >= 0) {

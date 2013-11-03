@@ -375,6 +375,7 @@ public class Path {
 		return true;
 	}
 	
+	// TODO: this is similar to unseenAfter, is it possible to put shared code into a function?
 	private bool removeUnitAfter(int node, int unit, ref List<int> rmPaths, ref List<int> rmNodes) {
 		int curNode = node;
 		while (nodes[curNode].units.Contains (unit)) {
@@ -404,6 +405,7 @@ public class Path {
 						bool foundAnotherParent = false;
 						foreach (int path3 in g.paths[path2].nodes[node2].paths) {
 							int node3 = g.paths[path3].getNode (nodes[curNode].time);
+							// don't check id != path3 b/c already removed unit from this path, and need to check if other units in this path can make the unit
 							if (node3 > 0 && g.unitsCanMake (g.paths[path3].nodes[node3 - 1].units, g.units[unit2].type)) {
 								foundAnotherParent = true;
 								break;
@@ -412,6 +414,44 @@ public class Path {
 						if (!foundAnotherParent) {
 							// no other connected unit can make that unit, so delete that unit too
 							g.paths[path2].removeUnitAfter (node2, unit2, ref rmPaths, ref rmNodes);
+						}
+					}
+				}
+			}
+		}
+		return true;
+	}
+	
+	// TODO: this is similar to removeUnitAfter, is it possible to put shared code into a function?
+	private bool unseenAfter(int node, int unit) {
+		int curNode = node;
+		while (nodes[curNode].units.Contains (unit)) {
+			if (!nodes[curNode].unseen) return false;
+			curNode++;
+			if (curNode == nodes.Count) break;
+			foreach (int path2 in nodes[curNode].paths) {
+				int node2 = g.paths[path2].getNode (nodes[curNode].time);
+				foreach (int unit2 in g.paths[path2].nodes[node2].units) {
+					if (unit == unit2) {
+						// check child path
+						if (!g.paths[path2].unseenAfter (node2, unit)) return false;
+					}
+					else if (g.unitT[g.units[unit].type].canMake[g.units[unit2].type] && !g.paths[path2].isChildPath (unit2, node2)) {
+						// found a unit that this unit can make, check if any other connected unit can make it
+						// don't check path2 because I'm currently not planning any GUI to make a child unit in the same path as its parent
+						bool foundAnotherParent = false;
+						foreach (int path3 in g.paths[path2].nodes[node2].paths) {
+							int node3 = g.paths[path3].getNode (nodes[curNode].time);
+							List<int> units3 = new List<int>(g.paths[path3].nodes[node3 - 1].units);
+							units3.Remove (unit);
+							if (node3 > 0 && g.unitsCanMake (units3, g.units[unit2].type)) {
+								foundAnotherParent = true;
+								break;
+							}
+						}
+						if (!foundAnotherParent) {
+							// no other connected unit can make that unit
+							if (!g.paths[path2].unseenAfter (node2, unit2)) return false;
 						}
 					}
 				}
@@ -446,13 +486,53 @@ public class Path {
 	/// returns whether this path can make a new path as specified
 	/// </summary>
 	public bool canMakePath(long time, List<int> units) {
-		// TODO: check tile exclusivity if not live, whether unit types can be made, resources
-		return units.Count > 0;
+		if (units.Count == 0) return false;
+		int node = getNode(time);
+		if (node < 0) return false;
+		long[] rscCost = new long[g.nRsc];
+		foreach (int unit in units) {
+			if (nodes[node].units.Contains (unit)) {
+				// unit in path would be child path
+				// check parent made before (not at same time as) child, so it's unambiguous who is the parent
+				if (!canBeUnambiguousParent (time, node, unit)) return false;
+				// check parent unit won't be seen later
+				if (!unseenAfter (node, unit)) return false;
+			}
+			else {
+				if (!canMakeUnitType (time, g.units[unit].type)) return false;
+				// unit in path would be non-path child unit
+				for (int i = 0; i < g.nRsc; i++) {
+					rscCost[i] += g.unitT[g.units[unit].type].rscCost[i];
+				}
+			}
+		}
+		bool newPathIsLive = (time >= g.timeSim && timeSimPast == long.MaxValue);
+		for (int i = 0; i < g.nRsc; i++) {
+			// TODO: may be more permissive by passing in max = true, but this really complicates removeUnit() algorithm (see planning notes)
+			if (g.playerResource(player, time, i, false, !newPathIsLive) < rscCost[i]) return false;
+		}
+		return true;
 	}
 	
 	public bool canMakeUnitType(long time, int type) {
-		if (time < nodes[0].time) return false;
-		return g.unitsCanMake (nodes[getNode (time)].units, type);
+		int node = getNode (time);
+		if (node >= 0) {
+			foreach (int unit in nodes[node].units) {
+				if (g.unitT[g.units[unit].type].canMake[type] && canBeUnambiguousParent (time, node, unit)
+					&& (time >= g.timeSim || unseenAfter (node, unit))) {
+					return true;
+				}
+			}
+		}
+		return false;
+	}
+	
+	/// <summary>
+	/// returns whether specified unit is in path before specified time,
+	/// so if it makes a child unit, it's unambiguous who is the parent
+	/// </summary>
+	private bool canBeUnambiguousParent(long time, int node, int unit) {
+		return nodes[node].time < time || (node > 0 && nodes[node - 1].units.Contains (unit));
 	}
 
 	/// <summary>
