@@ -215,8 +215,16 @@ public class Path {
 	/// returns whether allowed to move at specified time
 	/// </summary>
 	public bool canMove(long time) {
-		// TODO: check whether seen later, maybe make overloaded version that also checks units
-		return time >= moves[0].timeStart && speed > 0;
+		// TODO: maybe make overloaded version that also checks units
+		if (time < moves[0].timeStart || speed <= 0) return false;
+		if (time < g.timeSim) {
+			int node = getNode (time);
+			if (node < 0) return false;
+			foreach (int unit in nodes[node].units) {
+				if (!unseenAfter (node, unit)) return false;
+			}
+		}
+		return true;
 	}
 
 	/// <summary>
