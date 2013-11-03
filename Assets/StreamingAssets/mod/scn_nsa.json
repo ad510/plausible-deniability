@@ -1,0 +1,113 @@
+{
+  "mapSize": 256,
+  "updateInterval": 200,
+  "visRadius": 8,
+  "camSpeed": 0.1,
+  "zoom": 0.01,
+  "zoomMin": 0.002,
+  "zoomMax": 0.05,
+  "zoomSpeed": 0.001,
+  "zoomMouseWheelSpeed": 1,
+  "uiBarHeight": 0.2,
+  "healthBarSize": {"x": 0.017, "y": 0.005},
+  "healthBarYOffset": 0.005,
+  "backCol": {"r": 0, "g": 0, "b": 0},
+  "borderCol": {"r": 1, "g": 0.5, "b": 0},
+  "noVisCol": {"r": 0, "g": 0, "b": 0},
+  "playerVisCol": {"r": 0, "g": 0.3, "b": 0},
+  "unitVisCol": {"r": 0, "g": 0.3, "b": 0},
+  "exclusiveCol": {"r": 0.5, "g": 0, "b": 0},
+  "pathCol": {"r": 0, "g": 1, "b": 1},
+  "healthBarBackCol": {"r": 0, "g": 0, "b": 0},
+  "healthBarFullCol": {"r": 0, "g": 1, "b": 0},
+  "healthBarEmptyCol": {"r": 1, "g": 0, "b": 0},
+  "music": "",
+  "resources": ["Minerals"],
+  "players":
+  [
+    {
+      "name": "Blue",
+      "isUser": true,
+      "user": 0,
+      "startRsc":
+      {
+        "Minerals": 20
+      },
+    },
+    {
+      "name": "Red",
+      "isUser": true,
+      "user": 1,
+      "startRsc":
+      {
+        "Minerals": 4242
+      },
+    },
+    {
+      "name": "Resources",
+      "isUser": false,
+      "user": -2
+    }
+  ],
+  "unitTypes":
+  [
+    {
+      "name": "Marine",
+      "imgPath": "marine.png",
+      "imgOffset": {"y": 2},
+      "imgHalfHeight": 2,
+      "selMinPos": {"x": -1, "y": 0},
+      "selMaxPos": {"x": 1, "y": 3},
+      "maxHealth": 50,
+      "speed": 0.004,
+      "reload": 2000,
+      "range": 6,
+      "tightFormationSpacing": 2,
+      "makeUnitMinDist": 2,
+      "makeUnitMaxDist": 4,
+      "selRadius": 6,
+      "damage":
+      {
+        "Worker": 10,
+        "Marine": 10,
+        "Building": 10,
+        "Mine": 10
+      },
+      "rscCost":
+      {
+        "Minerals": 5
+      }
+    },
+    {
+      "name": "Datacenter",
+      "imgPath": "red.building.png",
+      "imgHalfHeight": 2,
+      "maxHealth": 1337,
+      "speed": 0,
+      "makeUnitMinDist": 4,
+      "makeUnitMaxDist": 8,
+      "selRadius": 32,
+      "canMake": ["Marine"],
+      "rscCost":
+      {
+        "Minerals": 5000
+      }
+    },
+  ],
+  "units":
+  [
+    {
+      "type": "Marine",
+      "player": "Blue",
+      "startPos": 
+      {
+        "x": 128,
+        "y": 128
+      }
+    },
+    {
+      "type": "Datacenter",
+      "player": "Red",
+    }
+  ]
+}

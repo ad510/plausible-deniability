@@ -140,7 +140,7 @@ public class App : MonoBehaviour {
 		lblStyle = GUIStyle.none;
 		lblStyle.fontSize = (int)(Screen.height * FntSize);
 		lblStyle.normal.textColor = Color.white;
-		if (!scnOpen (appPath + modPath + "scn.json", 0, false)) {
+		if (!scnOpen (appPath + modPath + "scn_nsa.json", 0, false)) {
 			Debug.LogError ("Scenario failed to load.");
 		}
 	}
