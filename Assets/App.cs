@@ -994,8 +994,8 @@ public class App : MonoBehaviour {
 				foreach (Path path in g.paths) {
 					if (timeGame >= path.nodes[0].time) {
 						vec = path.calcPos(timeGame);
-						// STACK TODO: master branch checked g.tileAt(vec).playerVisWhen(selPlayer, timeGame)
-						if (FP.rectContains (path.selMinPos (timeGame), path.selMaxPos (timeGame), drawToSimPos (Input.mousePosition))) {
+						if (g.tileAt (vec).playerVisWhen (selPlayer, timeGame)
+							&& FP.rectContains (path.selMinPos (timeGame), path.selMaxPos (timeGame), drawToSimPos (Input.mousePosition))) {
 							foreach (int unit in path.nodes[path.getNode (timeGame)].units) {
 								if (g.units[unit].type == g.unitT[makeUnitType].makeOnUnitT) {
 									return vec;
