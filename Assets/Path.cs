@@ -377,7 +377,7 @@ public class Path {
 		// remove paths that no longer contain units from visibility tiles
 		foreach (int path in rmPaths.Distinct ()) {
 			if (g.paths[path].tileX != Sim.OffMap && g.paths[path].nodes[g.paths[path].nodes.Count - 1].units.Count == 0) {
-				g.events.add(new TileMoveEvt(g.timeSim, id, Sim.OffMap, 0));
+				g.events.add(new TileMoveEvt(g.timeSim, path, Sim.OffMap, 0));
 			}
 		}
 		return true;
