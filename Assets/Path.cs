@@ -184,8 +184,8 @@ public class Path {
 			foreach (int unit in nodes[node].units) {
 				if (!units.Contains (unit)) {
 					// some units in path aren't being moved, so make a new path
-					// TODO: also try to delete unit from old path
 					if (!makePath (time, units)) throw new SystemException("make new path failed when moving units");
+					//removeUnit (time, unit); // TODO: this fails because new path isn't live yet
 					path2 = g.paths.Count - 1;
 					break;
 				}
@@ -256,6 +256,7 @@ public class Path {
 		move = getMove(timeMax);
 		if (moveLast < 0) {
 			// put path on visibility tiles for the first time
+			// TODO: do this manually in scnOpen and makePath? then paths made at timeSim can start out live
 			events.add(new TileMoveEvt(moves[0].timeStart, id, (int)(moves[0].vecStart.x >> FP.Precision), (int)(moves[0].vecStart.y >> FP.Precision)));
 			moveLast = 0;
 		}
@@ -280,6 +281,7 @@ public class Path {
 		}
 		if (nodes[nodes.Count - 1].units.Count == 0 && nodes[getNode (timeMin)].units.Count > 0) {
 			// path no longer contains any units
+			// TODO: do this directly in takeHealth?
 			g.events.add(new TileMoveEvt(nodes[nodes.Count - 1].time, id, Sim.OffMap, 0));
 		}
 	}
