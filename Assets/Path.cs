@@ -452,11 +452,13 @@ public class Path {
 						bool foundAnotherParent = false;
 						foreach (int path3 in g.paths[path2].nodes[node2].paths) {
 							int node3 = g.paths[path3].getNode (nodes[curNode].time);
-							List<int> units3 = new List<int>(g.paths[path3].nodes[node3 - 1].units);
-							units3.Remove (unit);
-							if (node3 > 0 && g.unitsCanMake (units3, g.units[unit2].type)) {
-								foundAnotherParent = true;
-								break;
+							if (node3 > 0) {
+								List<int> units3 = new List<int>(g.paths[path3].nodes[node3 - 1].units);
+								units3.Remove (unit);
+								if (g.unitsCanMake (units3, g.units[unit2].type)) {
+									foundAnotherParent = true;
+									break;
+								}
 							}
 						}
 						if (!foundAnotherParent) {
