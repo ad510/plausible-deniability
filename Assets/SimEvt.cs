@@ -533,7 +533,7 @@ public class StackEvt : SimEvt {
 							iNode = g.paths[paths[i]].addConnectedPath (time, paths[j]);
 							jNode = g.paths[paths[j]].getNode (time);
 							g.paths[paths[i]].nodes[iNode].units = stackUnits;
-							g.paths[paths[j]].removeAllUnits (time); // STACK TODO: this fails if path is seen
+							g.paths[paths[j]].removeAllUnits (time);
 							pathsStacked[i] = true;
 							pathsStacked[j] = true;
 						}

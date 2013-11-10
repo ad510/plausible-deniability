@@ -387,7 +387,7 @@ public class Path {
 	private bool removeUnitAfter(int node, int unit, ref List<int> rmPaths, ref List<int> rmNodes) {
 		int curNode = node;
 		while (nodes[curNode].units.Contains (unit)) {
-			if (!nodes[curNode].unseen) return false;
+			if (!nodes[curNode].unseen && nodes[curNode].time < g.timeSim) return false;
 			nodes[curNode].units.Remove (unit);
 			rmPaths.Add (id);
 			rmNodes.Add (curNode);
