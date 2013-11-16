@@ -618,8 +618,8 @@ public class Path {
 		int endNode = node;
 		long timeCollectEnd = (g.units[unit].healthWhen(time) == 0) ? g.units[unit].timeHealth[g.units[unit].nTimeHealth - 1] : time;
 		long ret = 0;
-		while (endNode < nodes.Count - 1 && nodes[endNode + 1].time <= time) endNode++;
-		for (int i = endNode; i > node && nodes[i - 1].units.Contains (unit); i--) {
+		while (endNode < nodes.Count - 1 && nodes[endNode].units.Contains (unit) && nodes[endNode + 1].time <= time) endNode++;
+		for (int i = endNode; i > node; i--) {
 			foreach (int path2 in nodes[i].paths) {
 				if (includeNonLiveChildren || g.paths[path2].timeSimPast == long.MaxValue) {
 					int node2 = g.paths[path2].getNode (nodes[i].time);
