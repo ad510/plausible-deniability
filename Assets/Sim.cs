@@ -433,7 +433,7 @@ public class Sim {
 		long ret = players[player].startRsc[rscType];
 		for (int i = 0; i < nRootPaths; i++) {
 			if (paths[i].player == player) {
-				foreach (int unit in paths[i].nodes[0].units) {
+				foreach (int unit in paths[i].segments[0].units) {
 					// STACK TODO: this will double-count units that are in multiple paths at beginning of scenario
 					ret += paths[i].rscCollected(time, 0, unit, rscType, max, includeNonLiveChildren);
 				}
@@ -450,10 +450,10 @@ public class Sim {
 		foreach (Path path in paths) {
 			// check all times since timeMin that a path of specified player was made
 			// note that new paths are made at App.newCmdTime() + 1
-			if (player == path.player && path.nodes[0].time >= timeMin && path.nodes[0].time <= timeSim + 1) {
+			if (player == path.player && path.segments[0].time >= timeMin && path.segments[0].time <= timeSim + 1) {
 				for (int i = 0; i < nRsc; i++) {
-					if (playerResource(player, path.nodes[0].time, i, false, includeNonLiveChildren) < 0) {
-						return path.nodes[0].time;
+					if (playerResource(player, path.segments[0].time, i, false, includeNonLiveChildren) < 0) {
+						return path.segments[0].time;
 					}
 				}
 			}

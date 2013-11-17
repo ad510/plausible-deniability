@@ -458,7 +458,7 @@ public class App : MonoBehaviour {
 								selPaths.Remove(i);
 							}
 							else {
-								selPaths.Add(i, new List<int>(g.paths[i].nodes[g.paths[i].getNode(timeGame)].units));
+								selPaths.Add(i, new List<int>(g.paths[i].segments[g.paths[i].getNode(timeGame)].units));
 							}
 							if (SelBoxMin > (Input.mousePosition - mouseDownPos[0]).sqrMagnitude) break;
 						}
@@ -625,9 +625,9 @@ public class App : MonoBehaviour {
 		// units
 		for (i = 0; i < g.paths.Count; i++) {
 			if (i == sprUnits.Count) sprUnits.Add (new List<UnitSprite>());
-			if (timeGame >= g.paths[i].nodes[0].time) {
+			if (timeGame >= g.paths[i].segments[0].time) {
 				node = g.paths[i].getNode (timeGame);
-				while (sprUnits[i].Count < g.paths[i].nodes[node].units.Count) sprUnits[i].Add (new UnitSprite(quadPrefab));
+				while (sprUnits[i].Count < g.paths[i].segments[node].units.Count) sprUnits[i].Add (new UnitSprite(quadPrefab));
 			}
 			else {
 				node = -1;
@@ -640,8 +640,8 @@ public class App : MonoBehaviour {
 				sprUnits[i][j].pathLine.enabled = false;
 			}
 			if (pathDrawPos(i, ref vec)) {
-				for (j = 0; j < g.paths[i].nodes[node].units.Count; j++) {
-					unit = g.paths[i].nodes[node].units[j];
+				for (j = 0; j < g.paths[i].segments[node].units.Count; j++) {
+					unit = g.paths[i].segments[node].units[j];
 					if (sprUnits[i][j].type != g.units[unit].type || sprUnits[i][j].player != g.units[unit].player) {
 						sprUnits[i][j].sprite.renderer.material.mainTexture = texUnits[g.units[unit].type, g.units[unit].player];
 						sprUnits[i][j].preview.renderer.material.mainTexture = texUnits[g.units[unit].type, g.units[unit].player];
@@ -696,8 +696,8 @@ public class App : MonoBehaviour {
 		foreach (int path in selPaths.Keys) {
 			if (pathDrawPos(path, ref vec)) {
 				node = g.paths[path].getNode (timeGame);
-				for (j = 0; j < g.paths[path].nodes[node].units.Count; j++) {
-					unit = g.paths[path].nodes[node].units[j];
+				for (j = 0; j < g.paths[path].segments[node].units.Count; j++) {
+					unit = g.paths[path].segments[node].units[j];
 					if (selPaths[path].Contains (unit)) {
 						f = ((float)g.units[unit].healthWhen(timeGame)) / g.unitT[g.units[unit].type].maxHealth;
 						f2 = vec.y + simToDrawScl (g.unitT[g.units[unit].type].selMaxPos.y) + g.healthBarYOffset * winDiag;
@@ -992,11 +992,11 @@ public class App : MonoBehaviour {
 				// selected unit type must be made on top of another unit of correct type
 				// TODO: prevent putting multiple units on same unit (unless on different paths of same unit and maybe some other cases)
 				foreach (Path path in g.paths) {
-					if (timeGame >= path.nodes[0].time) {
+					if (timeGame >= path.segments[0].time) {
 						vec = path.calcPos(timeGame);
 						if (g.tileAt (vec).playerVisWhen (selPlayer, timeGame)
 							&& FP.rectContains (path.selMinPos (timeGame), path.selMaxPos (timeGame), drawToSimPos (Input.mousePosition))) {
-							foreach (int unit in path.nodes[path.getNode (timeGame)].units) {
+							foreach (int unit in path.segments[path.getNode (timeGame)].units) {
 								if (g.units[unit].type == g.unitT[makeUnitType].makeOnUnitT) {
 									return vec;
 								}
@@ -1049,7 +1049,7 @@ public class App : MonoBehaviour {
 		if (selPaths.Count > 0) {
 			Dictionary<int, FP.Vector> pos = new Dictionary<int, FP.Vector>();
 			foreach (KeyValuePair<int, List<int>> path in selPaths) {
-				if (timeGame + 1 >= g.paths[path.Key].nodes[0].time) pos[path.Key] = makePathMovePos(timeGame + 1, path.Key, path.Value);
+				if (timeGame + 1 >= g.paths[path.Key].segments[0].time) pos[path.Key] = makePathMovePos(timeGame + 1, path.Key, path.Value);
 			}
 			// happens at newCmdTime() + 1 so new path starts out live if game is live
 			g.cmdPending.add(new MakePathCmdEvt(g.timeSim, newCmdTime() + 1, selPathsCopy(), pos));

@@ -67,11 +67,11 @@ public abstract class CmdEvt : SimEvt {
 	protected Dictionary<int, List<int>> existingPaths(Sim g) {
 		Dictionary<int, List<int>> ret = new Dictionary<int, List<int>>();
 		foreach (KeyValuePair<int, int[]> path in paths) {
-			if (timeCmd >= g.paths[path.Key].nodes[0].time) {
+			if (timeCmd >= g.paths[path.Key].segments[0].time) {
 				int node = g.paths[path.Key].getNode (timeCmd);
 				List<int> existingUnits = new List<int>();
 				foreach (int unit in path.Value) {
-					if (g.paths[path.Key].nodes[node].units.Contains (unit)) {
+					if (g.paths[path.Key].segments[node].units.Contains (unit)) {
 						if (!existingUnits.Contains (unit)) existingUnits.Add (unit);
 					}
 				}
@@ -235,7 +235,7 @@ public class MakeUnitCmdEvt : CmdEvt {
 			if (movePath >= 0) {
 				Dictionary<int, int[]> evtPaths = new Dictionary<int, int[]>(paths);
 				movePath = g.paths[movePath].moveTo(timeCmd, new List<int>(exPaths[movePath]), pos);
-				if (!evtPaths.ContainsKey (movePath)) evtPaths.Add (movePath, g.paths[movePath].nodes[0].units.ToArray ()); // in case replacement path is moving to make the unit
+				if (!evtPaths.ContainsKey (movePath)) evtPaths.Add (movePath, g.paths[movePath].segments[0].units.ToArray ()); // in case replacement path is moving to make the unit
 				g.events.add(new MakeUnitCmdEvt(g.paths[movePath].moves[g.paths[movePath].moves.Count - 1].timeEnd, g.paths[movePath].moves[g.paths[movePath].moves.Count - 1].timeEnd + 1,
 					evtPaths, type, pos, true));
 			}
@@ -360,11 +360,11 @@ public class GoLiveCmdEvt : SimEvt {
 		long timeTravelStart = long.MaxValue;
 		g.cmdHistory.add(this); // copy event to command history list (it should've already been popped from event list)
 		foreach (Path path in g.paths) {
-			if (player == path.player && path.nodes[path.nodes.Count - 1].units.Count > 0 && path.timeSimPast != long.MaxValue) {
+			if (player == path.player && path.segments[path.segments.Count - 1].units.Count > 0 && path.timeSimPast != long.MaxValue) {
 				// ensure that time traveling paths don't move off exclusive areas
 				path.updatePast(time);
 				// find earliest time that player's paths started time traveling
-				if (path.nodes[0].time < timeTravelStart) timeTravelStart = path.nodes[0].time;
+				if (path.segments[0].time < timeTravelStart) timeTravelStart = path.segments[0].time;
 			}
 		}
 		if (timeTravelStart != long.MaxValue) { // skip if player has no time traveling paths
@@ -377,7 +377,7 @@ public class GoLiveCmdEvt : SimEvt {
 			}
 			// safe for paths to become live, so do so
 			foreach (Path path in g.paths) {
-				if (player == path.player && path.nodes[path.nodes.Count - 1].units.Count > 0 && path.timeSimPast != long.MaxValue) path.goLive();
+				if (player == path.player && path.segments[path.segments.Count - 1].units.Count > 0 && path.timeSimPast != long.MaxValue) path.goLive();
 			}
 		}
 		// indicate success
@@ -451,14 +451,14 @@ public class UpdateEvt : SimEvt {
 		for (i = 0; i < g.paths.Count; i++) {
 			if (g.paths[i].isLive (time)) {
 				pos = g.paths[i].calcPos (time);
-				foreach (int unit in g.paths[i].nodes[g.paths[i].getNode(time)].units) {
+				foreach (int unit in g.paths[i].segments[g.paths[i].getNode(time)].units) {
 					if (time >= g.units[unit].timeAttack + g.unitT[g.units[unit].type].reload) {
 						// done reloading, look for closest target to potentially attack
 						int target = -1;
 						long targetDistSq = g.unitT[g.units[unit].type].range * g.unitT[g.units[unit].type].range + 1;
 						for (j = 0; j < g.paths.Count; j++) {
 							if (i != j && g.paths[j].isLive (time) && g.players[g.paths[i].player].mayAttack[g.paths[j].player]) {
-								foreach (int unit2 in g.paths[j].nodes[g.paths[j].getNode(time)].units) {
+								foreach (int unit2 in g.paths[j].segments[g.paths[j].getNode(time)].units) {
 									if (g.unitT[g.units[unit].type].damage[g.units[unit2].type] > 0) {
 										long distSq = (g.paths[j].calcPos (time) - pos).lengthSq ();
 										if (distSq < targetDistSq) {
@@ -473,7 +473,7 @@ public class UpdateEvt : SimEvt {
 						if (target >= 0) {
 							// attack every applicable unit in target path
 							// take health with 1 ms delay so earlier units in array don't have unfair advantage
-							foreach (int unit2 in g.paths[target].nodes[g.paths[target].getNode(time)].units) {
+							foreach (int unit2 in g.paths[target].segments[g.paths[target].getNode(time)].units) {
 								if (g.unitT[g.units[unit].type].damage[g.units[unit2].type] > 0) {
 									for (j = 0; j < g.unitT[g.units[unit].type].damage[g.units[unit2].type]; j++) g.units[unit2].takeHealth(time + 1, target);
 									g.units[unit].timeAttack = time;
@@ -524,15 +524,15 @@ public class StackEvt : SimEvt {
 					// check that paths are at same position
 					if (iPos.x == jPos.x && iPos.y == jPos.y) {
 						// check whether allowed to stack the paths' units together
-						List<int> stackUnits = new List<int>(g.paths[paths[i]].nodes[iNode].units);
-						foreach (int unit in g.paths[paths[j]].nodes[jNode].units) {
+						List<int> stackUnits = new List<int>(g.paths[paths[i]].segments[iNode].units);
+						foreach (int unit in g.paths[paths[j]].segments[jNode].units) {
 							if (!stackUnits.Contains (unit)) stackUnits.Add (unit);
 						}
 						if (g.stackAllowed (stackUnits, g.paths[paths[i]].speed, g.paths[paths[i]].player)) {
 							// merge the paths onto path i
 							iNode = g.paths[paths[i]].addConnectedPath (time, paths[j]);
 							jNode = g.paths[paths[j]].getNode (time);
-							g.paths[paths[i]].nodes[iNode].units = stackUnits;
+							g.paths[paths[i]].segments[iNode].units = stackUnits;
 							g.paths[paths[j]].removeAllUnits (time);
 							pathsStacked[i] = true;
 							pathsStacked[j] = true;
@@ -654,10 +654,10 @@ public class TileMoveEvt : SimEvt {
 		}
 		if (tileX >= 0 && tileX < g.tileLen() && tileY >= 0 && tileY < g.tileLen()) {
 			// update whether this path is known to be unseen
-			if (!g.paths[path].nodes[g.paths[path].nodes.Count - 1].unseen && g.tiles[tileX, tileY].exclusiveLatest(g.paths[path].player)) {
+			if (!g.paths[path].segments[g.paths[path].segments.Count - 1].unseen && g.tiles[tileX, tileY].exclusiveLatest(g.paths[path].player)) {
 				g.paths[path].beUnseen(time);
 			}
-			else if (g.paths[path].nodes[g.paths[path].nodes.Count - 1].unseen && !g.tiles[tileX, tileY].exclusiveLatest(g.paths[path].player)) {
+			else if (g.paths[path].segments[g.paths[path].segments.Count - 1].unseen && !g.tiles[tileX, tileY].exclusiveLatest(g.paths[path].player)) {
 				g.paths[path].beSeen(time);
 			}
 			// if this path moved out of another player's visibility, remove that player's visibility here
