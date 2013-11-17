@@ -12,16 +12,119 @@ using System.Text;
 
 public class Path {
 	public class Segment {
-		public long time;
+		private readonly Sim g;
+		private readonly Path path;
+		public int id; // index in segment list
+		public long time; // TODO: rename to timeStart?
+		/// <summary>
+		/// segments that intersect at the beginning of this segment;
+		/// all segments in this list use the same List instance so updating this list in one segment updates it in all intersecting segments
+		/// (NOTE: protobuf-net won't like that)
+		/// </summary>
+		public List<Segment> intersects;
 		public List<int> paths; // indices of paths that connect to this path at node time
-		public List<int> units; // indices of units on this path starting at node time
-		public bool unseen; // whether path is known to not be seen by another player starting at node time
+		public List<int> units; // indices of units on this path segment
+		public bool unseen; // whether path segment is known to not be seen by another player
 		
-		public Segment(long timeVal, List<int> unitsVal, bool unseenVal) {
+		public Segment(Path pathVal, int idVal, long timeVal, List<int> unitsVal, bool unseenVal) {
+			path = pathVal;
+			g = path.g;
+			id = idVal;
 			time = timeVal;
+			intersects = new List<Segment>();
+			intersects.Add (this);
 			paths = new List<int>();
 			units = unitsVal;
 			unseen = unseenVal;
+		}
+		
+		/// <summary>
+		/// returns all segment/unit pairs that could have made specified unit in this segment
+		/// </summary>
+		public List<KeyValuePair<Segment, int>> parents(int unit) {
+			List<KeyValuePair<Segment, int>> ret = new List<KeyValuePair<Segment, int>>();
+			if (prev (unit).Count == 0) {
+				foreach (Segment seg in prev ()) {
+					foreach (int unit2 in seg.units) {
+						if (g.unitT[g.units[unit2].type].canMake[g.units[unit].type]) {
+							ret.Add (new KeyValuePair<Segment, int>(seg, unit2));
+						}
+					}
+				}
+			}
+			return ret;
+		}
+		
+		/// <summary>
+		/// returns all segment/unit pairs that specified unit in this segment could have made
+		/// </summary>
+		public List<KeyValuePair<Segment, int>> children(int unit) {
+			List<KeyValuePair<Segment, int>> ret = new List<KeyValuePair<Segment, int>>();
+			foreach (Segment seg in next ()) {
+				foreach (int unit2 in seg.units) {
+					if (g.unitT[g.units[unit].type].canMake[g.units[unit2].type] && seg.prev (unit2).Count == 0) {
+						ret.Add (new KeyValuePair<Segment, int>(seg, unit2));
+					}
+				}
+			}
+			return ret;
+		}
+		
+		/// <summary>
+		/// returns all segments containing the specified unit that merge onto the beginning of this segment
+		/// </summary>
+		public List<Segment> prev(int unit) {
+			List<Segment> ret = new List<Segment>();
+			foreach (Segment seg in prev()) {
+				if (seg.units.Contains (unit)) ret.Add (seg);
+			}
+			return ret;
+		}
+		
+		/// <summary>
+		/// returns all segments containing the specified unit that branch off from the end of this segment
+		/// </summary>
+		public List<Segment> next(int unit) {
+			List<Segment> ret = new List<Segment>();
+			foreach (Segment seg in next()) {
+				if (seg.units.Contains (unit)) ret.Add (seg);
+			}
+			return ret;
+		}
+		
+		/// <summary>
+		/// returns all segments that merge onto the beginning of this segment
+		/// </summary>
+		public List<Segment> prev() {
+			List<Segment> ret = new List<Segment>();
+			foreach (Segment seg in intersects) {
+				if (seg.prevOnPath() != null) ret.Add (seg.prevOnPath());
+			}
+			return ret;
+		}
+		
+		/// <summary>
+		/// returns all segments that branch off from the end of this segment
+		/// </summary>
+		public List<Segment> next() {
+			if (nextOnPath() == null) return new List<Segment>();
+			return new List<Segment>(nextOnPath().intersects);
+		}
+		
+		/// <summary>
+		/// returns previous segment on this path, or null if this is the first segment
+		/// </summary>
+		public Segment prevOnPath() {
+			if (id == 0) return null;
+			return path.segments[id - 1];
+		}
+		
+		/// <summary>
+		/// returns next segment on this path, or null if this is the last segment
+		/// </summary>
+		public Segment nextOnPath() {
+			if (id == path.segments.Count - 1) return null;
+			return path.segments[id + 1];
 		}
 	}
 	
@@ -82,8 +185,8 @@ public class Path {
 		}
 	}
 	
-	private Sim g;
-	private int id; // index in path array
+	private readonly Sim g;
+	private readonly int id; // index in path list
 	public readonly long speed; // in position units per millisecond
 	public readonly int player;
 	public List<Segment> segments;
@@ -98,7 +201,7 @@ public class Path {
 		player = playerVal;
 		if (!g.stackAllowed (units, speed, player)) throw new ArgumentException("specified units may not be on the same path");
 		segments = new List<Segment>();
-		segments.Add (new Segment(startTime, units, startUnseen));
+		segments.Add (new Segment(this, 0, startTime, units, startUnseen));
 		moves = new List<Move>();
 		moves.Add (new Move(startTime, startPos));
 		tileX = Sim.OffMap + 1;
@@ -163,7 +266,10 @@ public class Path {
 	public int insertNode(long time) {
 		int node = getNode (time);
 		if (node >= 0 && segments[node].time == time) return node;
-		segments.Insert (node + 1, new Segment(time, new List<int>(segments[node].units), segments[node].unseen));
+		segments.Insert (node + 1, new Segment(this, node + 1, time, new List<int>(segments[node].units), segments[node].unseen));
+		for (int i = node + 2; i < segments.Count; i++) {
+			segments[i].id = i;
+		}
 		return node + 1;
 	}
 	
