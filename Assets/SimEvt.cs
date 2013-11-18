@@ -290,7 +290,7 @@ public class DeletePathCmdEvt : CmdEvt {
 		base.apply(g);
 		foreach (KeyValuePair<int, List<int>> path in exPaths) {
 			foreach (int unit in path.Value) {
-				g.paths[path.Key].removeUnit (timeCmd, unit);
+				g.paths[path.Key].segments[g.paths[path.Key].getNode (timeCmd)].removeUnit (unit);
 			}
 		}
 	}
@@ -533,7 +533,7 @@ public class StackEvt : SimEvt {
 							iNode = g.paths[paths[i]].addConnectedPath (time, paths[j]);
 							jNode = g.paths[paths[j]].getNode (time);
 							g.paths[paths[i]].segments[iNode].units = stackUnits;
-							g.paths[paths[j]].removeAllUnits (time);
+							g.paths[paths[j]].segments[jNode].removeAllUnits ();
 							pathsStacked[i] = true;
 							pathsStacked[j] = true;
 						}

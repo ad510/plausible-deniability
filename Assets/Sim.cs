@@ -435,7 +435,7 @@ public class Sim {
 			if (paths[i].player == player) {
 				foreach (int unit in paths[i].segments[0].units) {
 					// STACK TODO: this will double-count units that are in multiple paths at beginning of scenario
-					ret += paths[i].rscCollected(time, 0, unit, rscType, max, includeNonLiveChildren);
+					ret += paths[i].segments[0].rscCollected(time, unit, rscType, max, includeNonLiveChildren);
 				}
 			}
 		}
