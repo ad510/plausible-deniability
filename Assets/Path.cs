@@ -17,11 +17,11 @@ public class Path {
 		public int id; // index in segment list
 		public long time; // TODO: rename to timeStart?
 		/// <summary>
-		/// segments that intersect at the beginning of this segment;
-		/// all segments in this list use the same List instance so updating this list in one segment updates it in all intersecting segments
+		/// segments that branch off at the beginning of this segment;
+		/// connected branches share the same List instance so updating this list in one segment updates it for all branches
 		/// (NOTE: protobuf-net won't like that)
 		/// </summary>
-		public List<Segment> intersects;
+		public List<Segment> branches;
 		public List<int> paths; // indices of paths that connect to this path at node time
 		public List<int> units; // indices of units on this path segment
 		public bool unseen; // whether path segment is known to not be seen by another player
@@ -31,11 +31,153 @@ public class Path {
 			g = path.g;
 			id = idVal;
 			time = timeVal;
-			intersects = new List<Segment>();
-			intersects.Add (this);
+			branches = new List<Segment>();
+			branches.Add (this);
 			paths = new List<int>();
 			units = unitsVal;
 			unseen = unseenVal;
+		}
+		
+		/// <summary>
+		/// removes all units if doing so wouldn't affect anything that another player saw
+		/// </summary>
+		public void removeAllUnits() {
+			while (units.Count > 0) {
+				if (!removeUnit(units[units.Count - 1])) throw new SystemException("failed to remove a unit from segment");
+			}
+		}
+
+		/// <summary>
+		/// removes specified unit if doing so wouldn't affect anything that another player saw, returns whether successful
+		/// </summary>
+		public bool removeUnit(int unit) {
+			if (!units.Contains (unit)) return true; // if this segment already doesn't contain specified unit, return true
+			List<Segment> ancestors = new List<Segment>();
+			Dictionary<Segment, List<int>> removed = new Dictionary<Segment, List<int>>();
+			long startRemoveTime = long.MaxValue;
+			int i;
+			ancestors.Add (this);
+			// find all ancestor segments to start removal from
+			for (i = 0; i < ancestors.Count; i++) {
+				List<Segment> ancestorPrev = ancestors[i].prev (unit);
+				if (ancestorPrev.Count > 0) {
+					// if this ancestor has a sibling segment that we're not currently planning to remove unit from,
+					// don't remove unit from previous segments shared by both
+					bool hasSibling = false;
+					foreach (Segment seg in ancestors[i].branches) {
+						if (seg.units.Contains (unit) && !ancestors.Contains (seg)
+							&& (seg.path.timeSimPast == long.MaxValue || ancestors[i].path.timeSimPast != long.MaxValue)) {
+							hasSibling = true;
+							break;
+						}
+					}
+					if (!hasSibling) {
+						// indicate to remove unit from previous segments
+						ancestors.RemoveAt(i);
+						i--;
+						ancestors.AddRange (ancestorPrev);
+					}
+				}
+				else if (ancestors[i].prev ().Count == 0) {
+					// reached a segment with no previous segment whatsoever, so return false (we assume other players know the scenario's starting state)
+					return false;
+				}
+			}
+			// remove unit recursively, starting at the ancestor segments we found
+			for (i = 0; i < ancestors.Count; i++) {
+				if (!ancestors[i].removeUnitAfter (unit, ref removed)) break;
+				startRemoveTime = Math.Min (startRemoveTime, ancestors[i].time);
+			}
+			// if a removeUnitAfter() call failed or removing unit might have led to player having negative resources,
+			// add units back to segments they were removed from
+			if (i < ancestors.Count || g.playerCheckNegRsc (path.player, startRemoveTime, false) >= 0) {
+				foreach (KeyValuePair<Segment, List<int>> item in removed) {
+					item.Key.units.AddRange (item.Value);
+				}
+				return false;
+			}
+			// remove paths that no longer contain units from visibility tiles
+			foreach (Segment seg in removed.Keys) {
+				if (seg.id == seg.path.segments.Count - 1 && seg.units.Count == 0 && seg.path.tileX != Sim.OffMap) {
+					g.events.add(new TileMoveEvt(g.timeSim, seg.path.id, Sim.OffMap, 0));
+				}
+			}
+			return true;
+		}
+		
+		private bool removeUnitAfter(int unit, ref Dictionary<Segment, List<int>> removed) {
+			if (units.Contains (unit)) {
+				if (!unseen && time < g.timeSim) return false;
+				// only remove units from next segments if this is their only previous segment
+				if (nextOnPath () == null || nextOnPath ().prev (unit).Count == 1) {
+					// remove unit from next segments
+					foreach (Segment seg in next (unit)) {
+						seg.removeUnitAfter (unit, ref removed);
+					}
+					// remove child units that only this unit could have made
+					foreach (KeyValuePair<Segment, int> child in children (unit)) {
+						// TODO: if has alternate non-live parent, do we need to recursively make children non-live?
+						if (child.Key.parents (child.Value).Count == 1) child.Key.removeUnitAfter (child.Value, ref removed);
+					}
+				}
+				// remove unit from this segment
+				units.Remove (unit);
+				if (!removed.ContainsKey (this)) removed.Add (this, new List<int>());
+				removed[this].Add (unit);
+			}
+			return true;
+		}
+		
+		private bool unseenAfter(int unit) {
+			if (!units.Contains (unit)) throw new ArgumentException("segment does not contain specified unit");
+			if (!unseen) return false;
+			foreach (Segment seg in next (unit)) {
+				if (!seg.unseenAfter (unit)) return false;
+			}
+			foreach (KeyValuePair<Segment, int> child in children (unit)) {
+				if (!child.Key.unseenAfter (child.Value)) return false;
+			}
+			return true;
+		}
+	
+		/// <summary>
+		/// returns resource amount gained by specified unit and its children (subtracting cost to make children)
+		/// from this segment's start time to specified time
+		/// </summary>
+		/// <param name="max">
+		/// since different paths can have collected different resource amounts,
+		/// determines whether to use paths that collected least or most resources in calculation
+		/// </param>
+		// TODO: rename timeEnd to time after renaming this.time to timeStart
+		// TODO: this currently double-counts child paths/units if paths merge, fix this before enabling stacking
+		public long rscCollected(long timeEnd, int unit, int rscType, bool max, bool includeNonLiveChildren) {
+			// if this segment wasn't active yet, unit can't have collected anything
+			if (timeEnd < time) return 0;
+			// if next segment wasn't active yet, return resources collected from segment start time to specified time
+			if (nextOnPath () == null || timeEnd < nextOnPath ().time) {
+				return g.unitT[g.units[unit].type].rscCollectRate[rscType] * (timeEnd - time);
+			}
+			long ret = 0;
+			bool foundNextSeg = false;
+			// add resources gained in next segment that collected either least or most resources (depending on max parameter)
+			foreach (Segment seg in next (unit)) {
+				if (includeNonLiveChildren || seg.path.timeSimPast == long.MaxValue) {
+					long segCollected = seg.rscCollected (timeEnd, unit, rscType, max, includeNonLiveChildren);
+					if (!foundNextSeg || (max ^ (segCollected < ret))) {
+						ret = segCollected;
+						foundNextSeg = true;
+					}
+				}
+			}
+			// add resources gained by children
+			foreach (KeyValuePair<Segment, int> child in children (unit)) {
+				ret += child.Key.rscCollected (timeEnd, child.Value, rscType, max, includeNonLiveChildren);
+				// subtract cost to make child unit
+				ret -= g.unitT[g.units[child.Value].type].rscCost[rscType];
+			}
+			// add resources collected on this segment
+			ret += g.unitT[g.units[unit].type].rscCollectRate[rscType] * (nextOnPath ().time - time);
+			return ret;
 		}
 		
 		/// <summary>
@@ -97,7 +239,7 @@ public class Path {
 		/// </summary>
 		public List<Segment> prev() {
 			List<Segment> ret = new List<Segment>();
-			foreach (Segment seg in intersects) {
+			foreach (Segment seg in branches) {
 				if (seg.prevOnPath() != null) ret.Add (seg.prevOnPath());
 			}
 			return ret;
@@ -108,7 +250,7 @@ public class Path {
 		/// </summary>
 		public List<Segment> next() {
 			if (nextOnPath() == null) return new List<Segment>();
-			return new List<Segment>(nextOnPath().intersects);
+			return new List<Segment>(nextOnPath().branches);
 		}
 		
 		/// <summary>
@@ -478,7 +620,7 @@ public class Path {
 		// add unit back to nodes it was removed from
 		if (i < parentPaths.Count || g.playerCheckNegRsc (player, minParentNodeTime, false) >= 0) {
 			for (i = 0; i < rmPaths.Count; i++) {
-				g.paths[rmPaths[i]].segments[rmNodes[i]].units.Add (unit);
+				g.paths[rmPaths[i]].segments[rmNodes[i]].units.Add (unit); // TODO: this does wrong thing if unit to be added back was a child unit
 			}
 			return false;
 		}
