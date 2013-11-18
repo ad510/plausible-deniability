@@ -450,10 +450,10 @@ public class Sim {
 		foreach (Path path in paths) {
 			// check all times since timeMin that a path of specified player was made
 			// note that new paths are made at App.newCmdTime() + 1
-			if (player == path.player && path.segments[0].time >= timeMin && path.segments[0].time <= timeSim + 1) {
+			if (player == path.player && path.segments[0].timeStart >= timeMin && path.segments[0].timeStart <= timeSim + 1) {
 				for (int i = 0; i < nRsc; i++) {
-					if (playerResource(player, path.segments[0].time, i, false, includeNonLiveChildren) < 0) {
-						return path.segments[0].time;
+					if (playerResource(player, path.segments[0].timeStart, i, false, includeNonLiveChildren) < 0) {
+						return path.segments[0].timeStart;
 					}
 				}
 			}

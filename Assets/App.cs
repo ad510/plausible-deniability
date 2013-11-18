@@ -625,7 +625,7 @@ public class App : MonoBehaviour {
 		// units
 		for (i = 0; i < g.paths.Count; i++) {
 			if (i == sprUnits.Count) sprUnits.Add (new List<UnitSprite>());
-			if (timeGame >= g.paths[i].segments[0].time) {
+			if (timeGame >= g.paths[i].segments[0].timeStart) {
 				node = g.paths[i].getNode (timeGame);
 				while (sprUnits[i].Count < g.paths[i].segments[node].units.Count) sprUnits[i].Add (new UnitSprite(quadPrefab));
 			}
@@ -992,7 +992,7 @@ public class App : MonoBehaviour {
 				// selected unit type must be made on top of another unit of correct type
 				// TODO: prevent putting multiple units on same unit (unless on different paths of same unit and maybe some other cases)
 				foreach (Path path in g.paths) {
-					if (timeGame >= path.segments[0].time) {
+					if (timeGame >= path.segments[0].timeStart) {
 						vec = path.calcPos(timeGame);
 						if (g.tileAt (vec).playerVisWhen (selPlayer, timeGame)
 							&& FP.rectContains (path.selMinPos (timeGame), path.selMaxPos (timeGame), drawToSimPos (Input.mousePosition))) {
@@ -1049,7 +1049,7 @@ public class App : MonoBehaviour {
 		if (selPaths.Count > 0) {
 			Dictionary<int, FP.Vector> pos = new Dictionary<int, FP.Vector>();
 			foreach (KeyValuePair<int, List<int>> path in selPaths) {
-				if (timeGame + 1 >= g.paths[path.Key].segments[0].time) pos[path.Key] = makePathMovePos(timeGame + 1, path.Key, path.Value);
+				if (timeGame + 1 >= g.paths[path.Key].segments[0].timeStart) pos[path.Key] = makePathMovePos(timeGame + 1, path.Key, path.Value);
 			}
 			// happens at newCmdTime() + 1 so new path starts out live if game is live
 			g.cmdPending.add(new MakePathCmdEvt(g.timeSim, newCmdTime() + 1, selPathsCopy(), pos));

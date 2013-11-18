@@ -67,7 +67,7 @@ public abstract class CmdEvt : SimEvt {
 	protected Dictionary<int, List<int>> existingPaths(Sim g) {
 		Dictionary<int, List<int>> ret = new Dictionary<int, List<int>>();
 		foreach (KeyValuePair<int, int[]> path in paths) {
-			if (timeCmd >= g.paths[path.Key].segments[0].time) {
+			if (timeCmd >= g.paths[path.Key].segments[0].timeStart) {
 				int node = g.paths[path.Key].getNode (timeCmd);
 				List<int> existingUnits = new List<int>();
 				foreach (int unit in path.Value) {
@@ -364,7 +364,7 @@ public class GoLiveCmdEvt : SimEvt {
 				// ensure that time traveling paths don't move off exclusive areas
 				path.updatePast(time);
 				// find earliest time that player's paths started time traveling
-				if (path.segments[0].time < timeTravelStart) timeTravelStart = path.segments[0].time;
+				if (path.segments[0].timeStart < timeTravelStart) timeTravelStart = path.segments[0].timeStart;
 			}
 		}
 		if (timeTravelStart != long.MaxValue) { // skip if player has no time traveling paths
