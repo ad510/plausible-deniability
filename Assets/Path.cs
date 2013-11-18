@@ -556,7 +556,7 @@ public class Path {
 		if (canMakePath(time, units)) {
 			int node = insertNode (time);
 			g.paths.Add (new Path(g, g.paths.Count, g.unitT[g.units[units[0]].type].speed, player, units, time, calcPos (time), segments[node].unseen));
-			addConnectedPath (time, g.paths.Count - 1);
+			connect (time, g.paths.Count - 1);
 			// if this path isn't live, new path can't be either
 			if (timeSimPast != long.MaxValue) g.paths[g.paths.Count - 1].timeSimPast = time;
 			// indicate to calculate TileMoveEvts for new path starting at timeSim
@@ -629,10 +629,10 @@ public class Path {
 	}
 	
 	/// <summary>
-	/// connects this path to specified path (and vice versa) at specified time,
+	/// connects this path to specified path at specified time,
 	/// returns this path's node where the paths were connected
 	/// </summary>
-	public int addConnectedPath(long time, int path) {
+	public int connect(long time, int path) {
 		int node = insertNode (time);
 		int node2 = g.paths[path].insertNode (time);
 		if (!segments[node].branches.Contains (g.paths[path].segments[node2])) {
