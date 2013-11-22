@@ -1068,15 +1068,7 @@ public class App : MonoBehaviour {
 	/// deletes unselected paths of selected units
 	/// </summary>
 	private void deleteOtherPaths() {
-		throw new NotImplementedException(); // STACK TODO: implement this
-		/*Dictionary<int, int> parentPaths = selRootParentPaths ();
-		List<int> otherPaths = new List<int>();
-		for (int i = 0; i < g.nUnits; i++) {
-			if (g.units[i].exists (timeGame) && !selPaths.Contains (i) && parentPaths.ContainsKey (g.units[i].rootParentPath ())) {
-				otherPaths.Add (i);
-			}
-		}
-		if (otherPaths.Count > 0) g.cmdPending.add (new DeletePathCmdEvt(g.timeSim, newCmdTime (), otherPaths.ToArray ()));*/
+		if (selPaths.Count > 0) g.cmdPending.add (new DeleteOtherPathsCmdEvt(g.timeSim, newCmdTime (), selPathsCopy ()));
 	}
 	
 	/// <summary>

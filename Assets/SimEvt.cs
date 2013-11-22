@@ -296,6 +296,33 @@ public class DeletePathCmdEvt : CmdEvt {
 	}
 }
 
+[ProtoContract]
+public class DeleteOtherPathsCmdEvt : CmdEvt {
+	/// <summary>
+	/// empty constructor for protobuf-net use only
+	/// </summary>
+	public DeleteOtherPathsCmdEvt() { }
+	
+	public DeleteOtherPathsCmdEvt(long timeVal, long timeCmdVal, Dictionary<int, int[]> pathsVal)
+		: base(timeVal, timeCmdVal, pathsVal) { }
+	
+	public override void apply (Sim g)
+	{
+		List<KeyValuePair<Path.Segment, int>> units = new List<KeyValuePair<Path.Segment, int>>();
+		base.apply (g);
+		// convert paths list into valid deleteOtherPaths() argument (this is a bit ugly)
+		foreach (KeyValuePair<int, int[]> path in paths) {
+			int seg = g.paths[path.Key].getNode (timeCmd);
+			if (seg >= 0) {
+				foreach (int unit in path.Value) {
+					units.Add (new KeyValuePair<Path.Segment, int>(g.paths[path.Key].segments[seg], unit));
+				}
+			}
+		}
+		g.deleteOtherPaths (units);
+	}
+}
+
 /// <summary>
 /// command to stack specified path(s) onto another specified path
 /// </summary>
