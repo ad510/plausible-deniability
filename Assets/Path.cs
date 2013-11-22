@@ -545,8 +545,13 @@ public class Path {
 	}
 
 	public void beSeen(long time) {
-		segments[insertNode(time)].unseen = false;
-		// TODO: delete all child paths made before time unseen
+		int seg = insertNode(time);
+		List<KeyValuePair<Segment, int>> seenUnits = new List<KeyValuePair<Segment, int>>();
+		segments[seg].unseen = false;
+		foreach (int unit in segments[seg].units) {
+			seenUnits.Add (new KeyValuePair<Segment, int>(segments[seg], unit));
+		}
+		if (!g.deleteOtherPaths (seenUnits)) throw new SystemException("failed to delete other paths of seen path");
 	}
 
 	/// <summary>
