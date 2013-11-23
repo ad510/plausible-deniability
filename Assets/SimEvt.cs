@@ -68,10 +68,10 @@ public abstract class CmdEvt : SimEvt {
 		Dictionary<int, List<int>> ret = new Dictionary<int, List<int>>();
 		foreach (KeyValuePair<int, int[]> path in paths) {
 			if (timeCmd >= g.paths[path.Key].segments[0].timeStart) {
-				int node = g.paths[path.Key].getNode (timeCmd);
+				int seg = g.paths[path.Key].getSegment (timeCmd);
 				List<int> existingUnits = new List<int>();
 				foreach (int unit in path.Value) {
-					if (g.paths[path.Key].segments[node].units.Contains (unit)) {
+					if (g.paths[path.Key].segments[seg].units.Contains (unit)) {
 						if (!existingUnits.Contains (unit)) existingUnits.Add (unit);
 					}
 				}
@@ -290,7 +290,7 @@ public class DeletePathCmdEvt : CmdEvt {
 		base.apply(g);
 		foreach (KeyValuePair<int, List<int>> path in exPaths) {
 			foreach (int unit in path.Value) {
-				g.paths[path.Key].segments[g.paths[path.Key].getNode (timeCmd)].removeUnit (unit);
+				g.paths[path.Key].segments[g.paths[path.Key].getSegment (timeCmd)].removeUnit (unit);
 			}
 		}
 	}
@@ -312,7 +312,7 @@ public class DeleteOtherPathsCmdEvt : CmdEvt {
 		base.apply (g);
 		// convert paths list into valid deleteOtherPaths() argument (this is a bit ugly)
 		foreach (KeyValuePair<int, int[]> path in paths) {
-			int seg = g.paths[path.Key].getNode (timeCmd);
+			int seg = g.paths[path.Key].getSegment (timeCmd);
 			if (seg >= 0) {
 				foreach (int unit in path.Value) {
 					units.Add (new KeyValuePair<Path.Segment, int>(g.paths[path.Key].segments[seg], unit));
@@ -478,14 +478,14 @@ public class UpdateEvt : SimEvt {
 		for (i = 0; i < g.paths.Count; i++) {
 			if (g.paths[i].isLive (time)) {
 				pos = g.paths[i].calcPos (time);
-				foreach (int unit in g.paths[i].segments[g.paths[i].getNode(time)].units) {
+				foreach (int unit in g.paths[i].segments[g.paths[i].getSegment(time)].units) {
 					if (time >= g.units[unit].timeAttack + g.unitT[g.units[unit].type].reload) {
 						// done reloading, look for closest target to potentially attack
 						int target = -1;
 						long targetDistSq = g.unitT[g.units[unit].type].range * g.unitT[g.units[unit].type].range + 1;
 						for (j = 0; j < g.paths.Count; j++) {
 							if (i != j && g.paths[j].isLive (time) && g.players[g.paths[i].player].mayAttack[g.paths[j].player]) {
-								foreach (int unit2 in g.paths[j].segments[g.paths[j].getNode(time)].units) {
+								foreach (int unit2 in g.paths[j].segments[g.paths[j].getSegment(time)].units) {
 									if (g.unitT[g.units[unit].type].damage[g.units[unit2].type] > 0) {
 										long distSq = (g.paths[j].calcPos (time) - pos).lengthSq ();
 										if (distSq < targetDistSq) {
@@ -500,7 +500,7 @@ public class UpdateEvt : SimEvt {
 						if (target >= 0) {
 							// attack every applicable unit in target path
 							// take health with 1 ms delay so earlier units in array don't have unfair advantage
-							foreach (int unit2 in g.paths[target].segments[g.paths[target].getNode(time)].units) {
+							foreach (int unit2 in g.paths[target].segments[g.paths[target].getSegment(time)].units) {
 								if (g.unitT[g.units[unit].type].damage[g.units[unit2].type] > 0) {
 									for (j = 0; j < g.unitT[g.units[unit].type].damage[g.units[unit2].type]; j++) g.units[unit2].takeHealth(time + 1, target);
 									g.units[unit].timeAttack = time;
@@ -544,23 +544,23 @@ public class StackEvt : SimEvt {
 		for (int i = 0; i < paths.Length; i++) {
 			if (!pathsStacked[i]) {
 				FP.Vector iPos = g.paths[paths[i]].calcPos (time);
-				int iNode = g.paths[paths[i]].getNode (time);
+				int iSeg = g.paths[paths[i]].getSegment (time);
 				for (int j = i + 1; j < paths.Length; j++) {
 					FP.Vector jPos = g.paths[paths[j]].calcPos (time);
-					int jNode = g.paths[paths[j]].getNode (time);
+					int jSeg = g.paths[paths[j]].getSegment (time);
 					// check that paths are at same position
 					if (iPos.x == jPos.x && iPos.y == jPos.y) {
 						// check whether allowed to stack the paths' units together
-						List<int> stackUnits = new List<int>(g.paths[paths[i]].segments[iNode].units);
-						foreach (int unit in g.paths[paths[j]].segments[jNode].units) {
+						List<int> stackUnits = new List<int>(g.paths[paths[i]].segments[iSeg].units);
+						foreach (int unit in g.paths[paths[j]].segments[jSeg].units) {
 							if (!stackUnits.Contains (unit)) stackUnits.Add (unit);
 						}
 						if (g.stackAllowed (stackUnits, g.paths[paths[i]].speed, g.paths[paths[i]].player)) {
 							// merge the paths onto path i
-							iNode = g.paths[paths[i]].connect (time, paths[j]);
-							jNode = g.paths[paths[j]].getNode (time);
-							g.paths[paths[i]].segments[iNode].units = stackUnits;
-							g.paths[paths[j]].segments[jNode].removeAllUnits ();
+							iSeg = g.paths[paths[i]].connect (time, paths[j]);
+							jSeg = g.paths[paths[j]].getSegment (time);
+							g.paths[paths[i]].segments[iSeg].units = stackUnits;
+							g.paths[paths[j]].segments[jSeg].removeAllUnits ();
 							pathsStacked[i] = true;
 							pathsStacked[j] = true;
 						}

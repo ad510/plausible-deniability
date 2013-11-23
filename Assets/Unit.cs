@@ -281,10 +281,10 @@ public class Unit {
 			timeHealth[nTimeHealth - 1] = time;
 			if (nTimeHealth >= g.unitT[type].maxHealth) {
 				// unit lost all health, so remove it from path
-				int node = g.paths[path].insertNode(time);
-				g.paths[path].segments[node].units.Remove (id);
+				int seg = g.paths[path].insertSegment(time);
+				g.paths[path].segments[seg].units.Remove (id);
 				// if path no longer has any units, indicate to delete and recalculate later TileMoveEvts for this path
-				if (g.paths[path].segments[node].units.Count == 0 && !g.movedPaths.Contains(path)) g.movedPaths.Add(path);
+				if (g.paths[path].segments[seg].units.Count == 0 && !g.movedPaths.Contains(path)) g.movedPaths.Add(path);
 			}
 		}
 	}
