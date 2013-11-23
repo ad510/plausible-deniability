@@ -342,34 +342,22 @@ public class Sim {
 	}
 	
 	public bool deleteOtherPaths(List<KeyValuePair<Path.Segment, int>> units) {
-		List<KeyValuePair<Path.Segment, int>> keep = new List<KeyValuePair<Path.Segment, int>>(units);
-		List<bool> keepIsPrevPath = new List<bool>();
-		List<KeyValuePair<Path.Segment, int>> delete = new List<KeyValuePair<Path.Segment, int>>();
+		List<KeyValuePair<Path.Segment, int>> ancestors = new List<KeyValuePair<Path.Segment, int>>(units);
+		List<KeyValuePair<Path.Segment, int>> prev = new List<KeyValuePair<Path.Segment, int>>();
 		bool success = true;
-		while (keepIsPrevPath.Count < keep.Count) keepIsPrevPath.Add (false);
-		// find segments to keep and delete
-		for (int i = 0; i < keep.Count; i++) {
-			foreach (Path.Segment seg in keep[i].Key.prev (keep[i].Value)) {
-				keep.Add (new KeyValuePair<Path.Segment, int>(seg, keep[i].Value));
-				keepIsPrevPath.Add (true);
+		for (int i = 0; i < ancestors.Count; i++) {
+			foreach (Path.Segment seg in ancestors[i].Key.prev (ancestors[i].Value)) {
+				ancestors.Add (new KeyValuePair<Path.Segment, int>(seg, ancestors[i].Value));
+				prev.Add (new KeyValuePair<Path.Segment, int>(seg, ancestors[i].Value));
 			}
-			keep.AddRange (keep[i].Key.parents (keep[i].Value));
-			while (keepIsPrevPath.Count < keep.Count) keepIsPrevPath.Add (false);
-			if (keepIsPrevPath[i]) {
-				foreach (Path.Segment seg in keep[i].Key.next (keep[i].Value)) {
-					delete.Add (new KeyValuePair<Path.Segment, int>(seg, keep[i].Value));
+			ancestors.AddRange (ancestors[i].Key.parents (ancestors[i].Value));
+		}
+		foreach (KeyValuePair<Path.Segment, int> ancestor in prev) {
+			foreach (Path.Segment seg in ancestor.Key.next (ancestor.Value)) {
+				if (!ancestors.Contains (new KeyValuePair<Path.Segment, int>(seg, ancestor.Value))) {
+					success &= seg.removeUnit (ancestor.Value);
 				}
 			}
-		}
-		// don't delete segments that are in the keep list
-		for (int i = delete.Count - 1; i >= 0; i--) {
-			if (keep.Contains (delete[i])) {
-				delete.RemoveAt (i);
-			}
-		}
-		// remove units in delete list
-		foreach (KeyValuePair<Path.Segment, int> unit in delete) {
-			success &= unit.Key.removeUnit (unit.Value);
 		}
 		return success;
 	}
