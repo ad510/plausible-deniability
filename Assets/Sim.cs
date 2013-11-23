@@ -225,10 +225,12 @@ public class Sim {
 		}
 	}
 
-	// game variables
+	// general simulation parameters
 	public long mapSize;
 	public long updateInterval;
 	public long visRadius;
+
+	// camera properties
 	public FP.Vector camPos;
 	public long camSpeed; // in position units per millisecond
 	public float zoom; // size of simulation length unit relative to diagonal length of screen
@@ -236,9 +238,13 @@ public class Sim {
 	public float zoomMax;
 	public float zoomSpeed;
 	public float zoomMouseWheelSpeed;
+
+	// UI scaling variables
 	public float uiBarHeight; // height of UI bar relative to screen height
 	public Vector2 healthBarSize; // size of health bar relative to diagonal length of screen
 	public float healthBarYOffset; // how high to draw center of health bar above top of selectable part of unit
+
+	// colors
 	public Color backCol;
 	public Color borderCol;
 	public Color noVisCol;
@@ -249,7 +255,8 @@ public class Sim {
 	public Color healthBarBackCol;
 	public Color healthBarFullCol;
 	public Color healthBarEmptyCol;
-	//public string music;
+
+	// core game objects
 	public int nUsers;
 	public int nRsc;
 	public int nPlayers;
