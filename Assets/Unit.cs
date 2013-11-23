@@ -70,7 +70,7 @@ public class Unit {
 	}
 
 	private Sim g;
-	private int id; // index in unit array
+	public readonly int id; // index in unit array
 	public int type;
 	public int player;
 	public int nMoves; // number of moves

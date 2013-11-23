@@ -362,16 +362,49 @@ public class App : MonoBehaviour {
 		tex.LoadImage (imgBytes);
 		return tex;
 	}
-	
+
+	long lastDatacenterTime = 0;
+
 	/// <summary>
 	/// Update is called once per frame
 	/// </summary>
 	void Update () {
 		updateTime ();
+
+		if (g.timeSim > 0) {
+			datacenterAI();
+		}
+
 		g.updatePast (selPlayer, timeGame);
 		g.update (timeGame);
 		updateInput ();
 		draw ();
+	}
+
+	private void datacenterAI() {
+		List<Unit> datacenters = new List<Unit>();
+		for (int i = 0; i < g.nUnits; i++) {
+			if (g.units[i].type == g.unitTypeNamed("Datacenter")) {
+				datacenters.Add(g.units[i]);
+			}
+		}
+
+		if (timeGame - lastDatacenterTime > 5000)
+		{
+			foreach (Unit datacenter in datacenters) {
+				g.cmdPending.add(new MoveCmdEvt(g.timeSim, g.timeSim,
+							new int[] { datacenter.id }, new
+							FP.Vector((int)UnityEngine.Random.Range(-100<<FP.Precision, 100<<FP.Precision),
+								(int)UnityEngine.Random.Range(-100<<FP.Precision, 100<<FP.Precision)),
+							Formation.Tight));
+
+				g.cmdPending.add(new MakePathCmdEvt(g.timeSim, g.timeSim, new int[] {
+							datacenter.id }, new FP.Vector[] { new
+							FP.Vector(-100<<FP.Precision, 100<<FP.Precision) }));
+			}
+
+			lastDatacenterTime = timeGame;
+		}
 	}
 	
 	private void updateTime() {
