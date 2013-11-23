@@ -390,31 +390,31 @@ public class Sim {
 
 	/// <summary>
 	/// makes specified tile exclusive to specified player starting at specified time,
-	/// including how that affects units on that tile
+	/// including how that affects paths on that tile
 	/// </summary>
 	public void exclusiveAdd(int player, int tileX, int tileY, long time) {
 		if (tiles[tileX, tileY].exclusiveLatest(player)) throw new InvalidOperationException("tile (" + tileX + ", " + tileY + ") is already exclusive");
 		tiles[tileX, tileY].exclusive[player].Add(time);
-		// this player's units that are on this tile may time travel starting now
+		// this player's paths that are on this tile may time travel starting now
 		// TODO: actually safe to time travel at earlier times, as long as unit of same type is at same place when seen by another player
-		for (int i = 0; i < nUnits; i++) {
-			if (player == units[i].player && tileX == units[i].tileX && tileY == units[i].tileY && !units[i].unseen()) {
-				units[i].beUnseen(time);
+		foreach (Path path in paths) {
+			if (player == path.player && tileX == path.tileX && tileY == path.tileY && !path.segments[path.segments.Count - 1].unseen) {
+				path.beUnseen(time);
 			}
 		}
 	}
 
 	/// <summary>
 	/// makes specified tile not exclusive to specified player starting at specified time,
-	/// including how that affects units on that tile
+	/// including how that affects paths on that tile
 	/// </summary>
 	public void exclusiveRemove(int player, int tileX, int tileY, long time) {
 		if (!tiles[tileX, tileY].exclusiveLatest(player)) throw new InvalidOperationException("tile (" + tileX + ", " + tileY + ") is already not exclusive");
 		tiles[tileX, tileY].exclusive[player].Add(time);
-		// this player's units that are on this tile may not time travel starting now
-		for (int i = 0; i < nUnits; i++) {
-			if (player == units[i].player && tileX == units[i].tileX && tileY == units[i].tileY && units[i].unseen()) {
-				units[i].beSeen();
+		// this player's paths that are on this tile may not time travel starting now
+		foreach (Path path in paths) {
+			if (player == path.player && tileX == path.tileX && tileY == path.tileY && path.segments[path.segments.Count - 1].unseen) {
+				path.beSeen(time);
 			}
 		}
 	}
