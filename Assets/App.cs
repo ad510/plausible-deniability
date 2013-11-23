@@ -423,7 +423,7 @@ public class App : MonoBehaviour {
 	}
 	
 	private void updateInput() {
-		int i, j;
+		int i;
 		// handle changed mouse buttons
 		if (Input.GetMouseButtonDown (0)) { // left button down
 			mouseDownPos[0] = Input.mousePosition;
@@ -541,29 +541,6 @@ public class App : MonoBehaviour {
 		if (Input.GetKeyDown (KeyCode.D) && Input.GetKey (KeyCode.LeftShift)) {
 			// delete unselected paths of selected units (alternate shortcut)
 			deleteOtherPaths ();
-		}
-		if (Input.GetKeyDown (KeyCode.R) && Input.GetKey (KeyCode.LeftShift)) {
-			// instant replay
-			timeGame = 0;
-			// hide traces of mischief
-			for (i = 0; i < g.nUnits; i++) {
-				g.units[i].beSeen();
-				g.units[i].tileX = Sim.OffMap + 1;
-			}
-			for (i = 0; i < g.tileLen(); i++) {
-				for (j = 0; j < g.tileLen(); j++) {
-					g.tiles[i, j] = new Sim.Tile(g);
-				}
-			}
-			for (i = 0; i < g.nUnits; i++) {
-				g.units[i].addTileMoveEvts(ref g.events, -1, g.timeSim);
-			}
-			g.update(g.timeSim);
-			// allow selecting any player
-			for (i = 0; i < g.nPlayers; i++) {
-				if (g.players[i].isUser) g.players[i].user = g.selUser;
-			}
-			paused = true;
 		}
 		// move camera
 		if (Input.GetKey (KeyCode.LeftArrow) || (Input.mousePosition.x == 0 && Screen.fullScreen)) {
