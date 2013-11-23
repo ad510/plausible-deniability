@@ -3,8 +3,6 @@
 // The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-// TODO: places with NotImplementedException
-
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -627,13 +625,6 @@ public class Path {
 	}
 
 	/// <summary>
-	/// returns index (in unit array) of path that isn't updated in the present and is therefore safe to move in the past
-	/// </summary>
-	private int prepareNonLivePath(long time) {
-		throw new NotImplementedException();
-	}
-	
-	/// <summary>
 	/// connects this path to specified path at specified time,
 	/// returns this path's segment where the paths were connected
 	/// </summary>
@@ -647,43 +638,6 @@ public class Path {
 		return seg;
 	}
 
-	/// <summary>
-	/// mark existing unit as a child of this unit
-	/// </summary>
-	private void addChild(int unit) {
-		throw new NotImplementedException();
-	}
-
-	/// <summary>
-	/// non-recursively delete specified child unit
-	/// </summary>
-	private void deleteChild(int unit) {
-		throw new NotImplementedException();
-	}
-
-	/// <summary>
-	/// recursively delete all child units
-	/// </summary>
-	/// <remarks>this does not check whether deleting the units may lead to player having negative resources</remarks>
-	private void deleteAllChildren() {
-		throw new NotImplementedException();
-	}
-
-	/// <summary>
-	/// delete child units made after the specified time
-	/// </summary>
-	/// <remarks>this does not check whether deleting the units may lead to player having negative resources</remarks>
-	private void deleteChildrenAfter(long time) {
-		throw new NotImplementedException();
-	}
-
-	/// <summary>
-	/// change unit movement to make it look like this unit never existed
-	/// </summary>
-	private void deleteAllMoves() {
-		throw new NotImplementedException();
-	}
-	
 	/// <summary>
 	/// returns minimum absolute position where clicking would select the path
 	/// </summary>
@@ -732,13 +686,6 @@ public class Path {
 			}
 		}
 		return ret;
-	}
-
-	/// <summary>
-	/// returns whether path is known to not be seen by another player at latest known time
-	/// </summary>
-	public bool unseen() {
-		throw new NotImplementedException();
 	}
 
 	/// <summary>

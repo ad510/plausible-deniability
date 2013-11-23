@@ -165,7 +165,6 @@ public class App : MonoBehaviour {
 		g.events = new SimEvtList();
 		g.cmdPending = new SimEvtList();
 		g.cmdHistory = new SimEvtList();
-		g.unitIdChgs = new List<int>();
 		g.checksum = 0;
 		g.synced = true;
 		g.timeSim = -1;
@@ -337,9 +336,7 @@ public class App : MonoBehaviour {
 						foreach (string type in jsonA2) {
 							if (g.unitTypeNamed(type) >= 0) {
 								g.setNUnits(g.nUnits + 1);
-								g.units[g.nUnits - 1] = new Unit(g, g.nUnits - 1, g.unitTypeNamed(type),
-									g.playerNamed(jsonString(jsonO, "player")), (long)jsonDouble(jsonO, "startTime"),
-									jsonFPVector(jsonO, "startPos", new FP.Vector((long)(UnityEngine.Random.value * g.mapSize), (long)(UnityEngine.Random.value * g.mapSize))));
+								g.units[g.nUnits - 1] = new Unit(g, g.nUnits - 1, g.unitTypeNamed(type), g.playerNamed(jsonString(jsonO, "player")));
 								units.Add (g.nUnits - 1);
 							}
 						}

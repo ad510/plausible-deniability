@@ -42,8 +42,6 @@ public abstract class CmdEvt : SimEvt {
 	[ProtoMember(1)]
 	public long timeCmd {get;set;} // time is latest simulation time when command is given, timeCmd is when event takes place (may be in past)
 	[ProtoMember(2)]
-	public int[] units {get;set;} // STACK TODO: delete variable when no longer needed
-	[ProtoMember(3)]
 	public Dictionary<int, int[]> paths {get;set;}
 	
 	/// <summary>
