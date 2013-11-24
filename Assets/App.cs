@@ -7,6 +7,7 @@ using UnityEngine;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using ProtoBuf;
 
 /// <summary>
@@ -14,7 +15,7 @@ using ProtoBuf;
 /// </summary>
 public class App : MonoBehaviour {
 	private class LineBox {
-		public GameObject gameObject;
+		public GameObject gameObject; // TODO: can use line.gameObject to refer to game object, don't need to store it separately
 		public LineRenderer line;
 		
 		public LineBox() {
@@ -50,7 +51,6 @@ public class App : MonoBehaviour {
 		public GameObject preview; // for showing unit at final position
 		public GameObject healthBarBack;
 		public GameObject healthBarFore;
-		public LineRenderer pathLine;
 		public int type;
 		public int player;
 		
@@ -59,9 +59,6 @@ public class App : MonoBehaviour {
 			preview = Instantiate(quadPrefab) as GameObject;
 			healthBarBack = Instantiate(quadPrefab) as GameObject;
 			healthBarFore = Instantiate(quadPrefab) as GameObject;
-			pathLine = sprite.AddComponent<LineRenderer>();
-			pathLine.material.shader = Shader.Find ("Diffuse");
-			pathLine.SetVertexCount (2);
 			type = -1;
 			player = -1;
 		}
@@ -94,6 +91,7 @@ public class App : MonoBehaviour {
 	LineBox border;
 	Texture[,] texUnits;
 	List<List<UnitSprite>> sprUnits;
+	List<List<LineRenderer>> pathLines;
 	GameObject sprMakeUnit;
 	LineBox selectBox;
 	GUIStyle lblStyle;
@@ -355,6 +353,14 @@ public class App : MonoBehaviour {
 			}
 		}
 		sprUnits = new List<List<UnitSprite>>();
+		if (pathLines != null) {
+			foreach (List<LineRenderer> lines in pathLines) {
+				foreach (LineRenderer line in lines) {
+					Destroy (line.gameObject);
+				}
+			}
+		}
+		pathLines = new List<List<LineRenderer>>();
 		// start game
 		Camera.main.backgroundColor = g.backCol;
 		border.line.material.color = g.borderCol;
@@ -611,7 +617,6 @@ public class App : MonoBehaviour {
 				sprUnits[i][j].preview.renderer.enabled = false;
 				sprUnits[i][j].healthBarBack.renderer.enabled = false;
 				sprUnits[i][j].healthBarFore.renderer.enabled = false;
-				sprUnits[i][j].pathLine.enabled = false;
 			}
 			if (pathDrawPos(i, ref vec)) {
 				for (j = 0; j < g.paths[i].segments[seg].units.Count; j++) {
@@ -619,7 +624,6 @@ public class App : MonoBehaviour {
 					if (sprUnits[i][j].type != g.units[unit].type || sprUnits[i][j].player != g.units[unit].player) {
 						sprUnits[i][j].sprite.renderer.material.mainTexture = texUnits[g.units[unit].type, g.units[unit].player];
 						sprUnits[i][j].preview.renderer.material.mainTexture = texUnits[g.units[unit].type, g.units[unit].player];
-						sprUnits[i][j].pathLine.material.color = g.pathCol;
 						sprUnits[i][j].type = g.units[unit].type;
 						sprUnits[i][j].player = g.units[unit].player;
 					}
@@ -632,18 +636,39 @@ public class App : MonoBehaviour {
 					sprUnits[i][j].sprite.transform.position = vec + simToDrawScl (g.unitT[g.units[unit].type].imgOffset);
 					sprUnits[i][j].sprite.transform.localScale = unitScale (g.units[unit].type, g.units[unit].player);
 					sprUnits[i][j].sprite.renderer.enabled = true;
-					/*if (g.units[i].isChildPath && timeGame >= g.units[g.units[i].parent].moves[0].timeStart) {
-						// unit path line (STACK TODO: uncomment this when can determine parent paths)
-						sprUnits[i][j].pathLine.SetPosition (0, new Vector3(vec.x, vec.y, PathLineDepth));
-						sprUnits[i][j].pathLine.SetPosition (1, simToDrawPos (g.units[g.units[i].parent].calcPos(timeGame), PathLineDepth));
-						sprUnits[i][j].pathLine.enabled = true;
-					}*/
 					if (Input.GetKey (KeyCode.LeftShift) && selPaths.ContainsKey(i)) {
 						// show final position if holding shift
 						sprUnits[i][j].preview.renderer.material.color = sprUnits[i][j].sprite.renderer.material.color;
 						sprUnits[i][j].preview.transform.position = simToDrawPos(g.paths[i].moves[g.paths[i].moves.Count - 1].vecEnd + g.unitT[g.units[unit].type].imgOffset, UnitDepth);
 						sprUnits[i][j].preview.transform.localScale = sprUnits[i][j].sprite.transform.localScale;
 						sprUnits[i][j].preview.renderer.enabled = true;
+					}
+				}
+			}
+		}
+		// unit path lines
+		for (i = 0; i < g.paths.Count - 1; i++) {
+			int k = 0;
+			if (i == pathLines.Count) pathLines.Add (new List<LineRenderer>());
+			foreach (LineRenderer line in pathLines[i]) {
+				line.enabled = false;
+			}
+			seg = g.paths[i].getSegment (timeGame);
+			if (seg >= 0 && g.paths[i].player == selPlayer) {
+				for (j = i + 1; j < g.paths.Count; j++) {
+					int seg2 = g.paths[j].getSegment (timeGame);
+					if (seg2 >= 0 && g.paths[i].speed == g.paths[j].speed && g.paths[i].player == g.paths[j].player
+						&& g.paths[i].segments[seg].units.Intersect (g.paths[j].segments[seg2].units).Any ()) {
+						if (k == pathLines[i].Count) {
+							pathLines[i].Add (new GameObject().AddComponent<LineRenderer>());
+							pathLines[i][k].material.shader = Shader.Find ("Diffuse");
+							pathLines[i][k].SetVertexCount (2);
+							pathLines[i][k].material.color = g.pathCol;
+						}
+						pathLines[i][k].SetPosition (0, simToDrawPos (g.paths[i].calcPos (timeGame), PathLineDepth));
+						pathLines[i][k].SetPosition (1, simToDrawPos (g.paths[j].calcPos (timeGame), PathLineDepth));
+						pathLines[i][k].enabled = true;
+						k++;
 					}
 				}
 			}
