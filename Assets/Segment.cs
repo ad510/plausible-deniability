@@ -22,11 +22,11 @@ public class Segment {
 	public List<int> units; // indices of units on this path segment
 	public bool unseen; // whether path segment is known to not be seen by another player
 	
-	public Segment(Path pathVal, int idVal, long timeVal, List<int> unitsVal, bool unseenVal) {
+	public Segment(Path pathVal, int idVal, long timeStartVal, List<int> unitsVal, bool unseenVal) {
 		path = pathVal;
 		g = path.g;
 		id = idVal;
-		timeStart = timeVal;
+		timeStart = timeStartVal;
 		branches = new List<Segment>();
 		branches.Add (this);
 		units = unitsVal;
