@@ -55,8 +55,7 @@ public class Path {
 			ancestors.Add (this);
 			// find all ancestor segments to start removal from
 			for (i = 0; i < ancestors.Count; i++) {
-				List<Segment> ancestorPrev = ancestors[i].prev (unit);
-				if (ancestorPrev.Count > 0) {
+				if (ancestors[i].prev (unit).Any ()) {
 					// if this ancestor has a sibling segment that we're not currently planning to remove unit from,
 					// don't remove unit from previous segments shared by both
 					bool hasSibling = false;
@@ -71,10 +70,10 @@ public class Path {
 						// indicate to remove unit from previous segments
 						ancestors.RemoveAt(i);
 						i--;
-						ancestors.AddRange (ancestorPrev);
+						ancestors.AddRange (ancestors[i].prev (unit));
 					}
 				}
-				else if (ancestors[i].prev ().Count == 0) {
+				else if (!ancestors[i].prev ().Any ()) {
 					// reached a segment with no previous segment whatsoever, so return false (we assume other players know the scenario's starting state)
 					return false;
 				}
@@ -105,15 +104,15 @@ public class Path {
 			if (units.Contains (unit)) {
 				if (!unseen && timeStart < g.timeSim) return false;
 				// only remove units from next segments if this is their only previous segment
-				if (nextOnPath () == null || nextOnPath ().prev (unit).Count == 1) {
+				if (nextOnPath () == null || nextOnPath ().prev (unit).Count () == 1) {
 					// remove unit from next segments
 					foreach (Segment seg in next (unit)) {
 						seg.removeUnitAfter (unit, ref removed);
 					}
 					// remove child units that only this unit could have made
-					foreach (KeyValuePair<Segment, int> child in children (unit)) {
+					foreach (KeyValuePair<Segment, int> child in children (unit).ToArray ()) {
 						// TODO: if has alternate non-live parent, do we need to recursively make children non-live?
-						if (child.Key.parents (child.Value).Count == 1) child.Key.removeUnitAfter (child.Value, ref removed);
+						if (child.Key.parents (child.Value).Count () == 1) child.Key.removeUnitAfter (child.Value, ref removed);
 					}
 				}
 				// remove unit from this segment
@@ -176,76 +175,69 @@ public class Path {
 		}
 		
 		/// <summary>
-		/// returns all segment/unit pairs that could have made specified unit in this segment
+		/// iterates over all segment/unit pairs that could have made specified unit in this segment
 		/// </summary>
-		public List<KeyValuePair<Segment, int>> parents(int unit) {
-			List<KeyValuePair<Segment, int>> ret = new List<KeyValuePair<Segment, int>>();
-			if (prev (unit).Count == 0) {
+		public IEnumerable<KeyValuePair<Segment, int>> parents(int unit) {
+			if (!prev (unit).Any ()) {
 				foreach (Segment seg in prev ()) {
 					foreach (int unit2 in seg.units) {
 						if (g.unitT[g.units[unit2].type].canMake[g.units[unit].type]) {
-							ret.Add (new KeyValuePair<Segment, int>(seg, unit2));
+							yield return new KeyValuePair<Segment, int>(seg, unit2);
 						}
 					}
 				}
 			}
-			return ret;
 		}
 		
 		/// <summary>
-		/// returns all segment/unit pairs that specified unit in this segment could have made
+		/// iterates over all segment/unit pairs that specified unit in this segment could have made
 		/// </summary>
-		public List<KeyValuePair<Segment, int>> children(int unit) {
-			List<KeyValuePair<Segment, int>> ret = new List<KeyValuePair<Segment, int>>();
+		public IEnumerable<KeyValuePair<Segment, int>> children(int unit) {
 			foreach (Segment seg in next ()) {
 				foreach (int unit2 in seg.units) {
-					if (g.unitT[g.units[unit].type].canMake[g.units[unit2].type] && seg.prev (unit2).Count == 0) {
-						ret.Add (new KeyValuePair<Segment, int>(seg, unit2));
+					if (g.unitT[g.units[unit].type].canMake[g.units[unit2].type] && !seg.prev (unit2).Any ()) {
+						yield return new KeyValuePair<Segment, int>(seg, unit2);
 					}
 				}
 			}
-			return ret;
 		}
 		
 		/// <summary>
-		/// returns all segments containing the specified unit that merge onto the beginning of this segment
+		/// iterates over all segments containing the specified unit that merge onto the beginning of this segment
 		/// </summary>
-		public List<Segment> prev(int unit) {
-			List<Segment> ret = new List<Segment>();
+		public IEnumerable<Segment> prev(int unit) {
 			foreach (Segment seg in prev()) {
-				if (seg.units.Contains (unit)) ret.Add (seg);
+				if (seg.units.Contains (unit)) yield return seg;
 			}
-			return ret;
 		}
 		
 		/// <summary>
-		/// returns all segments containing the specified unit that branch off from the end of this segment
+		/// iterates over all segments containing the specified unit that branch off from the end of this segment
 		/// </summary>
-		public List<Segment> next(int unit) {
-			List<Segment> ret = new List<Segment>();
+		public IEnumerable<Segment> next(int unit) {
 			foreach (Segment seg in next()) {
-				if (seg.units.Contains (unit)) ret.Add (seg);
+				if (seg.units.Contains (unit)) yield return seg;
 			}
-			return ret;
 		}
 		
 		/// <summary>
-		/// returns all segments that merge onto the beginning of this segment
+		/// iterates over all segments that merge onto the beginning of this segment
 		/// </summary>
-		public List<Segment> prev() {
-			List<Segment> ret = new List<Segment>();
+		public IEnumerable<Segment> prev() {
 			foreach (Segment seg in branches) {
-				if (seg.prevOnPath() != null) ret.Add (seg.prevOnPath());
+				if (seg.prevOnPath() != null) yield return seg.prevOnPath();
 			}
-			return ret;
 		}
 		
 		/// <summary>
-		/// returns all segments that branch off from the end of this segment
+		/// iterates over all segments that branch off from the end of this segment
 		/// </summary>
-		public List<Segment> next() {
-			if (nextOnPath() == null) return new List<Segment>();
-			return new List<Segment>(nextOnPath().branches);
+		public IEnumerable<Segment> next() {
+			if (nextOnPath() != null) {
+				foreach (Segment seg in nextOnPath().branches) {
+					yield return seg;
+				}
+			}
 		}
 		
 		/// <summary>
