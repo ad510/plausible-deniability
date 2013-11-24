@@ -340,20 +340,20 @@ public class Sim {
 		}
 	}
 	
-	public bool deleteOtherPaths(List<KeyValuePair<Path.Segment, int>> units) {
-		List<KeyValuePair<Path.Segment, int>> ancestors = new List<KeyValuePair<Path.Segment, int>>(units);
-		List<KeyValuePair<Path.Segment, int>> prev = new List<KeyValuePair<Path.Segment, int>>();
+	public bool deleteOtherPaths(List<KeyValuePair<Segment, int>> units) {
+		List<KeyValuePair<Segment, int>> ancestors = new List<KeyValuePair<Segment, int>>(units);
+		List<KeyValuePair<Segment, int>> prev = new List<KeyValuePair<Segment, int>>();
 		bool success = true;
 		for (int i = 0; i < ancestors.Count; i++) {
-			foreach (Path.Segment seg in ancestors[i].Key.prev (ancestors[i].Value)) {
-				ancestors.Add (new KeyValuePair<Path.Segment, int>(seg, ancestors[i].Value));
-				prev.Add (new KeyValuePair<Path.Segment, int>(seg, ancestors[i].Value));
+			foreach (Segment seg in ancestors[i].Key.prev (ancestors[i].Value)) {
+				ancestors.Add (new KeyValuePair<Segment, int>(seg, ancestors[i].Value));
+				prev.Add (new KeyValuePair<Segment, int>(seg, ancestors[i].Value));
 			}
 			ancestors.AddRange (ancestors[i].Key.parents (ancestors[i].Value));
 		}
-		foreach (KeyValuePair<Path.Segment, int> ancestor in prev) {
-			foreach (Path.Segment seg in ancestor.Key.next (ancestor.Value)) {
-				if (!ancestors.Contains (new KeyValuePair<Path.Segment, int>(seg, ancestor.Value))) {
+		foreach (KeyValuePair<Segment, int> ancestor in prev) {
+			foreach (Segment seg in ancestor.Key.next (ancestor.Value)) {
+				if (!ancestors.Contains (new KeyValuePair<Segment, int>(seg, ancestor.Value))) {
 					success &= seg.removeUnit (ancestor.Value);
 				}
 			}
