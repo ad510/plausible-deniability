@@ -374,18 +374,4 @@ public class Path {
 		}
 		return ret;
 	}
-
-	/// <summary>
-	/// returns whether path is created (TODO: and contains units?) at specified time
-	/// </summary>
-	public bool exists(long time) {
-		return time >= segments[0].timeStart && time >= moves[0].timeStart;
-	}
-
-	/// <summary>
-	/// returns whether path exists and is being updated in the present (i.e., isn't time traveling)
-	/// </summary>
-	public bool isLive(long time) {
-		return exists (time) && timeSimPast == long.MaxValue;
-	}
 }

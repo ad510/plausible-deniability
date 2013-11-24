@@ -474,16 +474,18 @@ public class UpdateEvt : SimEvt {
 		}
 		// update units
 		for (i = 0; i < g.paths.Count; i++) {
-			if (g.paths[i].isLive (time)) {
+			int seg = g.paths[i].getSegment (time);
+			if (seg >= 0 && g.paths[i].timeSimPast == long.MaxValue) {
 				pos = g.paths[i].calcPos (time);
-				foreach (int unit in g.paths[i].segments[g.paths[i].getSegment(time)].units) {
+				foreach (int unit in g.paths[i].segments[seg].units) {
 					if (time >= g.units[unit].timeAttack + g.unitT[g.units[unit].type].reload) {
 						// done reloading, look for closest target to potentially attack
 						int target = -1;
 						long targetDistSq = g.unitT[g.units[unit].type].range * g.unitT[g.units[unit].type].range + 1;
 						for (j = 0; j < g.paths.Count; j++) {
-							if (i != j && g.paths[j].isLive (time) && g.players[g.paths[i].player].mayAttack[g.paths[j].player]) {
-								foreach (int unit2 in g.paths[j].segments[g.paths[j].getSegment(time)].units) {
+							int seg2 = g.paths[j].getSegment (time);
+							if (i != j && seg2 >= 0 && g.paths[j].timeSimPast == long.MaxValue && g.players[g.paths[i].player].mayAttack[g.paths[j].player]) {
+								foreach (int unit2 in g.paths[j].segments[seg2].units) {
 									if (g.unitT[g.units[unit].type].damage[g.units[unit2].type] > 0) {
 										long distSq = (g.paths[j].calcPos (time) - pos).lengthSq ();
 										if (distSq < targetDistSq) {
