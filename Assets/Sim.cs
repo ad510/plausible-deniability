@@ -347,7 +347,9 @@ public class Sim {
 		for (int i = 0; i < ancestors.Count; i++) {
 			foreach (Segment seg in ancestors[i].Key.prev (ancestors[i].Value)) {
 				ancestors.Add (new KeyValuePair<Segment, int>(seg, ancestors[i].Value));
-				prev.Add (new KeyValuePair<Segment, int>(seg, ancestors[i].Value));
+				if (ancestors[i].Key.path.timeSimPast == long.MaxValue || seg.path.timeSimPast != long.MaxValue) {
+					prev.Add (new KeyValuePair<Segment, int>(seg, ancestors[i].Value));
+				}
 			}
 			ancestors.AddRange (ancestors[i].Key.parents (ancestors[i].Value));
 		}

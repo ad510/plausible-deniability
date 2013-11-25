@@ -9,8 +9,8 @@ using System.Linq;
 using System.Text;
 
 public class Segment {
-	private readonly Sim g;
-	private readonly Path path;
+	public readonly Sim g;
+	public readonly Path path;
 	public int id; // index in segment list
 	public long timeStart;
 	/// <summary>
