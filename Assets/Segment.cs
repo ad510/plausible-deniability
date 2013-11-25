@@ -67,9 +67,9 @@ public class Segment {
 				}
 				if (!hasSibling) {
 					// indicate to remove unit from previous segments
+					ancestors.AddRange (ancestors[i].prev (unit));
 					ancestors.RemoveAt(i);
 					i--;
-					ancestors.AddRange (ancestors[i].prev (unit));
 				}
 			}
 			else if (!ancestors[i].prev ().Any ()) {
