@@ -876,6 +876,9 @@ public class App : MonoBehaviour {
 		else if (cmdType == 16) {
 			g.users[user].cmdReceived.add (Serializer.Deserialize<StackCmdEvt>(stream));
 		}
+		else if (cmdType == 17) {
+			g.users[user].cmdReceived.add (Serializer.Deserialize<DeleteOtherPathsCmdEvt>(stream));
+		}
 		else {
 			throw new InvalidOperationException("received command of invalid type");
 		}

@@ -37,6 +37,7 @@ public abstract class SimEvt {
 [ProtoInclude(12, typeof(MakeUnitCmdEvt))]
 [ProtoInclude(13, typeof(MakePathCmdEvt))]
 [ProtoInclude(14, typeof(DeletePathCmdEvt))]
+[ProtoInclude(17, typeof(DeleteOtherPathsCmdEvt))]
 [ProtoInclude(16, typeof(StackCmdEvt))]
 public abstract class CmdEvt : SimEvt {
 	[ProtoMember(1)]
@@ -459,6 +460,9 @@ public class UpdateEvt : SimEvt {
 				}
 				else if (evt is StackCmdEvt) {
 					cmdType = 16;
+				}
+				else if (evt is DeleteOtherPathsCmdEvt) {
+					cmdType = 17;
 				}
 				else {
 					throw new InvalidOperationException("pending command's type is not a command");
