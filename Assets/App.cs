@@ -14,7 +14,7 @@ using ProtoBuf;
 /// </summary>
 public class App : MonoBehaviour {
 	private class LineBox {
-		public GameObject gameObject;
+		public GameObject gameObject; // TODO: can use line.gameObject to refer to game object, don't need to store it separately
 		public LineRenderer line;
 		
 		public LineBox() {
@@ -632,12 +632,17 @@ public class App : MonoBehaviour {
 					sprUnits[i][j].sprite.transform.position = vec + simToDrawScl (g.unitT[g.units[unit].type].imgOffset);
 					sprUnits[i][j].sprite.transform.localScale = unitScale (g.units[unit].type, g.units[unit].player);
 					sprUnits[i][j].sprite.renderer.enabled = true;
-					/*if (g.units[i].isChildPath && timeGame >= g.units[g.units[i].parent].moves[0].timeStart) {
-						// unit path line (STACK TODO: uncomment this when can determine parent paths)
-						sprUnits[i][j].pathLine.SetPosition (0, new Vector3(vec.x, vec.y, PathLineDepth));
-						sprUnits[i][j].pathLine.SetPosition (1, simToDrawPos (g.units[g.units[i].parent].calcPos(timeGame), PathLineDepth));
-						sprUnits[i][j].pathLine.enabled = true;
-					}*/
+					for (int k = i + 1; k < g.paths.Count; k++) {
+						int seg2 = g.paths[k].getSegment (timeGame);
+						if (seg2 >= 0 && g.paths[i].speed == g.paths[k].speed && g.paths[i].player == g.paths[k].player
+							&& g.paths[k].segments[seg2].units.Contains (unit)) {
+							// unit path line
+							sprUnits[i][j].pathLine.SetPosition (0, new Vector3(vec.x, vec.y, PathLineDepth));
+							sprUnits[i][j].pathLine.SetPosition (1, simToDrawPos (g.paths[k].calcPos(timeGame), PathLineDepth));
+							sprUnits[i][j].pathLine.enabled = true;
+							break;
+						}
+					}
 					if (Input.GetKey (KeyCode.LeftShift) && selPaths.ContainsKey(i)) {
 						// show final position if holding shift
 						sprUnits[i][j].preview.renderer.material.color = sprUnits[i][j].sprite.renderer.material.color;
