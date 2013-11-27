@@ -460,7 +460,7 @@ public class Sim {
 		for (int i = 0; i < nRootPaths; i++) {
 			if (paths[i].player == player) {
 				foreach (int unit in paths[i].segments[0].units) {
-					// STACK TODO: this will double-count units that are in multiple paths at beginning of scenario
+					// TODO: this will double-count units that are in multiple paths at beginning of scenario
 					ret += paths[i].segments[0].rscCollected(time, unit, rscType, max, includeNonLiveChildren);
 				}
 			}

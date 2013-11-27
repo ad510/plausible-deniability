@@ -100,7 +100,7 @@ public class App : MonoBehaviour {
 	Vector2 selUnitsScrollPos;
 	Sim g;
 	int selPlayer;
-	Dictionary<int, List<int>> selPaths; // STACK TODO: this should consider time that paths were selected
+	Dictionary<int, List<int>> selPaths; // TODO: this should consider time that paths were selected
 	int makeUnitType;
 	long timeNow;
 	long timeLast;
@@ -456,7 +456,7 @@ public class App : MonoBehaviour {
 						if (selPlayer == g.paths[i].player && timeGame >= g.paths[i].moves[0].timeStart
 							&& FP.rectIntersects (drawToSimPos (mouseMinPos), drawToSimPos (mouseMaxPos),
 							g.paths[i].selMinPos(timeGame), g.paths[i].selMaxPos(timeGame))) {
-							// STACK TODO: if not all units in path are selected, select remaining units instead of deselecting path
+							// TODO: if not all units in path are selected, select remaining units instead of deselecting path
 							if (selPaths.ContainsKey (i)) {
 								selPaths.Remove(i);
 							}
@@ -776,7 +776,7 @@ public class App : MonoBehaviour {
 		if (selPaths.Count > 0) {
 			for (i = 0; i < g.nUnitT; i++) {
 				foreach (int path in selPaths.Keys) {
-					if (timeGame >= g.paths[path].moves[0].timeStart && g.paths[path].canMakeUnitType (timeGame, i)) { // STACK TODO: sometimes canMake check should use existing selected units in path
+					if (timeGame >= g.paths[path].moves[0].timeStart && g.paths[path].canMakeUnitType (timeGame, i)) { // TODO: sometimes canMake check should use existing selected units in path
 						if (GUILayout.Button ("Make " + g.unitT[i].name)) makeUnit (i);
 						break;
 					}
@@ -965,7 +965,7 @@ public class App : MonoBehaviour {
 		Dictionary<int, int> ret = new Dictionary<int, int>();
 		foreach (List<int> units in selPaths.Values) {
 			foreach (int unit in units) {
-				// STACK TODO: check for unit existence
+				// TODO: check for unit existence
 				if (!ret.ContainsKey (unit)) ret.Add (unit, 0);
 				ret[unit]++;
 			}
@@ -1077,7 +1077,7 @@ public class App : MonoBehaviour {
 	/// makes a new unit using selected units
 	/// </summary>
 	private void makeUnit(int type) {
-		// STACK TODO: this should only iterate through existing paths (fix when selPaths considers selection time)
+		// TODO: this should only iterate through existing paths (fix when selPaths considers selection time)
 		foreach (KeyValuePair<int, List<int>> path in selPaths) {
 			if (g.unitT[type].speed > 0 && g.unitT[type].makeOnUnitT < 0 && g.paths[path.Key].canMakeUnitType (timeGame + 1, type)) {
 				// make unit now

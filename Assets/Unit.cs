@@ -18,7 +18,7 @@ public class Unit {
 	public int type;
 	public int player;
 	public int nTimeHealth;
-	public long[] timeHealth; // times at which each health increment is removed (STACK TODO: change how this is stored to allow switching units on a path)
+	public long[] timeHealth; // times at which each health increment is removed (TODO: change how this is stored to allow switching units on a path)
 	public long timeAttack; // latest time that attacked a unit
 
 	public Unit(Sim simVal, int idVal, int typeVal, int playerVal) {
