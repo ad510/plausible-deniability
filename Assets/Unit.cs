@@ -9,8 +9,9 @@ using System.Linq;
 using System.Text;
 
 /// <summary>
-/// RTS game unit that can do strange things when other players aren't looking
+/// identity of a unit
 /// </summary>
+/// <remarks>how unit moves is stored in Path class, not here</remarks>
 public class Unit {
 	private Sim g;
 	private int id; // index in unit array

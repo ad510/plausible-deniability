@@ -15,8 +15,8 @@ using System.Text;
 public class Move {
 	public long timeStart; // time when starts moving
 	public long timeEnd; // time when finishes moving
-	public FP.Vector vecStart; // location at timeStart, z indicates rotation (TODO: implement rotation)
-	public FP.Vector vecEnd; // location at timeEnd, z indicates rotation
+	public FP.Vector vecStart; // location at timeStart, (TODO: z indicates rotation)
+	public FP.Vector vecEnd; // location at timeEnd, (TODO: z indicates rotation)
 
 	/// <summary>
 	/// constructor that directly sets all instance variables

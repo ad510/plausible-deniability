@@ -340,6 +340,10 @@ public class Sim {
 		}
 	}
 	
+	/// <summary>
+	/// removes units from all other paths that, if seen, could cause specified units to be removed from specified segments;
+	/// returns whether successful
+	/// </summary>
 	public bool deleteOtherPaths(List<KeyValuePair<Segment, int>> units) {
 		List<KeyValuePair<Segment, int>> ancestors = new List<KeyValuePair<Segment, int>>(units);
 		List<KeyValuePair<Segment, int>> prev = new List<KeyValuePair<Segment, int>>();

@@ -8,6 +8,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
+/// <summary>
+/// describes the composition of a section of a path
+/// </summary>
 public class Segment {
 	public readonly Sim g;
 	public readonly Path path;

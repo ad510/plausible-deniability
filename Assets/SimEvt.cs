@@ -243,7 +243,7 @@ public class MakeUnitCmdEvt : CmdEvt {
 }
 
 /// <summary>
-/// command to make new path(s) branching off from specified path(s)
+/// command to make new path(s) that existing unit(s) could alternately move along
 /// </summary>
 [ProtoContract]
 public class MakePathCmdEvt : CmdEvt {
@@ -295,6 +295,9 @@ public class DeletePathCmdEvt : CmdEvt {
 	}
 }
 
+/// <summary>
+/// command to remove units from all other paths that, if seen, could cause specified path(s) to disappear
+/// </summary>
 [ProtoContract]
 public class DeleteOtherPathsCmdEvt : CmdEvt {
 	/// <summary>

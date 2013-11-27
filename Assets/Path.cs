@@ -8,13 +8,17 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
+/// <summary>
+/// path that unit(s) of the same speed and player move along
+/// (units that are on the same path stack on top of each other)
+/// </summary>
 public class Path {
 	public readonly Sim g;
 	public readonly int id; // index in path list
 	public readonly long speed; // in position units per millisecond
 	public readonly int player;
-	public List<Segment> segments;
-	public List<Move> moves; // later moves are later in list
+	public List<Segment> segments; // composition of the path over time, more recent segments are later in list
+	public List<Move> moves; // how path moved over time, more recent moves are later in list
 	public int tileX, tileY; // current position on visibility tiles
 	public long timeSimPast; // time traveling simulation time if made in the past, otherwise set to long.MaxValue
 
@@ -87,6 +91,10 @@ public class Path {
 		return ret;
 	}
 	
+	/// <summary>
+	/// inserts a segment starting at specified time if no segment already starts at that time,
+	/// returns index of that segment
+	/// </summary>
 	public int insertSegment(long time) {
 		int seg = getSegment (time);
 		if (seg >= 0 && segments[seg].timeStart == time) return seg;
