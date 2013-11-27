@@ -14,6 +14,7 @@ not q&a but still good wording:
 - Zach describes it as RTS in which "[the other player's] reality is determined by what you see"
 - "inspired by quantum mechanics"
 - these should be memos/letters from The Mentor
+- you can't cheat w/o anyone knowing that you did, right? http://www.colbertnation.com/the-colbert-report-videos/430139/october-31-2013/the-word---see-no-evil
 
 UI:
 have visibility circle (like in menu), when hovering over Q&A box all of it becomes visible
@@ -25,9 +26,9 @@ after 1st paths level:
 By the way, this is analogous to how a quantum computer works. Real particles in nature take all of the paths available to them, and they only have to make up their mind about where they are when they are seen or otherwise measured. Since this gives them a certain amount of hindsight by the time they are measured, they can often be found in places that form unlikely coincidences with respect to where other particles ended up. It is then possible to take advantage of these coincidences when they occur to make a computer that can solve certain problems much faster than otherwise possible.
 
 after discover infiltration and start following potential traitors:
-Obviously, there's a lesson from this latest incident, which is that we can't trust anyone and that we must keep an eye out to make sure no one's secretly working against us.
+After this latest incident, it's clear that we can't trust anyone and that we must keep an eye out to make sure no one's secretly working against us.
 
-Now we could just leave it at that and move on. But I think there's more to it than that. We know that the NSA is capable of doing crazy things, maybe even some things we don't know about yet. But we also know that no matter what mind boggling techniques they use against us, they all have one thing in common, which is that the NSA can only use them when we're not looking. Otherwise, if they try to change something that we saw happen in the past, it would violate causality and we'd get a smoking gun confirmation that they're doing something they're not supposed to. Therefore, by watching everything the NSA might be doing, not only do we ensure that no one is working against us without our knowledge, but we also prevent them from hiding their wrongdoing using those techniques that are so difficult to detect.
+Now we could just leave it at that and move on. But I think there's a deeper lesson to all this. We know that the NSA is capable of doing crazy things, maybe even some things we don't know about yet. But we also know that no matter what mind boggling techniques they use against us, they all have one thing in common, which is that the NSA can only use them when we're not looking. Otherwise, if they try to change something that we saw happen in the past, it would violate causality and we'd get a smoking gun confirmation that they're doing something they're not supposed to. Therefore, by watching everything the NSA might be doing, not only do we ensure that no one is working against us without our knowledge, but we also prevent them from hiding their wrongdoing using those techniques that are so difficult to detect.
 
 This makes it more important than ever that we never take an eye off what anyone is doing. Ever.
 
@@ -65,6 +66,8 @@ Notice you could do that without ever seeing the other player time travel. But t
 
 (note: after sniper level, say how finding electron at 1 location decreases chance to find another nearby, emphasizing they don't make up their mind about where they are until you see them, and how this "exclusion principle" creates chemical properties of atoms (from QED))
 
+(note: after level where NSA never infiltrated another country, say that replay only shows one way it could have happened and impossible to ever know what "actually" happened, describe virtual particles like at every point in space that you're not looking at, there may or may not be...)
+
 (note: after identical twins level, say philosophical implications of never having to make up your mind about what your units do and that replay just shows 1 way opponent could have done that, and how distinguish radio waves from 1 source vs 2 close sources when can't tell which star the photon came from (from QED))
 
-(note: after seeing the entire map level, show how paths/amplitudes and wavefunctions are equivalent in 1 player game/nature with option to explain how decoherence really works)
+(note: after seeing the entire map level, say that nature is like superuser, show how paths/amplitudes and wavefunctions are equivalent in 1 player game/nature with option to explain how decoherence really works)

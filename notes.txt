@@ -1,10 +1,68 @@
 todo:
-profile scn_perf_test in pro trial?
-"n" variables are redundant with array length property (change after merging stacking branch b/c won't enable many foreach loops)
+things zach can work on (add him to copyright line)
+  say ideas for first couple of levels, get min requirements from there
+  mod files for scn
+  mini map
+  timeline
+  superuser
+  conventional fog of war (toggle)
+  how will we do triggers?
+    zach suggests tree/graph of dependencies
+    run these in coroutines? save state like http://dotnet.agilekiwi.com/blog/2007/05/implementing-workflow-with-persistent.html
+    dependency based system only has advantage over simpler event based system when event has >1 dependency
+  use delta time instead of timeNow & timeLast (nope, would cause sub-millisecond timing errors)
+  level map
+  memos and other messages
+  main menu
+  replay toggle
+  profile scn_perf_test in pro trial?
+scenario branch
+  use exists()
+  try making path at timeSim + 1
+look at starcraft 2 tutorial
+stacking branch
+  selPaths should consider time that paths were selected (affects CmdEvt too)
+    don't forget KeyValuePair struct
+  do normal move if can't stack onto clicked unit
+  when moving subset of units in path, try to delete unit from old path
+  stack/unstack buttons
+  if building mine on mineral, path will contain (nonmoving) units of different type (mineral + mine)
+  before merge
+    look at stack todo
+    reorder Path methods
+    compare on perf test
+    remove extra units from scn.json
+    disable stacking in GUI
+    push experimental branches that I like
+    diff
+    multiplayer test
+    revert Unit in master
+  after merge
+    use List.Last()
+    "n" variables are redundant with array length property (change after merging stacking branch b/c won't enable many foreach loops)
+    define iterators inline
+    don't make App constants public
+    make id readonly and public
+    make protobuf-net empty constructors private
+    if multiple types of events, rename SimEvt to TimedEvt?
+    rename CmdEvt to UnitCmdEvt, make new CmdEvt that GoLiveCmdEvt also inherits that update() automatically adds to cmdHistory
+    move SimEvt and Sim child classes into separate files (don't need different namespace)
+    use constants for protobuf-net class ids?
+    use reference cycles
+    rename getMove, getNode to getMoveAtTime, getNodeAtTime or activeMove, activeNode?
+    scoping using {}
+    capitalize methods and make constants lowercase?
+  discuss replays and whether I need to change data structures (no, not yet)
+github issue tracker
+use different lblStyle for white & red text
+license 80 character line wrap?
 don't necessarily decouple UnitSprite from paths
 click & drag line
-make delete other paths consider parents of units that made it
-allow selecting any player, but giving commands only on human players
+unit tests? (https://github.com/tenpn/untest or https://github.com/zoon/nunit-unity3d)
+  must justify 2x code complexity vs code review
+  key is if find something broken, fix immediately
+  maybe just start with removeUnit()
+allow selecting any player, but giving commands only on human players?
 attack command & animations
 don't allow attacking while moving for some units
 repair building command
@@ -12,15 +70,12 @@ way to make multiple paths at a time
 making new paths should select new ones as well?
 don't make units come out in random directions?
 allow selecting only 1 building at a time, and no units in addition?
-deserialize scenario instead of loading 1 field at a time (would that shorten code by enough to make up for lost flexibility?)
 sound
 pathfinding
 keep non-live paths in yellow areas w/o user help
 darker gray tiles should act more conventionally
 post to tigsource.com or unity forums?
-rename to improbability?
 unity 4.2
-  text asset serialization
   quad primitive
     quad primitive doesn't display in player mode (output_log.txt says "The resource Quad.fbx could not be loaded from the resource file!")
   "Texture importer now has "Alpha is Transparency" setting, which does color dilation to fix edge artifacts on semitransparent textures. It is enabled by default for GUI textures."
@@ -35,12 +90,12 @@ for each selected unit:
 
 stacking data structures:
 Node:
-  long time
-  int[] paths
+  long timeStart
+  Segment[] branches
   int[] units
   bool unseen
 Path:
-  Node[] nodes
+  Segment[] segments
   Move[] moves
   moved from Unit: tileX, tileY, timeSimPast
 
@@ -106,6 +161,7 @@ other questions:
 puzzle brainstorming
 
 changing the past and wavefunctions levels:
+- do these levels at home country of spy agency, so can correct past mistakes
 - what they didn't see
   - Matthew's 3/17/2013 email has alternate idea for 1st level
 - better than a coin flip
@@ -127,12 +183,15 @@ changing the past and wavefunctions levels:
   - initially show detailed animation for each move command, then short animation retracing particle's movement every time after that
 
 paths levels: (find better synonym for "part 2" such as redux?)
+- find NSA's secret (big) hovering/floating datacenter in utah desert
+  - have obvious toggle in replay to switch between what NSA sees and what you see (or NSA's replay and your replay)
+- if watching everything they do, they can't do sneaky stuff
 - better than a coin flip, part 2
 - spreading coherence, part 2
 - retroactive coherence, part 2
-- defend 10 towers, 1 tower will be attacked (or enemy king will come out 1 of them), have 1 healthy marine & 9 unhealthy marines, win w/o losing a single unit (by sharing paths)
-  - may not work as is, could just move healthy marine along multiple paths
+- can introduce sharing paths between different unit types by having several hired guards of different nationalities/abilities
 - snipers
+  - nsa insists on escorting everyone in building, so use sniper to kill escort and let you be unseen
 
 random notes:
 - form 2 paths of same unit, then stack those paths is example of why merging paths must be handled directly (justifying stacking branch)
@@ -147,13 +206,17 @@ random notes:
 - when adding saved replays, maybe add timeSim field to Unit.Move (but this doesn't help with tiles)
 - tile coherence can be optimized in short term by only calculating it when unit moves onto the tile
   - if happening in present, only need to check that other players can't see the tile
+- if I make units indistinguishable, Unit should point to segment it's on, and KeyValuePair<Segment, Unit> can be replaced with Unit and some Segment methods can be moved into Unit
+  - in short term, can I already do that by making SegmentUnit struct? (struct b/c compares by value)
 - someone recommends binary space partitioning as general graphics optimizing technique
 - population limit? (or just make units expensive enough that you can't make too many)
 - company of heroes makes positioning important b/c resource gathering slow, low unit cap, controlling resource locations is important
+- a goal of game can be stealing intelligence
 - introduce paths 1st, then introduce wavefunctions as paths going everywhere in a region? (skipping manual time travel)
   - but manual time travel is nice though
   - keep in mind hard to force using time travel in levels if can use paths
 - Matthew says have story or something to make game interesting for people not interested in "physics" q&a's
+  - set story in future so can suspend disbelief less
 - unit type ideas (Matthew says using real life particles is bad idea)
   - don't need too many unit types b/c time travel & paths already make the game interesting
   - can have ranged units with visible laser paths
@@ -182,6 +245,7 @@ guilayout reference: https://docs.unity3d.com/Documentation/ScriptReference/GUIL
 
 other links:
 binary serialization: https://code.google.com/p/protobuf-net/
+protobuf-net unofficial manual: http://www.codeproject.com/Articles/642677/Protobuf-net-the-unofficial-manual
 serialize at stream position: http://stackoverflow.com/questions/2441608/deserializing-a-type-at-the-current-stream-position-with-protobuf-net
 age of empires multiplayer: http://www.gamasutra.com/view/feature/3094/1500_archers_on_a_288_network_.php
 ai war optimization (including multiplayer): http://christophermpark.blogspot.com/2009/06/optimizing-30000-ships-in-realtime-in-c.html
