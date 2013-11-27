@@ -708,7 +708,7 @@ public class TileMoveEvt : SimEvt {
 		if (tXPrev >= 0 && tXPrev < g.tileLen() && tYPrev >= 0 && tYPrev < g.tileLen()) {
 			// if this player can no longer directly see another player's path, remove this player's visibility there
 			foreach (int j in g.tiles[tXPrev, tYPrev].pathVis.Keys) {
-				if (g.paths[j].player != g.paths[path].player && !g.players[g.paths[j].player].immutable //&& g.units[j].healthLatest() > 0 // STACK TODO: consider commented out part here
+				if (g.paths[j].player != g.paths[path].player && !g.players[g.paths[j].player].immutable && g.paths[j].segments[g.paths[j].segments.Count - 1].units.Count > 0
 					&& g.inVis(g.paths[j].tileX - tXPrev, g.paths[j].tileY - tYPrev) && !g.tiles[g.paths[j].tileX, g.paths[j].tileY].playerDirectVisLatest(g.paths[path].player)) {
 					for (tX = Math.Max(0, g.paths[j].tileX - 1); tX <= Math.Min(g.tileLen() - 1, g.paths[j].tileX + 1); tX++) {
 						for (tY = Math.Max(0, g.paths[j].tileY - 1); tY <= Math.Min(g.tileLen() - 1, g.paths[j].tileY + 1); tY++) {
