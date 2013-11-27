@@ -200,21 +200,6 @@
     {
       "types": ["Building"],
       "player": "Red"
-    },
-    {
-      "types": ["Worker"],
-      "player": "Blue",
-      "startPos": {"x": 30, "y": 30}
-    },
-    {
-      "types": ["Marine"],
-      "player": "Blue",
-      "startPos": {"x": 40, "y": 30}
-    },
-    {
-      "types": ["Worker", "Marine"],
-      "player": "Blue",
-      "startPos": {"x": 40, "y": 40}
     }
   ]
 }
