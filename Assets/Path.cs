@@ -81,105 +81,6 @@ public class Path {
 		// update past simulation time
 		timeSimPast = timeSimPastNext;
 	}
-	
-	/// <summary>
-	/// returns index of segment that is active at specified time
-	/// </summary>
-	public int getSegment(long time) {
-		int ret = segments.Count - 1;
-		while (ret >= 0 && time < segments[ret].timeStart) ret--;
-		return ret;
-	}
-	
-	/// <summary>
-	/// inserts a segment starting at specified time if no segment already starts at that time,
-	/// returns index of that segment
-	/// </summary>
-	public int insertSegment(long time) {
-		int seg = getSegment (time);
-		if (seg >= 0 && segments[seg].timeStart == time) return seg;
-		segments.Insert (seg + 1, new Segment(this, seg + 1, time, new List<int>(segments[seg].units), segments[seg].unseen));
-		for (int i = seg + 2; i < segments.Count; i++) {
-			segments[i].id = i;
-		}
-		return seg + 1;
-	}
-	
-	/// <summary>
-	/// move towards specified location starting at specified time,
-	/// return index of moved path (in case moving a subset of units in path)
-	/// </summary>
-	public int moveTo(long time, List<int> units, FP.Vector pos) {
-		int path2 = id; // move this path by default
-		int seg = getSegment (time);
-		if (time < g.timeSim) {
-			// move non-live path if in past
-			// replacement paths currently not implemented, so make a new path every time a path is moved in the past
-			if (!makePath (time, units)) throw new SystemException("make non-live path failed when moving units");
-			path2 = g.paths.Count - 1;
-		}
-		else {
-			foreach (int unit in segments[seg].units) {
-				if (!units.Contains (unit)) {
-					// some units in path aren't being moved, so make a new path
-					if (!makePath (time, units)) throw new SystemException("make new path failed when moving units");
-					//removeUnit (time, unit); // TODO: this fails because new path isn't live yet
-					path2 = g.paths.Count - 1;
-					break;
-				}
-			}
-		}
-		g.paths[path2].moveTo (time, pos);
-		return path2;
-	}
-
-	/// <summary>
-	/// move towards specified location starting at specified time
-	/// </summary>
-	public void moveTo(long time, FP.Vector pos) {
-		FP.Vector curPos = calcPos(time);
-		FP.Vector goalPos = pos;
-		// don't move off map edge
-		if (goalPos.x < 0) goalPos.x = 0;
-		if (goalPos.x > g.mapSize) goalPos.x = g.mapSize;
-		if (goalPos.y < 0) goalPos.y = 0;
-		if (goalPos.y > g.mapSize) goalPos.y = g.mapSize;
-		// add move
-		moves.Add (Move.fromSpeed(time, speed, curPos, goalPos));
-		if (!g.movedPaths.Contains(id)) g.movedPaths.Add(id); // indicate to delete and recalculate later TileMoveEvts for this path
-	}
-
-	/// <summary>
-	/// returns whether allowed to move at specified time
-	/// </summary>
-	public bool canMove(long time) {
-		// TODO: maybe make overloaded version that also checks units
-		if (time < moves[0].timeStart || speed <= 0) return false;
-		if (time < g.timeSim) {
-			int seg = getSegment (time);
-			if (seg < 0) return false;
-			foreach (int unit in segments[seg].units) {
-				if (!segments[seg].unseenAfter (unit)) return false;
-			}
-		}
-		return true;
-	}
-
-	/// <summary>
-	/// returns location at specified time
-	/// </summary>
-	public FP.Vector calcPos(long time) {
-		return moves[getMove(time)].calcPos(time);
-	}
-
-	/// <summary>
-	/// returns index of move that is occurring at specified time
-	/// </summary>
-	public int getMove(long time) {
-		int ret = moves.Count - 1;
-		while (ret >= 0 && time < moves[ret].timeStart) ret--;
-		return ret;
-	}
 
 	/// <summary>
 	/// inserts TileMoveEvt events for this path into events for the time interval from timeMin to timeMax
@@ -331,6 +232,105 @@ public class Path {
 			g.paths[path].segments[seg2].branches = segments[seg].branches;
 		}
 		return seg;
+	}
+	
+	/// <summary>
+	/// move towards specified location starting at specified time,
+	/// return index of moved path (in case moving a subset of units in path)
+	/// </summary>
+	public int moveTo(long time, List<int> units, FP.Vector pos) {
+		int path2 = id; // move this path by default
+		int seg = getSegment (time);
+		if (time < g.timeSim) {
+			// move non-live path if in past
+			// replacement paths currently not implemented, so make a new path every time a path is moved in the past
+			if (!makePath (time, units)) throw new SystemException("make non-live path failed when moving units");
+			path2 = g.paths.Count - 1;
+		}
+		else {
+			foreach (int unit in segments[seg].units) {
+				if (!units.Contains (unit)) {
+					// some units in path aren't being moved, so make a new path
+					if (!makePath (time, units)) throw new SystemException("make new path failed when moving units");
+					//removeUnit (time, unit); // TODO: this fails because new path isn't live yet
+					path2 = g.paths.Count - 1;
+					break;
+				}
+			}
+		}
+		g.paths[path2].moveTo (time, pos);
+		return path2;
+	}
+
+	/// <summary>
+	/// move towards specified location starting at specified time
+	/// </summary>
+	public void moveTo(long time, FP.Vector pos) {
+		FP.Vector curPos = calcPos(time);
+		FP.Vector goalPos = pos;
+		// don't move off map edge
+		if (goalPos.x < 0) goalPos.x = 0;
+		if (goalPos.x > g.mapSize) goalPos.x = g.mapSize;
+		if (goalPos.y < 0) goalPos.y = 0;
+		if (goalPos.y > g.mapSize) goalPos.y = g.mapSize;
+		// add move
+		moves.Add (Move.fromSpeed(time, speed, curPos, goalPos));
+		if (!g.movedPaths.Contains(id)) g.movedPaths.Add(id); // indicate to delete and recalculate later TileMoveEvts for this path
+	}
+
+	/// <summary>
+	/// returns whether allowed to move at specified time
+	/// </summary>
+	public bool canMove(long time) {
+		// TODO: maybe make overloaded version that also checks units
+		if (time < moves[0].timeStart || speed <= 0) return false;
+		if (time < g.timeSim) {
+			int seg = getSegment (time);
+			if (seg < 0) return false;
+			foreach (int unit in segments[seg].units) {
+				if (!segments[seg].unseenAfter (unit)) return false;
+			}
+		}
+		return true;
+	}
+	
+	/// <summary>
+	/// inserts a segment starting at specified time if no segment already starts at that time,
+	/// returns index of that segment
+	/// </summary>
+	public int insertSegment(long time) {
+		int seg = getSegment (time);
+		if (seg >= 0 && segments[seg].timeStart == time) return seg;
+		segments.Insert (seg + 1, new Segment(this, seg + 1, time, new List<int>(segments[seg].units), segments[seg].unseen));
+		for (int i = seg + 2; i < segments.Count; i++) {
+			segments[i].id = i;
+		}
+		return seg + 1;
+	}
+	
+	/// <summary>
+	/// returns index of segment that is active at specified time
+	/// </summary>
+	public int getSegment(long time) {
+		int ret = segments.Count - 1;
+		while (ret >= 0 && time < segments[ret].timeStart) ret--;
+		return ret;
+	}
+
+	/// <summary>
+	/// returns location at specified time
+	/// </summary>
+	public FP.Vector calcPos(long time) {
+		return moves[getMove(time)].calcPos(time);
+	}
+
+	/// <summary>
+	/// returns index of move that is occurring at specified time
+	/// </summary>
+	public int getMove(long time) {
+		int ret = moves.Count - 1;
+		while (ret >= 0 && time < moves[ret].timeStart) ret--;
+		return ret;
 	}
 
 	/// <summary>
