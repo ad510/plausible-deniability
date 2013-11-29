@@ -134,7 +134,7 @@ public class Unit {
 			if (!delete(g.timeSim)) throw new SystemException("unit not deleted successfully after moving off exclusive area");
 			return;
 		}
-		// delete unit if unit moves off exclusive area or tile that unit moves to stops being exclusive
+		// delete unit if unit moves off exclusive area or tile that unit is on stops being exclusive
 		if (evt != null) {
 			do {
 				if (evt.tileX != int.MinValue) tX = evt.tileX;
