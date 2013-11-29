@@ -39,12 +39,12 @@ public class Sim {
 		public bool[] mayAttack; // if this player's units may attack each other player's units
 		// not stored in scenario files
 		public bool immutable; // whether player's units will never unpredictably move or change
-		public bool hasNonLiveUnits; // whether currently might have time traveling units (ok to sometimes incorrectly be set to true)
-		public long timeGoLiveFail; // latest time that player's time traveling units failed to go live (resets to long.MaxValue after success)
-		public long timeNegRsc; // time that player could have negative resources if time traveling units went live
+		public bool hasNonLivePaths; // whether currently might have time traveling paths (ok to sometimes incorrectly be set to true)
+		public long timeGoLiveFail; // latest time that player's time traveling paths failed to go live (resets to long.MaxValue after success)
+		public long timeNegRsc; // time that player could have negative resources if time traveling paths went live
 
 		public Player() {
-			hasNonLiveUnits = false;
+			hasNonLivePaths = false;
 			timeGoLiveFail = long.MaxValue;
 		}
 	}
@@ -65,8 +65,10 @@ public class Sim {
 		public long reload; // time needed to reload
 		public long range; // range of attack
 		public long tightFormationSpacing;
-		public long makeUnitMinDist; // minimum distance that units that this unit type makes should move away
-		public long makeUnitMaxDist; // maximum distance that units that this unit type makes should move away
+		public long makeUnitMinDist; // minimum distance that new units of this unit type move away
+		public long makeUnitMaxDist; // maximum distance that new units of this unit type move away
+		public long makePathMinDist; // minimum distance that new paths of this unit type move away
+		public long makePathMaxDist; // maximum distance that new paths of this unit type move away
 		public int makeOnUnitT; // unit type that this unit type should be made on top of
 		public int[] damage; // damage done per attack to each unit type
 		public bool[] canMake; // whether can make each unit type
@@ -77,10 +79,10 @@ public class Sim {
 	public class Tile {
 		private Sim g;
 		/// <summary>
-		/// stores times when each unit started or stopped seeing this tile,
-		/// in format unitVis[unit][gain/lose visibility index]
+		/// stores times when each path started or stopped seeing this tile,
+		/// in format pathVis[path][gain/lose visibility index]
 		/// </summary>
-		public Dictionary<int, List<long>> unitVis;
+		public Dictionary<int, List<long>> pathVis;
 		/// <summary>
 		/// stores times when each player started or stopped seeing this tile,
 		/// in format playerVis[player][gain/lose visibility index]
@@ -94,7 +96,7 @@ public class Sim {
 
 		public Tile(Sim simVal) {
 			g = simVal;
-			unitVis = new Dictionary<int,List<long>>();
+			pathVis = new Dictionary<int,List<long>>();
 			playerVis = new List<long>[g.nPlayers];
 			exclusive = new List<long>[g.nPlayers];
 			for (int i = 0; i < g.nPlayers; i++) {
@@ -104,34 +106,34 @@ public class Sim {
 		}
 
 		/// <summary>
-		/// toggles the visibility of this tile for specified unit at specified time, without affecting player visibility
-		/// (should only be called by TileMoveEvt.visAdd() or TileMoveEvt.visRemove())
+		/// toggles the visibility of this tile for specified path at specified time, without affecting player visibility
+		/// (should only be called by TileMoveEvt.apply())
 		/// </summary>
-		public void unitVisToggle(int unit, long time) {
-			if (!unitVis.ContainsKey(unit)) unitVis.Add(unit, new List<long>());
-			unitVis[unit].Add(time);
+		public void pathVisToggle(int path, long time) {
+			if (!pathVis.ContainsKey(path)) pathVis.Add(path, new List<long>());
+			pathVis[path].Add(time);
 		}
 
 		/// <summary>
-		/// returns if specified unit can see this tile at latest possible time
+		/// returns if specified path can see this tile at latest possible time
 		/// </summary>
-		public bool unitVisLatest(int unit) {
-			return unitVis.ContainsKey(unit) && visLatest(unitVis[unit]);
+		public bool pathVisLatest(int path) {
+			return pathVis.ContainsKey(path) && visLatest(pathVis[path]);
 		}
 
 		/// <summary>
-		/// returns if specified unit can see this tile at specified time
+		/// returns if specified path can see this tile at specified time
 		/// </summary>
-		public bool unitVisWhen(int unit, long time) {
-			return unitVis.ContainsKey(unit) && visWhen(unitVis[unit], time);
+		public bool pathVisWhen(int path, long time) {
+			return pathVis.ContainsKey(path) && visWhen(pathVis[path], time);
 		}
 
 		/// <summary>
 		/// returns if this tile is in the direct line of sight of a unit of specified player at latest possible time
 		/// </summary>
 		public bool playerDirectVisLatest(int player) {
-			foreach (int i in unitVis.Keys) {
-				if (player == g.units[i].player && visLatest(unitVis[i])) return true;
+			foreach (int i in pathVis.Keys) {
+				if (player == g.paths[i].player && visLatest(pathVis[i])) return true;
 			}
 			return false;
 		}
@@ -140,8 +142,8 @@ public class Sim {
 		/// returns if this tile is in the direct line of sight of a unit of specified player at specified time
 		/// </summary>
 		public bool playerDirectVisWhen(int player, long time) {
-			foreach (int i in unitVis.Keys) {
-				if (player == g.units[i].player && visWhen(unitVis[i], time)) return true;
+			foreach (int i in pathVis.Keys) {
+				if (player == g.paths[i].player && visWhen(pathVis[i], time)) return true;
 			}
 			return false;
 		}
@@ -266,7 +268,8 @@ public class Sim {
 	public string[] rscNames;
 	public Player[] players;
 	public UnitType[] unitT;
-	public Unit[] units;
+	public Unit[] units; // TODO: change this into list
+	public List<Path> paths;
 
 	// helper variables not loaded from scenario file
 	public int selUser;
@@ -275,8 +278,8 @@ public class Sim {
 	public SimEvtList events; // simulation events to be applied
 	public SimEvtList cmdPending; // user commands to be sent to other users in the next update
 	public SimEvtList cmdHistory; // user commands that have already been applied
-	public List<int> movedUnits; // indices of units that moved in the latest simulation event, invalidating later TileMoveEvts for that unit
-	public List<int> unitIdChgs; // list of units that changed indices (old index followed by new index)
+	public List<int> movedPaths; // indices of paths that moved in the latest simulation event, invalidating later TileMoveEvts for that path
+	public int nRootPaths; // number of paths that don't have a parent (because they were defined in scenario file); these are all at beginning of paths list
 	public long maxSpeed; // speed of fastest unit (is max speed that players can gain or lose visibility)
 	public int checksum; // sent to other users during each UpdateEvt to check for multiplayer desyncs
 	public bool synced; // whether all checksums between users matched so far
@@ -306,23 +309,23 @@ public class Sim {
 			while ((evt = cmdPending.pop ()) != null) events.add (evt);
 		}
 		// apply simulation events
-		movedUnits = new List<int>();
+		movedPaths = new List<int>();
 		while (events.peekTime() <= timeSimNext) {
 			evt = events.pop();
 			timeSim = evt.time;
 			evt.apply(this);
-			// if event caused unit(s) to move, delete and recalculate later events moving them between tiles
-			if (movedUnits.Count > 0) {
+			// if event caused path(s) to move, delete and recalculate later events moving them between tiles
+			if (movedPaths.Count > 0) {
 				for (i = 0; i < events.events.Count; i++) {
-					if (events.events[i] is TileMoveEvt && events.events[i].time > timeSim && movedUnits.Contains(((TileMoveEvt)events.events[i]).unit)) {
+					if (events.events[i] is TileMoveEvt && events.events[i].time > timeSim && movedPaths.Contains(((TileMoveEvt)events.events[i]).path)) {
 						events.events.RemoveAt(i);
 						i--;
 					}
 				}
-				foreach (int unit in movedUnits) {
-					if (units[unit].timeSimPast == long.MaxValue) units[unit].addTileMoveEvts(ref events, timeSim, timeUpdateEvt + updateInterval);
+				foreach (int path in movedPaths) {
+					if (paths[path].timeSimPast == long.MaxValue) paths[path].addTileMoveEvts(ref events, timeSim, timeUpdateEvt + updateInterval);
 				}
-				movedUnits.Clear();
+				movedPaths.Clear();
 			}
 			checksum++;
 		}
@@ -331,17 +334,44 @@ public class Sim {
 	}
 
 	/// <summary>
-	/// update specified player's non-live (time traveling) units
+	/// update specified player's non-live (time traveling) paths
 	/// </summary>
 	public void updatePast(int player, long curTime) {
-		if (players[player].hasNonLiveUnits) {
-			for (int i = 0; i < nUnits; i++) {
-				if (units[i].player == player) units[i].updatePast(curTime);
+		if (players[player].hasNonLivePaths) {
+			foreach (Path path in paths) {
+				if (path.player == player) path.updatePast(curTime);
 			}
 			if (curTime >= timeSim && (players[player].timeGoLiveFail == long.MaxValue || timeSim >= players[player].timeGoLiveFail + updateInterval)) {
 				cmdPending.add(new GoLiveCmdEvt(timeSim, player));
 			}
 		}
+	}
+	
+	/// <summary>
+	/// removes units from all other paths that, if seen, could cause specified units to be removed from specified segments;
+	/// returns whether successful
+	/// </summary>
+	public bool deleteOtherPaths(List<KeyValuePair<Segment, int>> units) {
+		List<KeyValuePair<Segment, int>> ancestors = new List<KeyValuePair<Segment, int>>(units);
+		List<KeyValuePair<Segment, int>> prev = new List<KeyValuePair<Segment, int>>();
+		bool success = true;
+		for (int i = 0; i < ancestors.Count; i++) {
+			foreach (Segment seg in ancestors[i].Key.prev (ancestors[i].Value)) {
+				ancestors.Add (new KeyValuePair<Segment, int>(seg, ancestors[i].Value));
+				if (ancestors[i].Key.path.timeSimPast == long.MaxValue || seg.path.timeSimPast != long.MaxValue) {
+					prev.Add (new KeyValuePair<Segment, int>(seg, ancestors[i].Value));
+				}
+			}
+			ancestors.AddRange (ancestors[i].Key.parents (ancestors[i].Value));
+		}
+		foreach (KeyValuePair<Segment, int> ancestor in prev) {
+			foreach (Segment seg in ancestor.Key.next (ancestor.Value)) {
+				if (!ancestors.Contains (new KeyValuePair<Segment, int>(seg, ancestor.Value))) {
+					success &= seg.removeUnit (ancestor.Value);
+				}
+			}
+		}
+		return success;
 	}
 
 	/// <summary>
@@ -372,31 +402,31 @@ public class Sim {
 
 	/// <summary>
 	/// makes specified tile exclusive to specified player starting at specified time,
-	/// including how that affects units on that tile
+	/// including how that affects paths on that tile
 	/// </summary>
 	public void exclusiveAdd(int player, int tileX, int tileY, long time) {
 		if (tiles[tileX, tileY].exclusiveLatest(player)) throw new InvalidOperationException("tile (" + tileX + ", " + tileY + ") is already exclusive");
 		tiles[tileX, tileY].exclusive[player].Add(time);
-		// this player's units that are on this tile may time travel starting now
+		// this player's paths that are on this tile may time travel starting now
 		// TODO: actually safe to time travel at earlier times, as long as unit of same type is at same place when seen by another player
-		for (int i = 0; i < nUnits; i++) {
-			if (player == units[i].player && tileX == units[i].tileX && tileY == units[i].tileY && !units[i].unseen()) {
-				units[i].beUnseen(time);
+		foreach (Path path in paths) {
+			if (player == path.player && tileX == path.tileX && tileY == path.tileY && !path.segments[path.segments.Count - 1].unseen) {
+				path.beUnseen(time);
 			}
 		}
 	}
 
 	/// <summary>
 	/// makes specified tile not exclusive to specified player starting at specified time,
-	/// including how that affects units on that tile
+	/// including how that affects paths on that tile
 	/// </summary>
 	public void exclusiveRemove(int player, int tileX, int tileY, long time) {
 		if (!tiles[tileX, tileY].exclusiveLatest(player)) throw new InvalidOperationException("tile (" + tileX + ", " + tileY + ") is already not exclusive");
 		tiles[tileX, tileY].exclusive[player].Add(time);
-		// this player's units that are on this tile may not time travel starting now
-		for (int i = 0; i < nUnits; i++) {
-			if (player == units[i].player && tileX == units[i].tileX && tileY == units[i].tileY && units[i].unseen()) {
-				units[i].beSeen();
+		// this player's paths that are on this tile may not time travel starting now
+		foreach (Path path in paths) {
+			if (player == path.player && tileX == path.tileX && tileY == path.tileY && path.segments[path.segments.Count - 1].unseen) {
+				path.beSeen(time);
 			}
 		}
 	}
@@ -432,10 +462,15 @@ public class Sim {
 	/// since different paths can have collected different resource amounts,
 	/// determines whether to use paths that collected least or most resources in calculation
 	/// </param>
-	public long playerResource(int player, long time, int rscType, bool max, bool includeNonLiveChildren, bool alwaysUseReplacementPaths) {
+	public long playerResource(int player, long time, int rscType, bool max, bool includeNonLiveChildren) {
 		long ret = players[player].startRsc[rscType];
-		for (int i = 0; i < nUnits; i++) {
-			if (units[i].player == player && units[i].parent < 0) ret += units[i].rscCollected(time, rscType, max, includeNonLiveChildren, alwaysUseReplacementPaths);
+		for (int i = 0; i < nRootPaths; i++) {
+			if (paths[i].player == player) {
+				foreach (int unit in paths[i].segments[0].units) {
+					// TODO: this will double-count units that are in multiple paths at beginning of scenario
+					ret += paths[i].segments[0].rscCollected(time, unit, rscType, max, includeNonLiveChildren);
+				}
+			}
 		}
 		return ret;
 	}
@@ -444,15 +479,14 @@ public class Sim {
 	/// checks whether specified player could have negative resources since timeMin in worst case scenario of which paths are seen
 	/// </summary>
 	/// <returns>a time that player could have negative resources, or -1 if no such time found</returns>
-	public long playerCheckNegRsc(int player, long timeMin, bool includeNonLiveChildren, bool alwaysUseReplacementPaths) {
-		int i, j;
-		for (i = 0; i < nUnits; i++) {
-			// check all times since timeMin that a unit of specified player was made
-			// note that new units are made at timeCmd + 1
-			if (player == units[i].player && units[i].moves[0].timeStart >= timeMin && units[i].moves[0].timeStart <= timeSim + 1) {
-				for (j = 0; j < nRsc; j++) {
-					if (playerResource(player, units[i].moves[0].timeStart, j, false, includeNonLiveChildren, alwaysUseReplacementPaths) < 0) {
-						return units[i].moves[0].timeStart;
+	public long playerCheckNegRsc(int player, long timeMin, bool includeNonLiveChildren) {
+		foreach (Path path in paths) {
+			// check all times since timeMin that a path of specified player was made
+			// note that new paths are made at App.newCmdTime() + 1
+			if (player == path.player && path.segments[0].timeStart >= timeMin && path.segments[0].timeStart <= timeSim + 1) {
+				for (int i = 0; i < nRsc; i++) {
+					if (playerResource(player, path.segments[0].timeStart, i, false, includeNonLiveChildren) < 0) {
+						return path.segments[0].timeStart;
 					}
 				}
 			}
@@ -469,6 +503,26 @@ public class Sim {
 		// check that no one can attack this player
 		for (int i = 0; i < nPlayers; i++) {
 			if (players[i].mayAttack[player]) return false;
+		}
+		return true;
+	}
+	
+	public bool unitsCanMake(List<int> parentUnits, int type) {
+		foreach (int unit in parentUnits) {
+			if (unitT[units[unit].type].canMake[type]) return true;
+		}
+		return false;
+	}
+	
+	/// <summary>
+	/// returns whether the specified units are allowed to be on the same path
+	/// </summary>
+	public bool stackAllowed(List<int> stackUnits, long speed, int player) {
+		if (stackUnits.Count == 0) return true;
+		foreach (int unit in stackUnits) {
+			if (unitT[units[unit].type].speed != speed || units[unit].player != player) {
+				return false;
+			}
 		}
 		return true;
 	}

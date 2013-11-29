@@ -37,25 +37,47 @@ public abstract class SimEvt {
 [ProtoInclude(12, typeof(MakeUnitCmdEvt))]
 [ProtoInclude(13, typeof(MakePathCmdEvt))]
 [ProtoInclude(14, typeof(DeletePathCmdEvt))]
+[ProtoInclude(17, typeof(DeleteOtherPathsCmdEvt))]
+[ProtoInclude(16, typeof(StackCmdEvt))]
 public abstract class CmdEvt : SimEvt {
 	[ProtoMember(1)]
 	public long timeCmd {get;set;} // time is latest simulation time when command is given, timeCmd is when event takes place (may be in past)
 	[ProtoMember(2)]
-	public int[] units {get;set;}
+	public Dictionary<int, int[]> paths {get;set;}
 	
 	/// <summary>
 	/// empty constructor for protobuf-net use only
 	/// </summary>
 	protected CmdEvt() { }
 
-	protected CmdEvt(long timeVal, long timeCmdVal, int[] unitsVal) {
+	protected CmdEvt(long timeVal, long timeCmdVal, Dictionary<int, int[]> pathsVal) {
 		time = timeVal;
 		timeCmd = timeCmdVal;
-		units = unitsVal;
+		paths = pathsVal;
 	}
 
 	public override void apply(Sim g) {
 		g.cmdHistory.add(this); // copy event to command history list (it should've already been popped from event list)
+	}
+	
+	/// <summary>
+	/// returns commanded paths and units that exist at timeCmd
+	/// </summary>
+	protected Dictionary<int, List<int>> existingPaths(Sim g) {
+		Dictionary<int, List<int>> ret = new Dictionary<int, List<int>>();
+		foreach (KeyValuePair<int, int[]> path in paths) {
+			if (timeCmd >= g.paths[path.Key].segments[0].timeStart) {
+				int seg = g.paths[path.Key].getSegment (timeCmd);
+				List<int> existingUnits = new List<int>();
+				foreach (int unit in path.Value) {
+					if (g.paths[path.Key].segments[seg].units.Contains (unit)) {
+						if (!existingUnits.Contains (unit)) existingUnits.Add (unit);
+					}
+				}
+				if (existingUnits.Count > 0) ret.Add (path.Key, existingUnits);
+			}
+		}
+		return ret;
 	}
 }
 
@@ -76,22 +98,28 @@ public class MoveCmdEvt : CmdEvt {
 	/// </summary>
 	public MoveCmdEvt() { }
 
-	public MoveCmdEvt(long timeVal, long timeCmdVal, int[] unitsVal, FP.Vector posVal, Formation formationVal)
-		: base(timeVal, timeCmdVal, unitsVal) {
+	public MoveCmdEvt(long timeVal, long timeCmdVal, Dictionary<int, int[]> pathsVal, FP.Vector posVal, Formation formationVal)
+		: base(timeVal, timeCmdVal, pathsVal) {
 		pos = posVal;
 		formation = formationVal;
 	}
 
 	public override void apply(Sim g) {
+		Dictionary<int, List<int>> exPaths = existingPaths (g);
 		FP.Vector goalCenter, goal, rows = new FP.Vector(), offset = new FP.Vector();
 		long spacing = 0;
 		int count = 0, i = 0;
 		base.apply(g);
 		// count number of units able to move
-		foreach (int unit in units) {
-			if (g.units[unit].canMove(timeCmd)) {
+		foreach (KeyValuePair<int, List<int>> path in exPaths) {
+			if (g.paths[path.Key].canMove(timeCmd)) {
 				count++;
-				if (formation == Formation.Tight && g.unitT[g.units[unit].type].tightFormationSpacing > spacing) spacing = g.unitT[g.units[unit].type].tightFormationSpacing;
+				if (formation == Formation.Tight) {
+					// calculate spacing for tight formation
+					foreach (int unit in path.Value) {
+						if (g.unitT[g.units[unit].type].tightFormationSpacing > spacing) spacing = g.unitT[g.units[unit].type].tightFormationSpacing;
+					}
+				}
 			}
 		}
 		if (count == 0) return;
@@ -122,8 +150,8 @@ public class MoveCmdEvt : CmdEvt {
 		if (goalCenter.y < Math.Min(offset.y, g.mapSize / 2)) goalCenter.y = Math.Min(offset.y, g.mapSize / 2);
 		if (goalCenter.y > g.mapSize - Math.Min(offset.y, g.mapSize / 2)) goalCenter.y = g.mapSize - Math.Min(offset.y, g.mapSize / 2);
 		// move units
-		foreach (int unit in units) {
-			if (g.units[unit].canMove(timeCmd)) {
+		foreach (KeyValuePair<int, List<int>> path in exPaths) {
+			if (g.paths[path.Key].canMove(timeCmd)) {
 				if (formation == Formation.Tight || formation == Formation.Loose) {
 					goal = goalCenter + new FP.Vector((i % rows.x) * spacing - offset.x, i / rows.x * spacing - offset.y);
 				}
@@ -133,7 +161,7 @@ public class MoveCmdEvt : CmdEvt {
 				else {
 					throw new NotImplementedException("requested formation is not implemented");
 				}
-				g.units[unit].moveTo(timeCmd, goal);
+				g.paths[path.Key].moveTo(timeCmd, new List<int>(path.Value), goal);
 				i++;
 			}
 		}
@@ -157,78 +185,94 @@ public class MakeUnitCmdEvt : CmdEvt {
 	/// </summary>
 	public MakeUnitCmdEvt() { }
 
-	public MakeUnitCmdEvt(long timeVal, long timeCmdVal, int[] unitsVal, int typeVal, FP.Vector posVal, bool autoRepeatVal = false)
-		: base(timeVal, timeCmdVal, unitsVal) {
+	public MakeUnitCmdEvt(long timeVal, long timeCmdVal, Dictionary<int, int[]> pathsVal, int typeVal, FP.Vector posVal, bool autoRepeatVal = false)
+		: base(timeVal, timeCmdVal, pathsVal) {
 		type = typeVal;
 		pos = posVal;
 		autoRepeat = autoRepeatVal;
 	}
 
 	public override void apply(Sim g) {
+		Dictionary<int, List<int>> exPaths = existingPaths (g);
 		if (!autoRepeat) base.apply(g);
 		// make unit at requested position, if possible
-		foreach (int unit in units) {
-			if (g.units[unit].canMakeChildUnit(timeCmd, false, type)) {
-				FP.Vector curPos = g.units[unit].calcPos(timeCmd);
-				if ((pos.x == curPos.x && pos.y == curPos.y) || (g.unitT[type].speed > 0 && g.unitT[type].makeOnUnitT < 0)) {
-					// TODO: take time to make units?
-					g.units[unit].makeChildUnit(timeCmd, false, type);
-					if (g.units[g.nUnits - 1].canMove(timeCmd)) g.units[g.nUnits - 1].moveTo(timeCmd, pos); // move new unit out of the way
-					return;
+		foreach (int path in exPaths.Keys) {
+			FP.Vector curPos = g.paths[path].calcPos(timeCmd);
+			if ((pos.x == curPos.x && pos.y == curPos.y) || (g.unitT[type].speed > 0 && g.unitT[type].makeOnUnitT < 0)) {
+				// TODO: take time to make units?
+				List<int> unitList = new List<int>();
+				unitList.Add (g.nUnits);
+				g.setNUnits (g.nUnits + 1);
+				g.units[g.nUnits - 1] = new Unit(g, g.nUnits - 1, type, g.paths[path].player);
+				if (g.paths[path].makePath (timeCmd, unitList)) {
+					if (g.paths[g.paths.Count - 1].canMove (timeCmd)) {
+						g.paths[g.paths.Count - 1].moveTo (timeCmd, pos); // move new unit out of the way
+					}
 				}
+				else {
+					g.setNUnits (g.nUnits - 1);
+				}
+				return;
 			}
 		}
 		if (!autoRepeat) {
-			// if none of specified units are at requested position,
+			// if none of specified paths are at requested position,
 			// try moving one to the correct position then trying again to make the unit
-			int moveUnit = -1;
-			foreach (int unit in units) {
-				if (g.units[unit].canMakeChildUnit(timeCmd, false, type) && g.units[unit].canMove(timeCmd)
-					&& (moveUnit < 0 || (g.units[unit].calcPos(timeCmd) - pos).lengthSq() < (g.units[moveUnit].calcPos(timeCmd) - pos).lengthSq())) {
-					moveUnit = unit;
+			int movePath = -1;
+			foreach (KeyValuePair<int, List<int>> path in exPaths) {
+				if (g.unitsCanMake (path.Value, type) && g.paths[path.Key].canMove (timeCmd)
+					&& (movePath < 0 || (g.paths[path.Key].calcPos(timeCmd) - pos).lengthSq() < (g.paths[movePath].calcPos(timeCmd) - pos).lengthSq())) {
+					bool newPathIsLive = (time >= g.timeSim && g.paths[path.Key].timeSimPast == long.MaxValue);
+					int i;
+					for (i = 0; i < g.nRsc; i++) {
+						// TODO: may be more permissive by passing in max = true, but this really complicates removeUnit() algorithm (see planning notes)
+						if (g.playerResource(g.paths[path.Key].player, time, i, false, !newPathIsLive) < g.unitT[type].rscCost[i]) break;
+					}
+					if (i == g.nRsc) movePath = path.Key;
 				}
 			}
-			if (moveUnit >= 0) {
-				List<int> unitsList = new List<int>(units);
-				moveUnit = g.units[moveUnit].moveTo(timeCmd, pos);
-				unitsList.Insert(0, moveUnit); // in case replacement unit is moving to make the unit
-				g.events.add(new MakeUnitCmdEvt(g.units[moveUnit].moves[g.units[moveUnit].nMoves - 1].timeEnd, g.units[moveUnit].moves[g.units[moveUnit].nMoves - 1].timeEnd + 1,
-					unitsList.ToArray(), type, pos, true));
+			if (movePath >= 0) {
+				Dictionary<int, int[]> evtPaths = new Dictionary<int, int[]>(paths);
+				movePath = g.paths[movePath].moveTo(timeCmd, new List<int>(exPaths[movePath]), pos);
+				if (!evtPaths.ContainsKey (movePath)) evtPaths.Add (movePath, g.paths[movePath].segments[0].units.ToArray ()); // in case replacement path is moving to make the unit
+				g.events.add(new MakeUnitCmdEvt(g.paths[movePath].moves[g.paths[movePath].moves.Count - 1].timeEnd, g.paths[movePath].moves[g.paths[movePath].moves.Count - 1].timeEnd + 1,
+					evtPaths, type, pos, true));
 			}
 		}
 	}
 }
 
 /// <summary>
-/// command to make new path(s) that specified unit(s) could take
+/// command to make new path(s) that existing unit(s) could alternately move along
 /// </summary>
 [ProtoContract]
 public class MakePathCmdEvt : CmdEvt {
 	[ProtoMember(1)]
-	public FP.Vector[] pos {get;set;} // where new paths should move to
+	public Dictionary<int, FP.Vector> pos {get;set;} // where new paths should move to
 	
 	/// <summary>
 	/// empty constructor for protobuf-net use only
 	/// </summary>
 	public MakePathCmdEvt() { }
 
-	public MakePathCmdEvt(long timeVal, long timeCmdVal, int[] unitsVal, FP.Vector[] posVal)
-		: base(timeVal, timeCmdVal, unitsVal) {
+	public MakePathCmdEvt(long timeVal, long timeCmdVal, Dictionary<int, int[]> pathsVal, Dictionary<int, FP.Vector> posVal)
+		: base(timeVal, timeCmdVal, pathsVal) {
 		pos = posVal;
 	}
 
 	public override void apply(Sim g) {
+		Dictionary<int, List<int>> exPaths = existingPaths (g);
 		base.apply(g);
-		for (int i = 0; i < units.Length; i++) {
-			if (g.units[units[i]].canMove(timeCmd) && g.units[units[i]].makeChildUnit(timeCmd, true)) {
-				g.units[g.nUnits - 1].moveTo(timeCmd, pos[i]); // move new unit out of the way
+		foreach (KeyValuePair<int, List<int>> path in exPaths) {
+			if (g.paths[path.Key].canMove(timeCmd) && g.paths[path.Key].makePath (timeCmd, new List<int>(path.Value))) {
+				g.paths[g.paths.Count - 1].moveTo(timeCmd, pos[path.Key]); // move new path out of the way
 			}
 		}
 	}
 }
 
 /// <summary>
-/// command to delete path(s)
+/// command to remove unit(s) from path(s)
 /// </summary>
 [ProtoContract]
 public class DeletePathCmdEvt : CmdEvt {
@@ -237,24 +281,93 @@ public class DeletePathCmdEvt : CmdEvt {
 	/// </summary>
 	public DeletePathCmdEvt() { }
 
-	public DeletePathCmdEvt(long timeVal, long timeCmdVal, int[] unitsVal)
-		: base(timeVal, timeCmdVal, unitsVal) { }
+	public DeletePathCmdEvt(long timeVal, long timeCmdVal, Dictionary<int, int[]> pathsVal)
+		: base(timeVal, timeCmdVal, pathsVal) { }
 
 	public override void apply(Sim g) {
+		Dictionary<int, List<int>> exPaths = existingPaths (g);
 		base.apply(g);
-		foreach (int unit in units) {
-			// check if unit changed index due to a previous path deletion
-			int unit2 = unit;
-			for (int i = 0; i < g.unitIdChgs.Count / 2; i++) {
-				if (unit2 == g.unitIdChgs[i * 2]) unit2 = g.unitIdChgs[i * 2 + 1];
+		foreach (KeyValuePair<int, List<int>> path in exPaths) {
+			foreach (int unit in path.Value) {
+				g.paths[path.Key].segments[g.paths[path.Key].getSegment (timeCmd)].removeUnit (unit);
 			}
-			if (unit2 >= 0) g.units[unit2].delete(timeCmd);
 		}
 	}
 }
 
 /// <summary>
-/// command to make a player's time traveling units be updated in the present
+/// command to remove units from all other paths that, if seen, could cause specified path(s) to disappear
+/// </summary>
+[ProtoContract]
+public class DeleteOtherPathsCmdEvt : CmdEvt {
+	/// <summary>
+	/// empty constructor for protobuf-net use only
+	/// </summary>
+	public DeleteOtherPathsCmdEvt() { }
+	
+	public DeleteOtherPathsCmdEvt(long timeVal, long timeCmdVal, Dictionary<int, int[]> pathsVal)
+		: base(timeVal, timeCmdVal, pathsVal) { }
+	
+	public override void apply (Sim g)
+	{
+		List<KeyValuePair<Segment, int>> units = new List<KeyValuePair<Segment, int>>();
+		base.apply (g);
+		// convert paths list into valid deleteOtherPaths() argument (this is a bit ugly)
+		foreach (KeyValuePair<int, int[]> path in paths) {
+			int seg = g.paths[path.Key].getSegment (timeCmd);
+			if (seg >= 0) {
+				foreach (int unit in path.Value) {
+					units.Add (new KeyValuePair<Segment, int>(g.paths[path.Key].segments[seg], unit));
+				}
+			}
+		}
+		g.deleteOtherPaths (units);
+	}
+}
+
+/// <summary>
+/// command to stack specified path(s) onto another specified path
+/// </summary>
+[ProtoContract]
+public class StackCmdEvt : CmdEvt {
+	[ProtoMember(1)]
+	public int stackPath {get;set;} // path that paths will be stacked onto
+	
+	/// <summary>
+	/// empty constructor for protobuf-net use only
+	/// </summary>
+	public StackCmdEvt() { }
+	
+	public StackCmdEvt(long timeVal, long timeCmdVal, Dictionary<int, int[]> pathsVal, int stackPathVal)
+		: base(timeVal, timeCmdVal, pathsVal) {
+		stackPath = stackPathVal;
+	}
+	
+	public override void apply (Sim g) {
+		Dictionary<int, List<int>> exPaths = existingPaths (g);
+		List<int> movedPaths = new List<int>();
+		base.apply (g);
+		// move paths to final location of stackPath
+		// TODO: if stackPathVal < 0 (pressing stack button will do that) then move all paths to their average location
+		foreach (KeyValuePair<int, List<int>> path in exPaths) {
+			if (g.paths[path.Key].speed == g.paths[stackPath].speed && g.paths[path.Key].canMove (timeCmd)) {
+				movedPaths.Add (g.paths[path.Key].moveTo (timeCmd, new List<int>(path.Value), g.paths[stackPath].moves[g.paths[stackPath].moves.Count - 1].vecEnd));
+			}
+		}
+		// if able to move any of the paths, add events to stack them as they arrive
+		if (movedPaths.Count > 0) {
+			if (!movedPaths.Contains (stackPath)) movedPaths.Add (stackPath);
+			foreach (int path in movedPaths) {
+				// in most cases only 1 path will stack onto stackPath,
+				// but request to stack all moved paths anyway in case the path they're stacking onto moves away
+				g.events.add (new StackEvt(g.paths[path].moves[g.paths[path].moves.Count - 1].timeEnd, movedPaths.ToArray ()));
+			}
+		}
+	}
+}
+
+/// <summary>
+/// command to make a player's time traveling paths be updated in the present
 /// </summary>
 /// <remarks>this doesn't inherit from CmdEvt because it isn't a unit command</remarks>
 [ProtoContract]
@@ -274,31 +387,30 @@ public class GoLiveCmdEvt : SimEvt {
 
 	public override void apply(Sim g) {
 		long timeTravelStart = long.MaxValue;
-		int i;
 		g.cmdHistory.add(this); // copy event to command history list (it should've already been popped from event list)
-		for (i = 0; i < g.nUnits; i++) {
-			if (player == g.units[i].player && g.units[i].exists(time) && !g.units[i].isLive(time)) {
-				// ensure that time traveling units don't move off exclusive areas
-				g.units[i].updatePast(time);
-				// find earliest time that player's units started time traveling
-				if (g.units[i].moves[0].timeStart < timeTravelStart) timeTravelStart = g.units[i].moves[0].timeStart;
+		foreach (Path path in g.paths) {
+			if (player == path.player && path.segments[path.segments.Count - 1].units.Count > 0 && path.timeSimPast != long.MaxValue) {
+				// ensure that time traveling paths don't move off exclusive areas
+				path.updatePast(time);
+				// find earliest time that player's paths started time traveling
+				if (path.segments[0].timeStart < timeTravelStart) timeTravelStart = path.segments[0].timeStart;
 			}
 		}
-		if (timeTravelStart != long.MaxValue) { // skip if player has no time traveling units
+		if (timeTravelStart != long.MaxValue) { // skip if player has no time traveling paths
 			// check if going live might lead to player having negative resources
-			g.players[player].timeNegRsc = g.playerCheckNegRsc(player, timeTravelStart, true, true);
+			g.players[player].timeNegRsc = g.playerCheckNegRsc(player, timeTravelStart, true);
 			if (g.players[player].timeNegRsc >= 0) {
 				// indicate failure to go live, then return
 				g.players[player].timeGoLiveFail = time;
 				return;
 			}
-			// safe for units to become live, so do so
-			for (i = 0; i < g.nUnits; i++) {
-				if (player == g.units[i].player && g.units[i].exists(time) && !g.units[i].isLive(time)) g.units[i].goLive();
+			// safe for paths to become live, so do so
+			foreach (Path path in g.paths) {
+				if (player == path.player && path.segments[path.segments.Count - 1].units.Count > 0 && path.timeSimPast != long.MaxValue) path.goLive();
 			}
 		}
 		// indicate success
-		g.players[player].hasNonLiveUnits = false;
+		g.players[player].hasNonLivePaths = false;
 		g.players[player].timeGoLiveFail = long.MaxValue;
 	}
 }
@@ -313,8 +425,7 @@ public class UpdateEvt : SimEvt {
 
 	public override void apply(Sim g) {
 		FP.Vector pos;
-		int cmdType, target;
-		long distSq, targetDistSq;
+		int cmdType;
 		int i, j;
 		if (g.networkView != null) {
 			// apply received user commands (multiplayer only)
@@ -350,6 +461,12 @@ public class UpdateEvt : SimEvt {
 				else if (evt is GoLiveCmdEvt) {
 					cmdType = 15;
 				}
+				else if (evt is StackCmdEvt) {
+					cmdType = 16;
+				}
+				else if (evt is DeleteOtherPathsCmdEvt) {
+					cmdType = 17;
+				}
 				else {
 					throw new InvalidOperationException("pending command's type is not a command");
 				}
@@ -363,35 +480,50 @@ public class UpdateEvt : SimEvt {
 			g.users[g.selUser].checksums[time + g.updateInterval] = g.checksum;
 		}
 		// update units
-		for (i = 0; i < g.nUnits; i++) {
-			if (g.units[i].isLive(time) && time >= g.units[i].timeAttack + g.unitT[g.units[i].type].reload) {
-				// done reloading, look for closest target to potentially attack
-				pos = g.units[i].calcPos(time);
-				target = -1;
-				targetDistSq = g.unitT[g.units[i].type].range * g.unitT[g.units[i].type].range + 1;
-				for (j = 0; j < g.nUnits; j++) {
-					if (i != j && g.units[j].isLive(time) && g.players[g.units[i].player].mayAttack[g.units[j].player] && g.unitT[g.units[i].type].damage[g.units[j].type] > 0) {
-						distSq = (g.units[j].calcPos(time) - pos).lengthSq();
-						if (distSq < targetDistSq) {
-							target = j;
-							targetDistSq = distSq;
+		for (i = 0; i < g.paths.Count; i++) {
+			int seg = g.paths[i].getSegment (time);
+			if (seg >= 0 && g.paths[i].timeSimPast == long.MaxValue) {
+				pos = g.paths[i].calcPos (time);
+				foreach (int unit in g.paths[i].segments[seg].units) {
+					if (time >= g.units[unit].timeAttack + g.unitT[g.units[unit].type].reload) {
+						// done reloading, look for closest target to potentially attack
+						int target = -1;
+						long targetDistSq = g.unitT[g.units[unit].type].range * g.unitT[g.units[unit].type].range + 1;
+						for (j = 0; j < g.paths.Count; j++) {
+							int seg2 = g.paths[j].getSegment (time);
+							if (i != j && seg2 >= 0 && g.paths[j].timeSimPast == long.MaxValue && g.players[g.paths[i].player].mayAttack[g.paths[j].player]) {
+								foreach (int unit2 in g.paths[j].segments[seg2].units) {
+									if (g.unitT[g.units[unit].type].damage[g.units[unit2].type] > 0) {
+										long distSq = (g.paths[j].calcPos (time) - pos).lengthSq ();
+										if (distSq < targetDistSq) {
+											target = j;
+											targetDistSq = distSq;
+											break;
+										}
+									}
+								}
+							}
+						}
+						if (target >= 0) {
+							// attack every applicable unit in target path
+							// take health with 1 ms delay so earlier units in array don't have unfair advantage
+							foreach (int unit2 in g.paths[target].segments[g.paths[target].getSegment(time)].units) {
+								if (g.unitT[g.units[unit].type].damage[g.units[unit2].type] > 0) {
+									for (j = 0; j < g.unitT[g.units[unit].type].damage[g.units[unit2].type]; j++) g.units[unit2].takeHealth(time + 1, target);
+									g.units[unit].timeAttack = time;
+								}
+							}
 						}
 					}
 				}
-				if (target >= 0) {
-					// attack target
-					// take health with 1 ms delay so earlier units in array don't have unfair advantage
-					for (j = 0; j < g.unitT[g.units[i].type].damage[g.units[target].type]; j++) g.units[target].takeHealth(time + 1);
-					g.units[i].timeAttack = time;
-				}
 			}
 		}
-		// add events to move units between tiles
+		// add events to move paths between tiles
 		// this shouldn't be done in Sim.update() because addTileMoveEvts() sometimes adds events before timeSim
-		for (i = 0; i < g.nUnits; i++) {
-			if (g.units[i].timeSimPast == long.MaxValue) g.units[i].addTileMoveEvts(ref g.events, time, time + g.updateInterval);
+		foreach (Path path in g.paths) {
+			if (path.timeSimPast == long.MaxValue) path.addTileMoveEvts(ref g.events, time, time + g.updateInterval);
 		}
-		g.movedUnits.Clear();
+		g.movedPaths.Clear();
 		// add next UpdateEvt
 		g.checksum = 0;
 		g.events.add(new UpdateEvt(time + g.updateInterval));
@@ -400,50 +532,134 @@ public class UpdateEvt : SimEvt {
 }
 
 /// <summary>
-/// event in which unit moves between visibility tiles
+/// event to stack multiple paths together if they are at exactly the same place
+/// </summary>
+public class StackEvt : SimEvt {
+	public int[] paths;
+	
+	public StackEvt(long timeVal, int[] pathsVal) {
+		time = timeVal;
+		paths = pathsVal;
+	}
+	
+	public override void apply (Sim g) {
+		bool[] pathsStacked = new bool[paths.Length];
+		for (int i = 0; i < pathsStacked.Length; i++) {
+			pathsStacked[i] = (time < g.paths[paths[i]].moves[0].timeStart);
+		}
+		// loop through each pair of unstacked paths
+		for (int i = 0; i < paths.Length; i++) {
+			if (!pathsStacked[i]) {
+				FP.Vector iPos = g.paths[paths[i]].calcPos (time);
+				int iSeg = g.paths[paths[i]].getSegment (time);
+				for (int j = i + 1; j < paths.Length; j++) {
+					FP.Vector jPos = g.paths[paths[j]].calcPos (time);
+					int jSeg = g.paths[paths[j]].getSegment (time);
+					// check that paths are at same position
+					if (iPos.x == jPos.x && iPos.y == jPos.y) {
+						// check whether allowed to stack the paths' units together
+						List<int> stackUnits = new List<int>(g.paths[paths[i]].segments[iSeg].units);
+						foreach (int unit in g.paths[paths[j]].segments[jSeg].units) {
+							if (!stackUnits.Contains (unit)) stackUnits.Add (unit);
+						}
+						if (g.stackAllowed (stackUnits, g.paths[paths[i]].speed, g.paths[paths[i]].player)) {
+							// merge the paths onto path i
+							iSeg = g.paths[paths[i]].connect (time, paths[j]);
+							jSeg = g.paths[paths[j]].getSegment (time);
+							g.paths[paths[i]].segments[iSeg].units = stackUnits;
+							g.paths[paths[j]].segments[jSeg].removeAllUnits ();
+							pathsStacked[i] = true;
+							pathsStacked[j] = true;
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
+/// <summary>
+/// event in which path moves between visibility tiles
 /// </summary>
 /// <remarks>
-/// when making this event, can't rely on a unit's tileX and tileY being up-to-date
-/// because the latest TileMoveEvts for that unit might not be applied yet
+/// when making this event, can't rely on a path's tileX and tileY being up-to-date
+/// because the latest TileMoveEvts for that path might not be applied yet
 /// </remarks>
 public class TileMoveEvt : SimEvt {
-	public int unit;
+	public int path;
 	public int tileX, tileY; // new tile position, set to int.MinValue to keep current value
 
-	public TileMoveEvt(long timeVal, int unitVal, int tileXVal, int tileYVal) {
+	public TileMoveEvt(long timeVal, int pathVal, int tileXVal, int tileYVal) {
 		time = timeVal;
-		unit = unitVal;
+		path = pathVal;
 		tileX = tileXVal;
 		tileY = tileYVal;
 	}
 
 	public override void apply(Sim g) {
-		if (g.units[unit].tileX == Sim.OffMap) return; // skip event if unit no longer exists
+		if (g.paths[path].tileX == Sim.OffMap) return; // skip event if path no longer exists
 		List<FP.Vector> playerVisAddTiles = new List<FP.Vector>();
 		int exclusiveMinX = g.tileLen() - 1;
 		int exclusiveMaxX = 0;
 		int exclusiveMinY = g.tileLen() - 1;
 		int exclusiveMaxY = 0;
-		int i, tXPrev, tYPrev, tX, tY;
-		if (tileX == int.MinValue) tileX = g.units[unit].tileX;
-		if (tileY == int.MinValue) tileY = g.units[unit].tileY;
-		tXPrev = g.units[unit].tileX;
-		tYPrev = g.units[unit].tileY;
-		g.units[unit].tileX = tileX;
-		g.units[unit].tileY = tileY;
-		// add unit to visibility tiles
-		for (tX = tileX - g.tileVisRadius(); tX <= tileX + g.tileVisRadius(); tX++) {
-			for (tY = tileY - g.tileVisRadius(); tY <= tileY + g.tileVisRadius(); tY++) {
+		int i, tXPrev, tYPrev, tX, tY, tX2, tY2;
+		if (tileX == int.MinValue) tileX = g.paths[path].tileX;
+		if (tileY == int.MinValue) tileY = g.paths[path].tileY;
+		tXPrev = g.paths[path].tileX;
+		tYPrev = g.paths[path].tileY;
+		g.paths[path].tileX = tileX;
+		g.paths[path].tileY = tileY;
+		// add path to visibility tiles
+		for (tX = Math.Max (0, tileX - g.tileVisRadius()); tX <= Math.Min (g.tileLen () - 1, tileX + g.tileVisRadius()); tX++) {
+			for (tY = Math.Max (0, tileY - g.tileVisRadius()); tY <= Math.Min (g.tileLen () - 1, tileY + g.tileVisRadius()); tY++) {
 				if (!g.inVis(tX - tXPrev, tY - tYPrev) && g.inVis(tX - tileX, tY - tileY)) {
-					visAdd(g, unit, tX, tY, time, ref playerVisAddTiles);
+					if (g.tiles[tX, tY].pathVisLatest(path)) throw new InvalidOperationException("path " + path + " already sees tile (" + tX + ", " + tY + ")");
+					// add path to path visibility tile
+					g.tiles[tX, tY].pathVisToggle(path, time);
+					if (!g.tiles[tX, tY].playerVisLatest(g.paths[path].player)) {
+						g.tiles[tX, tY].playerVis[g.paths[path].player].Add(time);
+						playerVisAddTiles.Add(new FP.Vector(tX, tY));
+						// check if this tile stopped being exclusive to another player
+						for (i = 0; i < g.nPlayers; i++) {
+							if (i != g.paths[path].player && g.tiles[tX, tY].exclusiveLatest(i)) {
+								g.exclusiveRemove(i, tX, tY, time);
+							}
+						}
+					}
 				}
 			}
 		}
-		// remove unit from visibility tiles
-		for (tX = tXPrev - g.tileVisRadius(); tX <= tXPrev + g.tileVisRadius(); tX++) {
-			for (tY = tYPrev - g.tileVisRadius(); tY <= tYPrev + g.tileVisRadius(); tY++) {
+		// remove path from visibility tiles
+		for (tX = Math.Max (0, tXPrev - g.tileVisRadius()); tX <= Math.Min (g.tileLen () - 1, tXPrev + g.tileVisRadius()); tX++) {
+			for (tY = Math.Max (0, tYPrev - g.tileVisRadius()); tY <= Math.Min (g.tileLen () - 1, tYPrev + g.tileVisRadius()); tY++) {
 				if (g.inVis(tX - tXPrev, tY - tYPrev) && !g.inVis(tX - tileX, tY - tileY)) {
-					visRemove(g, unit, tX, tY, time);
+					if (!g.tiles[tX, tY].pathVisLatest(path)) throw new InvalidOperationException("path " + path + " already doesn't see tile (" + tX + ", " + tY + ")");
+					// remove path from path visibility tile
+					g.tiles[tX, tY].pathVisToggle(path, time);
+					// check if player can't directly see this tile anymore
+					if (g.tiles[tX, tY].playerVisLatest(g.paths[path].player) && !g.tiles[tX, tY].playerDirectVisLatest(g.paths[path].player)) {
+						long timePlayerVis = long.MaxValue;
+						// find lowest time that surrounding tiles lost visibility
+						for (tX2 = Math.Max(0, tX - 1); tX2 <= Math.Min(g.tileLen() - 1, tX + 1); tX2++) {
+							for (tY2 = Math.Max(0, tY - 1); tY2 <= Math.Min(g.tileLen() - 1, tY + 1); tY2++) {
+								if ((tX2 != tX || tY2 != tY) && !g.tiles[tX2, tY2].playerVisLatest(g.paths[path].player)) {
+									if (g.tiles[tX2, tY2].playerVis[g.paths[path].player].Count == 0) {
+										timePlayerVis = long.MinValue;
+									}
+									else if (g.tiles[tX2, tY2].playerVis[g.paths[path].player][g.tiles[tX2, tY2].playerVis[g.paths[path].player].Count - 1] < timePlayerVis) {
+										timePlayerVis = g.tiles[tX2, tY2].playerVis[g.paths[path].player][g.tiles[tX2, tY2].playerVis[g.paths[path].player].Count - 1];
+									}
+								}
+							}
+						}
+						// if player can't see all neighboring tiles, they won't be able to tell if another player's unit moves into this tile
+						// so remove this tile's visibility for this player
+						if (timePlayerVis != long.MaxValue) {
+							timePlayerVis = Math.Max(time, timePlayerVis + (1 << FP.Precision) / g.maxSpeed); // TODO: use more accurate time
+							g.playerVisRemove(g.paths[path].player, tX, tY, timePlayerVis);
+						}
+					}
 				}
 			}
 		}
@@ -462,8 +678,8 @@ public class TileMoveEvt : SimEvt {
 			for (tY = exclusiveMinY; tY <= exclusiveMaxY; tY++) {
 				foreach (FP.Vector vec in playerVisAddTiles) {
 					if (g.inVis(tX - vec.x, tY - vec.y)) {
-						if (!g.tiles[tX, tY].exclusiveLatest(g.units[unit].player) && g.calcExclusive(g.units[unit].player, tX, tY)) {
-							g.exclusiveAdd(g.units[unit].player, tX, tY, time);
+						if (!g.tiles[tX, tY].exclusiveLatest(g.paths[path].player) && g.calcExclusive(g.paths[path].player, tX, tY)) {
+							g.exclusiveAdd(g.paths[path].player, tX, tY, time);
 						}
 						break;
 					}
@@ -471,17 +687,17 @@ public class TileMoveEvt : SimEvt {
 			}
 		}
 		if (tileX >= 0 && tileX < g.tileLen() && tileY >= 0 && tileY < g.tileLen()) {
-			// update whether this unit is known to be unseen
-			if (!g.units[unit].unseen() && g.tiles[tileX, tileY].exclusiveLatest(g.units[unit].player)) {
-				g.units[unit].beUnseen(time);
+			// update whether this path is known to be unseen
+			if (!g.paths[path].segments[g.paths[path].segments.Count - 1].unseen && g.tiles[tileX, tileY].exclusiveLatest(g.paths[path].player)) {
+				g.paths[path].beUnseen(time);
 			}
-			else if (g.units[unit].unseen() && !g.tiles[tileX, tileY].exclusiveLatest(g.units[unit].player)) {
-				g.units[unit].beSeen();
+			else if (g.paths[path].segments[g.paths[path].segments.Count - 1].unseen && !g.tiles[tileX, tileY].exclusiveLatest(g.paths[path].player)) {
+				g.paths[path].beSeen(time);
 			}
-			// if this unit moved out of another player's visibility, remove that player's visibility here
-			if (!g.players[g.units[unit].player].immutable && tXPrev >= 0 && tXPrev < g.tileLen() && tYPrev >= 0 && tYPrev < g.tileLen()) {
+			// if this path moved out of another player's visibility, remove that player's visibility here
+			if (!g.players[g.paths[path].player].immutable && tXPrev >= 0 && tXPrev < g.tileLen() && tYPrev >= 0 && tYPrev < g.tileLen()) {
 				for (i = 0; i < g.nPlayers; i++) {
-					if (i != g.units[unit].player && g.tiles[tXPrev, tYPrev].playerDirectVisLatest(i) && !g.tiles[tileX, tileY].playerDirectVisLatest(i)) {
+					if (i != g.paths[path].player && g.tiles[tXPrev, tYPrev].playerDirectVisLatest(i) && !g.tiles[tileX, tileY].playerDirectVisLatest(i)) {
 						for (tX = Math.Max(0, tileX - 1); tX <= Math.Min(g.tileLen() - 1, tileX + 1); tX++) {
 							for (tY = Math.Max(0, tileY - 1); tY <= Math.Min(g.tileLen() - 1, tileY + 1); tY++) {
 								// TODO?: use more accurate time at tiles other than (tileX, tileY)
@@ -493,73 +709,16 @@ public class TileMoveEvt : SimEvt {
 			}
 		}
 		if (tXPrev >= 0 && tXPrev < g.tileLen() && tYPrev >= 0 && tYPrev < g.tileLen()) {
-			// if this player can no longer directly see another player's unit, remove this player's visibility there
-			foreach (int j in g.tiles[tXPrev, tYPrev].unitVis.Keys) {
-				if (g.units[j].player != g.units[unit].player && !g.players[g.units[j].player].immutable && g.units[j].healthLatest() > 0
-					&& g.inVis(g.units[j].tileX - tXPrev, g.units[j].tileY - tYPrev) && !g.tiles[g.units[j].tileX, g.units[j].tileY].playerDirectVisLatest(g.units[unit].player)) {
-					for (tX = Math.Max(0, g.units[j].tileX - 1); tX <= Math.Min(g.tileLen() - 1, g.units[j].tileX + 1); tX++) {
-						for (tY = Math.Max(0, g.units[j].tileY - 1); tY <= Math.Min(g.tileLen() - 1, g.units[j].tileY + 1); tY++) {
+			// if this player can no longer directly see another player's path, remove this player's visibility there
+			foreach (int j in g.tiles[tXPrev, tYPrev].pathVis.Keys) {
+				if (g.paths[j].player != g.paths[path].player && !g.players[g.paths[j].player].immutable && g.paths[j].segments[g.paths[j].segments.Count - 1].units.Count > 0
+					&& g.inVis(g.paths[j].tileX - tXPrev, g.paths[j].tileY - tYPrev) && !g.tiles[g.paths[j].tileX, g.paths[j].tileY].playerDirectVisLatest(g.paths[path].player)) {
+					for (tX = Math.Max(0, g.paths[j].tileX - 1); tX <= Math.Min(g.tileLen() - 1, g.paths[j].tileX + 1); tX++) {
+						for (tY = Math.Max(0, g.paths[j].tileY - 1); tY <= Math.Min(g.tileLen() - 1, g.paths[j].tileY + 1); tY++) {
 							// TODO?: use more accurate time at tiles other than (u[j].tileX, u[j].tileY)
-							g.playerVisRemove(g.units[unit].player, tX, tY, time);
+							g.playerVisRemove(g.paths[path].player, tX, tY, time);
 						}
 					}
-				}
-			}
-		}
-	}
-
-	/// <summary>
-	/// makes specified tile visible to specified unit starting at specified time, including effects on player visibility
-	/// </summary>
-	private static void visAdd(Sim g, int unit, int tileX, int tileY, long time, ref List<FP.Vector> playerVisAddTiles) {
-		int i;
-		if (tileX >= 0 && tileX < g.tileLen() && tileY >= 0 && tileY < g.tileLen()) {
-			if (g.tiles[tileX, tileY].unitVisLatest(unit)) throw new InvalidOperationException("unit " + unit + " already sees tile (" + tileX + ", " + tileY + ")");
-			// add unit to unit visibility tile
-			g.tiles[tileX, tileY].unitVisToggle(unit, time);
-			if (!g.tiles[tileX, tileY].playerVisLatest(g.units[unit].player)) {
-				g.tiles[tileX, tileY].playerVis[g.units[unit].player].Add(time);
-				playerVisAddTiles.Add(new FP.Vector(tileX, tileY));
-				// check if this tile stopped being exclusive to another player
-				for (i = 0; i < g.nPlayers; i++) {
-					if (i != g.units[unit].player && g.tiles[tileX, tileY].exclusiveLatest(i)) {
-						g.exclusiveRemove(i, tileX, tileY, time);
-					}
-				}
-			}
-		}
-	}
-
-	/// <summary>
-	/// makes specified tile not visible to specified unit starting at specified time, including effects on player visibility
-	/// </summary>
-	private static void visRemove(Sim g, int unit, int tileX, int tileY, long time) {
-		int tX, tY;
-		long timePlayerVis = long.MaxValue;
-		if (tileX >= 0 && tileX < g.tileLen() && tileY >= 0 && tileY < g.tileLen()) {
-			if (!g.tiles[tileX, tileY].unitVisLatest(unit)) throw new InvalidOperationException("unit " + unit + " already doesn't see tile (" + tileX + ", " + tileY + ")");
-			// remove unit from unit visibility tile
-			g.tiles[tileX, tileY].unitVisToggle(unit, time);
-			// check if player can't directly see this tile anymore
-			if (g.tiles[tileX, tileY].playerVisLatest(g.units[unit].player) && !g.tiles[tileX, tileY].playerDirectVisLatest(g.units[unit].player)) {
-				// find lowest time that surrounding tiles lost visibility
-				for (tX = Math.Max(0, tileX - 1); tX <= Math.Min(g.tileLen() - 1, tileX + 1); tX++) {
-					for (tY = Math.Max(0, tileY - 1); tY <= Math.Min(g.tileLen() - 1, tileY + 1); tY++) {
-						if ((tX != tileX || tY != tileY) && !g.tiles[tX, tY].playerVisLatest(g.units[unit].player)) {
-							if (g.tiles[tX, tY].playerVis[g.units[unit].player].Count == 0) {
-								timePlayerVis = long.MinValue;
-							}
-							else if (g.tiles[tX, tY].playerVis[g.units[unit].player][g.tiles[tX, tY].playerVis[g.units[unit].player].Count - 1] < timePlayerVis) {
-								timePlayerVis = g.tiles[tX, tY].playerVis[g.units[unit].player][g.tiles[tX, tY].playerVis[g.units[unit].player].Count - 1];
-							}
-						}
-					}
-				}
-				// if player can't see all neighboring tiles, they won't be able to tell if another player's unit moves into this tile
-				// so remove this tile's visibility for this player
-				if (timePlayerVis != long.MaxValue) {
-					timePlayerVis = Math.Max(time, timePlayerVis + (1 << FP.Precision) / g.maxSpeed); // TODO: use more accurate time
-					g.playerVisRemove(g.units[unit].player, tileX, tileY, timePlayerVis);
 				}
 			}
 		}
