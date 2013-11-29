@@ -55,6 +55,14 @@ public abstract class CmdEvt : SimEvt {
 		timeCmd = timeCmdVal;
 		paths = pathsVal;
 	}
+	
+	[ProtoAfterDeserialization]
+	protected void afterDeserialize() {
+		if (paths == null) paths = new Dictionary<int, int[]>();
+		foreach (int path in paths.Keys) {
+			if (paths[path] == null) paths[path] = new int[0];
+		}
+	}
 
 	public override void apply(Sim g) {
 		g.cmdHistory.add(this); // copy event to command history list (it should've already been popped from event list)
