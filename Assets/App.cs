@@ -7,6 +7,7 @@ using UnityEngine;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using ProtoBuf;
 
 /// <summary>
@@ -646,7 +647,7 @@ public class App : MonoBehaviour {
 					if (Input.GetKey (KeyCode.LeftShift) && selPaths.ContainsKey(i)) {
 						// show final position if holding shift
 						sprUnits[i][j].preview.renderer.material.color = sprUnits[i][j].sprite.renderer.material.color;
-						sprUnits[i][j].preview.transform.position = simToDrawPos(g.paths[i].moves[g.paths[i].moves.Count - 1].vecEnd + g.unitT[g.units[unit].type].imgOffset, UnitDepth);
+						sprUnits[i][j].preview.transform.position = simToDrawPos(g.paths[i].moves.Last ().vecEnd + g.unitT[g.units[unit].type].imgOffset, UnitDepth);
 						sprUnits[i][j].preview.transform.localScale = sprUnits[i][j].sprite.transform.localScale;
 						sprUnits[i][j].preview.renderer.enabled = true;
 					}

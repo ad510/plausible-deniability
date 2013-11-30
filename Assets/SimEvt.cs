@@ -213,8 +213,8 @@ public class MakeUnitCmdEvt : CmdEvt {
 				g.setNUnits (g.nUnits + 1);
 				g.units[g.nUnits - 1] = new Unit(g, g.nUnits - 1, type, g.paths[path].player);
 				if (g.paths[path].makePath (timeCmd, unitList)) {
-					if (g.paths[g.paths.Count - 1].canMove (timeCmd)) {
-						g.paths[g.paths.Count - 1].moveTo (timeCmd, pos); // move new unit out of the way
+					if (g.paths.Last ().canMove (timeCmd)) {
+						g.paths.Last ().moveTo (timeCmd, pos); // move new unit out of the way
 					}
 				}
 				else {
@@ -243,7 +243,7 @@ public class MakeUnitCmdEvt : CmdEvt {
 				Dictionary<int, int[]> evtPaths = new Dictionary<int, int[]>(paths);
 				movePath = g.paths[movePath].moveTo(timeCmd, new List<int>(exPaths[movePath]), pos);
 				if (!evtPaths.ContainsKey (movePath)) evtPaths.Add (movePath, g.paths[movePath].segments[0].units.ToArray ()); // in case replacement path is moving to make the unit
-				g.events.add(new MakeUnitCmdEvt(g.paths[movePath].moves[g.paths[movePath].moves.Count - 1].timeEnd, g.paths[movePath].moves[g.paths[movePath].moves.Count - 1].timeEnd + 1,
+				g.events.add(new MakeUnitCmdEvt(g.paths[movePath].moves.Last ().timeEnd, g.paths[movePath].moves.Last ().timeEnd + 1,
 					evtPaths, type, pos, true));
 			}
 		}
@@ -273,7 +273,7 @@ public class MakePathCmdEvt : CmdEvt {
 		base.apply(g);
 		foreach (KeyValuePair<int, List<int>> path in exPaths) {
 			if (g.paths[path.Key].canMove(timeCmd) && g.paths[path.Key].makePath (timeCmd, new List<int>(path.Value))) {
-				g.paths[g.paths.Count - 1].moveTo(timeCmd, pos[path.Key]); // move new path out of the way
+				g.paths.Last ().moveTo(timeCmd, pos[path.Key]); // move new path out of the way
 			}
 		}
 	}
@@ -359,7 +359,7 @@ public class StackCmdEvt : CmdEvt {
 		// TODO: if stackPathVal < 0 (pressing stack button will do that) then move all paths to their average location
 		foreach (KeyValuePair<int, List<int>> path in exPaths) {
 			if (g.paths[path.Key].speed == g.paths[stackPath].speed && g.paths[path.Key].canMove (timeCmd)) {
-				movedPaths.Add (g.paths[path.Key].moveTo (timeCmd, new List<int>(path.Value), g.paths[stackPath].moves[g.paths[stackPath].moves.Count - 1].vecEnd));
+				movedPaths.Add (g.paths[path.Key].moveTo (timeCmd, new List<int>(path.Value), g.paths[stackPath].moves.Last ().vecEnd));
 			}
 		}
 		// if able to move any of the paths, add events to stack them as they arrive
@@ -368,7 +368,7 @@ public class StackCmdEvt : CmdEvt {
 			foreach (int path in movedPaths) {
 				// in most cases only 1 path will stack onto stackPath,
 				// but request to stack all moved paths anyway in case the path they're stacking onto moves away
-				g.events.add (new StackEvt(g.paths[path].moves[g.paths[path].moves.Count - 1].timeEnd, movedPaths.ToArray ()));
+				g.events.add (new StackEvt(g.paths[path].moves.Last ().timeEnd, movedPaths.ToArray ()));
 			}
 		}
 	}
@@ -397,7 +397,7 @@ public class GoLiveCmdEvt : SimEvt {
 		long timeTravelStart = long.MaxValue;
 		g.cmdHistory.add(this); // copy event to command history list (it should've already been popped from event list)
 		foreach (Path path in g.paths) {
-			if (player == path.player && path.segments[path.segments.Count - 1].units.Count > 0 && path.timeSimPast != long.MaxValue) {
+			if (player == path.player && path.segments.Last ().units.Count > 0 && path.timeSimPast != long.MaxValue) {
 				// ensure that time traveling paths don't move off exclusive areas
 				path.updatePast(time);
 				// find earliest time that player's paths started time traveling
@@ -414,7 +414,7 @@ public class GoLiveCmdEvt : SimEvt {
 			}
 			// safe for paths to become live, so do so
 			foreach (Path path in g.paths) {
-				if (player == path.player && path.segments[path.segments.Count - 1].units.Count > 0 && path.timeSimPast != long.MaxValue) path.goLive();
+				if (player == path.player && path.segments.Last ().units.Count > 0 && path.timeSimPast != long.MaxValue) path.goLive();
 			}
 		}
 		// indicate success
@@ -655,8 +655,8 @@ public class TileMoveEvt : SimEvt {
 									if (g.tiles[tX2, tY2].playerVis[g.paths[path].player].Count == 0) {
 										timePlayerVis = long.MinValue;
 									}
-									else if (g.tiles[tX2, tY2].playerVis[g.paths[path].player][g.tiles[tX2, tY2].playerVis[g.paths[path].player].Count - 1] < timePlayerVis) {
-										timePlayerVis = g.tiles[tX2, tY2].playerVis[g.paths[path].player][g.tiles[tX2, tY2].playerVis[g.paths[path].player].Count - 1];
+									else if (g.tiles[tX2, tY2].playerVis[g.paths[path].player].Last () < timePlayerVis) {
+										timePlayerVis = g.tiles[tX2, tY2].playerVis[g.paths[path].player].Last ();
 									}
 								}
 							}
@@ -696,10 +696,10 @@ public class TileMoveEvt : SimEvt {
 		}
 		if (tileX >= 0 && tileX < g.tileLen() && tileY >= 0 && tileY < g.tileLen()) {
 			// update whether this path is known to be unseen
-			if (!g.paths[path].segments[g.paths[path].segments.Count - 1].unseen && g.tiles[tileX, tileY].exclusiveLatest(g.paths[path].player)) {
+			if (!g.paths[path].segments.Last ().unseen && g.tiles[tileX, tileY].exclusiveLatest(g.paths[path].player)) {
 				g.paths[path].beUnseen(time);
 			}
-			else if (g.paths[path].segments[g.paths[path].segments.Count - 1].unseen && !g.tiles[tileX, tileY].exclusiveLatest(g.paths[path].player)) {
+			else if (g.paths[path].segments.Last ().unseen && !g.tiles[tileX, tileY].exclusiveLatest(g.paths[path].player)) {
 				g.paths[path].beSeen(time);
 			}
 			// if this path moved out of another player's visibility, remove that player's visibility here
@@ -719,7 +719,7 @@ public class TileMoveEvt : SimEvt {
 		if (tXPrev >= 0 && tXPrev < g.tileLen() && tYPrev >= 0 && tYPrev < g.tileLen()) {
 			// if this player can no longer directly see another player's path, remove this player's visibility there
 			foreach (int j in g.tiles[tXPrev, tYPrev].pathVis.Keys) {
-				if (g.paths[j].player != g.paths[path].player && !g.players[g.paths[j].player].immutable && g.paths[j].segments[g.paths[j].segments.Count - 1].units.Count > 0
+				if (g.paths[j].player != g.paths[path].player && !g.players[g.paths[j].player].immutable && g.paths[j].segments.Last ().units.Count > 0
 					&& g.inVis(g.paths[j].tileX - tXPrev, g.paths[j].tileY - tYPrev) && !g.tiles[g.paths[j].tileX, g.paths[j].tileY].playerDirectVisLatest(g.paths[path].player)) {
 					for (tX = Math.Max(0, g.paths[j].tileX - 1); tX <= Math.Min(g.tileLen() - 1, g.paths[j].tileX + 1); tX++) {
 						for (tY = Math.Max(0, g.paths[j].tileY - 1); tY <= Math.Min(g.tileLen() - 1, g.paths[j].tileY + 1); tY++) {

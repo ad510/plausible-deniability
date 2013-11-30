@@ -46,7 +46,7 @@ public class Path {
 	/// ensure that if path is moving in the past, it does not move off exclusively seen areas
 	/// </summary>
 	public void updatePast(long curTime) {
-		if (curTime <= timeSimPast || segments[segments.Count - 1].units.Count == 0) return;
+		if (curTime <= timeSimPast || segments.Last ().units.Count == 0) return;
 		long timeSimPastNext = Math.Min(curTime, g.timeSim);
 		SimEvtList pastEvents = new SimEvtList();
 		TileMoveEvt evt;
@@ -62,7 +62,7 @@ public class Path {
 		exclusiveIndex = g.tiles[tX, tY].exclusiveIndexWhen(player, (evt != null) ? evt.time - 1 : curTime);
 		if (!g.tiles[tX, tY].exclusiveWhen(player, (evt != null) ? evt.time - 1 : curTime)
 			|| g.tiles[tX, tY].exclusive[player][exclusiveIndex] > timeSimPast) {
-			segments[segments.Count - 1].removeAllUnits();
+			segments.Last ().removeAllUnits();
 			return;
 		}
 		// delete path if path moves off exclusive area or tile that path moves to stops being exclusive
@@ -73,7 +73,7 @@ public class Path {
 				exclusiveIndex = g.tiles[tX, tY].exclusiveIndexWhen(player, evt.time);
 				if (!g.tiles[tX, tY].exclusiveWhen(player, evt.time)
 					|| (exclusiveIndex + 1 < g.tiles[tX, tY].exclusive[player].Count() && g.tiles[tX, tY].exclusive[player][exclusiveIndex + 1] <= Math.Min(g.events.peekTime(), timeSimPastNext))) {
-					segments[segments.Count - 1].removeAllUnits();
+					segments.Last ().removeAllUnits();
 					return;
 				}
 			} while ((evt = (TileMoveEvt)pastEvents.pop()) != null);
@@ -118,10 +118,10 @@ public class Path {
 				events.add(new TileMoveEvt(moves[i].timeAtY(tY << FP.Precision), id, int.MinValue, tY + dir));
 			}
 		}
-		if (segments[segments.Count - 1].units.Count == 0 && segments[getSegment (timeMin)].units.Count > 0) {
+		if (segments.Last ().units.Count == 0 && segments[getSegment (timeMin)].units.Count > 0) {
 			// path no longer contains any units
 			// TODO: do this directly in takeHealth?
-			g.events.add(new TileMoveEvt(segments[segments.Count - 1].timeStart, id, Sim.OffMap, 0));
+			g.events.add(new TileMoveEvt(segments.Last ().timeStart, id, Sim.OffMap, 0));
 		}
 	}
 
@@ -157,11 +157,11 @@ public class Path {
 			g.paths.Add (new Path(g, g.paths.Count, g.unitT[g.units[units[0]].type].speed, player, units, time, calcPos (time), segments[seg].unseen));
 			connect (time, g.paths.Count - 1);
 			// if this path isn't live, new path can't be either
-			if (timeSimPast != long.MaxValue) g.paths[g.paths.Count - 1].timeSimPast = time;
+			if (timeSimPast != long.MaxValue) g.paths.Last ().timeSimPast = time;
 			// indicate to calculate TileMoveEvts for new path starting at timeSim
 			if (!g.movedPaths.Contains(g.paths.Count - 1)) g.movedPaths.Add(g.paths.Count - 1);
 			// if new path isn't live, indicate that player now has a non-live path
-			if (g.paths[g.paths.Count - 1].timeSimPast != long.MaxValue) g.players[player].hasNonLivePaths = true;
+			if (g.paths.Last ().timeSimPast != long.MaxValue) g.players[player].hasNonLivePaths = true;
 			return true;
 		}
 		return false;

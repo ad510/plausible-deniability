@@ -410,7 +410,7 @@ public class Sim {
 		// this player's paths that are on this tile may time travel starting now
 		// TODO: actually safe to time travel at earlier times, as long as unit of same type is at same place when seen by another player
 		foreach (Path path in paths) {
-			if (player == path.player && tileX == path.tileX && tileY == path.tileY && !path.segments[path.segments.Count - 1].unseen) {
+			if (player == path.player && tileX == path.tileX && tileY == path.tileY && !path.segments.Last ().unseen) {
 				path.beUnseen(time);
 			}
 		}
@@ -425,7 +425,7 @@ public class Sim {
 		tiles[tileX, tileY].exclusive[player].Add(time);
 		// this player's paths that are on this tile may not time travel starting now
 		foreach (Path path in paths) {
-			if (player == path.player && tileX == path.tileX && tileY == path.tileY && path.segments[path.segments.Count - 1].unseen) {
+			if (player == path.player && tileX == path.tileX && tileY == path.tileY && path.segments.Last ().unseen) {
 				path.beSeen(time);
 			}
 		}
