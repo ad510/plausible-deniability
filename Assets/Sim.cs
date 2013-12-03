@@ -97,9 +97,9 @@ public class Sim {
 		public Tile(Sim simVal) {
 			g = simVal;
 			pathVis = new Dictionary<int,List<long>>();
-			playerVis = new List<long>[g.nPlayers];
-			exclusive = new List<long>[g.nPlayers];
-			for (int i = 0; i < g.nPlayers; i++) {
+			playerVis = new List<long>[g.players.Length];
+			exclusive = new List<long>[g.players.Length];
+			for (int i = 0; i < g.players.Length; i++) {
 				playerVis[i] = new List<long>();
 				exclusive[i] = new List<long>();
 			}
@@ -259,10 +259,6 @@ public class Sim {
 	public Color healthBarEmptyCol;
 
 	// core game objects
-	public int nUsers;
-	public int nRsc;
-	public int nPlayers;
-	public int nUnitT;
 	public User[] users;
 	public string[] rscNames;
 	public Player[] players;
@@ -439,7 +435,7 @@ public class Sim {
 			}
 		}
 		// check that no other players can see this tile
-		for (i = 0; i < nPlayers; i++) {
+		for (i = 0; i < players.Length; i++) {
 			if (i != player && !players[i].immutable && tiles[tileX, tileY].playerVisLatest(i)) return false;
 		}
 		return true;
@@ -474,7 +470,7 @@ public class Sim {
 			// check all times since timeMin that a path of specified player was made
 			// note that new paths are made at App.newCmdTime() + 1
 			if (player == path.player && path.segments[0].timeStart >= timeMin && path.segments[0].timeStart <= timeSim + 1) {
-				for (int i = 0; i < nRsc; i++) {
+				for (int i = 0; i < rscNames.Length; i++) {
 					if (playerResource(player, path.segments[0].timeStart, i, false, includeNonLiveChildren) < 0) {
 						return path.segments[0].timeStart;
 					}
@@ -491,8 +487,8 @@ public class Sim {
 		// check that player isn't an active participant and isn't controlled by anyone
 		if (players[player].isUser || players[player].user >= CompUser) return false;
 		// check that no one can attack this player
-		for (int i = 0; i < nPlayers; i++) {
-			if (players[i].mayAttack[player]) return false;
+		foreach (Player player2 in players) {
+			if (player2.mayAttack[player]) return false;
 		}
 		return true;
 	}
@@ -541,7 +537,7 @@ public class Sim {
 	/// returns index of resource with specified name, or -1 if no such resource
 	/// </summary>
 	public int resourceNamed(string name) {
-		for (int i = 0; i < nRsc; i++) {
+		for (int i = 0; i < rscNames.Length; i++) {
 			if (name == rscNames[i]) return i;
 		}
 		return -1;
@@ -551,7 +547,7 @@ public class Sim {
 	/// returns index of player with specified name, or -1 if no such player
 	/// </summary>
 	public int playerNamed(string name) {
-		for (int i = 0; i < nPlayers; i++) {
+		for (int i = 0; i < players.Length; i++) {
 			if (name == players[i].name) return i;
 		}
 		return -1;
@@ -561,7 +557,7 @@ public class Sim {
 	/// returns index of unit type with specified name, or -1 if no such unit type
 	/// </summary>
 	public int unitTypeNamed(string name) {
-		for (int i = 0; i < nUnitT; i++) {
+		for (int i = 0; i < unitT.Length; i++) {
 			if (name == unitT[i].name) return i;
 		}
 		return -1;

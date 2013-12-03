@@ -174,7 +174,7 @@ public class Path {
 		if (units.Count == 0) return false;
 		int seg = getSegment(time);
 		if (seg < 0) return false;
-		long[] rscCost = new long[g.nRsc];
+		long[] rscCost = new long[g.rscNames.Length];
 		foreach (int unit in units) {
 			if (segments[seg].units.Contains (unit)) {
 				// unit in path would be child path
@@ -186,13 +186,13 @@ public class Path {
 			else {
 				if (!canMakeUnitType (time, g.units[unit].type)) return false;
 				// unit in path would be non-path child unit
-				for (int i = 0; i < g.nRsc; i++) {
+				for (int i = 0; i < g.rscNames.Length; i++) {
 					rscCost[i] += g.unitT[g.units[unit].type].rscCost[i];
 				}
 			}
 		}
 		bool newPathIsLive = (time >= g.timeSim && timeSimPast == long.MaxValue);
-		for (int i = 0; i < g.nRsc; i++) {
+		for (int i = 0; i < g.rscNames.Length; i++) {
 			// TODO: may be more permissive by passing in max = true, but this really complicates removeUnit() algorithm (see planning notes)
 			if (g.playerResource(player, time, i, false, !newPathIsLive) < rscCost[i]) return false;
 		}

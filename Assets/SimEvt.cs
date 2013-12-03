@@ -231,11 +231,11 @@ public class MakeUnitCmdEvt : CmdEvt {
 					&& (movePath < 0 || (g.paths[path.Key].calcPos(timeCmd) - pos).lengthSq() < (g.paths[movePath].calcPos(timeCmd) - pos).lengthSq())) {
 					bool newPathIsLive = (time >= g.timeSim && g.paths[path.Key].timeSimPast == long.MaxValue);
 					int i;
-					for (i = 0; i < g.nRsc; i++) {
+					for (i = 0; i < g.rscNames.Length; i++) {
 						// TODO: may be more permissive by passing in max = true, but this really complicates removeUnit() algorithm (see planning notes)
 						if (g.playerResource(g.paths[path.Key].player, time, i, false, !newPathIsLive) < g.unitT[type].rscCost[i]) break;
 					}
-					if (i == g.nRsc) movePath = path.Key;
+					if (i == g.rscNames.Length) movePath = path.Key;
 				}
 			}
 			if (movePath >= 0) {
@@ -436,7 +436,7 @@ public class UpdateEvt : SimEvt {
 		int i, j;
 		if (g.networkView != null) {
 			// apply received user commands (multiplayer only)
-			for (i = 0; i < g.nUsers; i++) {
+			for (i = 0; i < g.users.Length; i++) {
 				if (g.users[i].timeSync < time) throw new InvalidOperationException("UpdateEvt is being applied before all commands were received from user " + i);
 				if (time > 0 && g.users[i].checksums[time] != g.users[g.selUser].checksums[time]) g.synced = false;
 				while (g.users[i].cmdReceived.peekTime () == time) {
@@ -628,7 +628,7 @@ public class TileMoveEvt : SimEvt {
 						g.tiles[tX, tY].playerVis[g.paths[path].player].Add(time);
 						playerVisAddTiles.Add(new FP.Vector(tX, tY));
 						// check if this tile stopped being exclusive to another player
-						for (i = 0; i < g.nPlayers; i++) {
+						for (i = 0; i < g.players.Length; i++) {
 							if (i != g.paths[path].player && g.tiles[tX, tY].exclusiveLatest(i)) {
 								g.exclusiveRemove(i, tX, tY, time);
 							}
@@ -703,7 +703,7 @@ public class TileMoveEvt : SimEvt {
 			}
 			// if this path moved out of another player's visibility, remove that player's visibility here
 			if (!g.players[g.paths[path].player].immutable && tXPrev >= 0 && tXPrev < g.tileLen() && tYPrev >= 0 && tYPrev < g.tileLen()) {
-				for (i = 0; i < g.nPlayers; i++) {
+				for (i = 0; i < g.players.Length; i++) {
 					if (i != g.paths[path].player && g.tiles[tXPrev, tYPrev].playerDirectVisLatest(i) && !g.tiles[tileX, tileY].playerDirectVisLatest(i)) {
 						for (tX = Math.Max(0, tileX - 1); tX <= Math.Min(g.tileLen() - 1, tileX + 1); tX++) {
 							for (tY = Math.Max(0, tileY - 1); tY <= Math.Min(g.tileLen() - 1, tileY + 1); tY++) {
@@ -774,7 +774,7 @@ public class PlayerVisRemoveEvt : SimEvt {
 				for (tX = Math.Max(0, (int)tiles[i].x - g.tileVisRadius()); tX <= Math.Min(g.tileLen() - 1, (int)tiles[i].x + g.tileVisRadius()); tX++) {
 					for (tY = Math.Max(0, (int)tiles[i].y - g.tileVisRadius()); tY <= Math.Min(g.tileLen() - 1, (int)tiles[i].y + g.tileVisRadius()); tY++) {
 						if (g.inVis(tX - tiles[i].x, tY - tiles[i].y) && (iPrev == -1 || !g.inVis(tX - tiles[iPrev].x, tY - tiles[iPrev].y))) {
-							for (j = 0; j < g.nPlayers; j++) {
+							for (j = 0; j < g.players.Length; j++) {
 								if (j == player && g.tiles[tX, tY].exclusiveLatest(j)) {
 									g.exclusiveRemove(j, tX, tY, time);
 								}

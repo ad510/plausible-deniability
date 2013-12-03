@@ -151,7 +151,7 @@ public class App : MonoBehaviour {
 	/// loads scenario from json file and returns whether successful
 	/// </summary>
 	private bool scnOpen(string path, int user, bool multiplayer) {
-		int i, j;
+		int i, j, nUsers;
 		Hashtable json;
 		ArrayList jsonA;
 		bool b = false;
@@ -197,18 +197,17 @@ public class App : MonoBehaviour {
 		g.healthBarEmptyCol = jsonColor(json, "healthBarEmptyCol");
 		//Sim.music = jsonString(json, "music");
 		// resources
-		g.nRsc = 0;
+		g.rscNames = new string[0];
 		jsonA = jsonArray(json, "resources");
 		if (jsonA != null) {
 			foreach (string rscName in jsonA) {
-				g.nRsc++;
-				Array.Resize(ref g.rscNames, g.nRsc);
-				g.rscNames[g.nRsc - 1] = rscName;
+				Array.Resize(ref g.rscNames, g.rscNames.Length + 1);
+				g.rscNames[g.rscNames.Length - 1] = rscName;
 			}
 		}
 		// players
-		g.nUsers = 0;
-		g.nPlayers = 0;
+		nUsers = 0;
+		g.players = new Sim.Player[0];
 		jsonA = jsonArray(json, "players");
 		if (jsonA != null) {
 			foreach (Hashtable jsonO in jsonA) {
@@ -217,20 +216,19 @@ public class App : MonoBehaviour {
 				player.name = jsonString(jsonO, "name");
 				player.isUser = jsonBool(jsonO, "isUser");
 				player.user = (int)jsonDouble(jsonO, "user");
-				if (player.user >= g.nUsers) g.nUsers = player.user + 1;
-				player.startRsc = new long[g.nRsc];
-				for (j = 0; j < g.nRsc; j++) {
+				if (player.user >= nUsers) nUsers = player.user + 1;
+				player.startRsc = new long[g.rscNames.Length];
+				for (j = 0; j < g.rscNames.Length; j++) {
 					player.startRsc[j] = (jsonO2 != null) ? jsonFP(jsonO2, g.rscNames[j]) : 0;
 				}
-				g.nPlayers++;
-				Array.Resize(ref g.players, g.nPlayers);
-				g.players[g.nPlayers - 1] = player;
+				Array.Resize(ref g.players, g.players.Length + 1);
+				g.players[g.players.Length - 1] = player;
 			}
 			foreach (Hashtable jsonO in jsonA) {
 				ArrayList jsonA2 = jsonArray(jsonO, "mayAttack");
 				i = g.playerNamed(jsonString(jsonO, "name"));
-				g.players[i].mayAttack = new bool[g.nPlayers];
-				for (j = 0; j < g.nPlayers; j++) {
+				g.players[i].mayAttack = new bool[g.players.Length];
+				for (j = 0; j < g.players.Length; j++) {
 					g.players[i].mayAttack[j] = false;
 				}
 				if (jsonA2 != null) {
@@ -241,17 +239,17 @@ public class App : MonoBehaviour {
 					}
 				}
 			}
-			for (i = 0; i < g.nPlayers; i++) {
+			for (i = 0; i < g.players.Length; i++) {
 				g.players[i].immutable = g.calcPlayerImmutable(i);
 			}
 		}
 		// users
-		g.users = new Sim.User[g.nUsers];
-		for (i = 0; i < g.nUsers; i++) {
+		g.users = new Sim.User[nUsers];
+		for (i = 0; i < g.users.Length; i++) {
 			g.users[i] = new Sim.User();
 		}
 		// unit types
-		g.nUnitT = 0;
+		g.unitT = new Sim.UnitType[0];
 		jsonA = jsonArray(json, "unitTypes");
 		if (jsonA != null) {
 			foreach (Hashtable jsonO in jsonA) {
@@ -274,27 +272,26 @@ public class App : MonoBehaviour {
 				unitT.makeUnitMaxDist = jsonFP(jsonO, "makeUnitMaxDist");
 				unitT.makePathMinDist = jsonFP(jsonO, "makePathMinDist");
 				unitT.makePathMaxDist = jsonFP(jsonO, "makePathMaxDist");
-				unitT.rscCost = new long[g.nRsc];
-				unitT.rscCollectRate = new long[g.nRsc];
-				for (j = 0; j < g.nRsc; j++) {
+				unitT.rscCost = new long[g.rscNames.Length];
+				unitT.rscCollectRate = new long[g.rscNames.Length];
+				for (j = 0; j < g.rscNames.Length; j++) {
 					unitT.rscCost[j] = (jsonO2 != null) ? jsonFP(jsonO2, g.rscNames[j]) : 0;
 					unitT.rscCollectRate[j] = (jsonO3 != null) ? jsonFP(jsonO3, g.rscNames[j]) : 0;
 				}
-				g.nUnitT++;
-				Array.Resize(ref g.unitT, g.nUnitT);
-				g.unitT[g.nUnitT - 1] = unitT;
+				Array.Resize(ref g.unitT, g.unitT.Length + 1);
+				g.unitT[g.unitT.Length - 1] = unitT;
 			}
 			foreach (Hashtable jsonO in jsonA) {
 				Hashtable jsonO2 = jsonObject(jsonO, "damage");
 				ArrayList jsonA2 = jsonArray(jsonO, "canMake");
 				i = g.unitTypeNamed(jsonString(jsonO, "name"));
 				g.unitT[i].makeOnUnitT = g.unitTypeNamed(jsonString(jsonO, "makeOnUnitT"));
-				g.unitT[i].damage = new int[g.nUnitT];
-				for (j = 0; j < g.nUnitT; j++) {
+				g.unitT[i].damage = new int[g.unitT.Length];
+				for (j = 0; j < g.unitT.Length; j++) {
 					g.unitT[i].damage[j] = (jsonO2 != null) ? (int)jsonDouble(jsonO2, g.unitT[j].name) : 0;
 				}
-				g.unitT[i].canMake = new bool[g.nUnitT];
-				for (j = 0; j < g.nUnitT; j++) {
+				g.unitT[i].canMake = new bool[g.unitT.Length];
+				for (j = 0; j < g.unitT.Length; j++) {
 					g.unitT[i].canMake[j] = false;
 				}
 				if (jsonA2 != null) {
@@ -306,9 +303,9 @@ public class App : MonoBehaviour {
 				}
 			}
 		}
-		texUnits = new Texture[g.nUnitT, g.nPlayers];
-		for (i = 0; i < g.nUnitT; i++) {
-			for (j = 0; j < g.nPlayers; j++) {
+		texUnits = new Texture[g.unitT.Length, g.players.Length];
+		for (i = 0; i < g.unitT.Length; i++) {
+			for (j = 0; j < g.players.Length; j++) {
 				if (!(texUnits[i, j] = loadTexture (appPath + modPath + g.players[j].name + '.' + g.unitT[i].imgPath))) {
 					if (!(texUnits[i, j] = loadTexture (appPath + modPath + g.unitT[i].imgPath))) {
 						Debug.LogWarning ("Failed to load " + modPath + g.players[j].name + '.' + g.unitT[i].imgPath);
@@ -359,7 +356,7 @@ public class App : MonoBehaviour {
 		Camera.main.backgroundColor = g.backCol;
 		border.line.material.color = g.borderCol;
 		selPlayer = 0;
-		while (g.players[selPlayer].user != g.selUser) selPlayer = (selPlayer + 1) % g.nPlayers;
+		while (g.players[selPlayer].user != g.selUser) selPlayer = (selPlayer + 1) % g.players.Length;
 		selPaths = new Dictionary<int, List<int>>();
 		makeUnitType = -1;
 		paused = false;
@@ -410,8 +407,8 @@ public class App : MonoBehaviour {
 		}
 		// don't increment time past latest time that commands were synced across network
 		if (g.networkView != null && timeGame >= g.timeUpdateEvt + g.updateInterval) {
-			for (int i = 0; i < g.nUsers; i++) {
-				if (g.users[i].timeSync < g.timeUpdateEvt + g.updateInterval) {
+			foreach (Sim.User user in g.users) {
+				if (user.timeSync < g.timeUpdateEvt + g.updateInterval) {
 					timeGame = g.timeUpdateEvt + g.updateInterval - 1;
 					break;
 				}
@@ -502,7 +499,7 @@ public class App : MonoBehaviour {
 		if (Input.GetKeyDown (KeyCode.Space)) {
 			// change selected player
 			do {
-				selPlayer = (selPlayer + 1) % g.nPlayers;
+				selPlayer = (selPlayer + 1) % g.players.Length;
 			} while (g.players[selPlayer].user != g.selUser);
 			selPaths.Clear();
 			makeUnitType = -1;
@@ -727,7 +724,7 @@ public class App : MonoBehaviour {
 		}
 		// text at bottom left
 		GUILayout.FlexibleSpace ();
-		for (i = 0; i < g.nRsc; i++) {
+		for (i = 0; i < g.rscNames.Length; i++) {
 			long rscMin = (long)Math.Floor(FP.toDouble(g.playerResource(selPlayer, timeGame, i, false, true)));
 			long rscMax = (long)Math.Floor(FP.toDouble(g.playerResource(selPlayer, timeGame, i, true, true)));
 			lblStyle.normal.textColor = (rscMin >= 0) ? Color.white : Color.red;
@@ -754,7 +751,7 @@ public class App : MonoBehaviour {
 		GUILayout.BeginArea (new Rect(Screen.width / 4, Screen.height * (1 - g.uiBarHeight), Screen.width / 4, Screen.height * g.uiBarHeight));
 		makeUnitScrollPos = GUILayout.BeginScrollView (makeUnitScrollPos);
 		if (selPaths.Count > 0) {
-			for (i = 0; i < g.nUnitT; i++) {
+			for (i = 0; i < g.unitT.Length; i++) {
 				foreach (int path in selPaths.Keys) {
 					if (timeGame >= g.paths[path].moves[0].timeStart && g.paths[path].canMakeUnitType (timeGame, i)) { // TODO: sometimes canMake check should use existing selected units in path
 						if (GUILayout.Button ("Make " + g.unitT[i].name)) makeUnit (i);
@@ -806,7 +803,7 @@ public class App : MonoBehaviour {
 			}
 			if (GUILayout.Button ("Start Server")) {
 				Network.InitializeSecurity ();
-				Network.InitializeServer (g.nUsers - 1, serverPort, !Network.HavePublicAddress ());
+				Network.InitializeServer (g.users.Length - 1, serverPort, !Network.HavePublicAddress ());
 			}
 		}
 		else {
@@ -818,7 +815,7 @@ public class App : MonoBehaviour {
 	}
 	
 	void OnPlayerConnected(NetworkPlayer player) {
-		if (Network.connections.Length == g.nUsers - 1) {
+		if (Network.connections.Length == g.users.Length - 1) {
 			int seed = UnityEngine.Random.Range (int.MinValue, int.MaxValue);
 			scnOpenMultiplayer (0, seed);
 			for (int i = 0; i < Network.connections.Length; i++) {
