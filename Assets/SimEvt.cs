@@ -737,20 +737,18 @@ public class TileMoveEvt : SimEvt {
 /// </summary>
 public class PlayerVisRemoveEvt : SimEvt {
 	public int player;
-	public int nTiles;
-	public FP.Vector[] tiles;
+	public List<FP.Vector> tiles;
 
 	public PlayerVisRemoveEvt(long timeVal, int playerVal, int tileXVal, int tileYVal) {
 		time = timeVal;
 		player = playerVal;
-		nTiles = 1;
-		tiles = new FP.Vector[1];
-		tiles[0] = new FP.Vector(tileXVal, tileYVal);
+		tiles = new List<FP.Vector>();
+		tiles.Add (new FP.Vector(tileXVal, tileYVal));
 	}
 
 	public override void apply(Sim g) {
 		int i, iPrev, j, tX, tY;
-		for (i = 0; i < nTiles; i++) {
+		for (i = 0; i < tiles.Count; i++) {
 			if (g.tiles[tiles[i].x, tiles[i].y].playerVisLatest(player) && !g.tiles[tiles[i].x, tiles[i].y].playerDirectVisLatest(player)) {
 				g.tiles[tiles[i].x, tiles[i].y].playerVis[player].Add(time);
 				// add events to remove visibility from surrounding tiles
@@ -764,12 +762,12 @@ public class PlayerVisRemoveEvt : SimEvt {
 				}
 			}
 			else {
-				tiles[i].x = Sim.OffMap;
+				tiles[i] = new FP.Vector(Sim.OffMap, Sim.OffMap);
 			}
 		}
 		// check if a tile stopped being exclusive to this player, or became exclusive to another player
 		iPrev = -1;
-		for (i = 0; i < nTiles; i++) {
+		for (i = 0; i < tiles.Count; i++) {
 			if (tiles[i].x != Sim.OffMap) {
 				for (tX = Math.Max(0, (int)tiles[i].x - g.tileVisRadius()); tX <= Math.Min(g.tileLen() - 1, (int)tiles[i].x + g.tileVisRadius()); tX++) {
 					for (tY = Math.Max(0, (int)tiles[i].y - g.tileVisRadius()); tY <= Math.Min(g.tileLen() - 1, (int)tiles[i].y + g.tileVisRadius()); tY++) {

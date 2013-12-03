@@ -370,14 +370,11 @@ public class Sim {
 				PlayerVisRemoveEvt visEvt = (PlayerVisRemoveEvt)evt;
 				if (player == visEvt.player && time == visEvt.time) {
 					// check that tile pos isn't a duplicate (recently added tiles are more likely to be duplicates)
-					for (int i = visEvt.nTiles - 1; i >= Math.Max(0, visEvt.nTiles - 20); i--) {
+					for (int i = visEvt.tiles.Count - 1; i >= Math.Max(0, visEvt.tiles.Count - 20); i--) {
 						if (tileX == visEvt.tiles[i].x && tileY == visEvt.tiles[i].y) return;
 					}
 					// ok to add tile to existing event
-					visEvt.nTiles++;
-					if (visEvt.nTiles > visEvt.tiles.Length)
-						Array.Resize(ref visEvt.tiles, visEvt.nTiles * 2);
-					visEvt.tiles[visEvt.nTiles - 1] = new FP.Vector(tileX, tileY);
+					visEvt.tiles.Add (new FP.Vector(tileX, tileY));
 					return;
 				}
 			}
