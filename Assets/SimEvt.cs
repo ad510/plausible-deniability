@@ -209,16 +209,15 @@ public class MakeUnitCmdEvt : CmdEvt {
 			if ((pos.x == curPos.x && pos.y == curPos.y) || (g.unitT[type].speed > 0 && g.unitT[type].makeOnUnitT < 0)) {
 				// TODO: take time to make units?
 				List<int> unitList = new List<int>();
-				unitList.Add (g.nUnits);
-				g.setNUnits (g.nUnits + 1);
-				g.units[g.nUnits - 1] = new Unit(g, g.nUnits - 1, type, g.paths[path].player);
+				g.units.Add (new Unit(g, g.units.Count, type, g.paths[path].player));
+				unitList.Add (g.units.Count - 1);
 				if (g.paths[path].makePath (timeCmd, unitList)) {
 					if (g.paths.Last ().canMove (timeCmd)) {
 						g.paths.Last ().moveTo (timeCmd, pos); // move new unit out of the way
 					}
 				}
 				else {
-					g.setNUnits (g.nUnits - 1);
+					g.units.RemoveAt (g.units.Count - 1);
 				}
 				return;
 			}

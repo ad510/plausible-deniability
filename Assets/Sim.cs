@@ -263,12 +263,11 @@ public class Sim {
 	public int nRsc;
 	public int nPlayers;
 	public int nUnitT;
-	public int nUnits;
 	public User[] users;
 	public string[] rscNames;
 	public Player[] players;
 	public UnitType[] unitT;
-	public Unit[] units; // TODO: change this into list
+	public List<Unit> units;
 	public List<Path> paths;
 
 	// helper variables not loaded from scenario file
@@ -285,15 +284,6 @@ public class Sim {
 	public bool synced; // whether all checksums between users matched so far
 	public long timeSim; // current simulation time
 	public long timeUpdateEvt; // last time that an UpdateEvt was applied
-
-	/// <summary>
-	/// intelligently resize unit array to specified size
-	/// </summary>
-	public void setNUnits(int newSize) {
-		nUnits = newSize;
-		if (units == null || nUnits > units.Length)
-			Array.Resize(ref units, nUnits * 2);
-	}
 
 	/// <summary>
 	/// master update method which updates the live game simulation to the specified time

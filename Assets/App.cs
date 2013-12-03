@@ -325,7 +325,7 @@ public class App : MonoBehaviour {
 		}
 		texTile = new Texture2D(g.tileLen (), g.tileLen (), TextureFormat.ARGB32, false);
 		// units
-		g.nUnits = 0;
+		g.units = new List<Unit>();
 		g.paths = new List<Path>();
 		jsonA = jsonArray(json, "units");
 		if (jsonA != null) {
@@ -336,9 +336,8 @@ public class App : MonoBehaviour {
 					if (jsonA2 != null) {
 						foreach (string type in jsonA2) {
 							if (g.unitTypeNamed(type) >= 0) {
-								g.setNUnits(g.nUnits + 1);
-								g.units[g.nUnits - 1] = new Unit(g, g.nUnits - 1, g.unitTypeNamed(type), g.playerNamed(jsonString(jsonO, "player")));
-								units.Add (g.nUnits - 1);
+								g.units.Add (new Unit(g, g.units.Count, g.unitTypeNamed(type), g.playerNamed(jsonString(jsonO, "player"))));
+								units.Add (g.units.Count - 1);
 							}
 						}
 					}
