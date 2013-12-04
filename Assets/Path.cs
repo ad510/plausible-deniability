@@ -89,7 +89,7 @@ public class Path {
 	public void addTileMoveEvts(ref SimEvtList events, long timeMin, long timeMax) {
 		int move, moveLast;
 		FP.Vector pos, posLast;
-		int i, j, iNext, tX, tY, dir;
+		int iNext, dir;
 		if (timeMax < moves[0].timeStart) return;
 		moveLast = getMove(timeMin);
 		move = getMove(timeMax);
@@ -99,22 +99,22 @@ public class Path {
 			events.add(new TileMoveEvt(moves[0].timeStart, id, (int)(moves[0].vecStart.x >> FP.Precision), (int)(moves[0].vecStart.y >> FP.Precision)));
 			moveLast = 0;
 		}
-		for (i = moveLast; i <= move; i = iNext) {
+		for (int i = moveLast; i <= move; i = iNext) {
 			// next move may not be i + 1 if times are out of order
 			iNext = i + 1;
-			for (j = iNext + 1; j < moves.Count; j++) {
+			for (int j = iNext + 1; j < moves.Count; j++) {
 				if (moves[j].timeStart <= moves[iNext].timeStart) iNext = j;
 			}
 			posLast = (i == moveLast) ? moves[i].calcPos(Math.Max(timeMin, moves[0].timeStart)) : moves[i].vecStart;
 			pos = (i == move) ? moves[i].calcPos(timeMax) : moves[iNext].vecStart;
 			// moving between columns (x)
 			dir = (pos.x >= posLast.x) ? 0 : -1;
-			for (tX = (int)(Math.Min(pos.x, posLast.x) >> FP.Precision) + 1; tX <= (int)(Math.Max(pos.x, posLast.x) >> FP.Precision); tX++) {
+			for (int tX = (int)(Math.Min(pos.x, posLast.x) >> FP.Precision) + 1; tX <= (int)(Math.Max(pos.x, posLast.x) >> FP.Precision); tX++) {
 				events.add(new TileMoveEvt(moves[i].timeAtX(tX << FP.Precision), id, tX + dir, int.MinValue));
 			}
 			// moving between rows (y)
 			dir = (pos.y >= posLast.y) ? 0 : -1;
-			for (tY = (int)(Math.Min(pos.y, posLast.y) >> FP.Precision) + 1; tY <= (int)(Math.Max(pos.y, posLast.y) >> FP.Precision); tY++) {
+			for (int tY = (int)(Math.Min(pos.y, posLast.y) >> FP.Precision) + 1; tY <= (int)(Math.Max(pos.y, posLast.y) >> FP.Precision); tY++) {
 				events.add(new TileMoveEvt(moves[i].timeAtY(tY << FP.Precision), id, int.MinValue, tY + dir));
 			}
 		}

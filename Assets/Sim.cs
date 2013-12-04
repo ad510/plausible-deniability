@@ -288,7 +288,6 @@ public class Sim {
 	public void update(long curTime) {
 		SimEvt evt;
 		long timeSimNext = Math.Max(curTime, timeSim);
-		int i;
 		if (networkView == null) {
 			// move pending user commands to event list (single player only)
 			// TODO: could command be applied after another event with same time, causing desyncs in replays?
@@ -302,7 +301,7 @@ public class Sim {
 			evt.apply(this);
 			// if event caused path(s) to move, delete and recalculate later events moving them between tiles
 			if (movedPaths.Count > 0) {
-				for (i = 0; i < events.events.Count; i++) {
+				for (int i = 0; i < events.events.Count; i++) {
 					if (events.events[i] is TileMoveEvt && events.events[i].time > timeSim && movedPaths.Contains(((TileMoveEvt)events.events[i]).path)) {
 						events.events.RemoveAt(i);
 						i--;
@@ -424,15 +423,14 @@ public class Sim {
 	/// the player can infer that he/she is the only player that can see this tile.
 	/// </remarks>
 	public bool calcExclusive(int player, int tileX, int tileY) {
-		int i, tX, tY;
 		// check that this player can see all nearby tiles
-		for (tX = Math.Max(0, tileX - tileVisRadius()); tX <= Math.Min(tileLen() - 1, tileX + tileVisRadius()); tX++) {
-			for (tY = Math.Max(0, tileY - tileVisRadius()); tY <= Math.Min(tileLen() - 1, tileY + tileVisRadius()); tY++) {
+		for (int tX = Math.Max(0, tileX - tileVisRadius()); tX <= Math.Min(tileLen() - 1, tileX + tileVisRadius()); tX++) {
+			for (int tY = Math.Max(0, tileY - tileVisRadius()); tY <= Math.Min(tileLen() - 1, tileY + tileVisRadius()); tY++) {
 				if (inVis(tX - tileX, tY - tileY) && !tiles[tX, tY].playerVisLatest(player)) return false;
 			}
 		}
 		// check that no other players can see this tile
-		for (i = 0; i < players.Length; i++) {
+		for (int i = 0; i < players.Length; i++) {
 			if (i != player && !players[i].immutable && tiles[tileX, tileY].playerVisLatest(i)) return false;
 		}
 		return true;
