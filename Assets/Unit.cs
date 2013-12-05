@@ -15,8 +15,8 @@ using System.Text;
 public class Unit {
 	public readonly Sim g;
 	public readonly int id; // index in unit array
-	public int type;
-	public int player;
+	public readonly int type;
+	public readonly int player;
 	public int nTimeHealth;
 	public long[] timeHealth; // times at which each health increment is removed (TODO: change how this is stored to allow switching units on a path)
 	public long timeAttack; // latest time that attacked a unit

@@ -77,7 +77,7 @@ public class Sim {
 	}
 
 	public class Tile {
-		private Sim g;
+		private readonly Sim g;
 		/// <summary>
 		/// stores times when each path started or stopped seeing this tile,
 		/// in format pathVis[path][gain/lose visibility index]
