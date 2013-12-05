@@ -104,7 +104,7 @@ public class MoveCmdEvt : CmdEvt {
 	/// <summary>
 	/// empty constructor for protobuf-net use only
 	/// </summary>
-	public MoveCmdEvt() { }
+	private MoveCmdEvt() { }
 
 	public MoveCmdEvt(long timeVal, long timeCmdVal, Dictionary<int, int[]> pathsVal, FP.Vector posVal, Formation formationVal)
 		: base(timeVal, timeCmdVal, pathsVal) {
@@ -191,7 +191,7 @@ public class MakeUnitCmdEvt : CmdEvt {
 	/// <summary>
 	/// empty constructor for protobuf-net use only
 	/// </summary>
-	public MakeUnitCmdEvt() { }
+	private MakeUnitCmdEvt() { }
 
 	public MakeUnitCmdEvt(long timeVal, long timeCmdVal, Dictionary<int, int[]> pathsVal, int typeVal, FP.Vector posVal, bool autoRepeatVal = false)
 		: base(timeVal, timeCmdVal, pathsVal) {
@@ -260,7 +260,7 @@ public class MakePathCmdEvt : CmdEvt {
 	/// <summary>
 	/// empty constructor for protobuf-net use only
 	/// </summary>
-	public MakePathCmdEvt() { }
+	private MakePathCmdEvt() { }
 
 	public MakePathCmdEvt(long timeVal, long timeCmdVal, Dictionary<int, int[]> pathsVal, Dictionary<int, FP.Vector> posVal)
 		: base(timeVal, timeCmdVal, pathsVal) {
@@ -286,7 +286,7 @@ public class DeletePathCmdEvt : CmdEvt {
 	/// <summary>
 	/// empty constructor for protobuf-net use only
 	/// </summary>
-	public DeletePathCmdEvt() { }
+	private DeletePathCmdEvt() { }
 
 	public DeletePathCmdEvt(long timeVal, long timeCmdVal, Dictionary<int, int[]> pathsVal)
 		: base(timeVal, timeCmdVal, pathsVal) { }
@@ -310,7 +310,7 @@ public class DeleteOtherPathsCmdEvt : CmdEvt {
 	/// <summary>
 	/// empty constructor for protobuf-net use only
 	/// </summary>
-	public DeleteOtherPathsCmdEvt() { }
+	private DeleteOtherPathsCmdEvt() { }
 	
 	public DeleteOtherPathsCmdEvt(long timeVal, long timeCmdVal, Dictionary<int, int[]> pathsVal)
 		: base(timeVal, timeCmdVal, pathsVal) { }
@@ -343,7 +343,7 @@ public class StackCmdEvt : CmdEvt {
 	/// <summary>
 	/// empty constructor for protobuf-net use only
 	/// </summary>
-	public StackCmdEvt() { }
+	private StackCmdEvt() { }
 	
 	public StackCmdEvt(long timeVal, long timeCmdVal, Dictionary<int, int[]> pathsVal, int stackPathVal)
 		: base(timeVal, timeCmdVal, pathsVal) {
@@ -385,7 +385,7 @@ public class GoLiveCmdEvt : SimEvt {
 	/// <summary>
 	/// empty constructor for protobuf-net use only
 	/// </summary>
-	public GoLiveCmdEvt() { }
+	private GoLiveCmdEvt() { }
 
 	public GoLiveCmdEvt(long timeVal, int playerVal) {
 		time = timeVal;
