@@ -13,8 +13,8 @@ using System.Text;
 /// </summary>
 /// <remarks>how unit moves is stored in Path class, not here</remarks>
 public class Unit {
-	private Sim g;
-	private int id; // index in unit array
+	public readonly Sim g;
+	public readonly int id; // index in unit array
 	public int type;
 	public int player;
 	public int nTimeHealth;
