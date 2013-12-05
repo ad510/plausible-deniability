@@ -75,15 +75,15 @@ public class App : MonoBehaviour {
 		}
 	}
 	
-	public const bool EnableStacking = false;
-	public const double SelBoxMin = 100;
-	public const float FntSize = 1f / 40;
-	public const float TileDepth = 6f;
-	public const float BorderDepth = 5f;
-	public const float PathLineDepth = 4f;
-	public const float UnitDepth = 3f;
-	public const float HealthBarDepth = 2f;
-	public const float SelectBoxDepth = 1f;
+	const bool EnableStacking = false;
+	const double SelBoxMin = 100;
+	const float FntSize = 1f / 40;
+	const float TileDepth = 6f;
+	const float BorderDepth = 5f;
+	const float PathLineDepth = 4f;
+	const float UnitDepth = 3f;
+	const float HealthBarDepth = 2f;
+	const float SelectBoxDepth = 1f;
 	
 	public GameObject quadPrefab;
 	
@@ -1085,7 +1085,7 @@ public class App : MonoBehaviour {
 	/// <summary>
 	/// returns suggested timeCmd field for a new CmdEvt, corresponding to when it would appear to be applied
 	/// </summary>
-	public long newCmdTime() {
+	private long newCmdTime() {
 		if (g.networkView != null) { // multiplayer
 			return Math.Min (timeGame, g.timeUpdateEvt) + g.updateInterval * 2;
 		}
