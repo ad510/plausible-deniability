@@ -821,30 +821,29 @@ public class App : MonoBehaviour {
 		scnOpen (appPath + modPath + "scn.json", user, true);
 	}
 	
-	// cmdType is same as the SimEvt type's protobuf identifier
 	// TODO: add NetworkMessageInfo as last parameter to authenticate user, according to http://forum.unity3d.com/threads/141156-Determine-sender-of-RPC
 	[RPC]
 	void addCmd(int user, int cmdType, byte[] cmdData) {
 		System.IO.MemoryStream stream = new System.IO.MemoryStream(cmdData);
-		if (cmdType == 11) {
+		if (cmdType == (int)CmdEvtTag.move) {
 			g.users[user].cmdReceived.add (Serializer.Deserialize<MoveCmdEvt>(stream));
 		}
-		else if (cmdType == 12) {
+		else if (cmdType == (int)CmdEvtTag.makeUnit) {
 			g.users[user].cmdReceived.add (Serializer.Deserialize<MakeUnitCmdEvt>(stream));
 		}
-		else if (cmdType == 13) {
+		else if (cmdType == (int)CmdEvtTag.makePath) {
 			g.users[user].cmdReceived.add (Serializer.Deserialize<MakePathCmdEvt>(stream));
 		}
-		else if (cmdType == 14) {
+		else if (cmdType == (int)CmdEvtTag.deletePath) {
 			g.users[user].cmdReceived.add (Serializer.Deserialize<DeletePathCmdEvt>(stream));
 		}
-		else if (cmdType == 15) {
+		else if (cmdType == (int)CmdEvtTag.goLive) {
 			g.users[user].cmdReceived.add (Serializer.Deserialize<GoLiveCmdEvt>(stream));
 		}
-		else if (cmdType == 16) {
+		else if (cmdType == (int)CmdEvtTag.stack) {
 			g.users[user].cmdReceived.add (Serializer.Deserialize<StackCmdEvt>(stream));
 		}
-		else if (cmdType == 17) {
+		else if (cmdType == (int)CmdEvtTag.deleteOtherPaths) {
 			g.users[user].cmdReceived.add (Serializer.Deserialize<DeleteOtherPathsCmdEvt>(stream));
 		}
 		else {

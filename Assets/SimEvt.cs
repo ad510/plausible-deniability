@@ -17,11 +17,25 @@ using UnityEngine;
 using ProtoBuf;
 
 /// <summary>
+/// protobuf-net identifiers of each type of CmdEvt
+/// </summary>
+public enum CmdEvtTag {
+	cmd = 10,
+	move = 11,
+	makeUnit = 12,
+	makePath = 13,
+	deletePath = 14,
+	goLive = 15,
+	stack = 16,
+	deleteOtherPaths = 17,
+}
+
+/// <summary>
 /// base class for simulation events
 /// </summary>
 [ProtoContract]
-[ProtoInclude(10, typeof(CmdEvt))]
-[ProtoInclude(15, typeof(GoLiveCmdEvt))]
+[ProtoInclude((int)CmdEvtTag.cmd, typeof(CmdEvt))]
+[ProtoInclude((int)CmdEvtTag.goLive, typeof(GoLiveCmdEvt))]
 public abstract class SimEvt {
 	[ProtoMember(1)]
 	public long time {get;set;}
@@ -33,12 +47,12 @@ public abstract class SimEvt {
 /// base class for unit commands
 /// </summary>
 [ProtoContract]
-[ProtoInclude(11, typeof(MoveCmdEvt))]
-[ProtoInclude(12, typeof(MakeUnitCmdEvt))]
-[ProtoInclude(13, typeof(MakePathCmdEvt))]
-[ProtoInclude(14, typeof(DeletePathCmdEvt))]
-[ProtoInclude(17, typeof(DeleteOtherPathsCmdEvt))]
-[ProtoInclude(16, typeof(StackCmdEvt))]
+[ProtoInclude((int)CmdEvtTag.move, typeof(MoveCmdEvt))]
+[ProtoInclude((int)CmdEvtTag.makeUnit, typeof(MakeUnitCmdEvt))]
+[ProtoInclude((int)CmdEvtTag.makePath, typeof(MakePathCmdEvt))]
+[ProtoInclude((int)CmdEvtTag.deletePath, typeof(DeletePathCmdEvt))]
+[ProtoInclude((int)CmdEvtTag.deleteOtherPaths, typeof(DeleteOtherPathsCmdEvt))]
+[ProtoInclude((int)CmdEvtTag.stack, typeof(StackCmdEvt))]
 public abstract class CmdEvt : SimEvt {
 	[ProtoMember(1)]
 	public long timeCmd {get;set;} // time is latest simulation time when command is given, timeCmd is when event takes place (may be in past)
@@ -448,34 +462,34 @@ public class UpdateEvt : SimEvt {
 			// send pending commands to other users
 			foreach (SimEvt evt in g.cmdPending.events) {
 				System.IO.MemoryStream stream = new System.IO.MemoryStream();
-				int cmdType;
+				CmdEvtTag cmdType;
 				evt.time = time + g.updateInterval; // set event time to when it will be applied
 				Serializer.Serialize (stream, evt);
 				if (evt is MoveCmdEvt) {
-					cmdType = 11;
+					cmdType = CmdEvtTag.move;
 				}
 				else if (evt is MakeUnitCmdEvt) {
-					cmdType = 12;
+					cmdType = CmdEvtTag.makeUnit;
 				}
 				else if (evt is MakePathCmdEvt) {
-					cmdType = 13;
+					cmdType = CmdEvtTag.makePath;
 				}
 				else if (evt is DeletePathCmdEvt) {
-					cmdType = 14;
+					cmdType = CmdEvtTag.deletePath;
 				}
 				else if (evt is GoLiveCmdEvt) {
-					cmdType = 15;
+					cmdType = CmdEvtTag.goLive;
 				}
 				else if (evt is StackCmdEvt) {
-					cmdType = 16;
+					cmdType = CmdEvtTag.stack;
 				}
 				else if (evt is DeleteOtherPathsCmdEvt) {
-					cmdType = 17;
+					cmdType = CmdEvtTag.deleteOtherPaths;
 				}
 				else {
 					throw new InvalidOperationException("pending command's type is not a command");
 				}
-				g.networkView.RPC ("addCmd", RPCMode.Others, g.selUser, cmdType, stream.ToArray ());
+				g.networkView.RPC ("addCmd", RPCMode.Others, g.selUser, (int)cmdType, stream.ToArray ());
 			}
 			g.networkView.RPC ("allCmdsSent", RPCMode.Others, g.selUser, g.checksum);
 			// move pending commands to cmdReceived
