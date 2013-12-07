@@ -207,12 +207,12 @@ public class App : MonoBehaviour {
 		}
 		// players
 		nUsers = 0;
-		g.players = new Sim.Player[0];
+		g.players = new Player[0];
 		jsonA = jsonArray(json, "players");
 		if (jsonA != null) {
 			foreach (Hashtable jsonO in jsonA) {
 				Hashtable jsonO2 = jsonObject(jsonO, "startRsc");
-				Sim.Player player = new Sim.Player();
+				Player player = new Player();
 				player.name = jsonString(jsonO, "name");
 				player.isUser = jsonBool(jsonO, "isUser");
 				player.user = (int)jsonDouble(jsonO, "user");
@@ -226,7 +226,7 @@ public class App : MonoBehaviour {
 			}
 			foreach (Hashtable jsonO in jsonA) {
 				ArrayList jsonA2 = jsonArray(jsonO, "mayAttack");
-				Sim.Player player = g.players[g.playerNamed(jsonString(jsonO, "name"))];
+				Player player = g.players[g.playerNamed(jsonString(jsonO, "name"))];
 				player.mayAttack = new bool[g.players.Length];
 				for (int i = 0; i < g.players.Length; i++) {
 					player.mayAttack[i] = false;
@@ -244,18 +244,18 @@ public class App : MonoBehaviour {
 			}
 		}
 		// users
-		g.users = new Sim.User[nUsers];
+		g.users = new User[nUsers];
 		for (int i = 0; i < g.users.Length; i++) {
-			g.users[i] = new Sim.User();
+			g.users[i] = new User();
 		}
 		// unit types
-		g.unitT = new Sim.UnitType[0];
+		g.unitT = new UnitType[0];
 		jsonA = jsonArray(json, "unitTypes");
 		if (jsonA != null) {
 			foreach (Hashtable jsonO in jsonA) {
 				Hashtable jsonO2 = jsonObject(jsonO, "rscCost");
 				Hashtable jsonO3 = jsonObject(jsonO, "rscCollectRate");
-				Sim.UnitType unitT = new Sim.UnitType();
+				UnitType unitT = new UnitType();
 				unitT.name = jsonString(jsonO, "name");
 				unitT.imgPath = jsonString(jsonO, "imgPath");
 				unitT.imgOffset = jsonFPVector (jsonO, "imgOffset");
@@ -284,7 +284,7 @@ public class App : MonoBehaviour {
 			foreach (Hashtable jsonO in jsonA) {
 				Hashtable jsonO2 = jsonObject(jsonO, "damage");
 				ArrayList jsonA2 = jsonArray(jsonO, "canMake");
-				Sim.UnitType unitT = g.unitT[g.unitTypeNamed(jsonString(jsonO, "name"))];
+				UnitType unitT = g.unitT[g.unitTypeNamed(jsonString(jsonO, "name"))];
 				unitT.makeOnUnitT = g.unitTypeNamed(jsonString(jsonO, "makeOnUnitT"));
 				unitT.damage = new int[g.unitT.Length];
 				for (int i = 0; i < g.unitT.Length; i++) {
@@ -314,10 +314,10 @@ public class App : MonoBehaviour {
 			}
 		}
 		// tiles
-		g.tiles = new Sim.Tile[g.tileLen(), g.tileLen()];
+		g.tiles = new Tile[g.tileLen(), g.tileLen()];
 		for (int i = 0; i < g.tileLen(); i++) {
 			for (int j = 0; j < g.tileLen(); j++) {
-				g.tiles[i, j] = new Sim.Tile(g);
+				g.tiles[i, j] = new Tile(g);
 			}
 		}
 		texTile = new Texture2D(g.tileLen (), g.tileLen (), TextureFormat.ARGB32, false);
@@ -407,7 +407,7 @@ public class App : MonoBehaviour {
 		}
 		// don't increment time past latest time that commands were synced across network
 		if (g.networkView != null && timeGame >= g.timeUpdateEvt + g.updateInterval) {
-			foreach (Sim.User user in g.users) {
+			foreach (User user in g.users) {
 				if (user.timeSync < g.timeUpdateEvt + g.updateInterval) {
 					timeGame = g.timeUpdateEvt + g.updateInterval - 1;
 					break;
