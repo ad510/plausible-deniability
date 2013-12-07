@@ -25,7 +25,6 @@ public class DeleteOtherPathsCmdEvt : CmdEvt {
 	public override void apply (Sim g)
 	{
 		List<KeyValuePair<Segment, int>> units = new List<KeyValuePair<Segment, int>>();
-		base.apply (g);
 		// convert paths list into valid deleteOtherPaths() argument (this is a bit ugly)
 		foreach (KeyValuePair<int, int[]> path in paths) {
 			int seg = g.paths[path.Key].getSegment (timeCmd);

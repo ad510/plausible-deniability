@@ -37,7 +37,6 @@ public class MoveCmdEvt : CmdEvt {
 		FP.Vector goalCenter, goal, rows = new FP.Vector(), offset = new FP.Vector();
 		long spacing = 0;
 		int count = 0, i = 0;
-		base.apply(g);
 		// count number of units able to move
 		foreach (KeyValuePair<int, List<int>> path in exPaths) {
 			if (g.paths[path.Key].canMove(timeCmd)) {

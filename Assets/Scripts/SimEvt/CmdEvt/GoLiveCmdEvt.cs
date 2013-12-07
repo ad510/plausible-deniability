@@ -30,7 +30,6 @@ public class GoLiveCmdEvt : SimEvt {
 
 	public override void apply(Sim g) {
 		long timeTravelStart = long.MaxValue;
-		g.cmdHistory.add(this); // copy event to command history list (it should've already been popped from event list)
 		foreach (Path path in g.paths) {
 			if (player == path.player && path.segments.Last ().units.Count > 0 && path.timeSimPast != long.MaxValue) {
 				// ensure that time traveling paths don't move off exclusive areas

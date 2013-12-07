@@ -81,7 +81,10 @@ public class Sim {
 		if (networkView == null) {
 			// move pending user commands to event list (single player only)
 			// TODO: could command be applied after another event with same time, causing desyncs in replays?
-			while ((evt = cmdPending.pop ()) != null) events.add (evt);
+			while ((evt = cmdPending.pop ()) != null) {
+				events.add (evt);
+				cmdHistory.add (evt);
+			}
 		}
 		// apply simulation events
 		movedPaths = new List<int>();

@@ -35,7 +35,6 @@ public class MakeUnitCmdEvt : CmdEvt {
 
 	public override void apply(Sim g) {
 		Dictionary<int, List<int>> exPaths = existingPaths (g);
-		if (!autoRepeat) base.apply(g);
 		// make unit at requested position, if possible
 		foreach (int path in exPaths.Keys) {
 			FP.Vector curPos = g.paths[path].calcPos(timeCmd);

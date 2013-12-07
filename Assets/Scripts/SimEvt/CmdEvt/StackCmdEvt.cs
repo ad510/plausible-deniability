@@ -30,7 +30,6 @@ public class StackCmdEvt : CmdEvt {
 	public override void apply (Sim g) {
 		Dictionary<int, List<int>> exPaths = existingPaths (g);
 		List<int> movedPaths = new List<int>();
-		base.apply (g);
 		// move paths to final location of stackPath
 		// TODO: if stackPathVal < 0 (pressing stack button will do that) then move all paths to their average location
 		foreach (KeyValuePair<int, List<int>> path in exPaths) {

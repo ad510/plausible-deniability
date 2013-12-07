@@ -26,7 +26,9 @@ public class UpdateEvt : SimEvt {
 				if (time > 0 && g.users[i].checksums[time] != g.users[g.selUser].checksums[time]) g.synced = false;
 				while (g.users[i].cmdReceived.peekTime () == time) {
 					// TODO: could command be applied after another event with same time, causing desyncs in replays?
-					g.users[i].cmdReceived.pop ().apply (g);
+					SimEvt evt = g.users[i].cmdReceived.pop ();
+					evt.apply (g);
+					g.cmdHistory.add (evt);
 				}
 				// delete old checksums
 				foreach (long k in g.users[i].checksums.Keys.ToArray ()) {
