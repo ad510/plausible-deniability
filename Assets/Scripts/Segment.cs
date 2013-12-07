@@ -61,9 +61,9 @@ public class Segment {
 				// if this ancestor has a sibling segment that we're not currently planning to remove unit from,
 				// don't remove unit from previous segments shared by both
 				bool hasSibling = false;
-				foreach (Segment seg in ancestors[i].branches) {
-					if (seg.units.Contains (unit) && !ancestors.Contains (seg)
-						&& (seg.path.timeSimPast == long.MaxValue || ancestors[i].path.timeSimPast != long.MaxValue)) {
+				foreach (Segment segment in ancestors[i].branches) {
+					if (segment.units.Contains (unit) && !ancestors.Contains (segment)
+						&& (segment.path.timeSimPast == long.MaxValue || ancestors[i].path.timeSimPast != long.MaxValue)) {
 						hasSibling = true;
 						break;
 					}
@@ -94,9 +94,9 @@ public class Segment {
 			return false;
 		}
 		// remove paths that no longer contain units from visibility tiles
-		foreach (Segment seg in removed.Keys) {
-			if (seg.id == seg.path.segments.Count - 1 && seg.units.Count == 0 && seg.path.tileX != Sim.OffMap) {
-				g.events.add(new TileMoveEvt(g.timeSim, seg.path.id, Sim.OffMap, 0));
+		foreach (Segment segment in removed.Keys) {
+			if (segment.id == segment.path.segments.Count - 1 && segment.units.Count == 0 && segment.path.tileX != Sim.OffMap) {
+				g.events.add(new TileMoveEvt(g.timeSim, segment.path.id, Sim.OffMap, 0));
 			}
 		}
 		return true;
@@ -108,8 +108,8 @@ public class Segment {
 			// only remove units from next segments if this is their only previous segment
 			if (nextOnPath () == null || nextOnPath ().prev (unit).Count () == 1) {
 				// remove unit from next segments
-				foreach (Segment seg in next (unit)) {
-					if (!seg.removeUnitAfter (unit, ref removed)) return false;
+				foreach (Segment segment in next (unit)) {
+					if (!segment.removeUnitAfter (unit, ref removed)) return false;
 				}
 				// remove child units that only this unit could have made
 				foreach (KeyValuePair<Segment, int> child in children (unit).ToArray ()) {
@@ -130,8 +130,8 @@ public class Segment {
 	public bool unseenAfter(int unit) {
 		if (!units.Contains (unit)) throw new ArgumentException("segment does not contain specified unit");
 		if (!unseen) return false;
-		foreach (Segment seg in next (unit)) {
-			if (!seg.unseenAfter (unit)) return false;
+		foreach (Segment segment in next (unit)) {
+			if (!segment.unseenAfter (unit)) return false;
 		}
 		foreach (KeyValuePair<Segment, int> child in children (unit)) {
 			if (!child.Key.unseenAfter (child.Value)) return false;
@@ -158,9 +158,9 @@ public class Segment {
 		long ret = 0;
 		bool foundNextSeg = false;
 		// add resources gained in next segment that collected either least or most resources (depending on max parameter)
-		foreach (Segment seg in next (unit)) {
-			if (includeNonLiveChildren || seg.path.timeSimPast == long.MaxValue) {
-				long segCollected = seg.rscCollected (time, unit, rscType, max, includeNonLiveChildren);
+		foreach (Segment segment in next (unit)) {
+			if (includeNonLiveChildren || segment.path.timeSimPast == long.MaxValue) {
+				long segCollected = segment.rscCollected (time, unit, rscType, max, includeNonLiveChildren);
 				if (!foundNextSeg || (max ^ (segCollected < ret))) {
 					ret = segCollected;
 					foundNextSeg = true;
@@ -183,10 +183,10 @@ public class Segment {
 	/// </summary>
 	public IEnumerable<KeyValuePair<Segment, int>> parents(int unit) {
 		if (!prev (unit).Any ()) {
-			foreach (Segment seg in prev ()) {
-				foreach (int unit2 in seg.units) {
+			foreach (Segment segment in prev ()) {
+				foreach (int unit2 in segment.units) {
 					if (g.unitT[g.units[unit2].type].canMake[g.units[unit].type]) {
-						yield return new KeyValuePair<Segment, int>(seg, unit2);
+						yield return new KeyValuePair<Segment, int>(segment, unit2);
 					}
 				}
 			}
@@ -197,10 +197,10 @@ public class Segment {
 	/// iterates over all segment/unit pairs that specified unit in this segment could have made
 	/// </summary>
 	public IEnumerable<KeyValuePair<Segment, int>> children(int unit) {
-		foreach (Segment seg in next ()) {
-			foreach (int unit2 in seg.units) {
-				if (g.unitT[g.units[unit].type].canMake[g.units[unit2].type] && !seg.prev (unit2).Any ()) {
-					yield return new KeyValuePair<Segment, int>(seg, unit2);
+		foreach (Segment segment in next ()) {
+			foreach (int unit2 in segment.units) {
+				if (g.unitT[g.units[unit].type].canMake[g.units[unit2].type] && !segment.prev (unit2).Any ()) {
+					yield return new KeyValuePair<Segment, int>(segment, unit2);
 				}
 			}
 		}
@@ -210,8 +210,8 @@ public class Segment {
 	/// iterates over all segments containing the specified unit that merge onto the beginning of this segment
 	/// </summary>
 	public IEnumerable<Segment> prev(int unit) {
-		foreach (Segment seg in prev()) {
-			if (seg.units.Contains (unit)) yield return seg;
+		foreach (Segment segment in prev()) {
+			if (segment.units.Contains (unit)) yield return segment;
 		}
 	}
 	
@@ -219,8 +219,8 @@ public class Segment {
 	/// iterates over all segments containing the specified unit that branch off from the end of this segment
 	/// </summary>
 	public IEnumerable<Segment> next(int unit) {
-		foreach (Segment seg in next()) {
-			if (seg.units.Contains (unit)) yield return seg;
+		foreach (Segment segment in next()) {
+			if (segment.units.Contains (unit)) yield return segment;
 		}
 	}
 	
@@ -228,8 +228,8 @@ public class Segment {
 	/// iterates over all segments that merge onto the beginning of this segment
 	/// </summary>
 	public IEnumerable<Segment> prev() {
-		foreach (Segment seg in branches) {
-			if (seg.prevOnPath() != null) yield return seg.prevOnPath();
+		foreach (Segment segment in branches) {
+			if (segment.prevOnPath() != null) yield return segment.prevOnPath();
 		}
 	}
 	
@@ -238,8 +238,8 @@ public class Segment {
 	/// </summary>
 	public IEnumerable<Segment> next() {
 		if (nextOnPath() != null) {
-			foreach (Segment seg in nextOnPath().branches) {
-				yield return seg;
+			foreach (Segment segment in nextOnPath().branches) {
+				yield return segment;
 			}
 		}
 	}
