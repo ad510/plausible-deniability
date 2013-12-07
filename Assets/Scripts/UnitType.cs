@@ -9,6 +9,7 @@ using System.Linq;
 using System.Text;
 
 public class UnitType {
+	public int id; // index in player array
 	public string name;
 	public string imgPath;
 	public FP.Vector imgOffset; // how much to offset center of image when drawing it

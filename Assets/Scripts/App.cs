@@ -213,6 +213,7 @@ public class App : MonoBehaviour {
 			foreach (Hashtable jsonO in jsonA) {
 				Hashtable jsonO2 = jsonObject(jsonO, "startRsc");
 				Player player = new Player();
+				player.id = g.players.Length;
 				player.name = jsonString(jsonO, "name");
 				player.isUser = jsonBool(jsonO, "isUser");
 				player.user = (int)jsonDouble(jsonO, "user");
@@ -256,6 +257,7 @@ public class App : MonoBehaviour {
 				Hashtable jsonO2 = jsonObject(jsonO, "rscCost");
 				Hashtable jsonO3 = jsonObject(jsonO, "rscCollectRate");
 				UnitType unitT = new UnitType();
+				unitT.id = g.unitT.Length;
 				unitT.name = jsonString(jsonO, "name");
 				unitT.imgPath = jsonString(jsonO, "imgPath");
 				unitT.imgOffset = jsonFPVector (jsonO, "imgOffset");

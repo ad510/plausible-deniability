@@ -9,6 +9,7 @@ using System.Linq;
 using System.Text;
 
 public class Player {
+	public int id; // index in player array
 	// stored in scenario files
 	public string name;
 	public bool isUser; // whether actively participates in the game
