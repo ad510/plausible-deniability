@@ -26,10 +26,10 @@ public class DeleteOtherPathsCmdEvt : CmdEvt {
 		List<KeyValuePair<Segment, int>> units = new List<KeyValuePair<Segment, int>>();
 		// convert paths list into valid deleteOtherPaths() argument (this is a bit ugly)
 		foreach (KeyValuePair<int, int[]> path in paths) {
-			int seg = g.paths[path.Key].getSegment (timeCmd);
-			if (seg >= 0) {
+			Segment segment = g.paths[path.Key].getSegment (timeCmd);
+			if (segment != null) {
 				foreach (int unit in path.Value) {
-					units.Add (new KeyValuePair<Segment, int>(g.paths[path.Key].segments[seg], unit));
+					units.Add (new KeyValuePair<Segment, int>(segment, unit));
 				}
 			}
 		}

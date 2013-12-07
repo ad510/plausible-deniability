@@ -64,11 +64,11 @@ public abstract class CmdEvt : SimEvt {
 	protected Dictionary<int, List<int>> existingPaths(Sim g) {
 		Dictionary<int, List<int>> ret = new Dictionary<int, List<int>>();
 		foreach (KeyValuePair<int, int[]> path in paths) {
-			int seg = g.paths[path.Key].getSegment (timeCmd);
-			if (seg >= 0) {
+			Segment segment = g.paths[path.Key].getSegment (timeCmd);
+			if (segment != null) {
 				List<int> existingUnits = new List<int>();
 				foreach (int unit in path.Value) {
-					if (g.paths[path.Key].segments[seg].units.Contains (unit)) {
+					if (segment.units.Contains (unit)) {
 						if (!existingUnits.Contains (unit)) existingUnits.Add (unit);
 					}
 				}

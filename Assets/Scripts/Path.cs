@@ -118,7 +118,7 @@ public class Path {
 				events.add(new TileMoveEvt(moves[i].timeAtY(tY << FP.Precision), id, int.MinValue, tY + dir));
 			}
 		}
-		if (segments.Last ().units.Count == 0 && segments[getSegment (timeMin)].units.Count > 0) {
+		if (segments.Last ().units.Count == 0 && getSegment (timeMin).units.Count > 0) {
 			// path no longer contains any units
 			// TODO: do this directly in takeHealth?
 			g.events.add(new TileMoveEvt(segments.Last ().timeStart, id, Sim.OffMap, 0));
@@ -135,15 +135,15 @@ public class Path {
 	}
 
 	public void beUnseen(long time) {
-		segments[insertSegment(time)].unseen = true;
+		insertSegment(time).unseen = true;
 	}
 
 	public void beSeen(long time) {
-		int seg = insertSegment(time);
+		Segment segment = insertSegment(time);
 		List<KeyValuePair<Segment, int>> seenUnits = new List<KeyValuePair<Segment, int>>();
-		segments[seg].unseen = false;
-		foreach (int unit in segments[seg].units) {
-			seenUnits.Add (new KeyValuePair<Segment, int>(segments[seg], unit));
+		segment.unseen = false;
+		foreach (int unit in segment.units) {
+			seenUnits.Add (new KeyValuePair<Segment, int>(segment, unit));
 		}
 		if (!g.deleteOtherPaths (seenUnits)) throw new SystemException("failed to delete other paths of seen path");
 	}
@@ -153,8 +153,8 @@ public class Path {
 	/// </summary>
 	public bool makePath(long time, List<int> units) {
 		if (canMakePath(time, units)) {
-			int seg = insertSegment (time);
-			g.paths.Add (new Path(g, g.paths.Count, g.unitT[g.units[units[0]].type].speed, player, units, time, calcPos (time), segments[seg].unseen));
+			Segment segment = insertSegment (time);
+			g.paths.Add (new Path(g, g.paths.Count, g.unitT[g.units[units[0]].type].speed, player, units, time, calcPos (time), segment.unseen));
 			connect (time, g.paths.Count - 1);
 			// if this path isn't live, new path can't be either
 			if (timeSimPast != long.MaxValue) g.paths.Last ().timeSimPast = time;
@@ -172,16 +172,16 @@ public class Path {
 	/// </summary>
 	public bool canMakePath(long time, List<int> units) {
 		if (units.Count == 0) return false;
-		int seg = getSegment(time);
-		if (seg < 0) return false;
+		Segment segment = getSegment(time);
+		if (segment == null) return false;
 		long[] rscCost = new long[g.rscNames.Length];
 		foreach (int unit in units) {
-			if (segments[seg].units.Contains (unit)) {
+			if (segment.units.Contains (unit)) {
 				// unit in path would be child path
 				// check parent made before (not at same time as) child, so it's unambiguous who is the parent
-				if (!canBeUnambiguousParent (time, seg, unit)) return false;
+				if (!canBeUnambiguousParent (time, segment, unit)) return false;
 				// check parent unit won't be seen later
-				if (!segments[seg].unseenAfter (unit)) return false;
+				if (!segment.unseenAfter (unit)) return false;
 			}
 			else {
 				if (!canMakeUnitType (time, g.units[unit].type)) return false;
@@ -200,11 +200,11 @@ public class Path {
 	}
 	
 	public bool canMakeUnitType(long time, int type) {
-		int seg = getSegment (time);
-		if (seg >= 0) {
-			foreach (int unit in segments[seg].units) {
-				if (g.unitT[g.units[unit].type].canMake[type] && canBeUnambiguousParent (time, seg, unit)
-					&& (time >= g.timeSim || segments[seg].unseenAfter (unit))) {
+		Segment segment = getSegment (time);
+		if (segment != null) {
+			foreach (int unit in segment.units) {
+				if (g.unitT[g.units[unit].type].canMake[type] && canBeUnambiguousParent (time, segment, unit)
+					&& (time >= g.timeSim || segment.unseenAfter (unit))) {
 					return true;
 				}
 			}
@@ -216,22 +216,22 @@ public class Path {
 	/// returns whether specified unit is in path before specified time,
 	/// so if it makes a child unit, it's unambiguous who is the parent
 	/// </summary>
-	private bool canBeUnambiguousParent(long time, int segment, int unit) {
-		return segments[segment].timeStart < time || (segment > 0 && segments[segment - 1].units.Contains (unit));
+	private bool canBeUnambiguousParent(long time, Segment segment, int unit) {
+		return segment.timeStart < time || (segment != null && segment.units.Contains (unit));
 	}
 
 	/// <summary>
 	/// connects this path to specified path at specified time,
 	/// returns this path's segment where the paths were connected
 	/// </summary>
-	public int connect(long time, int path) {
-		int seg = insertSegment (time);
-		int seg2 = g.paths[path].insertSegment (time);
-		if (!segments[seg].branches.Contains (g.paths[path].segments[seg2])) {
-			segments[seg].branches.AddRange (g.paths[path].segments[seg2].branches);
-			g.paths[path].segments[seg2].branches = segments[seg].branches;
+	public Segment connect(long time, int path) {
+		Segment segment = insertSegment (time);
+		Segment segment2 = g.paths[path].insertSegment (time);
+		if (!segment.branches.Contains (segment2)) {
+			segment.branches.AddRange (segment2.branches);
+			segment2.branches = segment.branches;
 		}
-		return seg;
+		return segment;
 	}
 	
 	/// <summary>
@@ -239,27 +239,26 @@ public class Path {
 	/// return index of moved path (in case moving a subset of units in path)
 	/// </summary>
 	public int moveTo(long time, List<int> units, FP.Vector pos) {
-		int path2 = id; // move this path by default
-		int seg = getSegment (time);
+		Path path2 = this; // move this path by default
 		if (time < g.timeSim) {
 			// move non-live path if in past
 			// replacement paths currently not implemented, so make a new path every time a path is moved in the past
 			if (!makePath (time, units)) throw new SystemException("make non-live path failed when moving units");
-			path2 = g.paths.Count - 1;
+			path2 = g.paths.Last ();
 		}
 		else {
-			foreach (int unit in segments[seg].units) {
+			foreach (int unit in getSegment(time).units) {
 				if (!units.Contains (unit)) {
 					// some units in path aren't being moved, so make a new path
 					if (!makePath (time, units)) throw new SystemException("make new path failed when moving units");
 					//removeUnit (time, unit); // TODO: this fails because new path isn't live yet
-					path2 = g.paths.Count - 1;
+					path2 = g.paths.Last ();
 					break;
 				}
 			}
 		}
-		g.paths[path2].moveTo (time, pos);
-		return path2;
+		path2.moveTo (time, pos);
+		return path2.id;
 	}
 
 	/// <summary>
@@ -285,10 +284,10 @@ public class Path {
 		// TODO: maybe make overloaded version that also checks units
 		if (time < moves[0].timeStart || speed <= 0) return false;
 		if (time < g.timeSim) {
-			int seg = getSegment (time);
-			if (seg < 0) return false;
-			foreach (int unit in segments[seg].units) {
-				if (!segments[seg].unseenAfter (unit)) return false;
+			Segment segment = getSegment (time);
+			if (segment == null) return false;
+			foreach (int unit in segment.units) {
+				if (!segment.unseenAfter (unit)) return false;
 			}
 		}
 		return true;
@@ -296,25 +295,26 @@ public class Path {
 	
 	/// <summary>
 	/// inserts a segment starting at specified time if no segment already starts at that time,
-	/// returns index of that segment
+	/// returns that segment
 	/// </summary>
-	public int insertSegment(long time) {
-		int seg = getSegment (time);
-		if (seg >= 0 && segments[seg].timeStart == time) return seg;
-		segments.Insert (seg + 1, new Segment(this, seg + 1, time, new List<int>(segments[seg].units), segments[seg].unseen));
-		for (int i = seg + 2; i < segments.Count; i++) {
+	public Segment insertSegment(long time) {
+		Segment segment = getSegment (time);
+		if (segment != null && segment.timeStart == time) return segment;
+		segments.Insert (segment.id + 1, new Segment(this, segment.id + 1, time, new List<int>(segment.units), segment.unseen));
+		for (int i = segment.id + 2; i < segments.Count; i++) {
 			segments[i].id = i;
 		}
-		return seg + 1;
+		return segments[segment.id + 1];
 	}
 	
 	/// <summary>
-	/// returns index of segment that is active at specified time
+	/// returns segment that is active at specified time
 	/// </summary>
-	public int getSegment(long time) {
-		int ret = segments.Count - 1;
-		while (ret >= 0 && time < segments[ret].timeStart) ret--;
-		return ret;
+	public Segment getSegment(long time) {
+		for (int i = segments.Count - 1; i >= 0; i--) {
+			if (time >= segments[i].timeStart) return segments[i];
+		}
+		return null;
 	}
 
 	/// <summary>
@@ -338,7 +338,7 @@ public class Path {
 	/// </summary>
 	public FP.Vector selMinPos(long time) {
 		FP.Vector ret = new FP.Vector(int.MaxValue, int.MaxValue);
-		foreach (int unit in segments[getSegment(time)].units) {
+		foreach (int unit in getSegment(time).units) {
 			ret.x = Math.Min (ret.x, g.unitT[g.units[unit].type].selMinPos.x);
 			ret.y = Math.Min (ret.y, g.unitT[g.units[unit].type].selMinPos.y);
 		}
@@ -350,7 +350,7 @@ public class Path {
 	/// </summary>
 	public FP.Vector selMaxPos(long time) {
 		FP.Vector ret = new FP.Vector(int.MinValue, int.MinValue);
-		foreach (int unit in segments[getSegment(time)].units) {
+		foreach (int unit in getSegment(time).units) {
 			ret.x = Math.Max (ret.x, g.unitT[g.units[unit].type].selMaxPos.x);
 			ret.y = Math.Max (ret.y, g.unitT[g.units[unit].type].selMaxPos.y);
 		}
@@ -362,7 +362,7 @@ public class Path {
 	/// </summary>
 	public long makePathMinDist(long time, List<int> units) {
 		long ret = 0;
-		foreach (int unit in segments[getSegment (time)].units) {
+		foreach (int unit in getSegment (time).units) {
 			if (units.Contains (unit) && g.unitT[g.units[unit].type].makePathMinDist > ret) {
 				ret = g.unitT[g.units[unit].type].makePathMinDist;
 			}
@@ -375,7 +375,7 @@ public class Path {
 	/// </summary>
 	public long makePathMaxDist(long time, List<int> units) {
 		long ret = 0;
-		foreach (int unit in segments[getSegment (time)].units) {
+		foreach (int unit in getSegment (time).units) {
 			if (units.Contains (unit) && g.unitT[g.units[unit].type].makePathMaxDist > ret) {
 				ret = g.unitT[g.units[unit].type].makePathMaxDist;
 			}

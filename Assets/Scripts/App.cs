@@ -451,7 +451,7 @@ public class App : MonoBehaviour {
 								selPaths.Remove(i);
 							}
 							else {
-								selPaths.Add(i, new List<int>(g.paths[i].segments[g.paths[i].getSegment(timeGame)].units));
+								selPaths.Add(i, new List<int>(g.paths[i].getSegment(timeGame).units));
 							}
 							if (SelBoxMin > (Input.mousePosition - mouseDownPos[0]).sqrMagnitude) break;
 						}
@@ -590,10 +590,10 @@ public class App : MonoBehaviour {
 		border.setRect (simToDrawPos (new FP.Vector()), simToDrawPos(new FP.Vector(g.mapSize, g.mapSize)), BorderDepth);
 		// units
 		for (int i = 0; i < g.paths.Count; i++) {
-			int seg = g.paths[i].getSegment (timeGame);
+			Segment segment = g.paths[i].getSegment (timeGame);
 			if (i == sprUnits.Count) sprUnits.Add (new List<UnitSprite>());
-			if (seg >= 0) {
-				while (sprUnits[i].Count < g.paths[i].segments[seg].units.Count) sprUnits[i].Add (new UnitSprite(quadPrefab));
+			if (segment != null) {
+				while (sprUnits[i].Count < segment.units.Count) sprUnits[i].Add (new UnitSprite(quadPrefab));
 			}
 			for (int j = 0; j < sprUnits[i].Count; j++) {
 				sprUnits[i][j].sprite.renderer.enabled = false;
@@ -603,8 +603,8 @@ public class App : MonoBehaviour {
 				sprUnits[i][j].pathLine.enabled = false;
 			}
 			if (pathDrawPos(i, ref vec)) {
-				for (int j = 0; j < g.paths[i].segments[seg].units.Count; j++) {
-					int unit = g.paths[i].segments[seg].units[j];
+				for (int j = 0; j < segment.units.Count; j++) {
+					int unit = segment.units[j];
 					if (sprUnits[i][j].type != g.units[unit].type || sprUnits[i][j].player != g.units[unit].player) {
 						sprUnits[i][j].sprite.renderer.material.mainTexture = texUnits[g.units[unit].type, g.units[unit].player];
 						sprUnits[i][j].preview.renderer.material.mainTexture = texUnits[g.units[unit].type, g.units[unit].player];
@@ -622,9 +622,9 @@ public class App : MonoBehaviour {
 					sprUnits[i][j].sprite.transform.localScale = unitScale (g.units[unit].type, g.units[unit].player);
 					sprUnits[i][j].sprite.renderer.enabled = true;
 					for (int k = i + 1; k < g.paths.Count; k++) {
-						int seg2 = g.paths[k].getSegment (timeGame);
-						if (seg2 >= 0 && g.paths[i].speed == g.paths[k].speed && g.paths[i].player == g.paths[k].player
-							&& g.paths[k].segments[seg2].units.Contains (unit)) {
+						Segment segment2 = g.paths[k].getSegment (timeGame);
+						if (segment2 != null && g.paths[i].speed == g.paths[k].speed && g.paths[i].player == g.paths[k].player
+							&& segment2.units.Contains (unit)) {
 							// unit path line
 							sprUnits[i][j].pathLine.SetPosition (0, new Vector3(vec.x, vec.y, PathLineDepth));
 							sprUnits[i][j].pathLine.SetPosition (1, simToDrawPos (g.paths[k].calcPos(timeGame), PathLineDepth));
@@ -663,9 +663,9 @@ public class App : MonoBehaviour {
 		// health bars
 		foreach (int path in selPaths.Keys) {
 			if (pathDrawPos(path, ref vec)) {
-				int seg = g.paths[path].getSegment (timeGame);
-				for (int j = 0; j < g.paths[path].segments[seg].units.Count; j++) {
-					int unit = g.paths[path].segments[seg].units[j];
+				Segment segment = g.paths[path].getSegment (timeGame);
+				for (int j = 0; j < segment.units.Count; j++) {
+					int unit = segment.units[j];
 					if (selPaths[path].Contains (unit)) {
 						float f = ((float)g.units[unit].healthWhen(timeGame)) / g.unitT[g.units[unit].type].maxHealth;
 						float f2 = vec.y + simToDrawScl (g.unitT[g.units[unit].type].selMaxPos.y) + g.healthBarYOffset * winDiag;
@@ -964,7 +964,7 @@ public class App : MonoBehaviour {
 						FP.Vector pos = path.calcPos(timeGame);
 						if (g.tileAt (pos).playerVisWhen (selPlayer, timeGame)
 							&& FP.rectContains (path.selMinPos (timeGame), path.selMaxPos (timeGame), drawToSimPos (Input.mousePosition))) {
-							foreach (int unit in path.segments[path.getSegment (timeGame)].units) {
+							foreach (int unit in path.getSegment (timeGame).units) {
 								if (g.units[unit].type == g.unitT[makeUnitType].makeOnUnitT) {
 									return pos;
 								}
