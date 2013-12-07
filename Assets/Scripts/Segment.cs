@@ -109,12 +109,14 @@ public class Segment {
 			if (nextOnPath () == null || nextOnPath ().prev (unit).Count () == 1) {
 				// remove unit from next segments
 				foreach (Segment seg in next (unit)) {
-					seg.removeUnitAfter (unit, ref removed);
+					if (!seg.removeUnitAfter (unit, ref removed)) return false;
 				}
 				// remove child units that only this unit could have made
 				foreach (KeyValuePair<Segment, int> child in children (unit).ToArray ()) {
 					// TODO: if has alternate non-live parent, do we need to recursively make children non-live?
-					if (child.Key.parents (child.Value).Count () == 1) child.Key.removeUnitAfter (child.Value, ref removed);
+					if (child.Key.parents (child.Value).Count () == 1) {
+						if (!child.Key.removeUnitAfter (child.Value, ref removed)) return false;
+					}
 				}
 			}
 			// remove unit from this segment
