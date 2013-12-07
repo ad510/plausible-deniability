@@ -37,7 +37,7 @@ public abstract class CmdEvt : SimEvt {
 	[ProtoMember(1)]
 	public long timeCmd {get;set;} // time is latest simulation time when command is given, timeCmd is when event takes place (may be in past)
 	[ProtoMember(2)]
-	public Dictionary<int, int[]> paths {get;set;}
+	public Dictionary<int, int[]> paths {get;set;} // key is path index, value is list of unit indices
 	
 	/// <summary>
 	/// empty constructor for protobuf-net use only
