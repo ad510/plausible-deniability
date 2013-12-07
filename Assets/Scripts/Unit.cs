@@ -14,7 +14,7 @@ using System.Text;
 /// <remarks>how unit moves is stored in Path class, not here</remarks>
 public class Unit {
 	public readonly Sim g;
-	public readonly int id; // index in unit array
+	public readonly int id; // index in unit list
 	public readonly int type;
 	public readonly int player;
 	public int nTimeHealth;
