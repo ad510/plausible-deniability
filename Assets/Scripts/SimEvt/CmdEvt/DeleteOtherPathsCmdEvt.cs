@@ -22,8 +22,7 @@ public class DeleteOtherPathsCmdEvt : CmdEvt {
 	public DeleteOtherPathsCmdEvt(long timeVal, long timeCmdVal, Dictionary<int, int[]> pathsVal)
 		: base(timeVal, timeCmdVal, pathsVal) { }
 	
-	public override void apply (Sim g)
-	{
+	public override void apply (Sim g) {
 		List<KeyValuePair<Segment, int>> units = new List<KeyValuePair<Segment, int>>();
 		// convert paths list into valid deleteOtherPaths() argument (this is a bit ugly)
 		foreach (KeyValuePair<int, int[]> path in paths) {
