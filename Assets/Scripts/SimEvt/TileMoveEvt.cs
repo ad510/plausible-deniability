@@ -144,7 +144,7 @@ public class TileMoveEvt : SimEvt {
 					&& g.inVis(g.paths[i].tileX - tXPrev, g.paths[i].tileY - tYPrev) && !g.tiles[g.paths[i].tileX, g.paths[i].tileY].playerDirectVisLatest(g.paths[path].player)) {
 					for (int tX = Math.Max(0, g.paths[i].tileX - 1); tX <= Math.Min(g.tileLen() - 1, g.paths[i].tileX + 1); tX++) {
 						for (int tY = Math.Max(0, g.paths[i].tileY - 1); tY <= Math.Min(g.tileLen() - 1, g.paths[i].tileY + 1); tY++) {
-							// TODO?: use more accurate time at tiles other than (u[j].tileX, u[j].tileY)
+							// TODO?: use more accurate time at tiles other than (paths[i].tileX, paths[i].tileY)
 							g.playerVisRemove(g.paths[path].player, tX, tY, time);
 						}
 					}
