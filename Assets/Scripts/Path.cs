@@ -91,15 +91,10 @@ public class Path {
 		int moveLast = Math.Max (0, getMove(timeMin));
 		int move = getMove(timeMax);
 		FP.Vector pos, posLast;
-		int iNext, dir;
-		for (int i = moveLast; i <= move; i = iNext) {
-			// next move may not be i + 1 if times are out of order
-			iNext = i + 1;
-			for (int j = iNext + 1; j < moves.Count; j++) {
-				if (moves[j].timeStart <= moves[iNext].timeStart) iNext = j;
-			}
+		int dir;
+		for (int i = moveLast; i <= move; i++) {
 			posLast = (i == moveLast) ? moves[i].calcPos(Math.Max(timeMin, moves[0].timeStart)) : moves[i].vecStart;
-			pos = (i == move) ? moves[i].calcPos(timeMax) : moves[iNext].vecStart;
+			pos = (i == move) ? moves[i].calcPos(timeMax) : moves[i + 1].vecStart;
 			// moving between columns (x)
 			dir = (pos.x >= posLast.x) ? 0 : -1;
 			for (int tX = (int)(Math.Min(pos.x, posLast.x) >> FP.Precision) + 1; tX <= (int)(Math.Max(pos.x, posLast.x) >> FP.Precision); tX++) {
