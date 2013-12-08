@@ -233,7 +233,7 @@ public class Path {
 		Path path2 = this; // move this path by default
 		if (time < g.timeSim) {
 			// move non-live path if in past
-			// replacement paths currently not implemented, so make a new path every time a path is moved in the past
+			// if this path already isn't live, a better approach is removing later segments and moves then moving this path, like pre-stacking versions
 			if (!makePath (time, units)) throw new SystemException("make non-live path failed when moving units");
 			path2 = g.paths.Last ();
 		}
@@ -242,10 +242,16 @@ public class Path {
 				if (!units.Contains (unit)) {
 					// some units in path aren't being moved, so make a new path
 					if (!makePath (time, units)) throw new SystemException("make new path failed when moving units");
-					//removeUnit (time, unit); // TODO: this fails because new path isn't live yet
 					path2 = g.paths.Last ();
 					break;
 				}
+			}
+		}
+		if (path2 != this && (path2.timeSimPast == long.MaxValue || timeSimPast != long.MaxValue)) {
+			// new path will be moved, so try to remove units that will move from this path
+			Segment segment = getSegment (time);
+			foreach (int unit2 in units) {
+				segment.removeUnit (unit2);
 			}
 		}
 		path2.moveTo (time, pos);
