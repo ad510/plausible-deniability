@@ -34,16 +34,16 @@ public class Unit {
 	/// <summary>
 	/// remove 1 health increment at specified time
 	/// </summary>
-	public void takeHealth(long time, int path) {
+	public void takeHealth(long time, Path path) {
 		if (nTimeHealth < g.unitT[type].maxHealth) {
 			nTimeHealth++;
 			timeHealth[nTimeHealth - 1] = time;
 			if (nTimeHealth >= g.unitT[type].maxHealth) {
 				// unit lost all health, so remove it from path
-				Segment segment = g.paths[path].insertSegment(time);
+				Segment segment = path.insertSegment(time);
 				segment.units.Remove (id);
 				// if path no longer has any units, indicate to delete and recalculate later TileMoveEvts for this path
-				if (segment.units.Count == 0 && !g.movedPaths.Contains(path)) g.movedPaths.Add(path);
+				if (segment.units.Count == 0 && !g.movedPaths.Contains(path.id)) g.movedPaths.Add(path.id);
 			}
 		}
 	}

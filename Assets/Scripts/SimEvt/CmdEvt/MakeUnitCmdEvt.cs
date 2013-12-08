@@ -57,24 +57,24 @@ public class MakeUnitCmdEvt : CmdEvt {
 		if (!autoRepeat) {
 			// if none of specified paths are at requested position,
 			// try moving one to the correct position then trying again to make the unit
-			int movePath = -1;
+			Path movePath = null;
 			foreach (KeyValuePair<int, List<int>> path in exPaths) {
 				if (g.unitsCanMake (path.Value, type) && g.paths[path.Key].canMove (timeCmd)
-					&& (movePath < 0 || (g.paths[path.Key].calcPos(timeCmd) - pos).lengthSq() < (g.paths[movePath].calcPos(timeCmd) - pos).lengthSq())) {
+					&& (movePath == null || (g.paths[path.Key].calcPos(timeCmd) - pos).lengthSq() < (movePath.calcPos(timeCmd) - pos).lengthSq())) {
 					bool newPathIsLive = (time >= g.timeSim && g.paths[path.Key].timeSimPast == long.MaxValue);
 					int i;
 					for (i = 0; i < g.rscNames.Length; i++) {
 						// TODO: may be more permissive by passing in max = true, but this really complicates removeUnit() algorithm (see planning notes)
 						if (g.playerResource(g.paths[path.Key].player, time, i, false, !newPathIsLive) < g.unitT[type].rscCost[i]) break;
 					}
-					if (i == g.rscNames.Length) movePath = path.Key;
+					if (i == g.rscNames.Length) movePath = g.paths[path.Key];
 				}
 			}
-			if (movePath >= 0) {
+			if (movePath != null) {
 				Dictionary<int, int[]> evtPaths = new Dictionary<int, int[]>(paths);
-				movePath = g.paths[movePath].moveTo(timeCmd, new List<int>(exPaths[movePath]), pos);
-				if (!evtPaths.ContainsKey (movePath)) evtPaths.Add (movePath, g.paths[movePath].segments[0].units.ToArray ()); // in case replacement path is moving to make the unit
-				g.events.add(new MakeUnitCmdEvt(g.paths[movePath].moves.Last ().timeEnd, g.paths[movePath].moves.Last ().timeEnd + 1,
+				movePath = movePath.moveTo(timeCmd, new List<int>(exPaths[movePath.id]), pos);
+				if (!evtPaths.ContainsKey (movePath.id)) evtPaths[movePath.id] = movePath.segments[0].units.ToArray (); // in case replacement path is moving to make the unit
+				g.events.add(new MakeUnitCmdEvt(movePath.moves.Last ().timeEnd, movePath.moves.Last ().timeEnd + 1,
 					evtPaths, type, pos, true));
 			}
 		}

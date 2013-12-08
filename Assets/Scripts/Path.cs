@@ -155,7 +155,7 @@ public class Path {
 		if (canMakePath(time, units)) {
 			Segment segment = insertSegment (time);
 			g.paths.Add (new Path(g, g.paths.Count, g.unitT[g.units[units[0]].type].speed, player, units, time, calcPos (time), segment.unseen));
-			connect (time, g.paths.Count - 1);
+			connect (time, g.paths.Last ());
 			// if this path isn't live, new path can't be either
 			if (timeSimPast != long.MaxValue) g.paths.Last ().timeSimPast = time;
 			// indicate to calculate TileMoveEvts for new path starting at timeSim
@@ -224,9 +224,9 @@ public class Path {
 	/// connects this path to specified path at specified time,
 	/// returns this path's segment where the paths were connected
 	/// </summary>
-	public Segment connect(long time, int path) {
+	public Segment connect(long time, Path path) {
 		Segment segment = insertSegment (time);
-		Segment segment2 = g.paths[path].insertSegment (time);
+		Segment segment2 = path.insertSegment (time);
 		if (!segment.branches.Contains (segment2)) {
 			segment.branches.AddRange (segment2.branches);
 			segment2.branches = segment.branches;
@@ -236,9 +236,9 @@ public class Path {
 	
 	/// <summary>
 	/// move towards specified location starting at specified time,
-	/// return index of moved path (in case moving a subset of units in path)
+	/// return moved path (in case moving a subset of units in path)
 	/// </summary>
-	public int moveTo(long time, List<int> units, FP.Vector pos) {
+	public Path moveTo(long time, List<int> units, FP.Vector pos) {
 		Path path2 = this; // move this path by default
 		if (time < g.timeSim) {
 			// move non-live path if in past
@@ -258,7 +258,7 @@ public class Path {
 			}
 		}
 		path2.moveTo (time, pos);
-		return path2.id;
+		return path2;
 	}
 
 	/// <summary>

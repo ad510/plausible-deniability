@@ -75,23 +75,23 @@ public class UpdateEvt : SimEvt {
 			g.users[g.selUser].checksums[time + g.updateInterval] = g.checksum;
 		}
 		// update units
-		for (int i = 0; i < g.paths.Count; i++) {
-			Segment segment = g.paths[i].getSegment (time);
-			if (segment != null && g.paths[i].timeSimPast == long.MaxValue) {
-				FP.Vector pos = g.paths[i].calcPos (time);
+		foreach (Path path in g.paths) {
+			Segment segment = path.getSegment (time);
+			if (segment != null && path.timeSimPast == long.MaxValue) {
+				FP.Vector pos = path.calcPos (time);
 				foreach (int unit in segment.units) {
 					if (time >= g.units[unit].timeAttack + g.unitT[g.units[unit].type].reload) {
 						// done reloading, look for closest target to potentially attack
-						int target = -1;
+						Path target = null;
 						long targetDistSq = g.unitT[g.units[unit].type].range * g.unitT[g.units[unit].type].range + 1;
-						for (int j = 0; j < g.paths.Count; j++) {
-							Segment segment2 = g.paths[j].getSegment (time);
-							if (i != j && segment2 != null && g.paths[j].timeSimPast == long.MaxValue && g.players[g.paths[i].player].mayAttack[g.paths[j].player]) {
+						foreach (Path path2 in g.paths) {
+							Segment segment2 = path2.getSegment (time);
+							if (path != path2 && segment2 != null && path2.timeSimPast == long.MaxValue && g.players[path.player].mayAttack[path2.player]) {
 								foreach (int unit2 in segment2.units) {
 									if (g.unitT[g.units[unit].type].damage[g.units[unit2].type] > 0) {
-										long distSq = (g.paths[j].calcPos (time) - pos).lengthSq ();
+										long distSq = (path2.calcPos (time) - pos).lengthSq ();
 										if (distSq < targetDistSq) {
-											target = j;
+											target = path2;
 											targetDistSq = distSq;
 											break;
 										}
@@ -99,10 +99,10 @@ public class UpdateEvt : SimEvt {
 								}
 							}
 						}
-						if (target >= 0) {
+						if (target != null) {
 							// attack every applicable unit in target path
 							// take health with 1 ms delay so earlier units in array don't have unfair advantage
-							foreach (int unit2 in g.paths[target].getSegment(time).units) {
+							foreach (int unit2 in target.getSegment(time).units) {
 								if (g.unitT[g.units[unit].type].damage[g.units[unit2].type] > 0) {
 									for (int j = 0; j < g.unitT[g.units[unit].type].damage[g.units[unit2].type]; j++) g.units[unit2].takeHealth(time + 1, target);
 									g.units[unit].timeAttack = time;

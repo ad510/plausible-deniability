@@ -34,7 +34,7 @@ public class StackCmdEvt : CmdEvt {
 		// TODO: if stackPathVal < 0 (pressing stack button will do that) then move all paths to their average location
 		foreach (KeyValuePair<int, List<int>> path in exPaths) {
 			if (g.paths[path.Key].speed == g.paths[stackPath].speed && g.paths[path.Key].canMove (timeCmd)) {
-				movedPaths.Add (g.paths[path.Key].moveTo (timeCmd, new List<int>(path.Value), g.paths[stackPath].moves.Last ().vecEnd));
+				movedPaths.Add (g.paths[path.Key].moveTo (timeCmd, new List<int>(path.Value), g.paths[stackPath].moves.Last ().vecEnd).id);
 			}
 		}
 		// if able to move any of the paths, add events to stack them as they arrive

@@ -41,7 +41,7 @@ public class StackEvt : SimEvt {
 						}
 						if (g.stackAllowed (stackUnits, g.paths[paths[i]].speed, g.paths[paths[i]].player)) {
 							// merge the paths onto path i
-							iSegment = g.paths[paths[i]].connect (time, paths[j]);
+							iSegment = g.paths[paths[i]].connect (time, g.paths[paths[j]]);
 							jSegment = g.paths[paths[j]].getSegment (time);
 							iSegment.units = stackUnits;
 							jSegment.removeAllUnits ();
