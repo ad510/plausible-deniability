@@ -114,13 +114,13 @@ public class Sim {
 	/// <summary>
 	/// update specified player's non-live (time traveling) paths
 	/// </summary>
-	public void updatePast(int player, long curTime) {
-		if (players[player].hasNonLivePaths) {
+	public void updatePast(Player player, long curTime) {
+		if (player.hasNonLivePaths) {
 			foreach (Path path in paths) {
 				if (path.player == player) path.updatePast(curTime);
 			}
-			if (curTime >= timeSim && (players[player].timeGoLiveFail == long.MaxValue || timeSim >= players[player].timeGoLiveFail + updateInterval)) {
-				cmdPending.add(new GoLiveCmdEvt(timeSim, player));
+			if (curTime >= timeSim && (player.timeGoLiveFail == long.MaxValue || timeSim >= player.timeGoLiveFail + updateInterval)) {
+				cmdPending.add(new GoLiveCmdEvt(timeSim, player.id));
 			}
 		}
 	}
@@ -155,12 +155,12 @@ public class Sim {
 	/// <summary>
 	/// makes specified tile not visible to specified player starting at specified time, including effects on surrounding tiles
 	/// </summary>
-	public void playerVisRemove(int player, int tileX, int tileY, long time) {
+	public void playerVisRemove(Player player, int tileX, int tileY, long time) {
 		// try adding tile to existing PlayerVisRemoveEvt with same player and time
 		foreach (SimEvt evt in events.events) {
 			if (evt is PlayerVisRemoveEvt) {
 				PlayerVisRemoveEvt visEvt = (PlayerVisRemoveEvt)evt;
-				if (player == visEvt.player && time == visEvt.time) {
+				if (player.id == visEvt.player && time == visEvt.time) {
 					// check that tile pos isn't a duplicate (recently added tiles are more likely to be duplicates)
 					for (int i = visEvt.tiles.Count - 1; i >= Math.Max(0, visEvt.tiles.Count - 20); i--) {
 						if (tileX == visEvt.tiles[i].x && tileY == visEvt.tiles[i].y) return;
@@ -172,16 +172,16 @@ public class Sim {
 			}
 		}
 		// if no such PlayerVisRemoveEvt exists, add a new one
-		events.add(new PlayerVisRemoveEvt(time, player, tileX, tileY));
+		events.add(new PlayerVisRemoveEvt(time, player.id, tileX, tileY));
 	}
 
 	/// <summary>
 	/// makes specified tile exclusive to specified player starting at specified time,
 	/// including how that affects paths on that tile
 	/// </summary>
-	public void exclusiveAdd(int player, int tileX, int tileY, long time) {
+	public void exclusiveAdd(Player player, int tileX, int tileY, long time) {
 		if (tiles[tileX, tileY].exclusiveLatest(player)) throw new InvalidOperationException("tile (" + tileX + ", " + tileY + ") is already exclusive");
-		tiles[tileX, tileY].exclusive[player].Add(time);
+		tiles[tileX, tileY].exclusive[player.id].Add(time);
 		// this player's paths that are on this tile may time travel starting now
 		// TODO: actually safe to time travel at earlier times, as long as unit of same type is at same place when seen by another player
 		foreach (Path path in paths) {
@@ -195,9 +195,9 @@ public class Sim {
 	/// makes specified tile not exclusive to specified player starting at specified time,
 	/// including how that affects paths on that tile
 	/// </summary>
-	public void exclusiveRemove(int player, int tileX, int tileY, long time) {
+	public void exclusiveRemove(Player player, int tileX, int tileY, long time) {
 		if (!tiles[tileX, tileY].exclusiveLatest(player)) throw new InvalidOperationException("tile (" + tileX + ", " + tileY + ") is already not exclusive");
-		tiles[tileX, tileY].exclusive[player].Add(time);
+		tiles[tileX, tileY].exclusive[player.id].Add(time);
 		// this player's paths that are on this tile may not time travel starting now
 		foreach (Path path in paths) {
 			if (player == path.player && tileX == path.tileX && tileY == path.tileY && path.segments.Last ().unseen) {
@@ -215,7 +215,7 @@ public class Sim {
 	/// If no other player could see the specified tile in this worst case scenario,
 	/// the player can infer that he/she is the only player that can see this tile.
 	/// </remarks>
-	public bool calcExclusive(int player, int tileX, int tileY) {
+	public bool calcExclusive(Player player, int tileX, int tileY) {
 		// check that this player can see all nearby tiles
 		for (int tX = Math.Max(0, tileX - tileVisRadius()); tX <= Math.Min(tileLen() - 1, tileX + tileVisRadius()); tX++) {
 			for (int tY = Math.Max(0, tileY - tileVisRadius()); tY <= Math.Min(tileLen() - 1, tileY + tileVisRadius()); tY++) {
@@ -223,8 +223,8 @@ public class Sim {
 			}
 		}
 		// check that no other players can see this tile
-		for (int i = 0; i < players.Length; i++) {
-			if (i != player && !players[i].immutable && tiles[tileX, tileY].playerVisLatest(i)) return false;
+		foreach (Player player2 in players) {
+			if (player != player2 && !player2.immutable && tiles[tileX, tileY].playerVisLatest(player2)) return false;
 		}
 		return true;
 	}
@@ -236,8 +236,8 @@ public class Sim {
 	/// since different paths can have collected different resource amounts,
 	/// determines whether to use paths that collected least or most resources in calculation
 	/// </param>
-	public long playerResource(int player, long time, int rscType, bool max, bool includeNonLiveChildren) {
-		long ret = players[player].startRsc[rscType];
+	public long playerResource(Player player, long time, int rscType, bool max, bool includeNonLiveChildren) {
+		long ret = player.startRsc[rscType];
 		for (int i = 0; i < nRootPaths; i++) {
 			if (paths[i].player == player) {
 				foreach (int unit in paths[i].segments[0].units) {
@@ -253,7 +253,7 @@ public class Sim {
 	/// checks whether specified player could have negative resources since timeMin in worst case scenario of which paths are seen
 	/// </summary>
 	/// <returns>a time that player could have negative resources, or -1 if no such time found</returns>
-	public long playerCheckNegRsc(int player, long timeMin, bool includeNonLiveChildren) {
+	public long playerCheckNegRsc(Player player, long timeMin, bool includeNonLiveChildren) {
 		foreach (Path path in paths) {
 			// check all times since timeMin that a path of specified player was made
 			// note that new paths are made at App.newCmdTime() + 1
@@ -271,19 +271,19 @@ public class Sim {
 	/// <summary>
 	/// returns whether specified player's units will never unpredictably move or change
 	/// </summary>
-	public bool calcPlayerImmutable(int player) {
+	public bool calcPlayerImmutable(Player player) {
 		// check that player isn't an active participant and isn't controlled by anyone
-		if (players[player].isUser || players[player].user >= CompUser) return false;
+		if (player.isUser || player.user >= CompUser) return false;
 		// check that no one can attack this player
 		foreach (Player player2 in players) {
-			if (player2.mayAttack[player]) return false;
+			if (player2.mayAttack[player.id]) return false;
 		}
 		return true;
 	}
 	
-	public bool unitsCanMake(List<int> parentUnits, int type) {
+	public bool unitsCanMake(List<int> parentUnits, UnitType type) {
 		foreach (int unit in parentUnits) {
-			if (unitT[units[unit].type].canMake[type]) return true;
+			if (units[unit].type.canMake[type.id]) return true;
 		}
 		return false;
 	}
@@ -291,10 +291,10 @@ public class Sim {
 	/// <summary>
 	/// returns whether the specified units are allowed to be on the same path
 	/// </summary>
-	public bool stackAllowed(List<int> stackUnits, long speed, int player) {
+	public bool stackAllowed(List<int> stackUnits, long speed, Player player) {
 		if (stackUnits.Count == 0) return true;
 		foreach (int unit in stackUnits) {
-			if (unitT[units[unit].type].speed != speed || units[unit].player != player) {
+			if (units[unit].type.speed != speed || units[unit].player != player) {
 				return false;
 			}
 		}
@@ -332,22 +332,22 @@ public class Sim {
 	}
 
 	/// <summary>
-	/// returns index of player with specified name, or -1 if no such player
+	/// returns player with specified name, or null if no such player
 	/// </summary>
-	public int playerNamed(string name) {
-		for (int i = 0; i < players.Length; i++) {
-			if (name == players[i].name) return i;
+	public Player playerNamed(string name) {
+		foreach (Player player in players) {
+			if (name == player.name) return player;
 		}
-		return -1;
+		return null;
 	}
 
 	/// <summary>
-	/// returns index of unit type with specified name, or -1 if no such unit type
+	/// returns unit type with specified name, or null if no such unit type
 	/// </summary>
-	public int unitTypeNamed(string name) {
-		for (int i = 0; i < unitT.Length; i++) {
-			if (name == unitT[i].name) return i;
+	public UnitType unitTypeNamed(string name) {
+		foreach (UnitType type in unitT) {
+			if (name == type.name) return type;
 		}
-		return -1;
+		return null;
 	}
 }

@@ -38,10 +38,10 @@ public class MakeUnitCmdEvt : CmdEvt {
 		// make unit at requested position, if possible
 		foreach (int path in exPaths.Keys) {
 			FP.Vector curPos = g.paths[path].calcPos(timeCmd);
-			if ((pos.x == curPos.x && pos.y == curPos.y) || (g.unitT[type].speed > 0 && g.unitT[type].makeOnUnitT < 0)) {
+			if ((pos.x == curPos.x && pos.y == curPos.y) || (g.unitT[type].speed > 0 && g.unitT[type].makeOnUnitT == null)) {
 				// TODO: take time to make units?
 				List<int> unitList = new List<int>();
-				g.units.Add (new Unit(g, g.units.Count, type, g.paths[path].player));
+				g.units.Add (new Unit(g, g.units.Count, g.unitT[type], g.paths[path].player));
 				unitList.Add (g.units.Count - 1);
 				if (g.paths[path].makePath (timeCmd, unitList)) {
 					if (g.paths.Last ().canMove (timeCmd)) {
@@ -59,7 +59,7 @@ public class MakeUnitCmdEvt : CmdEvt {
 			// try moving one to the correct position then trying again to make the unit
 			Path movePath = null;
 			foreach (KeyValuePair<int, List<int>> path in exPaths) {
-				if (g.unitsCanMake (path.Value, type) && g.paths[path.Key].canMove (timeCmd)
+				if (g.unitsCanMake (path.Value, g.unitT[type]) && g.paths[path.Key].canMove (timeCmd)
 					&& (movePath == null || (g.paths[path.Key].calcPos(timeCmd) - pos).lengthSq() < (movePath.calcPos(timeCmd) - pos).lengthSq())) {
 					bool newPathIsLive = (time >= g.timeSim && g.paths[path.Key].timeSimPast == long.MaxValue);
 					int i;

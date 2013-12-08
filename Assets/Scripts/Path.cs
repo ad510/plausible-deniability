@@ -16,13 +16,13 @@ public class Path {
 	public readonly Sim g;
 	public readonly int id; // index in path list
 	public readonly long speed; // in position units per millisecond
-	public readonly int player;
+	public readonly Player player;
 	public List<Segment> segments; // composition of the path over time, more recent segments are later in list
 	public List<Move> moves; // how path moved over time, more recent moves are later in list
 	public int tileX, tileY; // current position on visibility tiles
 	public long timeSimPast; // time traveling simulation time if made in the past, otherwise set to long.MaxValue
 
-	public Path(Sim simVal, int idVal, long speedVal, int playerVal, List<int> units, long startTime, FP.Vector startPos, bool startUnseen) {
+	public Path(Sim simVal, int idVal, long speedVal, Player playerVal, List<int> units, long startTime, FP.Vector startPos, bool startUnseen) {
 		g = simVal;
 		id = idVal;
 		speed = speedVal;
@@ -38,7 +38,7 @@ public class Path {
 	}
 	
 	public Path(Sim simVal, int idVal, List<int> units, long startTime, FP.Vector startPos)
-		: this(simVal, idVal, simVal.unitT[simVal.units[units[0]].type].speed, simVal.units[units[0]].player, units,
+		: this(simVal, idVal, simVal.units[units[0]].type.speed, simVal.units[units[0]].player, units,
 		startTime, startPos, simVal.tileAt(startPos).exclusiveWhen(simVal.units[units[0]].player, startTime)) {
 	}
 
@@ -61,7 +61,7 @@ public class Path {
 		evt = (TileMoveEvt)pastEvents.pop();
 		exclusiveIndex = g.tiles[tX, tY].exclusiveIndexWhen(player, (evt != null) ? evt.time - 1 : curTime);
 		if (!g.tiles[tX, tY].exclusiveWhen(player, (evt != null) ? evt.time - 1 : curTime)
-			|| g.tiles[tX, tY].exclusive[player][exclusiveIndex] > timeSimPast) {
+			|| g.tiles[tX, tY].exclusive[player.id][exclusiveIndex] > timeSimPast) {
 			segments.Last ().removeAllUnits();
 			return;
 		}
@@ -72,7 +72,7 @@ public class Path {
 				if (evt.tileY != int.MinValue) tY = evt.tileY;
 				exclusiveIndex = g.tiles[tX, tY].exclusiveIndexWhen(player, evt.time);
 				if (!g.tiles[tX, tY].exclusiveWhen(player, evt.time)
-					|| (exclusiveIndex + 1 < g.tiles[tX, tY].exclusive[player].Count() && g.tiles[tX, tY].exclusive[player][exclusiveIndex + 1] <= Math.Min(g.events.peekTime(), timeSimPastNext))) {
+					|| (exclusiveIndex + 1 < g.tiles[tX, tY].exclusive[player.id].Count() && g.tiles[tX, tY].exclusive[player.id][exclusiveIndex + 1] <= Math.Min(g.events.peekTime(), timeSimPastNext))) {
 					segments.Last ().removeAllUnits();
 					return;
 				}
@@ -154,14 +154,14 @@ public class Path {
 	public bool makePath(long time, List<int> units) {
 		if (canMakePath(time, units)) {
 			Segment segment = insertSegment (time);
-			g.paths.Add (new Path(g, g.paths.Count, g.unitT[g.units[units[0]].type].speed, player, units, time, calcPos (time), segment.unseen));
+			g.paths.Add (new Path(g, g.paths.Count, g.units[units[0]].type.speed, player, units, time, calcPos (time), segment.unseen));
 			connect (time, g.paths.Last ());
 			// if this path isn't live, new path can't be either
 			if (timeSimPast != long.MaxValue) g.paths.Last ().timeSimPast = time;
 			// indicate to calculate TileMoveEvts for new path starting at timeSim
 			if (!g.movedPaths.Contains(g.paths.Count - 1)) g.movedPaths.Add(g.paths.Count - 1);
 			// if new path isn't live, indicate that player now has a non-live path
-			if (g.paths.Last ().timeSimPast != long.MaxValue) g.players[player].hasNonLivePaths = true;
+			if (g.paths.Last ().timeSimPast != long.MaxValue) player.hasNonLivePaths = true;
 			return true;
 		}
 		return false;
@@ -187,7 +187,7 @@ public class Path {
 				if (!canMakeUnitType (time, g.units[unit].type)) return false;
 				// unit in path would be non-path child unit
 				for (int i = 0; i < g.rscNames.Length; i++) {
-					rscCost[i] += g.unitT[g.units[unit].type].rscCost[i];
+					rscCost[i] += g.units[unit].type.rscCost[i];
 				}
 			}
 		}
@@ -199,11 +199,11 @@ public class Path {
 		return true;
 	}
 	
-	public bool canMakeUnitType(long time, int type) {
+	public bool canMakeUnitType(long time, UnitType type) {
 		Segment segment = getSegment (time);
 		if (segment != null) {
 			foreach (int unit in segment.units) {
-				if (g.unitT[g.units[unit].type].canMake[type] && canBeUnambiguousParent (time, segment, unit)
+				if (g.units[unit].type.canMake[type.id] && canBeUnambiguousParent (time, segment, unit)
 					&& (time >= g.timeSim || segment.unseenAfter (unit))) {
 					return true;
 				}
@@ -339,8 +339,8 @@ public class Path {
 	public FP.Vector selMinPos(long time) {
 		FP.Vector ret = new FP.Vector(int.MaxValue, int.MaxValue);
 		foreach (int unit in getSegment(time).units) {
-			ret.x = Math.Min (ret.x, g.unitT[g.units[unit].type].selMinPos.x);
-			ret.y = Math.Min (ret.y, g.unitT[g.units[unit].type].selMinPos.y);
+			ret.x = Math.Min (ret.x, g.units[unit].type.selMinPos.x);
+			ret.y = Math.Min (ret.y, g.units[unit].type.selMinPos.y);
 		}
 		return ret + calcPos(time);
 	}
@@ -351,8 +351,8 @@ public class Path {
 	public FP.Vector selMaxPos(long time) {
 		FP.Vector ret = new FP.Vector(int.MinValue, int.MinValue);
 		foreach (int unit in getSegment(time).units) {
-			ret.x = Math.Max (ret.x, g.unitT[g.units[unit].type].selMaxPos.x);
-			ret.y = Math.Max (ret.y, g.unitT[g.units[unit].type].selMaxPos.y);
+			ret.x = Math.Max (ret.x, g.units[unit].type.selMaxPos.x);
+			ret.y = Math.Max (ret.y, g.units[unit].type.selMaxPos.y);
 		}
 		return ret + calcPos(time);
 	}
@@ -363,8 +363,8 @@ public class Path {
 	public long makePathMinDist(long time, List<int> units) {
 		long ret = 0;
 		foreach (int unit in getSegment (time).units) {
-			if (units.Contains (unit) && g.unitT[g.units[unit].type].makePathMinDist > ret) {
-				ret = g.unitT[g.units[unit].type].makePathMinDist;
+			if (units.Contains (unit) && g.units[unit].type.makePathMinDist > ret) {
+				ret = g.units[unit].type.makePathMinDist;
 			}
 		}
 		return ret;
@@ -376,8 +376,8 @@ public class Path {
 	public long makePathMaxDist(long time, List<int> units) {
 		long ret = 0;
 		foreach (int unit in getSegment (time).units) {
-			if (units.Contains (unit) && g.unitT[g.units[unit].type].makePathMaxDist > ret) {
-				ret = g.unitT[g.units[unit].type].makePathMaxDist;
+			if (units.Contains (unit) && g.units[unit].type.makePathMaxDist > ret) {
+				ret = g.units[unit].type.makePathMaxDist;
 			}
 		}
 		return ret;

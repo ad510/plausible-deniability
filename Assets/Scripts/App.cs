@@ -52,8 +52,8 @@ public class App : MonoBehaviour {
 		public GameObject healthBarBack;
 		public GameObject healthBarFore;
 		public LineRenderer pathLine;
-		public int type;
-		public int player;
+		public UnitType type;
+		public Player player;
 		
 		public UnitSprite(GameObject quadPrefab) {
 			sprite = Instantiate(quadPrefab) as GameObject;
@@ -63,8 +63,8 @@ public class App : MonoBehaviour {
 			pathLine = sprite.AddComponent<LineRenderer>();
 			pathLine.material.shader = Shader.Find ("Diffuse");
 			pathLine.SetVertexCount (2);
-			type = -1;
-			player = -1;
+			type = null;
+			player = null;
 		}
 		
 		public void dispose() {
@@ -102,9 +102,9 @@ public class App : MonoBehaviour {
 	Vector2 makeUnitScrollPos;
 	Vector2 selUnitsScrollPos;
 	Sim g;
-	int selPlayer;
+	Player selPlayer;
 	Dictionary<int, List<int>> selPaths; // TODO: this should consider time that paths were selected
-	int makeUnitType;
+	UnitType makeUnitType;
 	long timeNow;
 	long timeLast;
 	long timeGame;
@@ -227,21 +227,21 @@ public class App : MonoBehaviour {
 			}
 			foreach (Hashtable jsonO in jsonA) {
 				ArrayList jsonA2 = jsonArray(jsonO, "mayAttack");
-				Player player = g.players[g.playerNamed(jsonString(jsonO, "name"))];
+				Player player = g.playerNamed(jsonString(jsonO, "name"));
 				player.mayAttack = new bool[g.players.Length];
 				for (int i = 0; i < g.players.Length; i++) {
 					player.mayAttack[i] = false;
 				}
 				if (jsonA2 != null) {
 					foreach (string s in jsonA2) {
-						if (g.playerNamed(s) >= 0) {
-							player.mayAttack[g.playerNamed(s)] = true;
+						if (g.playerNamed(s) != null) {
+							player.mayAttack[g.playerNamed(s).id] = true;
 						}
 					}
 				}
 			}
-			for (int i = 0; i < g.players.Length; i++) {
-				g.players[i].immutable = g.calcPlayerImmutable(i);
+			foreach (Player player in g.players) {
+				player.immutable = g.calcPlayerImmutable(player);
 			}
 		}
 		// users
@@ -286,7 +286,7 @@ public class App : MonoBehaviour {
 			foreach (Hashtable jsonO in jsonA) {
 				Hashtable jsonO2 = jsonObject(jsonO, "damage");
 				ArrayList jsonA2 = jsonArray(jsonO, "canMake");
-				UnitType unitT = g.unitT[g.unitTypeNamed(jsonString(jsonO, "name"))];
+				UnitType unitT = g.unitTypeNamed(jsonString(jsonO, "name"));
 				unitT.makeOnUnitT = g.unitTypeNamed(jsonString(jsonO, "makeOnUnitT"));
 				unitT.damage = new int[g.unitT.Length];
 				for (int i = 0; i < g.unitT.Length; i++) {
@@ -298,8 +298,8 @@ public class App : MonoBehaviour {
 				}
 				if (jsonA2 != null) {
 					foreach (string s in jsonA2) {
-						if (g.unitTypeNamed(s) >= 0) {
-							unitT.canMake[g.unitTypeNamed(s)] = true;
+						if (g.unitTypeNamed(s) != null) {
+							unitT.canMake[g.unitTypeNamed(s).id] = true;
 						}
 					}
 				}
@@ -329,12 +329,12 @@ public class App : MonoBehaviour {
 		jsonA = jsonArray(json, "units");
 		if (jsonA != null) {
 			foreach (Hashtable jsonO in jsonA) {
-				if (g.playerNamed(jsonString(jsonO, "player")) >= 0) {
+				if (g.playerNamed(jsonString(jsonO, "player")) != null) {
 					ArrayList jsonA2 = jsonArray (jsonO, "types");
 					List<int> units = new List<int>();
 					if (jsonA2 != null) {
 						foreach (string type in jsonA2) {
-							if (g.unitTypeNamed(type) >= 0) {
+							if (g.unitTypeNamed(type) != null) {
 								g.units.Add (new Unit(g, g.units.Count, g.unitTypeNamed(type), g.playerNamed(jsonString(jsonO, "player"))));
 								units.Add (g.units.Count - 1);
 							}
@@ -357,10 +357,10 @@ public class App : MonoBehaviour {
 		// start game
 		Camera.main.backgroundColor = g.backCol;
 		border.line.material.color = g.borderCol;
-		selPlayer = 0;
-		while (g.players[selPlayer].user != g.selUser) selPlayer = (selPlayer + 1) % g.players.Length;
+		selPlayer = g.players[0];
+		while (selPlayer.user != g.selUser) selPlayer = g.players[(selPlayer.id + 1) % g.players.Length];
 		selPaths = new Dictionary<int, List<int>>();
-		makeUnitType = -1;
+		makeUnitType = null;
 		paused = false;
 		speed = 0;
 		timeGame = 0;
@@ -432,12 +432,12 @@ public class App : MonoBehaviour {
 		if (Input.GetMouseButtonUp (0)) { // left button up
 			mouseUpPos[0] = Input.mousePosition;
 			if (mouseDownPos[0].y > Screen.height * g.uiBarHeight) {
-				if (makeUnitType >= 0) {
+				if (makeUnitType != null) {
 					// make unit
 					// happens at newCmdTime() + 1 so new unit starts out live if game is live
 					FP.Vector pos = makeUnitPos();
-					if (pos.x != Sim.OffMap) g.cmdPending.add(new MakeUnitCmdEvt(g.timeSim, newCmdTime() + 1, selPathsCopy(), makeUnitType, pos));
-					makeUnitType = -1;
+					if (pos.x != Sim.OffMap) g.cmdPending.add(new MakeUnitCmdEvt(g.timeSim, newCmdTime() + 1, selPathsCopy(), makeUnitType.id, pos));
+					makeUnitType = null;
 				}
 				else {
 					// select paths
@@ -464,9 +464,9 @@ public class App : MonoBehaviour {
 		if (Input.GetMouseButtonUp (1)) { // right button up
 			mouseUpPos[1] = Input.mousePosition;
 			if (mouseDownPos[1].y > Screen.height * g.uiBarHeight) {
-				if (makeUnitType >= 0) {
+				if (makeUnitType != null) {
 					// cancel making unit
-					makeUnitType = -1;
+					makeUnitType = null;
 				}
 				else {
 					int stackPath = -1;
@@ -500,10 +500,10 @@ public class App : MonoBehaviour {
 		if (Input.GetKeyDown (KeyCode.Space)) {
 			// change selected player
 			do {
-				selPlayer = (selPlayer + 1) % g.players.Length;
-			} while (g.players[selPlayer].user != g.selUser);
+				selPlayer = g.players[(selPlayer.id + 1) % g.players.Length];
+			} while (selPlayer.user != g.selUser);
 			selPaths.Clear();
-			makeUnitType = -1;
+			makeUnitType = null;
 		}
 		if (Input.GetKeyDown (KeyCode.P)) {
 			// pause/resume
@@ -608,8 +608,8 @@ public class App : MonoBehaviour {
 				for (int j = 0; j < segment.units.Count; j++) {
 					int unit = segment.units[j];
 					if (sprUnits[i][j].type != g.units[unit].type || sprUnits[i][j].player != g.units[unit].player) {
-						sprUnits[i][j].sprite.renderer.material.mainTexture = texUnits[g.units[unit].type, g.units[unit].player];
-						sprUnits[i][j].preview.renderer.material.mainTexture = texUnits[g.units[unit].type, g.units[unit].player];
+						sprUnits[i][j].sprite.renderer.material.mainTexture = texUnits[g.units[unit].type.id, g.units[unit].player.id];
+						sprUnits[i][j].preview.renderer.material.mainTexture = texUnits[g.units[unit].type.id, g.units[unit].player.id];
 						sprUnits[i][j].pathLine.material.color = g.pathCol;
 						sprUnits[i][j].type = g.units[unit].type;
 						sprUnits[i][j].player = g.units[unit].player;
@@ -620,7 +620,7 @@ public class App : MonoBehaviour {
 					else {
 						sprUnits[i][j].sprite.renderer.material.color = new Color(1, 1, 1, 0.5f); // TODO: make transparency amount customizable
 					}
-					sprUnits[i][j].sprite.transform.position = vec + simToDrawScl (g.unitT[g.units[unit].type].imgOffset);
+					sprUnits[i][j].sprite.transform.position = vec + simToDrawScl (g.units[unit].type.imgOffset);
 					sprUnits[i][j].sprite.transform.localScale = unitScale (g.units[unit].type, g.units[unit].player);
 					sprUnits[i][j].sprite.renderer.enabled = true;
 					for (int k = i + 1; k < g.paths.Count; k++) {
@@ -637,7 +637,7 @@ public class App : MonoBehaviour {
 					if (Input.GetKey (KeyCode.LeftShift) && selPaths.ContainsKey(i)) {
 						// show final position if holding shift
 						sprUnits[i][j].preview.renderer.material.color = sprUnits[i][j].sprite.renderer.material.color;
-						sprUnits[i][j].preview.transform.position = simToDrawPos(g.paths[i].moves.Last ().vecEnd + g.unitT[g.units[unit].type].imgOffset, UnitDepth);
+						sprUnits[i][j].preview.transform.position = simToDrawPos(g.paths[i].moves.Last ().vecEnd + g.units[unit].type.imgOffset, UnitDepth);
 						sprUnits[i][j].preview.transform.localScale = sprUnits[i][j].sprite.transform.localScale;
 						sprUnits[i][j].preview.renderer.enabled = true;
 					}
@@ -645,16 +645,16 @@ public class App : MonoBehaviour {
 			}
 		}
 		// unit to be made
-		if (makeUnitType >= 0) {
+		if (makeUnitType != null) {
 			FP.Vector pos = makeUnitPos();
-			sprMakeUnit.renderer.material.mainTexture = texUnits[makeUnitType, selPlayer];
+			sprMakeUnit.renderer.material.mainTexture = texUnits[makeUnitType.id, selPlayer.id];
 			if (pos.x != Sim.OffMap) {
 				sprMakeUnit.renderer.material.color = new Color(1, 1, 1, 1);
-				sprMakeUnit.transform.position = simToDrawPos(pos + g.unitT[makeUnitType].imgOffset, UnitDepth);
+				sprMakeUnit.transform.position = simToDrawPos(pos + makeUnitType.imgOffset, UnitDepth);
 			}
 			else {
 				sprMakeUnit.renderer.material.color = new Color(1, 1, 1, 0.5f); // TODO: make transparency amount customizable
-				sprMakeUnit.transform.position = new Vector3(Input.mousePosition.x, Input.mousePosition.y, UnitDepth) + simToDrawScl (g.unitT[makeUnitType].imgOffset);
+				sprMakeUnit.transform.position = new Vector3(Input.mousePosition.x, Input.mousePosition.y, UnitDepth) + simToDrawScl (makeUnitType.imgOffset);
 			}
 			sprMakeUnit.transform.localScale = unitScale (makeUnitType, selPlayer);
 			sprMakeUnit.renderer.enabled = true;
@@ -669,8 +669,8 @@ public class App : MonoBehaviour {
 				for (int j = 0; j < segment.units.Count; j++) {
 					int unit = segment.units[j];
 					if (selPaths[path].Contains (unit)) {
-						float f = ((float)g.units[unit].healthWhen(timeGame)) / g.unitT[g.units[unit].type].maxHealth;
-						float f2 = vec.y + simToDrawScl (g.unitT[g.units[unit].type].selMaxPos.y) + g.healthBarYOffset * winDiag;
+						float f = ((float)g.units[unit].healthWhen(timeGame)) / g.units[unit].type.maxHealth;
+						float f2 = vec.y + simToDrawScl (g.units[unit].type.selMaxPos.y) + g.healthBarYOffset * winDiag;
 						// background
 						if (g.units[unit].healthWhen(timeGame) > 0) {
 							sprUnits[path][j].healthBarBack.renderer.material.color = g.healthBarBackCol;
@@ -688,7 +688,7 @@ public class App : MonoBehaviour {
 			}
 		}
 		// select box (if needed)
-		if (Input.GetMouseButton (0) && makeUnitType < 0 && SelBoxMin <= (Input.mousePosition - mouseDownPos[0]).sqrMagnitude && mouseDownPos[0].y > Screen.height * g.uiBarHeight) {
+		if (Input.GetMouseButton (0) && makeUnitType == null && SelBoxMin <= (Input.mousePosition - mouseDownPos[0]).sqrMagnitude && mouseDownPos[0].y > Screen.height * g.uiBarHeight) {
 			selectBox.setRect (mouseDownPos[0], Input.mousePosition, SelectBoxDepth);
 			selectBox.line.enabled = true;
 		}
@@ -711,9 +711,9 @@ public class App : MonoBehaviour {
 		if (paused) GUILayout.Label ("PAUSED", lblStyle);
 		if (Environment.TickCount < timeSpeedChg) timeSpeedChg -= UInt32.MaxValue;
 		if (Environment.TickCount < timeSpeedChg + 1000) GUILayout.Label ("SPEED: " + Math.Pow(2, speed) + "x", lblStyle);
-		if (g.players[selPlayer].timeGoLiveFail != long.MaxValue) {
+		if (selPlayer.timeGoLiveFail != long.MaxValue) {
 			lblStyle.normal.textColor = Color.red;
-			GUILayout.Label ("ERROR: Going live may cause you to have negative resources " + (timeGame - g.players[selPlayer].timeNegRsc) / 1000 + " second(s) ago.", lblStyle);
+			GUILayout.Label ("ERROR: Going live may cause you to have negative resources " + (timeGame - selPlayer.timeNegRsc) / 1000 + " second(s) ago.", lblStyle);
 		}
 		// text at bottom left
 		GUILayout.FlexibleSpace ();
@@ -746,8 +746,8 @@ public class App : MonoBehaviour {
 		if (selPaths.Count > 0) {
 			for (int i = 0; i < g.unitT.Length; i++) {
 				foreach (int path in selPaths.Keys) {
-					if (timeGame >= g.paths[path].moves[0].timeStart && g.paths[path].canMakeUnitType (timeGame, i)) { // TODO: sometimes canMake check should use existing selected units in path
-						if (GUILayout.Button ("Make " + g.unitT[i].name)) makeUnit (i);
+					if (timeGame >= g.paths[path].moves[0].timeStart && g.paths[path].canMakeUnitType (timeGame, g.unitT[i])) { // TODO: sometimes canMake check should use existing selected units in path
+						if (GUILayout.Button ("Make " + g.unitT[i].name)) makeUnit (g.unitT[i]);
 						break;
 					}
 				}
@@ -759,7 +759,7 @@ public class App : MonoBehaviour {
 		GUILayout.BeginArea (new Rect(Screen.width / 2, Screen.height * (1 - g.uiBarHeight), Screen.width / 2, Screen.height * g.uiBarHeight));
 		selUnitsScrollPos = GUILayout.BeginScrollView (selUnitsScrollPos, "box");
 		foreach (KeyValuePair<int, int> item in selUnits()) {
-			if (GUILayout.Button (g.unitT[g.units[item.Key].type].name + (item.Value != 1 ? " (" + item.Value + " paths)" : ""))) {
+			if (GUILayout.Button (g.units[item.Key].type.name + (item.Value != 1 ? " (" + item.Value + " paths)" : ""))) {
 				int[] selPathsKeys = new int[selPaths.Keys.Count];
 				selPaths.Keys.CopyTo (selPathsKeys, 0);
 				if (Event.current.button == 0) { // left button
@@ -958,7 +958,7 @@ public class App : MonoBehaviour {
 	/// </summary>
 	private FP.Vector makeUnitPos() {
 		if (FP.rectContains (new FP.Vector(), new FP.Vector(g.mapSize, g.mapSize), drawToSimPos(Input.mousePosition))) {
-			if (g.unitT[makeUnitType].makeOnUnitT >= 0) {
+			if (makeUnitType.makeOnUnitT != null) {
 				// selected unit type must be made on top of another unit of correct type
 				// TODO: prevent putting multiple units on same unit (unless on different paths of same unit and maybe some other cases)
 				foreach (Path path in g.paths) {
@@ -967,7 +967,7 @@ public class App : MonoBehaviour {
 						if (g.tileAt (pos).playerVisWhen (selPlayer, timeGame)
 							&& FP.rectContains (path.selMinPos (timeGame), path.selMaxPos (timeGame), drawToSimPos (Input.mousePosition))) {
 							foreach (int unit in path.getSegment (timeGame).units) {
-								if (g.units[unit].type == g.unitT[makeUnitType].makeOnUnitT) {
+								if (g.units[unit].type == makeUnitType.makeOnUnitT) {
 									return pos;
 								}
 							}
@@ -986,13 +986,13 @@ public class App : MonoBehaviour {
 	/// returns where new unit of specified type can move out of the way after specified path makes it
 	/// </summary>
 	/// <remarks>chooses a random location between makeUnitMinDist and makeUnitMaxDist away from path</remarks>
-	private FP.Vector makeUnitMovePos(long time, int path, int type) {
+	private FP.Vector makeUnitMovePos(long time, int path, UnitType type) {
 		FP.Vector ret;
 		do {
-			ret = new FP.Vector((long)((UnityEngine.Random.value - 0.5) * g.unitT[type].makeUnitMaxDist * 2),
-				(long)((UnityEngine.Random.value - 0.5) * g.unitT[type].makeUnitMaxDist * 2));
-		} while (ret.lengthSq() < g.unitT[type].makeUnitMinDist * g.unitT[type].makeUnitMinDist
-			|| ret.lengthSq() > g.unitT[type].makeUnitMaxDist * g.unitT[type].makeUnitMaxDist);
+			ret = new FP.Vector((long)((UnityEngine.Random.value - 0.5) * type.makeUnitMaxDist * 2),
+				(long)((UnityEngine.Random.value - 0.5) * type.makeUnitMaxDist * 2));
+		} while (ret.lengthSq() < type.makeUnitMinDist * type.makeUnitMinDist
+			|| ret.lengthSq() > type.makeUnitMaxDist * type.makeUnitMaxDist);
 		return ret + g.paths[path].calcPos(time);
 	}
 
@@ -1044,15 +1044,15 @@ public class App : MonoBehaviour {
 	/// <summary>
 	/// makes a new unit using selected units
 	/// </summary>
-	private void makeUnit(int type) {
+	private void makeUnit(UnitType type) {
 		// TODO: this should only iterate through existing paths (fix when selPaths considers selection time)
 		foreach (KeyValuePair<int, List<int>> path in selPaths) {
-			if (g.unitT[type].speed > 0 && g.unitT[type].makeOnUnitT < 0 && g.paths[path.Key].canMakeUnitType (timeGame + 1, type)) {
+			if (type.speed > 0 && type.makeOnUnitT == null && g.paths[path.Key].canMakeUnitType (timeGame + 1, type)) {
 				// make unit now
 				Dictionary<int, int[]> pathArray = new Dictionary<int, int[]>();
 				pathArray.Add (path.Key, path.Value.ToArray ());
 				// happens at newCmdTime() + 1 so new unit starts out live if game is live
-				g.cmdPending.add(new MakeUnitCmdEvt(g.timeSim, newCmdTime() + 1, pathArray, type, makeUnitMovePos (timeGame + 1, path.Key, type)));
+				g.cmdPending.add(new MakeUnitCmdEvt(g.timeSim, newCmdTime() + 1, pathArray, type.id, makeUnitMovePos (timeGame + 1, path.Key, type)));
 				break;
 			}
 			else if (g.unitsCanMake (path.Value, type)) {
@@ -1078,9 +1078,9 @@ public class App : MonoBehaviour {
 	/// <summary>
 	/// returns localScale of unit sprite with specified properties
 	/// </summary>
-	private Vector3 unitScale(int type, int player) {
-		return new Vector3(simToDrawScl (g.unitT[type].imgHalfHeight) * texUnits[type, player].width / texUnits[type, player].height,
-			simToDrawScl (g.unitT[type].imgHalfHeight), 1);
+	private Vector3 unitScale(UnitType type, Player player) {
+		return new Vector3(simToDrawScl (type.imgHalfHeight) * texUnits[type.id, player.id].width / texUnits[type.id, player.id].height,
+			simToDrawScl (type.imgHalfHeight), 1);
 	}
 	
 	/// <summary>

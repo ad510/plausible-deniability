@@ -29,7 +29,7 @@ public class UnitType {
 	public long makeUnitMaxDist; // maximum distance that new units of this unit type move away
 	public long makePathMinDist; // minimum distance that new paths of this unit type move away
 	public long makePathMaxDist; // maximum distance that new paths of this unit type move away
-	public int makeOnUnitT; // unit type that this unit type should be made on top of
+	public UnitType makeOnUnitT; // unit type that this unit type should be made on top of
 	public int[] damage; // damage done per attack to each unit type
 	public bool[] canMake; // whether can make each unit type
 	public long[] rscCost; // cost to make unit (may not be negative)

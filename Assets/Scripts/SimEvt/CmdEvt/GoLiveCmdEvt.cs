@@ -31,7 +31,7 @@ public class GoLiveCmdEvt : SimEvt {
 	public override void apply(Sim g) {
 		long timeTravelStart = long.MaxValue;
 		foreach (Path path in g.paths) {
-			if (player == path.player && path.segments.Last ().units.Count > 0 && path.timeSimPast != long.MaxValue) {
+			if (player == path.player.id && path.segments.Last ().units.Count > 0 && path.timeSimPast != long.MaxValue) {
 				// ensure that time traveling paths don't move off exclusive areas
 				path.updatePast(time);
 				// find earliest time that player's paths started time traveling
@@ -40,7 +40,7 @@ public class GoLiveCmdEvt : SimEvt {
 		}
 		if (timeTravelStart != long.MaxValue) { // skip if player has no time traveling paths
 			// check if going live might lead to player having negative resources
-			g.players[player].timeNegRsc = g.playerCheckNegRsc(player, timeTravelStart, true);
+			g.players[player].timeNegRsc = g.playerCheckNegRsc(g.players[player], timeTravelStart, true);
 			if (g.players[player].timeNegRsc >= 0) {
 				// indicate failure to go live, then return
 				g.players[player].timeGoLiveFail = time;
@@ -48,7 +48,7 @@ public class GoLiveCmdEvt : SimEvt {
 			}
 			// safe for paths to become live, so do so
 			foreach (Path path in g.paths) {
-				if (player == path.player && path.segments.Last ().units.Count > 0 && path.timeSimPast != long.MaxValue) path.goLive();
+				if (player == path.player.id && path.segments.Last ().units.Count > 0 && path.timeSimPast != long.MaxValue) path.goLive();
 			}
 		}
 		// indicate success

@@ -24,14 +24,14 @@ public class PlayerVisRemoveEvt : SimEvt {
 
 	public override void apply(Sim g) {
 		for (int i = 0; i < tiles.Count; i++) {
-			if (g.tiles[tiles[i].x, tiles[i].y].playerVisLatest(player) && !g.tiles[tiles[i].x, tiles[i].y].playerDirectVisLatest(player)) {
+			if (g.tiles[tiles[i].x, tiles[i].y].playerVisLatest(g.players[player]) && !g.tiles[tiles[i].x, tiles[i].y].playerDirectVisLatest(g.players[player])) {
 				g.tiles[tiles[i].x, tiles[i].y].playerVis[player].Add(time);
 				// add events to remove visibility from surrounding tiles
 				for (int tX = Math.Max(0, (int)tiles[i].x - 1); tX <= Math.Min(g.tileLen() - 1, (int)tiles[i].x + 1); tX++) {
 					for (int tY = Math.Max(0, (int)tiles[i].y - 1); tY <= Math.Min(g.tileLen() - 1, (int)tiles[i].y + 1); tY++) {
-						if ((tX != tiles[i].x || tY != tiles[i].y) && g.tiles[tX, tY].playerVisLatest(player)) {
+						if ((tX != tiles[i].x || tY != tiles[i].y) && g.tiles[tX, tY].playerVisLatest(g.players[player])) {
 							// TODO: use more accurate time
-							g.playerVisRemove(player, tX, tY, time + (1 << FP.Precision) / g.maxSpeed);
+							g.playerVisRemove(g.players[player], tX, tY, time + (1 << FP.Precision) / g.maxSpeed);
 						}
 					}
 				}
@@ -47,12 +47,12 @@ public class PlayerVisRemoveEvt : SimEvt {
 				for (int tX = Math.Max(0, (int)tiles[i].x - g.tileVisRadius()); tX <= Math.Min(g.tileLen() - 1, (int)tiles[i].x + g.tileVisRadius()); tX++) {
 					for (int tY = Math.Max(0, (int)tiles[i].y - g.tileVisRadius()); tY <= Math.Min(g.tileLen() - 1, (int)tiles[i].y + g.tileVisRadius()); tY++) {
 						if (g.inVis(tX - tiles[i].x, tY - tiles[i].y) && (iPrev == -1 || !g.inVis(tX - tiles[iPrev].x, tY - tiles[iPrev].y))) {
-							for (int j = 0; j < g.players.Length; j++) {
-								if (j == player && g.tiles[tX, tY].exclusiveLatest(j)) {
-									g.exclusiveRemove(j, tX, tY, time);
+							foreach (Player player2 in g.players) {
+								if (player2.id == player && g.tiles[tX, tY].exclusiveLatest(player2)) {
+									g.exclusiveRemove(player2, tX, tY, time);
 								}
-								else if (j != player && !g.tiles[tX, tY].exclusiveLatest(j) && g.calcExclusive(j, tX, tY)) {
-									g.exclusiveAdd(j, tX, tY, time);
+								else if (player2.id != player && !g.tiles[tX, tY].exclusiveLatest(player2) && g.calcExclusive(player2, tX, tY)) {
+									g.exclusiveAdd(player2, tX, tY, time);
 								}
 							}
 						}

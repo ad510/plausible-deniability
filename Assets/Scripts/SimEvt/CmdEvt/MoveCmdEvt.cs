@@ -44,7 +44,7 @@ public class MoveCmdEvt : CmdEvt {
 				if (formation == Formation.Tight) {
 					// calculate spacing for tight formation
 					foreach (int unit in path.Value) {
-						if (g.unitT[g.units[unit].type].tightFormationSpacing > spacing) spacing = g.unitT[g.units[unit].type].tightFormationSpacing;
+						if (g.units[unit].type.tightFormationSpacing > spacing) spacing = g.units[unit].type.tightFormationSpacing;
 					}
 				}
 			}

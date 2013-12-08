@@ -63,7 +63,7 @@ public class Tile {
 	/// <summary>
 	/// returns if this tile is in the direct line of sight of a unit of specified player at latest possible time
 	/// </summary>
-	public bool playerDirectVisLatest(int player) {
+	public bool playerDirectVisLatest(Player player) {
 		foreach (int i in pathVis.Keys) {
 			if (player == g.paths[i].player && visLatest(pathVis[i])) return true;
 		}
@@ -73,7 +73,7 @@ public class Tile {
 	/// <summary>
 	/// returns if this tile is in the direct line of sight of a unit of specified player at specified time
 	/// </summary>
-	public bool playerDirectVisWhen(int player, long time) {
+	public bool playerDirectVisWhen(Player player, long time) {
 		foreach (int i in pathVis.Keys) {
 			if (player == g.paths[i].player && visWhen(pathVis[i], time)) return true;
 		}
@@ -84,44 +84,44 @@ public class Tile {
 	/// returns if this tile is either in the direct line of sight for specified player at latest possible time,
 	/// or if player can infer that other players' units aren't in specified tile at latest time
 	/// </summary>
-	public bool playerVisLatest(int player) {
-		return visLatest(playerVis[player]);
+	public bool playerVisLatest(Player player) {
+		return visLatest(playerVis[player.id]);
 	}
 
 	/// <summary>
 	/// returns playerVis gain/lose visibility index associated with specified time for specified player
 	/// </summary>
-	public int playerVisIndexWhen(int player, long time) {
-		return visIndexWhen(playerVis[player], time);
+	public int playerVisIndexWhen(Player player, long time) {
+		return visIndexWhen(playerVis[player.id], time);
 	}
 
 	/// <summary>
 	/// returns if this tile is either in the direct line of sight for specified player at specified time,
 	/// or if player can infer that other players' units aren't in specified tile at specified time
 	/// </summary>
-	public bool playerVisWhen(int player, long time) {
-		return visWhen(playerVis[player], time);
+	public bool playerVisWhen(Player player, long time) {
+		return visWhen(playerVis[player.id], time);
 	}
 
 	/// <summary>
 	/// returns if specified player can infer that no other player can see this tile at latest possible time
 	/// </summary>
-	public bool exclusiveLatest(int player) {
-		return visLatest(exclusive[player]);
+	public bool exclusiveLatest(Player player) {
+		return visLatest(exclusive[player.id]);
 	}
 
 	/// <summary>
 	/// returns gain/lose exclusivity index associated with specified time for specified player
 	/// </summary>
-	public int exclusiveIndexWhen(int player, long time) {
-		return visIndexWhen(exclusive[player], time);
+	public int exclusiveIndexWhen(Player player, long time) {
+		return visIndexWhen(exclusive[player.id], time);
 	}
 
 	/// <summary>
 	/// returns if specified player can infer that no other player can see this tile at specified time
 	/// </summary>
-	public bool exclusiveWhen(int player, long time) {
-		return visWhen(exclusive[player], time);
+	public bool exclusiveWhen(Player player, long time) {
+		return visWhen(exclusive[player.id], time);
 	}
 
 	/// <summary>

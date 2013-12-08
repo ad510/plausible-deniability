@@ -15,19 +15,19 @@ using System.Text;
 public class Unit {
 	public readonly Sim g;
 	public readonly int id; // index in unit list
-	public readonly int type;
-	public readonly int player;
+	public readonly UnitType type;
+	public readonly Player player;
 	public int nTimeHealth;
 	public long[] timeHealth; // times at which each health increment is removed (TODO: change how this is stored to allow switching units on a path)
 	public long timeAttack; // latest time that attacked a unit
 
-	public Unit(Sim simVal, int idVal, int typeVal, int playerVal) {
+	public Unit(Sim simVal, int idVal, UnitType typeVal, Player playerVal) {
 		g = simVal;
 		id = idVal;
 		type = typeVal;
 		player = playerVal;
 		nTimeHealth = 0;
-		timeHealth = new long[g.unitT[type].maxHealth];
+		timeHealth = new long[type.maxHealth];
 		timeAttack = long.MinValue;
 	}
 
@@ -35,10 +35,10 @@ public class Unit {
 	/// remove 1 health increment at specified time
 	/// </summary>
 	public void takeHealth(long time, Path path) {
-		if (nTimeHealth < g.unitT[type].maxHealth) {
+		if (nTimeHealth < type.maxHealth) {
 			nTimeHealth++;
 			timeHealth[nTimeHealth - 1] = time;
-			if (nTimeHealth >= g.unitT[type].maxHealth) {
+			if (nTimeHealth >= type.maxHealth) {
 				// unit lost all health, so remove it from path
 				Segment segment = path.insertSegment(time);
 				segment.units.Remove (id);
@@ -52,7 +52,7 @@ public class Unit {
 	/// returns health of this unit at latest possible time
 	/// </summary>
 	public int healthLatest() {
-		return g.unitT[type].maxHealth - nTimeHealth;
+		return type.maxHealth - nTimeHealth;
 	}
 
 	/// <summary>
@@ -61,6 +61,6 @@ public class Unit {
 	public int healthWhen(long time) {
 		int i = nTimeHealth;
 		while (i > 0 && time < timeHealth[i - 1]) i--;
-		return g.unitT[type].maxHealth - i;
+		return type.maxHealth - i;
 	}
 }

@@ -153,7 +153,7 @@ public class Segment {
 		if (time < timeStart) return 0;
 		// if next segment wasn't active yet, return resources collected from timeStart to time
 		if (nextOnPath () == null || time < nextOnPath ().timeStart) {
-			return g.unitT[g.units[unit].type].rscCollectRate[rscType] * (time - timeStart);
+			return g.units[unit].type.rscCollectRate[rscType] * (time - timeStart);
 		}
 		long ret = 0;
 		bool foundNextSeg = false;
@@ -171,10 +171,10 @@ public class Segment {
 		foreach (KeyValuePair<Segment, int> child in children (unit)) {
 			ret += child.Key.rscCollected (time, child.Value, rscType, max, includeNonLiveChildren);
 			// subtract cost to make child unit
-			ret -= g.unitT[g.units[child.Value].type].rscCost[rscType];
+			ret -= g.units[child.Value].type.rscCost[rscType];
 		}
 		// add resources collected on this segment
-		ret += g.unitT[g.units[unit].type].rscCollectRate[rscType] * (nextOnPath ().timeStart - timeStart);
+		ret += g.units[unit].type.rscCollectRate[rscType] * (nextOnPath ().timeStart - timeStart);
 		return ret;
 	}
 	
@@ -185,7 +185,7 @@ public class Segment {
 		if (!prev (unit).Any ()) {
 			foreach (Segment segment in prev ()) {
 				foreach (int unit2 in segment.units) {
-					if (g.unitT[g.units[unit2].type].canMake[g.units[unit].type]) {
+					if (g.units[unit2].type.canMake[g.units[unit].type.id]) {
 						yield return new KeyValuePair<Segment, int>(segment, unit2);
 					}
 				}
@@ -199,7 +199,7 @@ public class Segment {
 	public IEnumerable<KeyValuePair<Segment, int>> children(int unit) {
 		foreach (Segment segment in next ()) {
 			foreach (int unit2 in segment.units) {
-				if (g.unitT[g.units[unit].type].canMake[g.units[unit2].type] && !segment.prev (unit2).Any ()) {
+				if (g.units[unit].type.canMake[g.units[unit2].type.id] && !segment.prev (unit2).Any ()) {
 					yield return new KeyValuePair<Segment, int>(segment, unit2);
 				}
 			}
