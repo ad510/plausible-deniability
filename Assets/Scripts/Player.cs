@@ -69,8 +69,7 @@ public class Player {
 	public long checkNegRsc(long timeMin, bool includeNonLiveChildren) {
 		foreach (Path path in g.paths) {
 			// check all times since timeMin that a path of specified player was made
-			// note that new paths are made at App.newCmdTime() + 1
-			if (this == path.player && path.segments[0].timeStart >= timeMin && path.segments[0].timeStart <= g.timeSim + 1) {
+			if (this == path.player && path.segments[0].timeStart >= timeMin) {
 				for (int i = 0; i < g.rscNames.Length; i++) {
 					if (resource(path.segments[0].timeStart, i, false, includeNonLiveChildren) < 0) {
 						return path.segments[0].timeStart;
