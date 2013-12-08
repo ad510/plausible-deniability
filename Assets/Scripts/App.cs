@@ -168,9 +168,9 @@ public class App : MonoBehaviour {
 		g.cmdHistory = new SimEvtList();
 		g.checksum = 0;
 		g.synced = true;
-		g.timeSim = -1;
+		g.timeSim = 0;
 		g.timeUpdateEvt = long.MinValue;
-		g.events.add(new UpdateEvt(-1));
+		g.events.add(new UpdateEvt(0));
 		g.maxSpeed = 0;
 		g.mapSize = jsonFP(json, "mapSize");
 		g.updateInterval = (long)jsonDouble(json, "updateInterval");
@@ -343,6 +343,8 @@ public class App : MonoBehaviour {
 					}
 					g.paths.Add (new Path(g, g.paths.Count, units, (long)jsonDouble(jsonO, "startTime"),
 						jsonFPVector(jsonO, "startPos", new FP.Vector((long)(UnityEngine.Random.value * g.mapSize), (long)(UnityEngine.Random.value * g.mapSize)))));
+					Move move = g.paths.Last ().moves[0];
+					g.events.add(new TileMoveEvt(move.timeStart, g.paths.Count - 1, (int)(move.vecStart.x >> FP.Precision), (int)(move.vecStart.y >> FP.Precision)));
 				}
 			}
 		}
@@ -435,9 +437,8 @@ public class App : MonoBehaviour {
 			if (mouseDownPos[0].y > Screen.height * g.uiBarHeight) {
 				if (makeUnitType != null) {
 					// make unit
-					// happens at newCmdTime() + 1 so new unit starts out live if game is live
 					FP.Vector pos = makeUnitPos();
-					if (pos.x != Sim.OffMap) g.cmdPending.add(new MakeUnitCmdEvt(g.timeSim, newCmdTime() + 1, selPathsCopy(), makeUnitType.id, pos));
+					if (pos.x != Sim.OffMap) g.cmdPending.add(new MakeUnitCmdEvt(g.timeSim, newCmdTime(), selPathsCopy(), makeUnitType.id, pos));
 					makeUnitType = null;
 				}
 				else {
@@ -1020,10 +1021,9 @@ public class App : MonoBehaviour {
 		if (selPaths.Count > 0) {
 			Dictionary<int, FP.Vector> pos = new Dictionary<int, FP.Vector>();
 			foreach (KeyValuePair<int, List<int>> path in selPaths) {
-				if (timeGame + 1 >= g.paths[path.Key].segments[0].timeStart) pos[path.Key] = makePathMovePos(timeGame + 1, path.Key, path.Value);
+				if (timeGame >= g.paths[path.Key].segments[0].timeStart) pos[path.Key] = makePathMovePos(timeGame, path.Key, path.Value);
 			}
-			// happens at newCmdTime() + 1 so new path starts out live if game is live
-			g.cmdPending.add(new MakePathCmdEvt(g.timeSim, newCmdTime() + 1, selPathsCopy(), pos));
+			g.cmdPending.add(new MakePathCmdEvt(g.timeSim, newCmdTime(), selPathsCopy(), pos));
 		}
 	}
 	
@@ -1031,7 +1031,6 @@ public class App : MonoBehaviour {
 	/// deletes selected paths
 	/// </summary>
 	private void deletePaths() {
-		// happens at newCmdTime() instead of newCmdTime() + 1 so that when paused, making path then deleting parent path doesn't cause an error
 		if (selPaths.Count > 0) g.cmdPending.add(new DeletePathCmdEvt(g.timeSim, newCmdTime(), selPathsCopy()));
 	}
 	
@@ -1048,12 +1047,11 @@ public class App : MonoBehaviour {
 	private void makeUnit(UnitType type) {
 		// TODO: this should only iterate through existing paths (fix when selPaths considers selection time)
 		foreach (KeyValuePair<int, List<int>> path in selPaths) {
-			if (type.speed > 0 && type.makeOnUnitT == null && g.paths[path.Key].canMakeUnitType (timeGame + 1, type)) {
+			if (type.speed > 0 && type.makeOnUnitT == null && g.paths[path.Key].canMakeUnitType (timeGame, type)) {
 				// make unit now
 				Dictionary<int, int[]> pathArray = new Dictionary<int, int[]>();
 				pathArray.Add (path.Key, path.Value.ToArray ());
-				// happens at newCmdTime() + 1 so new unit starts out live if game is live
-				g.cmdPending.add(new MakeUnitCmdEvt(g.timeSim, newCmdTime() + 1, pathArray, type.id, makeUnitMovePos (timeGame + 1, path.Key, type)));
+				g.cmdPending.add(new MakeUnitCmdEvt(g.timeSim, newCmdTime(), pathArray, type.id, makeUnitMovePos (timeGame, path.Key, type)));
 				break;
 			}
 			else if (g.unitsCanMake (path.Value, type)) {

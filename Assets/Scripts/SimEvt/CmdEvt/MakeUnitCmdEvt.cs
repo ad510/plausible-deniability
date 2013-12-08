@@ -74,7 +74,7 @@ public class MakeUnitCmdEvt : CmdEvt {
 				Dictionary<int, int[]> evtPaths = new Dictionary<int, int[]>(paths);
 				movePath = movePath.moveTo(timeCmd, new List<int>(exPaths[movePath.id]), pos);
 				if (!evtPaths.ContainsKey (movePath.id)) evtPaths[movePath.id] = movePath.segments[0].units.ToArray (); // in case replacement path is moving to make the unit
-				g.events.add(new MakeUnitCmdEvt(movePath.moves.Last ().timeEnd, movePath.moves.Last ().timeEnd + 1,
+				g.events.add(new MakeUnitCmdEvt(movePath.moves.Last ().timeEnd, movePath.moves.Last ().timeEnd,
 					evtPaths, type, pos, true));
 			}
 		}

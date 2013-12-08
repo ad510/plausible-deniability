@@ -34,7 +34,7 @@ public class Path {
 		moves.Add (new Move(startTime, startPos));
 		tileX = Sim.OffMap + 1;
 		tileY = Sim.OffMap + 1;
-		timeSimPast = (startTime > g.timeSim) ? long.MaxValue : startTime;
+		timeSimPast = (startTime >= g.timeSim) ? long.MaxValue : startTime;
 	}
 	
 	public Path(Sim simVal, int idVal, List<int> units, long startTime, FP.Vector startPos)
@@ -87,18 +87,11 @@ public class Path {
 	/// </summary>
 	/// <remarks>due to fixed point imprecision in lineCalcX() and lineCalcY(), this sometimes adds events outside the requested time interval</remarks>
 	public void addTileMoveEvts(ref SimEvtList events, long timeMin, long timeMax) {
-		int move, moveLast;
+		if (timeMax < moves[0].timeStart) return;
+		int moveLast = Math.Max (0, getMove(timeMin));
+		int move = getMove(timeMax);
 		FP.Vector pos, posLast;
 		int iNext, dir;
-		if (timeMax < moves[0].timeStart) return;
-		moveLast = getMove(timeMin);
-		move = getMove(timeMax);
-		if (moveLast < 0) {
-			// put path on visibility tiles for the first time
-			// TODO: do this manually in scnOpen and makePath? then paths made at timeSim can start out live
-			events.add(new TileMoveEvt(moves[0].timeStart, id, (int)(moves[0].vecStart.x >> FP.Precision), (int)(moves[0].vecStart.y >> FP.Precision)));
-			moveLast = 0;
-		}
 		for (int i = moveLast; i <= move; i = iNext) {
 			// next move may not be i + 1 if times are out of order
 			iNext = i + 1;
@@ -127,6 +120,7 @@ public class Path {
 		timeSimPast = long.MaxValue;
 		FP.Vector pos = calcPos(g.timeSim);
 		g.events.add(new TileMoveEvt(g.timeSim, id, (int)(pos.x >> FP.Precision), (int)(pos.y >> FP.Precision)));
+		if (!g.movedPaths.Contains(id)) g.movedPaths.Add(id); // indicate to delete and recalculate later TileMoveEvts for this path
 	}
 
 	public void beUnseen(long time) {
@@ -149,14 +143,16 @@ public class Path {
 	public bool makePath(long time, List<int> units) {
 		if (canMakePath(time, units)) {
 			Segment segment = insertSegment (time);
-			g.paths.Add (new Path(g, g.paths.Count, g.units[units[0]].type.speed, player, units, time, calcPos (time), segment.unseen));
+			FP.Vector pos = calcPos (time);
+			g.paths.Add (new Path(g, g.paths.Count, g.units[units[0]].type.speed, player, units, time, pos, segment.unseen));
 			connect (time, g.paths.Last ());
-			// if this path isn't live, new path can't be either
 			if (timeSimPast != long.MaxValue) g.paths.Last ().timeSimPast = time;
-			// indicate to calculate TileMoveEvts for new path starting at timeSim
-			if (!g.movedPaths.Contains(g.paths.Count - 1)) g.movedPaths.Add(g.paths.Count - 1);
-			// if new path isn't live, indicate that player now has a non-live path
-			if (g.paths.Last ().timeSimPast != long.MaxValue) player.hasNonLivePaths = true;
+			if (g.paths.Last ().timeSimPast == long.MaxValue) {
+				g.events.add(new TileMoveEvt(time, g.paths.Count - 1, (int)(pos.x >> FP.Precision), (int)(pos.y >> FP.Precision)));
+			}
+			else {
+				player.hasNonLivePaths = true;
+			}
 			return true;
 		}
 		return false;
