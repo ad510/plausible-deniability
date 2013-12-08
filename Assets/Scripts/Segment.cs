@@ -82,12 +82,11 @@ public class Segment {
 		}
 		// remove unit recursively, starting at the ancestor segments we found
 		for (i = 0; i < ancestors.Count; i++) {
-			if (!ancestors[i].removeUnitAfter (unit, ref removed)) break;
-			startRemoveTime = Math.Min (startRemoveTime, ancestors[i].timeStart);
+			if (!ancestors[i].removeUnitAfter (unit, ref removed, ref startRemoveTime)) break;
 		}
 		// if a removeUnitAfter() call failed or removing unit might have led to player having negative resources,
 		// add units back to segments they were removed from
-		if (i < ancestors.Count || path.player.checkNegRsc (startRemoveTime, false) >= 0) {
+		if (i < ancestors.Count || (startRemoveTime != long.MaxValue && path.player.checkNegRsc (startRemoveTime, false) >= 0)) {
 			foreach (KeyValuePair<Segment, List<int>> item in removed) {
 				item.Key.units.AddRange (item.Value);
 			}
@@ -102,20 +101,21 @@ public class Segment {
 		return true;
 	}
 	
-	private bool removeUnitAfter(int unit, ref Dictionary<Segment, List<int>> removed) {
+	private bool removeUnitAfter(int unit, ref Dictionary<Segment, List<int>> removed, ref long startRemoveTime) {
 		if (units.Contains (unit)) {
 			if (!unseen && timeStart < g.timeSim) return false;
 			// only remove units from next segments if this is their only previous segment
 			if (nextOnPath () == null || nextOnPath ().prev (unit).Count () == 1) {
 				// remove unit from next segments
 				foreach (Segment segment in next (unit)) {
-					if (!segment.removeUnitAfter (unit, ref removed)) return false;
+					if (!segment.removeUnitAfter (unit, ref removed, ref startRemoveTime)) return false;
 				}
 				// remove child units that only this unit could have made
 				foreach (KeyValuePair<Segment, int> child in children (unit).ToArray ()) {
 					// TODO: if has alternate non-live parent, do we need to recursively make children non-live?
 					if (child.Key.parents (child.Value).Count () == 1) {
-						if (!child.Key.removeUnitAfter (child.Value, ref removed)) return false;
+						if (!child.Key.removeUnitAfter (child.Value, ref removed, ref startRemoveTime)) return false;
+						startRemoveTime = Math.Min (startRemoveTime, child.Key.timeStart);
 					}
 				}
 			}
