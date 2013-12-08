@@ -194,7 +194,7 @@ public class Path {
 		bool newPathIsLive = (time >= g.timeSim && timeSimPast == long.MaxValue);
 		for (int i = 0; i < g.rscNames.Length; i++) {
 			// TODO: may be more permissive by passing in max = true, but this really complicates removeUnit() algorithm (see planning notes)
-			if (g.playerResource(player, time, i, false, !newPathIsLive) < rscCost[i]) return false;
+			if (player.resource(time, i, false, !newPathIsLive) < rscCost[i]) return false;
 		}
 		return true;
 	}

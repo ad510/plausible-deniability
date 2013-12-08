@@ -213,6 +213,7 @@ public class App : MonoBehaviour {
 			foreach (Hashtable jsonO in jsonA) {
 				Hashtable jsonO2 = jsonObject(jsonO, "startRsc");
 				Player player = new Player();
+				player.g = g;
 				player.id = g.players.Length;
 				player.name = jsonString(jsonO, "name");
 				player.isUser = jsonBool(jsonO, "isUser");
@@ -241,7 +242,7 @@ public class App : MonoBehaviour {
 				}
 			}
 			foreach (Player player in g.players) {
-				player.immutable = g.calcPlayerImmutable(player);
+				player.immutable = player.calcImmutable();
 			}
 		}
 		// users
@@ -382,7 +383,7 @@ public class App : MonoBehaviour {
 	/// </summary>
 	void Update () {
 		updateTime ();
-		g.updatePast (selPlayer, timeGame);
+		selPlayer.updatePast (timeGame);
 		g.update (timeGame);
 		updateInput ();
 		draw ();
@@ -718,8 +719,8 @@ public class App : MonoBehaviour {
 		// text at bottom left
 		GUILayout.FlexibleSpace ();
 		for (int i = 0; i < g.rscNames.Length; i++) {
-			long rscMin = (long)Math.Floor(FP.toDouble(g.playerResource(selPlayer, timeGame, i, false, true)));
-			long rscMax = (long)Math.Floor(FP.toDouble(g.playerResource(selPlayer, timeGame, i, true, true)));
+			long rscMin = (long)Math.Floor(FP.toDouble(selPlayer.resource(timeGame, i, false, true)));
+			long rscMax = (long)Math.Floor(FP.toDouble(selPlayer.resource(timeGame, i, true, true)));
 			lblStyle.normal.textColor = (rscMin >= 0) ? Color.white : Color.red;
 			GUILayout.Label (g.rscNames[i] + ": " + rscMin + ((rscMax != rscMin) ? " to " + rscMax : ""), lblStyle);
 		}

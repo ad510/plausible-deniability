@@ -87,7 +87,7 @@ public class Segment {
 		}
 		// if a removeUnitAfter() call failed or removing unit might have led to player having negative resources,
 		// add units back to segments they were removed from
-		if (i < ancestors.Count || g.playerCheckNegRsc (path.player, startRemoveTime, false) >= 0) {
+		if (i < ancestors.Count || path.player.checkNegRsc (startRemoveTime, false) >= 0) {
 			foreach (KeyValuePair<Segment, List<int>> item in removed) {
 				item.Key.units.AddRange (item.Value);
 			}

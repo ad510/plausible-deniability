@@ -65,7 +65,7 @@ public class MakeUnitCmdEvt : CmdEvt {
 					int i;
 					for (i = 0; i < g.rscNames.Length; i++) {
 						// TODO: may be more permissive by passing in max = true, but this really complicates removeUnit() algorithm (see planning notes)
-						if (g.playerResource(g.paths[path.Key].player, time, i, false, !newPathIsLive) < g.unitT[type].rscCost[i]) break;
+						if (g.paths[path.Key].player.resource(time, i, false, !newPathIsLive) < g.unitT[type].rscCost[i]) break;
 					}
 					if (i == g.rscNames.Length) movePath = g.paths[path.Key];
 				}

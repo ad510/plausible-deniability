@@ -110,20 +110,6 @@ public class Sim {
 		// update simulation time
 		timeSim = timeSimNext;
 	}
-
-	/// <summary>
-	/// update specified player's non-live (time traveling) paths
-	/// </summary>
-	public void updatePast(Player player, long curTime) {
-		if (player.hasNonLivePaths) {
-			foreach (Path path in paths) {
-				if (path.player == player) path.updatePast(curTime);
-			}
-			if (curTime >= timeSim && (player.timeGoLiveFail == long.MaxValue || timeSim >= player.timeGoLiveFail + updateInterval)) {
-				cmdPending.add(new GoLiveCmdEvt(timeSim, player.id));
-			}
-		}
-	}
 	
 	/// <summary>
 	/// removes units from all other paths that, if seen, could cause specified units to be removed from specified segments;
@@ -225,58 +211,6 @@ public class Sim {
 		// check that no other players can see this tile
 		foreach (Player player2 in players) {
 			if (player != player2 && !player2.immutable && tiles[tileX, tileY].playerVisLatest(player2)) return false;
-		}
-		return true;
-	}
-
-	/// <summary>
-	/// returns amount of specified resource that specified player has at specified time
-	/// </summary>
-	/// <param name="max">
-	/// since different paths can have collected different resource amounts,
-	/// determines whether to use paths that collected least or most resources in calculation
-	/// </param>
-	public long playerResource(Player player, long time, int rscType, bool max, bool includeNonLiveChildren) {
-		long ret = player.startRsc[rscType];
-		for (int i = 0; i < nRootPaths; i++) {
-			if (paths[i].player == player) {
-				foreach (int unit in paths[i].segments[0].units) {
-					// TODO: this will double-count units that are in multiple paths at beginning of scenario
-					ret += paths[i].segments[0].rscCollected(time, unit, rscType, max, includeNonLiveChildren);
-				}
-			}
-		}
-		return ret;
-	}
-
-	/// <summary>
-	/// checks whether specified player could have negative resources since timeMin in worst case scenario of which paths are seen
-	/// </summary>
-	/// <returns>a time that player could have negative resources, or -1 if no such time found</returns>
-	public long playerCheckNegRsc(Player player, long timeMin, bool includeNonLiveChildren) {
-		foreach (Path path in paths) {
-			// check all times since timeMin that a path of specified player was made
-			// note that new paths are made at App.newCmdTime() + 1
-			if (player == path.player && path.segments[0].timeStart >= timeMin && path.segments[0].timeStart <= timeSim + 1) {
-				for (int i = 0; i < rscNames.Length; i++) {
-					if (playerResource(player, path.segments[0].timeStart, i, false, includeNonLiveChildren) < 0) {
-						return path.segments[0].timeStart;
-					}
-				}
-			}
-		}
-		return -1;
-	}
-
-	/// <summary>
-	/// returns whether specified player's units will never unpredictably move or change
-	/// </summary>
-	public bool calcPlayerImmutable(Player player) {
-		// check that player isn't an active participant and isn't controlled by anyone
-		if (player.isUser || player.user >= CompUser) return false;
-		// check that no one can attack this player
-		foreach (Player player2 in players) {
-			if (player2.mayAttack[player.id]) return false;
 		}
 		return true;
 	}
