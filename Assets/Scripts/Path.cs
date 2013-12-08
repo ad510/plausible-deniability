@@ -118,11 +118,6 @@ public class Path {
 				events.add(new TileMoveEvt(moves[i].timeAtY(tY << FP.Precision), id, int.MinValue, tY + dir));
 			}
 		}
-		if (segments.Last ().units.Count == 0 && getSegment (timeMin).units.Count > 0) {
-			// path no longer contains any units
-			// TODO: do this directly in takeHealth?
-			g.events.add(new TileMoveEvt(segments.Last ().timeStart, id, Sim.OffMap, 0));
-		}
 	}
 
 	/// <summary>

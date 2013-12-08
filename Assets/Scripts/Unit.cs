@@ -42,8 +42,10 @@ public class Unit {
 				// unit lost all health, so remove it from path
 				Segment segment = path.insertSegment(time);
 				segment.units.Remove (id);
-				// if path no longer has any units, indicate to delete and recalculate later TileMoveEvts for this path
-				if (segment.units.Count == 0 && !g.movedPaths.Contains(path.id)) g.movedPaths.Add(path.id);
+				// if path no longer has any units, remove it from visibility tiles
+				if (segment.nextOnPath () == null && segment.units.Count == 0 && segment.path.tileX != Sim.OffMap) {
+					g.events.add(new TileMoveEvt(time, segment.path.id, Sim.OffMap, 0));
+				}
 			}
 		}
 	}
