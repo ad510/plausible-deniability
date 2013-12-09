@@ -234,6 +234,16 @@ public class Sim {
 		}
 		return true;
 	}
+	
+	/// <summary>
+	/// iterates over all path segments that are active at specified time
+	/// </summary>
+	public IEnumerable<Segment> activeSegments(long time) {
+		foreach (Path path in paths) {
+			Segment segment = path.activeSegment (time);
+			if (segment != null) yield return segment;
+		}
+	}
 
 	/// <summary>
 	/// returns if a hypothetical unit at the origin could see tile with specified (positive or negative) x and y indices
