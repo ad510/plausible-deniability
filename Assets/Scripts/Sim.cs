@@ -115,23 +115,23 @@ public class Sim {
 	/// removes units from all other paths that, if seen, could cause specified units to be removed from specified segments;
 	/// returns whether successful
 	/// </summary>
-	public bool deleteOtherPaths(List<KeyValuePair<Segment, Unit>> units) {
-		List<KeyValuePair<Segment, Unit>> ancestors = new List<KeyValuePair<Segment, Unit>>(units);
-		List<KeyValuePair<Segment, Unit>> prev = new List<KeyValuePair<Segment, Unit>>();
+	public bool deleteOtherPaths(List<SegmentUnit> units) {
+		List<SegmentUnit> ancestors = new List<SegmentUnit>(units);
+		List<SegmentUnit> prev = new List<SegmentUnit>();
 		bool success = true;
 		for (int i = 0; i < ancestors.Count; i++) {
-			foreach (Segment segment in ancestors[i].Key.prev (ancestors[i].Value)) {
-				ancestors.Add (new KeyValuePair<Segment, Unit>(segment, ancestors[i].Value));
-				if (ancestors[i].Key.path.timeSimPast == long.MaxValue || segment.path.timeSimPast != long.MaxValue) {
-					prev.Add (new KeyValuePair<Segment, Unit>(segment, ancestors[i].Value));
+			foreach (Segment segment in ancestors[i].segment.prev (ancestors[i].unit)) {
+				ancestors.Add (new SegmentUnit(segment, ancestors[i].unit));
+				if (ancestors[i].segment.path.timeSimPast == long.MaxValue || segment.path.timeSimPast != long.MaxValue) {
+					prev.Add (new SegmentUnit(segment, ancestors[i].unit));
 				}
 			}
-			ancestors.AddRange (ancestors[i].Key.parents (ancestors[i].Value));
+			ancestors.AddRange (ancestors[i].segment.parents (ancestors[i].unit));
 		}
-		foreach (KeyValuePair<Segment, Unit> ancestor in prev) {
-			foreach (Segment segment in ancestor.Key.next (ancestor.Value)) {
-				if (!ancestors.Contains (new KeyValuePair<Segment, Unit>(segment, ancestor.Value))) {
-					success &= segment.removeUnit (ancestor.Value);
+		foreach (SegmentUnit ancestor in prev) {
+			foreach (Segment segment in ancestor.segment.next (ancestor.unit)) {
+				if (!ancestors.Contains (new SegmentUnit(segment, ancestor.unit))) {
+					success &= segment.removeUnit (ancestor.unit);
 				}
 			}
 		}

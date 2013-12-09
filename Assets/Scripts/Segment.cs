@@ -115,11 +115,11 @@ public class Segment {
 					if (!segment.removeUnitAfter (unit, ref removed, ref timeEarliestChild)) return false;
 				}
 				// remove child units that only this unit could have made
-				foreach (KeyValuePair<Segment, Unit> child in children (unit).ToArray ()) {
+				foreach (SegmentUnit child in children (unit).ToArray ()) {
 					// TODO: if has alternate non-live parent, do we need to recursively make children non-live?
-					if (child.Key.parents (child.Value).Count () == 1) {
-						if (!child.Key.removeUnitAfter (child.Value, ref removed, ref timeEarliestChild)) return false;
-						timeEarliestChild = Math.Min (timeEarliestChild, child.Key.timeStart);
+					if (child.segment.parents (child.unit).Count () == 1) {
+						if (!child.segment.removeUnitAfter (child.unit, ref removed, ref timeEarliestChild)) return false;
+						timeEarliestChild = Math.Min (timeEarliestChild, child.segment.timeStart);
 					}
 				}
 			}
@@ -137,8 +137,8 @@ public class Segment {
 		foreach (Segment segment in next (unit)) {
 			if (!segment.unseenAfter (unit)) return false;
 		}
-		foreach (KeyValuePair<Segment, Unit> child in children (unit)) {
-			if (!child.Key.unseenAfter (child.Value)) return false;
+		foreach (SegmentUnit child in children (unit)) {
+			if (!child.segment.unseenAfter (child.unit)) return false;
 		}
 		return true;
 	}
@@ -172,10 +172,10 @@ public class Segment {
 			}
 		}
 		// add resources gained by children
-		foreach (KeyValuePair<Segment, Unit> child in children (unit)) {
-			ret += child.Key.rscCollected (time, child.Value, rscType, max, includeNonLiveChildren);
+		foreach (SegmentUnit child in children (unit)) {
+			ret += child.segment.rscCollected (time, child.unit, rscType, max, includeNonLiveChildren);
 			// subtract cost to make child unit
-			ret -= child.Value.type.rscCost[rscType];
+			ret -= child.unit.type.rscCost[rscType];
 		}
 		// add resources collected on this segment
 		ret += unit.type.rscCollectRate[rscType] * (nextOnPath ().timeStart - timeStart);
@@ -185,12 +185,12 @@ public class Segment {
 	/// <summary>
 	/// iterates over all segment/unit pairs that could have made specified unit in this segment
 	/// </summary>
-	public IEnumerable<KeyValuePair<Segment, Unit>> parents(Unit unit) {
+	public IEnumerable<SegmentUnit> parents(Unit unit) {
 		if (!prev (unit).Any ()) {
 			foreach (Segment segment in prev ()) {
 				foreach (int unit2 in segment.units) {
 					if (g.units[unit2].type.canMake[unit.type.id]) {
-						yield return new KeyValuePair<Segment, Unit>(segment, g.units[unit2]);
+						yield return new SegmentUnit(segment, g.units[unit2]);
 					}
 				}
 			}
@@ -200,11 +200,11 @@ public class Segment {
 	/// <summary>
 	/// iterates over all segment/unit pairs that specified unit in this segment could have made
 	/// </summary>
-	public IEnumerable<KeyValuePair<Segment, Unit>> children(Unit unit) {
+	public IEnumerable<SegmentUnit> children(Unit unit) {
 		foreach (Segment segment in next ()) {
 			foreach (int unit2 in segment.units) {
 				if (unit.type.canMake[g.units[unit2].type.id] && !segment.prev (g.units[unit2]).Any ()) {
-					yield return new KeyValuePair<Segment, Unit>(segment, g.units[unit2]);
+					yield return new SegmentUnit(segment, g.units[unit2]);
 				}
 			}
 		}

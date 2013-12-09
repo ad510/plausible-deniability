@@ -124,10 +124,10 @@ public class Path {
 
 	public void beSeen(long time) {
 		Segment segment = insertSegment(time);
-		List<KeyValuePair<Segment, Unit>> seenUnits = new List<KeyValuePair<Segment, Unit>>();
+		List<SegmentUnit> seenUnits = new List<SegmentUnit>();
 		segment.unseen = false;
 		foreach (int unit in segment.units) {
-			seenUnits.Add (new KeyValuePair<Segment, Unit>(segment, g.units[unit]));
+			seenUnits.Add (new SegmentUnit(segment, g.units[unit]));
 		}
 		if (!g.deleteOtherPaths (seenUnits)) throw new SystemException("failed to delete other paths of seen path");
 	}
