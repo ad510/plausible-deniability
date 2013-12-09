@@ -168,7 +168,7 @@ public struct SegmentUnit {
 	/// so if it makes a child unit, it's unambiguous who is the parent
 	/// </summary>
 	public bool canBeUnambiguousParent(long time) {
-		return segment.timeStart < time || (segment != null && segment.units.Contains (unit.id));
+		return segment.timeStart < time || (segment.prevOnPath () != null && segment.prevOnPath ().units.Contains (unit.id));
 	}
 	
 	/// <summary>
