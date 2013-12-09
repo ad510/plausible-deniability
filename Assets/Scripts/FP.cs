@@ -24,7 +24,7 @@ public class FP {
 	/// fixed point 3D vector
 	/// </summary>
 	[ProtoContract]
-	public struct Vector {
+	public struct Vector : IEquatable<Vector> {
 		[ProtoMember(1)]
 		public long x {get;set;}
 		[ProtoMember(2)]
@@ -73,15 +73,18 @@ public class FP {
 		}
 
 		public override bool Equals(object obj) {
-			return base.Equals(obj);
+			if (obj is Vector) return Equals ((Vector)obj);
+			return false;
 		}
 
-		public bool Equals(Vector vec) {
-			return this == vec;
+		public bool Equals(Vector other)
+		{
+			return x == other.x && y == other.y && z == other.z;
 		}
 
 		public override int GetHashCode() {
-			return base.GetHashCode();
+			// this algorithm suggested at http://stackoverflow.com/questions/263400/what-is-the-best-algorithm-for-an-overridden-system-object-gethashcode
+			return unchecked(((17 * 23 * x.GetHashCode ()) * 23 + y.GetHashCode ()) * 23 + z.GetHashCode ());
 		}
 
 		public static Vector operator -(Vector vec) {
@@ -109,13 +112,11 @@ public class FP {
 		}
 
 		public static bool operator ==(Vector left, Vector right) {
-			if (left.x == right.x && left.y == right.y && left.z == right.z) return true;
-			return false;
+			return left.Equals (right);
 		}
 
 		public static bool operator !=(Vector left, Vector right) {
-			if (left.x == right.x && left.y == right.y && left.z == right.z) return false;
-			return true;
+			return !left.Equals (right);
 		}
 	}
 
