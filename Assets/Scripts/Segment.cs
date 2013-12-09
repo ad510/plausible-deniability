@@ -52,7 +52,7 @@ public class Segment {
 		if (!units.Contains (unit)) return true; // if this segment already doesn't contain specified unit, return true
 		List<Segment> ancestors = new List<Segment>();
 		Dictionary<Segment, List<int>> removed = new Dictionary<Segment, List<int>>();
-		long startRemoveTime = long.MaxValue;
+		long timeEarliestChild = long.MaxValue;
 		int i;
 		ancestors.Add (this);
 		// find all ancestor segments to start removal from
@@ -75,18 +75,22 @@ public class Segment {
 					i--;
 				}
 			}
-			else if (!ancestors[i].prev ().Any ()) {
+			else if (ancestors[i].prev ().Any ()) {
+				// unit has a parent but we're deleting its first segment, so may need to check resources starting at this time
+				timeEarliestChild = Math.Min (timeEarliestChild, ancestors[i].timeStart);
+			}
+			else {
 				// reached a segment with no previous segment whatsoever, so return false (we assume other players know the scenario's starting state)
 				return false;
 			}
 		}
 		// remove unit recursively, starting at the ancestor segments we found
 		for (i = 0; i < ancestors.Count; i++) {
-			if (!ancestors[i].removeUnitAfter (unit, ref removed, ref startRemoveTime)) break;
+			if (!ancestors[i].removeUnitAfter (unit, ref removed, ref timeEarliestChild)) break;
 		}
 		// if a removeUnitAfter() call failed or removing unit might have led to player having negative resources,
 		// add units back to segments they were removed from
-		if (i < ancestors.Count || (startRemoveTime != long.MaxValue && path.player.checkNegRsc (startRemoveTime, false) >= 0)) {
+		if (i < ancestors.Count || (timeEarliestChild != long.MaxValue && path.player.checkNegRsc (timeEarliestChild, false) >= 0)) {
 			foreach (KeyValuePair<Segment, List<int>> item in removed) {
 				item.Key.units.AddRange (item.Value);
 			}
@@ -101,21 +105,21 @@ public class Segment {
 		return true;
 	}
 	
-	private bool removeUnitAfter(int unit, ref Dictionary<Segment, List<int>> removed, ref long startRemoveTime) {
+	private bool removeUnitAfter(int unit, ref Dictionary<Segment, List<int>> removed, ref long timeEarliestChild) {
 		if (units.Contains (unit)) {
 			if (!unseen && timeStart < g.timeSim) return false;
 			// only remove units from next segments if this is their only previous segment
 			if (nextOnPath () == null || nextOnPath ().prev (unit).Count () == 1) {
 				// remove unit from next segments
 				foreach (Segment segment in next (unit)) {
-					if (!segment.removeUnitAfter (unit, ref removed, ref startRemoveTime)) return false;
+					if (!segment.removeUnitAfter (unit, ref removed, ref timeEarliestChild)) return false;
 				}
 				// remove child units that only this unit could have made
 				foreach (KeyValuePair<Segment, int> child in children (unit).ToArray ()) {
 					// TODO: if has alternate non-live parent, do we need to recursively make children non-live?
 					if (child.Key.parents (child.Value).Count () == 1) {
-						if (!child.Key.removeUnitAfter (child.Value, ref removed, ref startRemoveTime)) return false;
-						startRemoveTime = Math.Min (startRemoveTime, child.Key.timeStart);
+						if (!child.Key.removeUnitAfter (child.Value, ref removed, ref timeEarliestChild)) return false;
+						timeEarliestChild = Math.Min (timeEarliestChild, child.Key.timeStart);
 					}
 				}
 			}
