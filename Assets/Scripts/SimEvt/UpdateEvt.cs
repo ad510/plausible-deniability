@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2013 Andrew Downing
+// Copyright (c) 2013 Andrew Downing
 // Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 // The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
@@ -76,7 +76,7 @@ public class UpdateEvt : SimEvt {
 		}
 		// update units
 		foreach (Path path in g.paths) {
-			Segment segment = path.getSegment (time);
+			Segment segment = path.activeSegment (time);
 			if (segment != null && path.timeSimPast == long.MaxValue) {
 				FP.Vector pos = path.calcPos (time);
 				foreach (int unit in segment.units) {
@@ -85,7 +85,7 @@ public class UpdateEvt : SimEvt {
 						Path target = null;
 						long targetDistSq = g.units[unit].type.range * g.units[unit].type.range + 1;
 						foreach (Path path2 in g.paths) {
-							Segment segment2 = path2.getSegment (time);
+							Segment segment2 = path2.activeSegment (time);
 							if (path != path2 && segment2 != null && path2.timeSimPast == long.MaxValue && path.player.mayAttack[path2.player.id]) {
 								foreach (int unit2 in segment2.units) {
 									if (g.units[unit].type.damage[g.units[unit2].type.id] > 0) {
@@ -102,7 +102,7 @@ public class UpdateEvt : SimEvt {
 						if (target != null) {
 							// attack every applicable unit in target path
 							// take health with 1 ms delay so earlier units in array don't have unfair advantage
-							foreach (int unit2 in target.getSegment(time).units) {
+							foreach (int unit2 in target.activeSegment(time).units) {
 								if (g.units[unit].type.damage[g.units[unit2].type.id] > 0) {
 									for (int j = 0; j < g.units[unit].type.damage[g.units[unit2].type.id]; j++) g.units[unit2].takeHealth(time + 1, target);
 									g.units[unit].timeAttack = time;

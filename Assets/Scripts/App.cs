@@ -455,7 +455,7 @@ public class App : MonoBehaviour {
 								selPaths.Remove(i);
 							}
 							else {
-								selPaths.Add(i, new List<int>(g.paths[i].getSegment(timeGame).units));
+								selPaths.Add(i, new List<int>(g.paths[i].activeSegment(timeGame).units));
 							}
 							if (SelBoxMin > (Input.mousePosition - mouseDownPos[0]).sqrMagnitude) break;
 						}
@@ -594,7 +594,7 @@ public class App : MonoBehaviour {
 		border.setRect (simToDrawPos (new FP.Vector()), simToDrawPos(new FP.Vector(g.mapSize, g.mapSize)), BorderDepth);
 		// units
 		for (int i = 0; i < g.paths.Count; i++) {
-			Segment segment = g.paths[i].getSegment (timeGame);
+			Segment segment = g.paths[i].activeSegment (timeGame);
 			if (i == sprUnits.Count) sprUnits.Add (new List<UnitSprite>());
 			if (segment != null) {
 				while (sprUnits[i].Count < segment.units.Count) sprUnits[i].Add (new UnitSprite(quadPrefab));
@@ -626,7 +626,7 @@ public class App : MonoBehaviour {
 					sprUnits[i][j].sprite.transform.localScale = unitScale (g.units[unit].type, g.units[unit].player);
 					sprUnits[i][j].sprite.renderer.enabled = true;
 					for (int k = i + 1; k < g.paths.Count; k++) {
-						Segment segment2 = g.paths[k].getSegment (timeGame);
+						Segment segment2 = g.paths[k].activeSegment (timeGame);
 						if (segment2 != null && g.paths[i].speed == g.paths[k].speed && g.paths[i].player == g.paths[k].player
 							&& segment2.units.Contains (unit)) {
 							// unit path line
@@ -667,7 +667,7 @@ public class App : MonoBehaviour {
 		// health bars
 		foreach (int path in selPaths.Keys) {
 			if (pathDrawPos(path, ref vec)) {
-				Segment segment = g.paths[path].getSegment (timeGame);
+				Segment segment = g.paths[path].activeSegment (timeGame);
 				for (int j = 0; j < segment.units.Count; j++) {
 					int unit = segment.units[j];
 					if (selPaths[path].Contains (unit)) {
@@ -968,7 +968,7 @@ public class App : MonoBehaviour {
 						FP.Vector pos = path.calcPos(timeGame);
 						if (g.tileAt (pos).playerVisWhen (selPlayer, timeGame)
 							&& FP.rectContains (path.selMinPos (timeGame), path.selMaxPos (timeGame), drawToSimPos (Input.mousePosition))) {
-							foreach (int unit in path.getSegment (timeGame).units) {
+							foreach (int unit in path.activeSegment (timeGame).units) {
 								if (g.units[unit].type == makeUnitType.makeOnUnitT) {
 									return pos;
 								}
