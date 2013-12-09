@@ -26,7 +26,7 @@ public class DeletePathCmdEvt : CmdEvt {
 		Dictionary<int, List<int>> exPaths = existingPaths (g);
 		foreach (KeyValuePair<int, List<int>> path in exPaths) {
 			foreach (int unit in path.Value) {
-				g.paths[path.Key].activeSegment (timeCmd).removeUnit (g.units[unit]);
+				new SegmentUnit(g.paths[path.Key].activeSegment (timeCmd), g.units[unit]).delete ();
 			}
 		}
 	}

@@ -164,10 +164,11 @@ public class Path {
 		foreach (int unit in units) {
 			if (segment.units.Contains (unit)) {
 				// unit in path would be child path
+				SegmentUnit segmentUnit = new SegmentUnit(segment, g.units[unit]);
 				// check parent made before (not at same time as) child, so it's unambiguous who is the parent
-				if (!canBeUnambiguousParent (time, segment, unit)) return false;
+				if (!segmentUnit.canBeUnambiguousParent (time)) return false;
 				// check parent unit won't be seen later
-				if (!segment.unseenAfter (g.units[unit])) return false;
+				if (!segmentUnit.unseenAfter ()) return false;
 			}
 			else {
 				if (!canMakeUnitType (time, g.units[unit].type)) return false;
@@ -188,22 +189,14 @@ public class Path {
 	public bool canMakeUnitType(long time, UnitType type) {
 		Segment segment = activeSegment (time);
 		if (segment != null) {
-			foreach (int unit in segment.units) {
-				if (g.units[unit].type.canMake[type.id] && canBeUnambiguousParent (time, segment, unit)
-					&& (time >= g.timeSim || segment.unseenAfter (g.units[unit]))) {
+			foreach (SegmentUnit segmentUnit in segment.segmentUnits ()) {
+				if (segmentUnit.unit.type.canMake[type.id] && segmentUnit.canBeUnambiguousParent (time)
+					&& (time >= g.timeSim || segmentUnit.unseenAfter ())) {
 					return true;
 				}
 			}
 		}
 		return false;
-	}
-	
-	/// <summary>
-	/// returns whether specified unit is in path before specified time,
-	/// so if it makes a child unit, it's unambiguous who is the parent
-	/// </summary>
-	private bool canBeUnambiguousParent(long time, Segment segment, int unit) {
-		return segment.timeStart < time || (segment != null && segment.units.Contains (unit));
 	}
 
 	/// <summary>
@@ -246,7 +239,7 @@ public class Path {
 			// new path will be moved, so try to remove units that will move from this path
 			Segment segment = activeSegment (time);
 			foreach (int unit2 in units) {
-				segment.removeUnit (g.units[unit2]);
+				new SegmentUnit(segment, g.units[unit2]).delete ();
 			}
 		}
 		path2.moveTo (time, pos);
@@ -278,8 +271,8 @@ public class Path {
 		if (time < g.timeSim) {
 			Segment segment = activeSegment (time);
 			if (segment == null) return false;
-			foreach (int unit in segment.units) {
-				if (!segment.unseenAfter (g.units[unit])) return false;
+			foreach (SegmentUnit segmentUnit in segment.segmentUnits ()) {
+				if (!segmentUnit.unseenAfter ()) return false;
 			}
 		}
 		return true;

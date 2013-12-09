@@ -120,18 +120,18 @@ public class Sim {
 		List<SegmentUnit> prev = new List<SegmentUnit>();
 		bool success = true;
 		for (int i = 0; i < ancestors.Count; i++) {
-			foreach (Segment segment in ancestors[i].segment.prev (ancestors[i].unit)) {
-				ancestors.Add (new SegmentUnit(segment, ancestors[i].unit));
-				if (ancestors[i].segment.path.timeSimPast == long.MaxValue || segment.path.timeSimPast != long.MaxValue) {
-					prev.Add (new SegmentUnit(segment, ancestors[i].unit));
+			foreach (SegmentUnit segmentUnit in ancestors[i].prev ()) {
+				ancestors.Add (segmentUnit);
+				if (ancestors[i].segment.path.timeSimPast == long.MaxValue || segmentUnit.segment.path.timeSimPast != long.MaxValue) {
+					prev.Add (segmentUnit);
 				}
 			}
-			ancestors.AddRange (ancestors[i].segment.parents (ancestors[i].unit));
+			ancestors.AddRange (ancestors[i].parents ());
 		}
 		foreach (SegmentUnit ancestor in prev) {
-			foreach (Segment segment in ancestor.segment.next (ancestor.unit)) {
-				if (!ancestors.Contains (new SegmentUnit(segment, ancestor.unit))) {
-					success &= segment.removeUnit (ancestor.unit);
+			foreach (SegmentUnit segmentUnit in ancestor.next ()) {
+				if (!ancestors.Contains (segmentUnit)) {
+					success &= segmentUnit.delete ();
 				}
 			}
 		}

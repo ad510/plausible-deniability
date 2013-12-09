@@ -53,9 +53,9 @@ public class Player {
 		long ret = startRsc[rscType];
 		for (int i = 0; i < g.nRootPaths; i++) {
 			if (this == g.paths[i].player) {
-				foreach (int unit in g.paths[i].segments[0].units) {
+				foreach (SegmentUnit segmentUnit in g.paths[i].segments[0].segmentUnits ()) {
 					// TODO: this will double-count units that are in multiple paths at beginning of scenario
-					ret += g.paths[i].segments[0].rscCollected(time, g.units[unit], rscType, max, includeNonLiveChildren);
+					ret += segmentUnit.rscCollected(time, rscType, max, includeNonLiveChildren);
 				}
 			}
 		}
