@@ -55,7 +55,7 @@ public class Player {
 			if (this == g.paths[i].player) {
 				foreach (int unit in g.paths[i].segments[0].units) {
 					// TODO: this will double-count units that are in multiple paths at beginning of scenario
-					ret += g.paths[i].segments[0].rscCollected(time, unit, rscType, max, includeNonLiveChildren);
+					ret += g.paths[i].segments[0].rscCollected(time, g.units[unit], rscType, max, includeNonLiveChildren);
 				}
 			}
 		}

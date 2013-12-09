@@ -115,22 +115,22 @@ public class Sim {
 	/// removes units from all other paths that, if seen, could cause specified units to be removed from specified segments;
 	/// returns whether successful
 	/// </summary>
-	public bool deleteOtherPaths(List<KeyValuePair<Segment, int>> units) {
-		List<KeyValuePair<Segment, int>> ancestors = new List<KeyValuePair<Segment, int>>(units);
-		List<KeyValuePair<Segment, int>> prev = new List<KeyValuePair<Segment, int>>();
+	public bool deleteOtherPaths(List<KeyValuePair<Segment, Unit>> units) {
+		List<KeyValuePair<Segment, Unit>> ancestors = new List<KeyValuePair<Segment, Unit>>(units);
+		List<KeyValuePair<Segment, Unit>> prev = new List<KeyValuePair<Segment, Unit>>();
 		bool success = true;
 		for (int i = 0; i < ancestors.Count; i++) {
 			foreach (Segment segment in ancestors[i].Key.prev (ancestors[i].Value)) {
-				ancestors.Add (new KeyValuePair<Segment, int>(segment, ancestors[i].Value));
+				ancestors.Add (new KeyValuePair<Segment, Unit>(segment, ancestors[i].Value));
 				if (ancestors[i].Key.path.timeSimPast == long.MaxValue || segment.path.timeSimPast != long.MaxValue) {
-					prev.Add (new KeyValuePair<Segment, int>(segment, ancestors[i].Value));
+					prev.Add (new KeyValuePair<Segment, Unit>(segment, ancestors[i].Value));
 				}
 			}
 			ancestors.AddRange (ancestors[i].Key.parents (ancestors[i].Value));
 		}
-		foreach (KeyValuePair<Segment, int> ancestor in prev) {
+		foreach (KeyValuePair<Segment, Unit> ancestor in prev) {
 			foreach (Segment segment in ancestor.Key.next (ancestor.Value)) {
-				if (!ancestors.Contains (new KeyValuePair<Segment, int>(segment, ancestor.Value))) {
+				if (!ancestors.Contains (new KeyValuePair<Segment, Unit>(segment, ancestor.Value))) {
 					success &= segment.removeUnit (ancestor.Value);
 				}
 			}

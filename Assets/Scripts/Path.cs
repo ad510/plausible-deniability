@@ -124,10 +124,10 @@ public class Path {
 
 	public void beSeen(long time) {
 		Segment segment = insertSegment(time);
-		List<KeyValuePair<Segment, int>> seenUnits = new List<KeyValuePair<Segment, int>>();
+		List<KeyValuePair<Segment, Unit>> seenUnits = new List<KeyValuePair<Segment, Unit>>();
 		segment.unseen = false;
 		foreach (int unit in segment.units) {
-			seenUnits.Add (new KeyValuePair<Segment, int>(segment, unit));
+			seenUnits.Add (new KeyValuePair<Segment, Unit>(segment, g.units[unit]));
 		}
 		if (!g.deleteOtherPaths (seenUnits)) throw new SystemException("failed to delete other paths of seen path");
 	}
@@ -167,7 +167,7 @@ public class Path {
 				// check parent made before (not at same time as) child, so it's unambiguous who is the parent
 				if (!canBeUnambiguousParent (time, segment, unit)) return false;
 				// check parent unit won't be seen later
-				if (!segment.unseenAfter (unit)) return false;
+				if (!segment.unseenAfter (g.units[unit])) return false;
 			}
 			else {
 				if (!canMakeUnitType (time, g.units[unit].type)) return false;
@@ -190,7 +190,7 @@ public class Path {
 		if (segment != null) {
 			foreach (int unit in segment.units) {
 				if (g.units[unit].type.canMake[type.id] && canBeUnambiguousParent (time, segment, unit)
-					&& (time >= g.timeSim || segment.unseenAfter (unit))) {
+					&& (time >= g.timeSim || segment.unseenAfter (g.units[unit]))) {
 					return true;
 				}
 			}
@@ -246,7 +246,7 @@ public class Path {
 			// new path will be moved, so try to remove units that will move from this path
 			Segment segment = activeSegment (time);
 			foreach (int unit2 in units) {
-				segment.removeUnit (unit2);
+				segment.removeUnit (g.units[unit2]);
 			}
 		}
 		path2.moveTo (time, pos);
@@ -279,7 +279,7 @@ public class Path {
 			Segment segment = activeSegment (time);
 			if (segment == null) return false;
 			foreach (int unit in segment.units) {
-				if (!segment.unseenAfter (unit)) return false;
+				if (!segment.unseenAfter (g.units[unit])) return false;
 			}
 		}
 		return true;

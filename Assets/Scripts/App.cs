@@ -608,13 +608,13 @@ public class App : MonoBehaviour {
 			}
 			if (pathDrawPos(i, ref vec)) {
 				for (int j = 0; j < segment.units.Count; j++) {
-					int unit = segment.units[j];
-					if (sprUnits[i][j].type != g.units[unit].type || sprUnits[i][j].player != g.units[unit].player) {
-						sprUnits[i][j].sprite.renderer.material.mainTexture = texUnits[g.units[unit].type.id, g.units[unit].player.id];
-						sprUnits[i][j].preview.renderer.material.mainTexture = texUnits[g.units[unit].type.id, g.units[unit].player.id];
+					Unit unit = g.units[segment.units[j]];
+					if (sprUnits[i][j].type != unit.type || sprUnits[i][j].player != unit.player) {
+						sprUnits[i][j].sprite.renderer.material.mainTexture = texUnits[unit.type.id, unit.player.id];
+						sprUnits[i][j].preview.renderer.material.mainTexture = texUnits[unit.type.id, unit.player.id];
 						sprUnits[i][j].pathLine.material.color = g.pathCol;
-						sprUnits[i][j].type = g.units[unit].type;
-						sprUnits[i][j].player = g.units[unit].player;
+						sprUnits[i][j].type = unit.type;
+						sprUnits[i][j].player = unit.player;
 					}
 					if (g.paths[i].timeSimPast == long.MaxValue) {
 						sprUnits[i][j].sprite.renderer.material.color = new Color(1, 1, 1, 1);
@@ -622,13 +622,13 @@ public class App : MonoBehaviour {
 					else {
 						sprUnits[i][j].sprite.renderer.material.color = new Color(1, 1, 1, 0.5f); // TODO: make transparency amount customizable
 					}
-					sprUnits[i][j].sprite.transform.position = vec + simToDrawScl (g.units[unit].type.imgOffset);
-					sprUnits[i][j].sprite.transform.localScale = unitScale (g.units[unit].type, g.units[unit].player);
+					sprUnits[i][j].sprite.transform.position = vec + simToDrawScl (unit.type.imgOffset);
+					sprUnits[i][j].sprite.transform.localScale = unitScale (unit.type, unit.player);
 					sprUnits[i][j].sprite.renderer.enabled = true;
 					for (int k = i + 1; k < g.paths.Count; k++) {
 						Segment segment2 = g.paths[k].activeSegment (timeGame);
 						if (segment2 != null && g.paths[i].speed == g.paths[k].speed && g.paths[i].player == g.paths[k].player
-							&& segment2.units.Contains (unit)) {
+							&& segment2.units.Contains (unit.id)) {
 							// unit path line
 							sprUnits[i][j].pathLine.SetPosition (0, new Vector3(vec.x, vec.y, PathLineDepth));
 							sprUnits[i][j].pathLine.SetPosition (1, simToDrawPos (g.paths[k].calcPos(timeGame), PathLineDepth));
@@ -639,7 +639,7 @@ public class App : MonoBehaviour {
 					if (Input.GetKey (KeyCode.LeftShift) && selPaths.ContainsKey(i)) {
 						// show final position if holding shift
 						sprUnits[i][j].preview.renderer.material.color = sprUnits[i][j].sprite.renderer.material.color;
-						sprUnits[i][j].preview.transform.position = simToDrawPos(g.paths[i].moves.Last ().vecEnd + g.units[unit].type.imgOffset, UnitDepth);
+						sprUnits[i][j].preview.transform.position = simToDrawPos(g.paths[i].moves.Last ().vecEnd + unit.type.imgOffset, UnitDepth);
 						sprUnits[i][j].preview.transform.localScale = sprUnits[i][j].sprite.transform.localScale;
 						sprUnits[i][j].preview.renderer.enabled = true;
 					}
@@ -669,12 +669,12 @@ public class App : MonoBehaviour {
 			if (pathDrawPos(path, ref vec)) {
 				Segment segment = g.paths[path].activeSegment (timeGame);
 				for (int j = 0; j < segment.units.Count; j++) {
-					int unit = segment.units[j];
-					if (selPaths[path].Contains (unit)) {
-						float f = ((float)g.units[unit].healthWhen(timeGame)) / g.units[unit].type.maxHealth;
-						float f2 = vec.y + simToDrawScl (g.units[unit].type.selMaxPos.y) + g.healthBarYOffset * winDiag;
+					Unit unit = g.units[segment.units[j]];
+					if (selPaths[path].Contains (unit.id)) {
+						float f = ((float)unit.healthWhen(timeGame)) / unit.type.maxHealth;
+						float f2 = vec.y + simToDrawScl (unit.type.selMaxPos.y) + g.healthBarYOffset * winDiag;
 						// background
-						if (g.units[unit].healthWhen(timeGame) > 0) {
+						if (unit.healthWhen(timeGame) > 0) {
 							sprUnits[path][j].healthBarBack.renderer.material.color = g.healthBarBackCol;
 							sprUnits[path][j].healthBarBack.transform.position = new Vector3(vec.x + g.healthBarSize.x * winDiag * f / 2, f2, HealthBarDepth);
 							sprUnits[path][j].healthBarBack.transform.localScale = new Vector3(g.healthBarSize.x * winDiag * (1 - f) / 2, g.healthBarSize.y * winDiag / 2, 1);

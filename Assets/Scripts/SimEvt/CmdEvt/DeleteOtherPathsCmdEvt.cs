@@ -23,13 +23,13 @@ public class DeleteOtherPathsCmdEvt : CmdEvt {
 		: base(timeVal, timeCmdVal, pathsVal) { }
 	
 	public override void apply (Sim g) {
-		List<KeyValuePair<Segment, int>> units = new List<KeyValuePair<Segment, int>>();
+		List<KeyValuePair<Segment, Unit>> units = new List<KeyValuePair<Segment, Unit>>();
 		// convert paths list into valid deleteOtherPaths() argument (this is a bit ugly)
 		foreach (KeyValuePair<int, int[]> path in paths) {
 			Segment segment = g.paths[path.Key].activeSegment (timeCmd);
 			if (segment != null) {
 				foreach (int unit in path.Value) {
-					units.Add (new KeyValuePair<Segment, int>(segment, unit));
+					units.Add (new KeyValuePair<Segment, Unit>(segment, g.units[unit]));
 				}
 			}
 		}
