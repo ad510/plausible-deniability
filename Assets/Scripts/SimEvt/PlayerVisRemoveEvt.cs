@@ -40,25 +40,27 @@ public class PlayerVisRemoveEvt : SimEvt {
 				tiles[i] = new FP.Vector(Sim.OffMap, Sim.OffMap);
 			}
 		}
-		// check if a tile stopped being exclusive to this player, or became exclusive to another player
-		int iPrev = -1;
-		for (int i = 0; i < tiles.Count; i++) {
-			if (tiles[i].x != Sim.OffMap) {
-				for (int tX = Math.Max(0, (int)tiles[i].x - g.tileVisRadius()); tX <= Math.Min(g.tileLen() - 1, (int)tiles[i].x + g.tileVisRadius()); tX++) {
-					for (int tY = Math.Max(0, (int)tiles[i].y - g.tileVisRadius()); tY <= Math.Min(g.tileLen() - 1, (int)tiles[i].y + g.tileVisRadius()); tY++) {
-						if (g.inVis(tX - tiles[i].x, tY - tiles[i].y) && (iPrev == -1 || !g.inVis(tX - tiles[iPrev].x, tY - tiles[iPrev].y))) {
-							foreach (Player player2 in g.players) {
-								if (player2.id == player && g.tiles[tX, tY].exclusiveLatest(player2)) {
-									g.exclusiveRemove(player2, tX, tY, time);
-								}
-								else if (player2.id != player && !g.tiles[tX, tY].exclusiveLatest(player2) && g.calcExclusive(player2, tX, tY)) {
-									g.exclusiveAdd(player2, tX, tY, time);
+		if (Sim.EnableNonLivePaths) {
+			// check if a tile stopped being exclusive to this player, or became exclusive to another player
+			int iPrev = -1;
+			for (int i = 0; i < tiles.Count; i++) {
+				if (tiles[i].x != Sim.OffMap) {
+					for (int tX = Math.Max(0, (int)tiles[i].x - g.tileVisRadius()); tX <= Math.Min(g.tileLen() - 1, (int)tiles[i].x + g.tileVisRadius()); tX++) {
+						for (int tY = Math.Max(0, (int)tiles[i].y - g.tileVisRadius()); tY <= Math.Min(g.tileLen() - 1, (int)tiles[i].y + g.tileVisRadius()); tY++) {
+							if (g.inVis(tX - tiles[i].x, tY - tiles[i].y) && (iPrev == -1 || !g.inVis(tX - tiles[iPrev].x, tY - tiles[iPrev].y))) {
+								foreach (Player player2 in g.players) {
+									if (player2.id == player && g.tiles[tX, tY].exclusiveLatest(player2)) {
+										g.exclusiveRemove(player2, tX, tY, time);
+									}
+									else if (player2.id != player && !g.tiles[tX, tY].exclusiveLatest(player2) && g.calcExclusive(player2, tX, tY)) {
+										g.exclusiveAdd(player2, tX, tY, time);
+									}
 								}
 							}
 						}
 					}
+					iPrev = i;
 				}
-				iPrev = i;
 			}
 		}
 	}

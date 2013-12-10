@@ -92,30 +92,41 @@ public class TileMoveEvt : SimEvt {
 				}
 			}
 		}
-		// check if tiles became exclusive to this player
-		foreach (FP.Vector vec in playerVisAddTiles) {
-			if (vec.x < exclusiveMinX) exclusiveMinX = (int)vec.x;
-			if (vec.x > exclusiveMaxX) exclusiveMaxX = (int)vec.x;
-			if (vec.y < exclusiveMinY) exclusiveMinY = (int)vec.y;
-			if (vec.y > exclusiveMaxY) exclusiveMaxY = (int)vec.y;
-		}
-		exclusiveMinX = Math.Max(0, exclusiveMinX - g.tileVisRadius());
-		exclusiveMaxX = Math.Min(g.tileLen() - 1, exclusiveMaxX + g.tileVisRadius());
-		exclusiveMinY = Math.Max(0, exclusiveMinY - g.tileVisRadius());
-		exclusiveMaxY = Math.Min(g.tileLen() - 1, exclusiveMaxY + g.tileVisRadius());
-		for (int tX = exclusiveMinX; tX <= exclusiveMaxX; tX++) {
-			for (int tY = exclusiveMinY; tY <= exclusiveMaxY; tY++) {
-				foreach (FP.Vector vec in playerVisAddTiles) {
-					if (g.inVis(tX - vec.x, tY - vec.y)) {
-						if (!g.tiles[tX, tY].exclusiveLatest(g.paths[path].player) && g.calcExclusive(g.paths[path].player, tX, tY)) {
-							g.exclusiveAdd(g.paths[path].player, tX, tY, time);
+		if (Sim.EnableNonLivePaths) {
+			// check if tiles became exclusive to this player (slow version for when non-live paths are enabled)
+			foreach (FP.Vector vec in playerVisAddTiles) {
+				if (vec.x < exclusiveMinX) exclusiveMinX = (int)vec.x;
+				if (vec.x > exclusiveMaxX) exclusiveMaxX = (int)vec.x;
+				if (vec.y < exclusiveMinY) exclusiveMinY = (int)vec.y;
+				if (vec.y > exclusiveMaxY) exclusiveMaxY = (int)vec.y;
+			}
+			exclusiveMinX = Math.Max(0, exclusiveMinX - g.tileVisRadius());
+			exclusiveMaxX = Math.Min(g.tileLen() - 1, exclusiveMaxX + g.tileVisRadius());
+			exclusiveMinY = Math.Max(0, exclusiveMinY - g.tileVisRadius());
+			exclusiveMaxY = Math.Min(g.tileLen() - 1, exclusiveMaxY + g.tileVisRadius());
+			for (int tX = exclusiveMinX; tX <= exclusiveMaxX; tX++) {
+				for (int tY = exclusiveMinY; tY <= exclusiveMaxY; tY++) {
+					foreach (FP.Vector vec in playerVisAddTiles) {
+						if (g.inVis(tX - vec.x, tY - vec.y)) {
+							if (!g.tiles[tX, tY].exclusiveLatest(g.paths[path].player) && g.calcExclusive(g.paths[path].player, tX, tY)) {
+								g.exclusiveAdd(g.paths[path].player, tX, tY, time);
+							}
+							break;
 						}
-						break;
 					}
 				}
 			}
 		}
 		if (tileX >= 0 && tileX < g.tileLen() && tileY >= 0 && tileY < g.tileLen()) {
+			if (!Sim.EnableNonLivePaths) {
+				// check exclusivity of tile moved to (fast version for when non-live paths are disabled)
+				if (!g.tiles[tileX, tileY].exclusiveLatest(g.paths[path].player) && g.calcExclusive(g.paths[path].player, tileX, tileY)) {
+					g.exclusiveAdd(g.paths[path].player, tileX, tileY, time);
+				}
+				else if (g.tiles[tileX, tileY].exclusiveLatest(g.paths[path].player) && !g.calcExclusive(g.paths[path].player, tileX, tileY)) {
+					g.exclusiveRemove(g.paths[path].player, tileX, tileY, time);
+				}
+			}
 			// update whether this path is known to be unseen
 			if (!g.paths[path].segments.Last ().unseen && g.tiles[tileX, tileY].exclusiveLatest(g.paths[path].player)) {
 				g.paths[path].beUnseen(time);

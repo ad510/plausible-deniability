@@ -179,6 +179,7 @@ public class Path {
 			}
 		}
 		bool newPathIsLive = (time >= g.timeSim && timeSimPast == long.MaxValue);
+		if (!newPathIsLive && !Sim.EnableNonLivePaths) return false;
 		for (int i = 0; i < g.rscNames.Length; i++) {
 			// TODO: may be more permissive by passing in max = true, but this really complicates removeUnit() algorithm (see planning notes)
 			if (player.resource(time, i, false, !newPathIsLive) < rscCost[i]) return false;
@@ -270,7 +271,7 @@ public class Path {
 		if (time < moves[0].timeStart || speed <= 0) return false;
 		if (time < g.timeSim) {
 			Segment segment = activeSegment (time);
-			if (segment == null) return false;
+			if (segment == null || !Sim.EnableNonLivePaths) return false;
 			foreach (SegmentUnit segmentUnit in segment.segmentUnits ()) {
 				if (!segmentUnit.unseenAfter ()) return false;
 			}
