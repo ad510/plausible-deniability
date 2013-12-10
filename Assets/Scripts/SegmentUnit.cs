@@ -57,7 +57,7 @@ public struct SegmentUnit {
 					i--;
 				}
 			}
-			else if (ancestors[i].prev ().Any ()) {
+			else if (ancestors[i].segment.prev ().Any ()) {
 				// unit has a parent but we're deleting its first segment, so may need to check resources starting at this time
 				timeEarliestChild = Math.Min (timeEarliestChild, ancestors[i].segment.timeStart);
 			}
