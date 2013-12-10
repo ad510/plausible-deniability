@@ -75,7 +75,10 @@ public class Tile {
 	/// </summary>
 	public bool playerDirectVisWhen(Player player, long time) {
 		foreach (int i in pathVis.Keys) {
-			if (player == g.paths[i].player && visWhen(pathVis[i], time)) return true;
+			if (player == g.paths[i].player && visWhen(pathVis[i], time)) {
+				Segment segment = g.paths[i].activeSegment (time);
+				if (segment != null && segment.units.Count > 0) return true;
+			}
 		}
 		return false;
 	}
