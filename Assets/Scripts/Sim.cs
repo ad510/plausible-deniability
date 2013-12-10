@@ -115,18 +115,12 @@ public class Sim {
 	/// removes units from all other paths that, if seen, could cause specified units to be removed from specified segments;
 	/// returns whether successful
 	/// </summary>
-	public bool deleteOtherPaths(List<SegmentUnit> units) {
-		List<SegmentUnit> ancestors = new List<SegmentUnit>(units);
-		List<SegmentUnit> prev = new List<SegmentUnit>();
+	public bool deleteOtherPaths(List<SegmentUnit> segmentUnits) {
+		HashSet<SegmentUnit> ancestors = new HashSet<SegmentUnit>();
+		HashSet<SegmentUnit> prev = new HashSet<SegmentUnit>();
 		bool success = true;
-		for (int i = 0; i < ancestors.Count; i++) {
-			foreach (SegmentUnit segmentUnit in ancestors[i].prev ()) {
-				ancestors.Add (segmentUnit);
-				if (ancestors[i].segment.path.timeSimPast == long.MaxValue || segmentUnit.segment.path.timeSimPast != long.MaxValue) {
-					prev.Add (segmentUnit);
-				}
-			}
-			ancestors.AddRange (ancestors[i].parents ());
+		foreach (SegmentUnit segmentUnit in segmentUnits) {
+			addAncestors (segmentUnit, ancestors, prev);
 		}
 		foreach (SegmentUnit ancestor in prev) {
 			foreach (SegmentUnit segmentUnit in ancestor.next ()) {
@@ -136,6 +130,19 @@ public class Sim {
 			}
 		}
 		return success;
+	}
+	
+	private void addAncestors(SegmentUnit segmentUnit, HashSet<SegmentUnit> ancestors, HashSet<SegmentUnit> prev) {
+		ancestors.Add (segmentUnit);
+		foreach (SegmentUnit prevSegment in segmentUnit.prev ()) {
+			if (prevSegment.segment.path.timeSimPast == long.MaxValue || prevSegment.segment.path.timeSimPast != long.MaxValue) {
+				prev.Add (prevSegment);
+			}
+			addAncestors (prevSegment, ancestors, prev);
+		}
+		foreach (SegmentUnit parent in segmentUnit.parents ()) {
+			addAncestors (parent, ancestors, prev);
+		}
 	}
 
 	/// <summary>
