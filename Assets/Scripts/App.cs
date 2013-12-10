@@ -323,6 +323,7 @@ public class App : MonoBehaviour {
 				g.tiles[i, j] = new Tile(g);
 			}
 		}
+		g.playerVisCache = new bool[g.tileLen () / Sim.VisCacheScale + 1, g.tileLen () / Sim.VisCacheScale + 1, g.players.Length];
 		texTile = new Texture2D(g.tileLen (), g.tileLen (), TextureFormat.ARGB32, false);
 		// units
 		g.units = new List<Unit>();

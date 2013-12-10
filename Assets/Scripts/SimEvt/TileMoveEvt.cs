@@ -95,6 +95,19 @@ public class TileMoveEvt : SimEvt {
 		if (Sim.EnableNonLivePaths) {
 			// check if tiles became exclusive to this player (slow version for when non-live paths are enabled)
 			foreach (FP.Vector vec in playerVisAddTiles) {
+				if (!g.playerVisCache[vec.x / Sim.VisCacheScale, vec.y / Sim.VisCacheScale, g.paths[path].player.id]) {
+					bool fullyVisible = true;
+					for (int tX = ((int)vec.x) / Sim.VisCacheScale * Sim.VisCacheScale; tX < Math.Min (g.tileLen (), (((int)vec.x) / Sim.VisCacheScale + 1) * Sim.VisCacheScale); tX++) {
+						for (int tY = ((int)vec.y) / Sim.VisCacheScale * Sim.VisCacheScale; tY < Math.Min (g.tileLen (), (((int)vec.y) / Sim.VisCacheScale + 1) * Sim.VisCacheScale); tY++) {
+							if (!g.tiles[tX, tY].playerVisLatest(g.paths[path].player)) {
+								fullyVisible = false;
+								break;
+							}
+						}
+						if (!fullyVisible) break;
+					}
+					if (fullyVisible) g.playerVisCache[vec.x / Sim.VisCacheScale, vec.y / Sim.VisCacheScale, g.paths[path].player.id] = true;
+				}
 				if (vec.x < exclusiveMinX) exclusiveMinX = (int)vec.x;
 				if (vec.x > exclusiveMaxX) exclusiveMaxX = (int)vec.x;
 				if (vec.y < exclusiveMinY) exclusiveMinY = (int)vec.y;

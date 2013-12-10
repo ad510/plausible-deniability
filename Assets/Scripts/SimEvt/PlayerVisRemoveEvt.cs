@@ -26,6 +26,7 @@ public class PlayerVisRemoveEvt : SimEvt {
 		for (int i = 0; i < tiles.Count; i++) {
 			if (g.tiles[tiles[i].x, tiles[i].y].playerVisLatest(g.players[player]) && !g.tiles[tiles[i].x, tiles[i].y].playerDirectVisLatest(g.players[player])) {
 				g.tiles[tiles[i].x, tiles[i].y].playerVis[player].Add(time);
+				g.playerVisCache[tiles[i].x / Sim.VisCacheScale, tiles[i].y / Sim.VisCacheScale, player] = false;
 				// add events to remove visibility from surrounding tiles
 				for (int tX = Math.Max(0, (int)tiles[i].x - 1); tX <= Math.Min(g.tileLen() - 1, (int)tiles[i].x + 1); tX++) {
 					for (int tY = Math.Max(0, (int)tiles[i].y - 1); tY <= Math.Min(g.tileLen() - 1, (int)tiles[i].y + 1); tY++) {

@@ -17,6 +17,7 @@ public class Sim {
 	public const bool EnableNonLivePaths = true;
 	public const int OffMap = -10000; // don't set to int.MinValue so doesn't overflow in inVis()
 	public const int CompUser = -1;
+	public const int VisCacheScale = 4;
 
 	// general simulation parameters
 	public long mapSize;
@@ -61,6 +62,7 @@ public class Sim {
 	public int selUser;
 	public NetworkView networkView; // to do RPCs in multiplayer (set to null in single player)
 	public Tile[,] tiles; // each tile is 1 fixed-point unit (2^FP.Precision raw integer units) wide, so bit shift by FP.Precision to convert between position and tile position
+	public bool[,,] playerVisCache;
 	public SimEvtList events; // simulation events to be applied
 	public SimEvtList cmdPending; // user commands to be sent to other users in the next update
 	public SimEvtList cmdHistory; // user commands that have already been applied
@@ -211,9 +213,15 @@ public class Sim {
 	/// </remarks>
 	public bool calcExclusive(Player player, int tileX, int tileY) {
 		// check that this player can see all nearby tiles
-		for (int tX = Math.Max(0, tileX - tileVisRadius()); tX <= Math.Min(tileLen() - 1, tileX + tileVisRadius()); tX++) {
-			for (int tY = Math.Max(0, tileY - tileVisRadius()); tY <= Math.Min(tileLen() - 1, tileY + tileVisRadius()); tY++) {
-				if (inVis(tX - tileX, tY - tileY) && !tiles[tX, tY].playerVisLatest(player)) return false;
+		for (int tX = Math.Max(0, (tileX - tileVisRadius()) / Sim.VisCacheScale); tX <= Math.Min(tileLen() / Sim.VisCacheScale, (tileX + tileVisRadius()) / Sim.VisCacheScale + 1); tX++) {
+			for (int tY = Math.Max(0, (tileY - tileVisRadius()) / Sim.VisCacheScale); tY <= Math.Min(tileLen() / Sim.VisCacheScale, (tileY + tileVisRadius()) / Sim.VisCacheScale + 1); tY++) {
+				if (inVis(Math.Abs (tX * Sim.VisCacheScale - tileX) - Sim.VisCacheScale, Math.Abs (tY * Sim.VisCacheScale - tileY) - Sim.VisCacheScale) && !playerVisCache[tX, tY, player.id]) {
+					for (int tX2 = tX * Sim.VisCacheScale; tX2 < Math.Min (tileLen() - 1, (tX + 1) * Sim.VisCacheScale); tX2++) {
+						for (int tY2 = tY * Sim.VisCacheScale; tY2 < Math.Min (tileLen() - 1, (tY + 1) * Sim.VisCacheScale); tY2++) {
+							if (inVis(tX2 - tileX, tY2 - tileY) && !tiles[tX2, tY2].playerVisLatest(player)) return false;
+						}
+					}
+				}
 			}
 		}
 		// check that no other players can see this tile
