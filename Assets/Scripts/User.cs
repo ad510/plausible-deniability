@@ -15,7 +15,7 @@ public class User {
 	
 	public User() {
 		cmdReceived = new SimEvtList();
-		timeSync = -1;
+		timeSync = 0;
 		checksums = new Dictionary<long, int>();
 	}
 }
