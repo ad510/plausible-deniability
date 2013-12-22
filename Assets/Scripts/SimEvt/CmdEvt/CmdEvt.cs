@@ -77,4 +77,15 @@ public abstract class CmdEvt : SimEvt {
 		}
 		return ret;
 	}
+	
+	public static Dictionary<int, int[]> argFromPathDict(Dictionary<Path, List<Unit>> paths) {
+		Dictionary<int, int[]> ret = new Dictionary<int, int[]>();
+		foreach (KeyValuePair<Path, List<Unit>> path in paths) {
+			ret[path.Key.id] = new int[path.Value.Count];
+			for (int i = 0; i < path.Value.Count; i++) {
+				ret[path.Key.id][i] = path.Value[i].id;
+			}
+		}
+		return ret;
+	}
 }

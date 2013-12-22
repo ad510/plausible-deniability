@@ -86,12 +86,4 @@ public class Segment {
 			yield return new SegmentUnit(this, unit);
 		}
 	}
-	
-	public IEnumerable<int> unitIds {
-		get {
-			foreach (Unit unit in units) {
-				yield return unit.id;
-			}
-		}
-	}
 }

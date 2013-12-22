@@ -346,10 +346,10 @@ public class Path {
 	/// <summary>
 	/// returns minimum distance that paths branching off from this path should move away
 	/// </summary>
-	public long makePathMinDist(long time, List<int> units) {
+	public long makePathMinDist(long time, List<Unit> units) {
 		long ret = 0;
 		foreach (Unit unit in activeSegment (time).units) {
-			if (units.Contains (unit.id) && unit.type.makePathMinDist > ret) {
+			if (units.Contains (unit) && unit.type.makePathMinDist > ret) {
 				ret = unit.type.makePathMinDist;
 			}
 		}
@@ -359,10 +359,10 @@ public class Path {
 	/// <summary>
 	/// returns maximum distance that paths branching off from this path should move away
 	/// </summary>
-	public long makePathMaxDist(long time, List<int> units) {
+	public long makePathMaxDist(long time, List<Unit> units) {
 		long ret = 0;
 		foreach (Unit unit in activeSegment (time).units) {
-			if (units.Contains (unit.id) && unit.type.makePathMaxDist > ret) {
+			if (units.Contains (unit) && unit.type.makePathMaxDist > ret) {
 				ret = unit.type.makePathMaxDist;
 			}
 		}
