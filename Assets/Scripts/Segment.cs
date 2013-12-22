@@ -41,7 +41,7 @@ public class Segment {
 	/// </summary>
 	public void removeAllUnits() {
 		while (units.Count > 0) {
-			if (!new SegmentUnit(this, g.units.Last ()).delete ()) throw new SystemException("failed to remove a unit from segment");
+			if (!new SegmentUnit(this, units.Last ()).delete ()) throw new SystemException("failed to remove a unit from segment");
 		}
 	}
 	

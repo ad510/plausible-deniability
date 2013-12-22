@@ -763,11 +763,9 @@ public class App : MonoBehaviour {
 		selUnitsScrollPos = GUILayout.BeginScrollView (selUnitsScrollPos, "box");
 		foreach (KeyValuePair<Unit, int> item in selUnits()) {
 			if (GUILayout.Button (item.Key.type.name + (item.Value != 1 ? " (" + item.Value + " paths)" : ""))) {
-				Path[] selPathsKeys = new Path[selPaths.Keys.Count];
-				selPaths.Keys.CopyTo (selPathsKeys, 0);
 				if (Event.current.button == 0) { // left button
 					// select unit
-					foreach (Path path in selPathsKeys) {
+					foreach (Path path in selPaths.Keys.ToArray ()) {
 						for (int i = 0; i < selPaths[path].Count; i++) {
 							if (selPaths[path][i] != item.Key) {
 								selPaths[path].RemoveAt (i);
@@ -779,7 +777,7 @@ public class App : MonoBehaviour {
 				}
 				else if (Event.current.button == 1) { // right button
 					// deselect unit
-					foreach (Path path in selPathsKeys) {
+					foreach (Path path in selPaths.Keys.ToArray ()) {
 						selPaths[path].Remove (item.Key);
 						if (selPaths[path].Count == 0) selPaths.Remove (path);
 					}
@@ -1044,12 +1042,10 @@ public class App : MonoBehaviour {
 				g.cmdPending.add(new MakeUnitCmdEvt(g.timeSim, newCmdTime(), CmdEvt.argFromPathDict (pathDict), type.id, makeUnitMovePos (timeGame, path.Key, type)));
 				break;
 			}
-			else {
-				if (g.unitsCanMake (path.Value, type)) {
-					// don't make unit yet; let user pick where to place it
-					makeUnitType = type;
-					break;
-				}
+			else if (g.unitsCanMake (path.Value, type)) {
+				// don't make unit yet; let user pick where to place it
+				makeUnitType = type;
+				break;
 			}
 		}
 	}
