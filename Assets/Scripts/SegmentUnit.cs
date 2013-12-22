@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2013 Andrew Downing
+// Copyright (c) 2013 Andrew Downing
 // Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 // The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
@@ -31,9 +31,9 @@ public struct SegmentUnit {
 	/// removes unit from segment if doing so wouldn't affect anything that another player saw, returns whether successful
 	/// </summary>
 	public bool delete() {
-		if (!segment.units.Contains (unit.id)) return true; // if this segment already doesn't contain this unit, return true
+		if (!segment.units.Contains (unit)) return true; // if this segment already doesn't contain this unit, return true
 		List<SegmentUnit> ancestors = new List<SegmentUnit>();
-		Dictionary<Segment, List<int>> removed = new Dictionary<Segment, List<int>>();
+		Dictionary<Segment, List<Unit>> removed = new Dictionary<Segment, List<Unit>>();
 		long timeEarliestChild = long.MaxValue;
 		int i;
 		ancestors.Add (this);
@@ -44,7 +44,7 @@ public struct SegmentUnit {
 				// don't remove unit from previous segments shared by both
 				bool hasSibling = false;
 				foreach (Segment seg in ancestors[i].segment.branches) {
-					if (seg.units.Contains (unit.id) && !ancestors.Contains (new SegmentUnit(seg, unit))
+					if (seg.units.Contains (unit) && !ancestors.Contains (new SegmentUnit(seg, unit))
 						&& (seg.path.timeSimPast == long.MaxValue || ancestors[i].segment.path.timeSimPast != long.MaxValue)) {
 						hasSibling = true;
 						break;
@@ -73,7 +73,7 @@ public struct SegmentUnit {
 		// if a removeUnitAfter() call failed or removing unit might have led to player having negative resources,
 		// add units back to segments they were removed from
 		if (i < ancestors.Count || (timeEarliestChild != long.MaxValue && segment.path.player.checkNegRsc (timeEarliestChild, false) >= 0)) {
-			foreach (KeyValuePair<Segment, List<int>> item in removed) {
+			foreach (KeyValuePair<Segment, List<Unit>> item in removed) {
 				item.Key.units.AddRange (item.Value);
 			}
 			return false;
@@ -87,8 +87,8 @@ public struct SegmentUnit {
 		return true;
 	}
 	
-	private bool deleteAfter(ref Dictionary<Segment, List<int>> removed, ref long timeEarliestChild) {
-		if (segment.units.Contains (unit.id)) {
+	private bool deleteAfter(ref Dictionary<Segment, List<Unit>> removed, ref long timeEarliestChild) {
+		if (segment.units.Contains (unit)) {
 			if (!segment.unseen && segment.timeStart < g.timeSim) return false;
 			// only remove units from next segments if this is their only previous segment
 			if (segment.nextOnPath () == null || new SegmentUnit(segment.nextOnPath (), unit).prev ().Count () == 1) {
@@ -106,9 +106,9 @@ public struct SegmentUnit {
 				}
 			}
 			// remove unit from this segment
-			segment.units.Remove (unit.id);
-			if (!removed.ContainsKey (segment)) removed.Add (segment, new List<int>());
-			removed[segment].Add (unit.id);
+			segment.units.Remove (unit);
+			if (!removed.ContainsKey (segment)) removed.Add (segment, new List<Unit>());
+			removed[segment].Add (unit);
 		}
 		return true;
 	}
@@ -168,7 +168,7 @@ public struct SegmentUnit {
 	/// so if it makes a child unit, it's unambiguous who is the parent
 	/// </summary>
 	public bool canBeUnambiguousParent(long time) {
-		return segment.timeStart < time || (segment.prevOnPath () != null && segment.prevOnPath ().units.Contains (unit.id));
+		return segment.timeStart < time || (segment.prevOnPath () != null && segment.prevOnPath ().units.Contains (unit));
 	}
 	
 	/// <summary>
@@ -204,7 +204,7 @@ public struct SegmentUnit {
 	/// </summary>
 	public IEnumerable<SegmentUnit> prev() {
 		foreach (Segment seg in segment.prev()) {
-			if (seg.units.Contains (unit.id)) yield return new SegmentUnit(seg, unit);
+			if (seg.units.Contains (unit)) yield return new SegmentUnit(seg, unit);
 		}
 	}
 	
@@ -213,7 +213,7 @@ public struct SegmentUnit {
 	/// </summary>
 	public IEnumerable<SegmentUnit> next() {
 		foreach (Segment seg in segment.next()) {
-			if (seg.units.Contains (unit.id)) yield return new SegmentUnit(seg, unit);
+			if (seg.units.Contains (unit)) yield return new SegmentUnit(seg, unit);
 		}
 	}
 }

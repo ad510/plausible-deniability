@@ -28,13 +28,13 @@ public class StackCmdEvt : CmdEvt {
 	}
 	
 	public override void apply (Sim g) {
-		Dictionary<int, List<int>> exPaths = existingPaths (g);
+		Dictionary<Path, List<Unit>> exPaths = existingPaths (g);
 		List<int> movedPaths = new List<int>();
 		// move paths to final location of stackPath
 		// TODO: if stackPathVal < 0 (pressing stack button will do that) then move all paths to their average location
-		foreach (KeyValuePair<int, List<int>> path in exPaths) {
-			if (g.paths[path.Key].speed == g.paths[stackPath].speed && g.paths[path.Key].canMove (timeCmd)) {
-				movedPaths.Add (g.paths[path.Key].moveTo (timeCmd, new List<int>(path.Value), g.paths[stackPath].moves.Last ().vecEnd).id);
+		foreach (KeyValuePair<Path, List<Unit>> path in exPaths) {
+			if (path.Key.speed == g.paths[stackPath].speed && path.Key.canMove (timeCmd)) {
+				movedPaths.Add (path.Key.moveTo (timeCmd, new List<Unit>(path.Value), g.paths[stackPath].moves.Last ().vecEnd).id);
 			}
 		}
 		// if able to move any of the paths, add events to stack them as they arrive

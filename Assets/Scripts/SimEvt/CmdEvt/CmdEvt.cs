@@ -61,18 +61,18 @@ public abstract class CmdEvt : SimEvt {
 	/// <summary>
 	/// returns commanded paths and units that exist at timeCmd
 	/// </summary>
-	protected Dictionary<int, List<int>> existingPaths(Sim g) {
-		Dictionary<int, List<int>> ret = new Dictionary<int, List<int>>();
+	protected Dictionary<Path, List<Unit>> existingPaths(Sim g) {
+		Dictionary<Path, List<Unit>> ret = new Dictionary<Path, List<Unit>>();
 		foreach (KeyValuePair<int, int[]> path in paths) {
 			Segment segment = g.paths[path.Key].activeSegment (timeCmd);
 			if (segment != null) {
-				List<int> existingUnits = new List<int>();
+				List<Unit> existingUnits = new List<Unit>();
 				foreach (int unit in path.Value) {
-					if (segment.units.Contains (unit)) {
-						if (!existingUnits.Contains (unit)) existingUnits.Add (unit);
+					if (segment.units.Contains (g.units[unit])) {
+						if (!existingUnits.Contains (g.units[unit])) existingUnits.Add (g.units[unit]);
 					}
 				}
-				if (existingUnits.Count > 0) ret.Add (path.Key, existingUnits);
+				if (existingUnits.Count > 0) ret.Add (g.paths[path.Key], existingUnits);
 			}
 		}
 		return ret;

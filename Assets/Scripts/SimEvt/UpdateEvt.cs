@@ -79,16 +79,16 @@ public class UpdateEvt : SimEvt {
 			Segment segment = path.activeSegment (time);
 			if (segment != null && path.timeSimPast == long.MaxValue) {
 				FP.Vector pos = path.calcPos (time);
-				foreach (int unit in segment.units) {
-					if (time >= g.units[unit].timeAttack + g.units[unit].type.reload) {
+				foreach (Unit unit in segment.units) {
+					if (time >= unit.timeAttack + unit.type.reload) {
 						// done reloading, look for closest target to potentially attack
 						Path target = null;
-						long targetDistSq = g.units[unit].type.range * g.units[unit].type.range + 1;
+						long targetDistSq = unit.type.range * unit.type.range + 1;
 						foreach (Path path2 in g.paths) {
 							Segment segment2 = path2.activeSegment (time);
 							if (path != path2 && segment2 != null && path2.timeSimPast == long.MaxValue && path.player.mayAttack[path2.player.id]) {
-								foreach (int unit2 in segment2.units) {
-									if (g.units[unit].type.damage[g.units[unit2].type.id] > 0) {
+								foreach (Unit unit2 in segment2.units) {
+									if (unit.type.damage[unit2.type.id] > 0) {
 										long distSq = (path2.calcPos (time) - pos).lengthSq ();
 										if (distSq < targetDistSq) {
 											target = path2;
@@ -102,10 +102,10 @@ public class UpdateEvt : SimEvt {
 						if (target != null) {
 							// attack every applicable unit in target path
 							// take health with 1 ms delay so earlier units in array don't have unfair advantage
-							foreach (int unit2 in target.activeSegment(time).units) {
-								if (g.units[unit].type.damage[g.units[unit2].type.id] > 0) {
-									for (int j = 0; j < g.units[unit].type.damage[g.units[unit2].type.id]; j++) g.units[unit2].takeHealth(time + 1, target);
-									g.units[unit].timeAttack = time;
+							foreach (Unit unit2 in target.activeSegment(time).units) {
+								if (unit.type.damage[unit2.type.id] > 0) {
+									for (int j = 0; j < unit.type.damage[unit2.type.id]; j++) unit2.takeHealth(time + 1, target);
+									unit.timeAttack = time;
 								}
 							}
 						}

@@ -33,18 +33,18 @@ public class MoveCmdEvt : CmdEvt {
 	}
 
 	public override void apply(Sim g) {
-		Dictionary<int, List<int>> exPaths = existingPaths (g);
+		Dictionary<Path, List<Unit>> exPaths = existingPaths (g);
 		FP.Vector goalCenter, goal, rows = new FP.Vector(), offset = new FP.Vector();
 		long spacing = 0;
 		int count = 0, i = 0;
 		// count number of units able to move
-		foreach (KeyValuePair<int, List<int>> path in exPaths) {
-			if (g.paths[path.Key].canMove(timeCmd)) {
+		foreach (KeyValuePair<Path, List<Unit>> path in exPaths) {
+			if (path.Key.canMove(timeCmd)) {
 				count++;
 				if (formation == Formation.Tight) {
 					// calculate spacing for tight formation
-					foreach (int unit in path.Value) {
-						if (g.units[unit].type.tightFormationSpacing > spacing) spacing = g.units[unit].type.tightFormationSpacing;
+					foreach (Unit unit in path.Value) {
+						if (unit.type.tightFormationSpacing > spacing) spacing = unit.type.tightFormationSpacing;
 					}
 				}
 			}
@@ -77,8 +77,8 @@ public class MoveCmdEvt : CmdEvt {
 		if (goalCenter.y < Math.Min(offset.y, g.mapSize / 2)) goalCenter.y = Math.Min(offset.y, g.mapSize / 2);
 		if (goalCenter.y > g.mapSize - Math.Min(offset.y, g.mapSize / 2)) goalCenter.y = g.mapSize - Math.Min(offset.y, g.mapSize / 2);
 		// move units
-		foreach (KeyValuePair<int, List<int>> path in exPaths) {
-			if (g.paths[path.Key].canMove(timeCmd)) {
+		foreach (KeyValuePair<Path, List<Unit>> path in exPaths) {
+			if (path.Key.canMove(timeCmd)) {
 				if (formation == Formation.Tight || formation == Formation.Loose) {
 					goal = goalCenter + new FP.Vector((i % rows.x) * spacing - offset.x, i / rows.x * spacing - offset.y);
 				}
@@ -88,7 +88,7 @@ public class MoveCmdEvt : CmdEvt {
 				else {
 					throw new NotImplementedException("requested formation is not implemented");
 				}
-				g.paths[path.Key].moveTo(timeCmd, new List<int>(path.Value), goal);
+				path.Key.moveTo(timeCmd, new List<Unit>(path.Value), goal);
 				i++;
 			}
 		}

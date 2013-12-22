@@ -23,10 +23,10 @@ public class DeletePathCmdEvt : CmdEvt {
 		: base(timeVal, timeCmdVal, pathsVal) { }
 
 	public override void apply(Sim g) {
-		Dictionary<int, List<int>> exPaths = existingPaths (g);
-		foreach (KeyValuePair<int, List<int>> path in exPaths) {
-			foreach (int unit in path.Value) {
-				new SegmentUnit(g.paths[path.Key].activeSegment (timeCmd), g.units[unit]).delete ();
+		Dictionary<Path, List<Unit>> exPaths = existingPaths (g);
+		foreach (KeyValuePair<Path, List<Unit>> path in exPaths) {
+			foreach (Unit unit in path.Value) {
+				new SegmentUnit(path.Key.activeSegment (timeCmd), unit).delete ();
 			}
 		}
 	}

@@ -22,10 +22,10 @@ public class Segment {
 	/// (NOTE: protobuf-net won't like that)
 	/// </summary>
 	public List<Segment> branches;
-	public List<int> units; // indices of units on this path segment
+	public List<Unit> units; // units on this path segment
 	public bool unseen; // whether path segment is known to not be seen by another player
 	
-	public Segment(Path pathVal, int idVal, long timeStartVal, List<int> unitsVal, bool unseenVal) {
+	public Segment(Path pathVal, int idVal, long timeStartVal, List<Unit> unitsVal, bool unseenVal) {
 		path = pathVal;
 		g = path.g;
 		id = idVal;
@@ -41,7 +41,7 @@ public class Segment {
 	/// </summary>
 	public void removeAllUnits() {
 		while (units.Count > 0) {
-			if (!new SegmentUnit(this, g.units[units.Last ()]).delete ()) throw new SystemException("failed to remove a unit from segment");
+			if (!new SegmentUnit(this, g.units.Last ()).delete ()) throw new SystemException("failed to remove a unit from segment");
 		}
 	}
 	
@@ -82,8 +82,16 @@ public class Segment {
 	}
 	
 	public IEnumerable<SegmentUnit> segmentUnits() {
-		foreach (int unit in units) {
-			yield return new SegmentUnit(this, g.units[unit]);
+		foreach (Unit unit in units) {
+			yield return new SegmentUnit(this, unit);
+		}
+	}
+	
+	public IEnumerable<int> unitIds {
+		get {
+			foreach (Unit unit in units) {
+				yield return unit.id;
+			}
 		}
 	}
 }

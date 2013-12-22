@@ -22,7 +22,7 @@ public class Path {
 	public int tileX, tileY; // current position on visibility tiles
 	public long timeSimPast; // time traveling simulation time if made in the past, otherwise set to long.MaxValue
 
-	public Path(Sim simVal, int idVal, long speedVal, Player playerVal, List<int> units, long startTime, FP.Vector startPos, bool startUnseen) {
+	public Path(Sim simVal, int idVal, long speedVal, Player playerVal, List<Unit> units, long startTime, FP.Vector startPos, bool startUnseen) {
 		g = simVal;
 		id = idVal;
 		speed = speedVal;
@@ -37,9 +37,9 @@ public class Path {
 		timeSimPast = (startTime >= g.timeSim) ? long.MaxValue : startTime;
 	}
 	
-	public Path(Sim simVal, int idVal, List<int> units, long startTime, FP.Vector startPos)
-		: this(simVal, idVal, simVal.units[units[0]].type.speed, simVal.units[units[0]].player, units,
-		startTime, startPos, simVal.tileAt(startPos).exclusiveWhen(simVal.units[units[0]].player, startTime)) {
+	public Path(Sim simVal, int idVal, List<Unit> units, long startTime, FP.Vector startPos)
+		: this(simVal, idVal, units[0].type.speed, units[0].player, units,
+		startTime, startPos, simVal.tileAt(startPos).exclusiveWhen(units[0].player, startTime)) {
 	}
 
 	/// <summary>
@@ -126,8 +126,8 @@ public class Path {
 		Segment segment = insertSegment(time);
 		List<SegmentUnit> seenUnits = new List<SegmentUnit>();
 		segment.unseen = false;
-		foreach (int unit in segment.units) {
-			seenUnits.Add (new SegmentUnit(segment, g.units[unit]));
+		foreach (Unit unit in segment.units) {
+			seenUnits.Add (new SegmentUnit(segment, unit));
 		}
 		if (!g.deleteOtherPaths (seenUnits)) throw new SystemException("failed to delete other paths of seen path");
 	}
@@ -135,11 +135,11 @@ public class Path {
 	/// <summary>
 	/// makes a new path containing specified units, returns whether successful
 	/// </summary>
-	public bool makePath(long time, List<int> units) {
+	public bool makePath(long time, List<Unit> units) {
 		if (canMakePath(time, units)) {
 			Segment segment = insertSegment (time);
 			FP.Vector pos = calcPos (time);
-			g.paths.Add (new Path(g, g.paths.Count, g.units[units[0]].type.speed, player, units, time, pos, segment.unseen));
+			g.paths.Add (new Path(g, g.paths.Count, units[0].type.speed, player, units, time, pos, segment.unseen));
 			connect (time, g.paths.Last ());
 			if (timeSimPast != long.MaxValue) g.paths.Last ().timeSimPast = time;
 			if (g.paths.Last ().timeSimPast == long.MaxValue) {
@@ -156,25 +156,25 @@ public class Path {
 	/// <summary>
 	/// returns whether this path can make a new path as specified
 	/// </summary>
-	public bool canMakePath(long time, List<int> units) {
+	public bool canMakePath(long time, List<Unit> units) {
 		if (units.Count == 0) return false;
 		Segment segment = activeSegment(time);
 		if (segment == null) return false;
 		long[] rscCost = new long[g.rscNames.Length];
-		foreach (int unit in units) {
+		foreach (Unit unit in units) {
 			if (segment.units.Contains (unit)) {
 				// unit in path would be child path
-				SegmentUnit segmentUnit = new SegmentUnit(segment, g.units[unit]);
+				SegmentUnit segmentUnit = new SegmentUnit(segment, unit);
 				// check parent made before (not at same time as) child, so it's unambiguous who is the parent
 				if (!segmentUnit.canBeUnambiguousParent (time)) return false;
 				// check parent unit won't be seen later
 				if (!segmentUnit.unseenAfter ()) return false;
 			}
 			else {
-				if (!canMakeUnitType (time, g.units[unit].type)) return false;
+				if (!canMakeUnitType (time, unit.type)) return false;
 				// unit in path would be non-path child unit
 				for (int i = 0; i < g.rscNames.Length; i++) {
-					rscCost[i] += g.units[unit].type.rscCost[i];
+					rscCost[i] += unit.type.rscCost[i];
 				}
 			}
 		}
@@ -218,7 +218,7 @@ public class Path {
 	/// move towards specified location starting at specified time,
 	/// return moved path (in case moving a subset of units in path)
 	/// </summary>
-	public Path moveTo(long time, List<int> units, FP.Vector pos) {
+	public Path moveTo(long time, List<Unit> units, FP.Vector pos) {
 		Path path2 = this; // move this path by default
 		if (time < g.timeSim) {
 			// move non-live path if in past
@@ -227,7 +227,7 @@ public class Path {
 			path2 = g.paths.Last ();
 		}
 		else {
-			foreach (int unit in activeSegment(time).units) {
+			foreach (Unit unit in activeSegment(time).units) {
 				if (!units.Contains (unit)) {
 					// some units in path aren't being moved, so make a new path
 					if (!makePath (time, units)) throw new SystemException("make new path failed when moving units");
@@ -239,8 +239,8 @@ public class Path {
 		if (path2 != this && (path2.timeSimPast == long.MaxValue || timeSimPast != long.MaxValue)) {
 			// new path will be moved, so try to remove units that will move from this path
 			Segment segment = activeSegment (time);
-			foreach (int unit2 in units) {
-				new SegmentUnit(segment, g.units[unit2]).delete ();
+			foreach (Unit unit in units) {
+				new SegmentUnit(segment, unit).delete ();
 			}
 		}
 		path2.moveTo (time, pos);
@@ -286,7 +286,7 @@ public class Path {
 	public Segment insertSegment(long time) {
 		Segment segment = activeSegment (time);
 		if (segment != null && segment.timeStart == time) return segment;
-		segments.Insert (segment.id + 1, new Segment(this, segment.id + 1, time, new List<int>(segment.units), segment.unseen));
+		segments.Insert (segment.id + 1, new Segment(this, segment.id + 1, time, new List<Unit>(segment.units), segment.unseen));
 		for (int i = segment.id + 2; i < segments.Count; i++) {
 			segments[i].id = i;
 		}
@@ -324,9 +324,9 @@ public class Path {
 	/// </summary>
 	public FP.Vector selMinPos(long time) {
 		FP.Vector ret = new FP.Vector(int.MaxValue, int.MaxValue);
-		foreach (int unit in activeSegment(time).units) {
-			ret.x = Math.Min (ret.x, g.units[unit].type.selMinPos.x);
-			ret.y = Math.Min (ret.y, g.units[unit].type.selMinPos.y);
+		foreach (Unit unit in activeSegment(time).units) {
+			ret.x = Math.Min (ret.x, unit.type.selMinPos.x);
+			ret.y = Math.Min (ret.y, unit.type.selMinPos.y);
 		}
 		return ret + calcPos(time);
 	}
@@ -336,9 +336,9 @@ public class Path {
 	/// </summary>
 	public FP.Vector selMaxPos(long time) {
 		FP.Vector ret = new FP.Vector(int.MinValue, int.MinValue);
-		foreach (int unit in activeSegment(time).units) {
-			ret.x = Math.Max (ret.x, g.units[unit].type.selMaxPos.x);
-			ret.y = Math.Max (ret.y, g.units[unit].type.selMaxPos.y);
+		foreach (Unit unit in activeSegment(time).units) {
+			ret.x = Math.Max (ret.x, unit.type.selMaxPos.x);
+			ret.y = Math.Max (ret.y, unit.type.selMaxPos.y);
 		}
 		return ret + calcPos(time);
 	}
@@ -348,9 +348,9 @@ public class Path {
 	/// </summary>
 	public long makePathMinDist(long time, List<int> units) {
 		long ret = 0;
-		foreach (int unit in activeSegment (time).units) {
-			if (units.Contains (unit) && g.units[unit].type.makePathMinDist > ret) {
-				ret = g.units[unit].type.makePathMinDist;
+		foreach (Unit unit in activeSegment (time).units) {
+			if (units.Contains (unit.id) && unit.type.makePathMinDist > ret) {
+				ret = unit.type.makePathMinDist;
 			}
 		}
 		return ret;
@@ -361,9 +361,9 @@ public class Path {
 	/// </summary>
 	public long makePathMaxDist(long time, List<int> units) {
 		long ret = 0;
-		foreach (int unit in activeSegment (time).units) {
-			if (units.Contains (unit) && g.units[unit].type.makePathMaxDist > ret) {
-				ret = g.units[unit].type.makePathMaxDist;
+		foreach (Unit unit in activeSegment (time).units) {
+			if (units.Contains (unit.id) && unit.type.makePathMaxDist > ret) {
+				ret = unit.type.makePathMaxDist;
 			}
 		}
 		return ret;
