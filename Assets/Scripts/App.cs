@@ -15,12 +15,10 @@ using ProtoBuf;
 /// </summary>
 public class App : MonoBehaviour {
 	private class LineBox {
-		public GameObject gameObject; // TODO: can use line.gameObject to refer to game object, don't need to store it separately
 		public LineRenderer line;
 		
 		public LineBox() {
-			gameObject = new GameObject();
-			line = gameObject.AddComponent<LineRenderer>();
+			line = new GameObject().AddComponent<LineRenderer>();
 			line.material.shader = Shader.Find ("Diffuse");
 			line.SetVertexCount (8);
 		}
@@ -42,7 +40,7 @@ public class App : MonoBehaviour {
 		}
 		
 		public void dispose() {
-			Destroy(gameObject);
+			Destroy(line.gameObject);
 		}
 	}
 	
