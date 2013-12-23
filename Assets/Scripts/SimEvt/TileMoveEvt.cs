@@ -40,54 +40,50 @@ public class TileMoveEvt : SimEvt {
 		g.paths[path].tileX = tileX;
 		g.paths[path].tileY = tileY;
 		// add path to visibility tiles
-		for (int tX = Math.Max (0, tileX - g.tileVisRadius()); tX <= Math.Min (g.tileLen () - 1, tileX + g.tileVisRadius()); tX++) {
-			for (int tY = Math.Max (0, tileY - g.tileVisRadius()); tY <= Math.Min (g.tileLen () - 1, tileY + g.tileVisRadius()); tY++) {
-				if (!g.inVis(tX - tXPrev, tY - tYPrev) && g.inVis(tX - tileX, tY - tileY)) {
-					if (g.tiles[tX, tY].pathVisLatest(path)) throw new InvalidOperationException("path " + path + " already sees tile (" + tX + ", " + tY + ")");
-					// add path to path visibility tile
-					g.tiles[tX, tY].pathVisToggle(path, time);
-					if (!g.tiles[tX, tY].playerVisLatest(g.paths[path].player)) {
-						g.tiles[tX, tY].playerVis[g.paths[path].player.id].Add(time);
-						playerVisAddTiles.Add(new FP.Vector(tX, tY));
-						// check if this tile stopped being exclusive to another player
-						foreach (Player player in g.players) {
-							if (player != g.paths[path].player && g.tiles[tX, tY].exclusiveLatest(player)) {
-								g.tiles[tX, tY].exclusiveRemove(player, time);
-							}
+		foreach (Tile tile in g.tilesInVis (tileX, tileY)) {
+			if (!g.inVis(tile.x - tXPrev, tile.y - tYPrev)) {
+				if (tile.pathVisLatest(path)) throw new InvalidOperationException("path " + path + " already sees tile (" + tile.x + ", " + tile.y + ")");
+				// add path to path visibility tile
+				tile.pathVisToggle(path, time);
+				if (!tile.playerVisLatest(g.paths[path].player)) {
+					tile.playerVis[g.paths[path].player.id].Add(time);
+					playerVisAddTiles.Add(new FP.Vector(tile.x, tile.y));
+					// check if this tile stopped being exclusive to another player
+					foreach (Player player in g.players) {
+						if (player != g.paths[path].player && tile.exclusiveLatest(player)) {
+							tile.exclusiveRemove(player, time);
 						}
 					}
 				}
 			}
 		}
 		// remove path from visibility tiles
-		for (int tX = Math.Max (0, tXPrev - g.tileVisRadius()); tX <= Math.Min (g.tileLen () - 1, tXPrev + g.tileVisRadius()); tX++) {
-			for (int tY = Math.Max (0, tYPrev - g.tileVisRadius()); tY <= Math.Min (g.tileLen () - 1, tYPrev + g.tileVisRadius()); tY++) {
-				if (g.inVis(tX - tXPrev, tY - tYPrev) && !g.inVis(tX - tileX, tY - tileY)) {
-					if (!g.tiles[tX, tY].pathVisLatest(path)) throw new InvalidOperationException("path " + path + " already doesn't see tile (" + tX + ", " + tY + ")");
-					// remove path from path visibility tile
-					g.tiles[tX, tY].pathVisToggle(path, time);
-					// check if player can't directly see this tile anymore
-					if (g.tiles[tX, tY].playerVisLatest(g.paths[path].player) && !g.tiles[tX, tY].playerDirectVisLatest(g.paths[path].player)) {
-						long timePlayerVis = long.MaxValue;
-						// find lowest time that surrounding tiles lost visibility
-						for (int tX2 = Math.Max(0, tX - 1); tX2 <= Math.Min(g.tileLen() - 1, tX + 1); tX2++) {
-							for (int tY2 = Math.Max(0, tY - 1); tY2 <= Math.Min(g.tileLen() - 1, tY + 1); tY2++) {
-								if ((tX2 != tX || tY2 != tY) && !g.tiles[tX2, tY2].playerVisLatest(g.paths[path].player)) {
-									if (g.tiles[tX2, tY2].playerVis[g.paths[path].player.id].Count == 0) {
-										timePlayerVis = long.MinValue;
-									}
-									else if (g.tiles[tX2, tY2].playerVis[g.paths[path].player.id].Last () < timePlayerVis) {
-										timePlayerVis = g.tiles[tX2, tY2].playerVis[g.paths[path].player.id].Last ();
-									}
+		foreach (Tile tile in g.tilesInVis (tXPrev, tYPrev)) {
+			if (!g.inVis(tile.x - tileX, tile.y - tileY)) {
+				if (!tile.pathVisLatest(path)) throw new InvalidOperationException("path " + path + " already doesn't see tile (" + tile.x + ", " + tile.y + ")");
+				// remove path from path visibility tile
+				tile.pathVisToggle(path, time);
+				// check if player can't directly see this tile anymore
+				if (tile.playerVisLatest(g.paths[path].player) && !tile.playerDirectVisLatest(g.paths[path].player)) {
+					long timePlayerVis = long.MaxValue;
+					// find lowest time that surrounding tiles lost visibility
+					for (int tX = Math.Max(0, tile.x - 1); tX <= Math.Min(g.tileLen() - 1, tile.x + 1); tX++) {
+						for (int tY = Math.Max(0, tile.y - 1); tY <= Math.Min(g.tileLen() - 1, tile.y + 1); tY++) {
+							if ((tX != tile.x || tY != tile.y) && !g.tiles[tX, tY].playerVisLatest(g.paths[path].player)) {
+								if (g.tiles[tX, tY].playerVis[g.paths[path].player.id].Count == 0) {
+									timePlayerVis = long.MinValue;
+								}
+								else if (g.tiles[tX, tY].playerVis[g.paths[path].player.id].Last () < timePlayerVis) {
+									timePlayerVis = g.tiles[tX, tY].playerVis[g.paths[path].player.id].Last ();
 								}
 							}
 						}
-						// if player can't see all neighboring tiles, they won't be able to tell if another player's unit moves into this tile
-						// so remove this tile's visibility for this player
-						if (timePlayerVis != long.MaxValue) {
-							timePlayerVis = Math.Max(time, timePlayerVis + (1 << FP.Precision) / g.maxSpeed); // TODO: use more accurate time
-							g.tiles[tX, tY].playerVisRemove(g.paths[path].player, timePlayerVis);
-						}
+					}
+					// if player can't see all neighboring tiles, they won't be able to tell if another player's unit moves into this tile
+					// so remove this tile's visibility for this player
+					if (timePlayerVis != long.MaxValue) {
+						timePlayerVis = Math.Max(time, timePlayerVis + (1 << FP.Precision) / g.maxSpeed); // TODO: use more accurate time
+						tile.playerVisRemove(g.paths[path].player, timePlayerVis);
 					}
 				}
 			}

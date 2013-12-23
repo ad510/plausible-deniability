@@ -175,6 +175,17 @@ public class Sim {
 			if (segment != null) yield return segment;
 		}
 	}
+	
+	/// <summary>
+	/// iterates over all tiles visible to a path on specified tile
+	/// </summary>
+	public IEnumerable<Tile> tilesInVis(int tileX, int tileY) {
+		for (int tX = Math.Max(0, tileX - tileVisRadius()); tX <= Math.Min(tileLen() - 1, tileX + tileVisRadius()); tX++) {
+			for (int tY = Math.Max(0, tileY - tileVisRadius()); tY <= Math.Min(tileLen() - 1, tileY + tileVisRadius()); tY++) {
+				if (inVis(tX - tileX, tY - tileY)) yield return tiles[tX, tY];
+			}
+		}
+	}
 
 	/// <summary>
 	/// returns if a hypothetical unit at the origin could see tile with specified (positive or negative) x and y indices
