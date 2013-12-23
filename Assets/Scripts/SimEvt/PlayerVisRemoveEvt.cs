@@ -27,12 +27,10 @@ public class PlayerVisRemoveEvt : SimEvt {
 			if (g.tiles[tiles[i].x, tiles[i].y].playerVisLatest(g.players[player]) && !g.tiles[tiles[i].x, tiles[i].y].playerDirectVisLatest(g.players[player])) {
 				g.tiles[tiles[i].x, tiles[i].y].playerVis[player].Add(time);
 				// add events to remove visibility from surrounding tiles
-				for (int tX = Math.Max(0, (int)tiles[i].x - 1); tX <= Math.Min(g.tileLen() - 1, (int)tiles[i].x + 1); tX++) {
-					for (int tY = Math.Max(0, (int)tiles[i].y - 1); tY <= Math.Min(g.tileLen() - 1, (int)tiles[i].y + 1); tY++) {
-						if ((tX != tiles[i].x || tY != tiles[i].y) && g.tiles[tX, tY].playerVisLatest(g.players[player])) {
-							// TODO: use more accurate time
-							g.tiles[tX, tY].playerVisRemove(g.players[player], time + (1 << FP.Precision) / g.maxSpeed);
-						}
+				foreach (Tile tile in g.tileNeighbors ((int)tiles[i].x, (int)tiles[i].y)) {
+					if ((tile.x != tiles[i].x || tile.y != tiles[i].y) && tile.playerVisLatest(g.players[player])) {
+						// TODO: use more accurate time
+						tile.playerVisRemove(g.players[player], time + (1 << FP.Precision) / g.maxSpeed);
 					}
 				}
 			}

@@ -186,6 +186,17 @@ public class Sim {
 			}
 		}
 	}
+	
+	/// <summary>
+	/// iterates over the 9 tiles neighboring specified tile (including itself)
+	/// </summary>
+	public IEnumerable<Tile> tileNeighbors(int tileX, int tileY) {
+		for (int tX = Math.Max(0, tileX - 1); tX <= Math.Min(tileLen() - 1, tileX + 1); tX++) {
+			for (int tY = Math.Max(0, tileY - 1); tY <= Math.Min(tileLen() - 1, tileY + 1); tY++) {
+				yield return tiles[tX, tY];
+			}
+		}
+	}
 
 	/// <summary>
 	/// returns if a hypothetical unit at the origin could see tile with specified (positive or negative) x and y indices

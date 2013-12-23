@@ -67,15 +67,13 @@ public class TileMoveEvt : SimEvt {
 				if (tile.playerVisLatest(g.paths[path].player) && !tile.playerDirectVisLatest(g.paths[path].player)) {
 					long timePlayerVis = long.MaxValue;
 					// find lowest time that surrounding tiles lost visibility
-					for (int tX = Math.Max(0, tile.x - 1); tX <= Math.Min(g.tileLen() - 1, tile.x + 1); tX++) {
-						for (int tY = Math.Max(0, tile.y - 1); tY <= Math.Min(g.tileLen() - 1, tile.y + 1); tY++) {
-							if ((tX != tile.x || tY != tile.y) && !g.tiles[tX, tY].playerVisLatest(g.paths[path].player)) {
-								if (g.tiles[tX, tY].playerVis[g.paths[path].player.id].Count == 0) {
-									timePlayerVis = long.MinValue;
-								}
-								else if (g.tiles[tX, tY].playerVis[g.paths[path].player.id].Last () < timePlayerVis) {
-									timePlayerVis = g.tiles[tX, tY].playerVis[g.paths[path].player.id].Last ();
-								}
+					foreach (Tile tile2 in g.tileNeighbors (tile.x, tile.y)) {
+						if ((tile2.x != tile.x || tile2.y != tile.y) && !tile2.playerVisLatest(g.paths[path].player)) {
+							if (tile2.playerVis[g.paths[path].player.id].Count == 0) {
+								timePlayerVis = long.MinValue;
+							}
+							else if (tile2.playerVis[g.paths[path].player.id].Last () < timePlayerVis) {
+								timePlayerVis = tile2.playerVis[g.paths[path].player.id].Last ();
 							}
 						}
 					}
@@ -134,11 +132,9 @@ public class TileMoveEvt : SimEvt {
 			if (!g.paths[path].player.immutable && tXPrev >= 0 && tXPrev < g.tileLen() && tYPrev >= 0 && tYPrev < g.tileLen()) {
 				foreach (Player player in g.players) {
 					if (player != g.paths[path].player && g.tiles[tXPrev, tYPrev].playerDirectVisLatest(player) && !g.tiles[tileX, tileY].playerDirectVisLatest(player)) {
-						for (int tX = Math.Max(0, tileX - 1); tX <= Math.Min(g.tileLen() - 1, tileX + 1); tX++) {
-							for (int tY = Math.Max(0, tileY - 1); tY <= Math.Min(g.tileLen() - 1, tileY + 1); tY++) {
-								// TODO?: use more accurate time at tiles other than (tileX, tileY)
-								g.tiles[tX, tY].playerVisRemove(player, time);
-							}
+						foreach (Tile tile in g.tileNeighbors (tileX, tileY)) {
+							// TODO?: use more accurate time at tiles other than (tileX, tileY)
+							tile.playerVisRemove(player, time);
 						}
 					}
 				}
@@ -149,11 +145,9 @@ public class TileMoveEvt : SimEvt {
 			foreach (int i in g.tiles[tXPrev, tYPrev].pathVis.Keys) {
 				if (g.paths[i].player != g.paths[path].player && !g.paths[i].player.immutable && g.paths[i].segments.Last ().units.Count > 0
 					&& g.inVis(g.paths[i].tileX - tXPrev, g.paths[i].tileY - tYPrev) && !g.tiles[g.paths[i].tileX, g.paths[i].tileY].playerDirectVisLatest(g.paths[path].player)) {
-					for (int tX = Math.Max(0, g.paths[i].tileX - 1); tX <= Math.Min(g.tileLen() - 1, g.paths[i].tileX + 1); tX++) {
-						for (int tY = Math.Max(0, g.paths[i].tileY - 1); tY <= Math.Min(g.tileLen() - 1, g.paths[i].tileY + 1); tY++) {
-							// TODO?: use more accurate time at tiles other than (paths[i].tileX, paths[i].tileY)
-							g.tiles[tX, tY].playerVisRemove(g.paths[path].player, time);
-						}
+					foreach (Tile tile in g.tileNeighbors (g.paths[i].tileX, g.paths[i].tileY)) {
+						// TODO?: use more accurate time at tiles other than (paths[i].tileX, paths[i].tileY)
+						tile.playerVisRemove(g.paths[path].player, time);
 					}
 				}
 			}
