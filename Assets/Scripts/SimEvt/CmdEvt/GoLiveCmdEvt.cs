@@ -53,6 +53,6 @@ public class GoLiveCmdEvt : SimEvt {
 		}
 		// indicate success
 		g.players[player].hasNonLivePaths = false;
-		g.players[player].timeGoLiveFail = long.MaxValue;
+		g.players[player].timeGoLiveFail = long.MinValue;
 	}
 }

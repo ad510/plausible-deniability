@@ -20,12 +20,12 @@ public class Player {
 	// not stored in scenario files
 	public bool immutable; // whether player's units will never unpredictably move or change
 	public bool hasNonLivePaths; // whether currently might have time traveling paths (ok to sometimes incorrectly be set to true)
-	public long timeGoLiveFail; // latest time that player's time traveling paths failed to go live (resets to long.MaxValue after success)
+	public long timeGoLiveFail; // latest time that player's time traveling paths failed to go live (resets to long.MinValue after success)
 	public long timeNegRsc; // time that player could have negative resources if time traveling paths went live
 
 	public Player() {
 		hasNonLivePaths = false;
-		timeGoLiveFail = long.MaxValue;
+		timeGoLiveFail = long.MinValue;
 	}
 
 	/// <summary>
@@ -36,7 +36,7 @@ public class Player {
 			foreach (Path path in g.paths) {
 				if (this == path.player) path.updatePast(curTime);
 			}
-			if (curTime >= g.timeSim && (timeGoLiveFail == long.MaxValue || g.timeSim >= timeGoLiveFail + g.updateInterval)) {
+			if (curTime >= g.timeSim && g.timeSim >= timeGoLiveFail + g.updateInterval) {
 				g.cmdPending.add(new GoLiveCmdEvt(g.timeSim, id));
 			}
 		}

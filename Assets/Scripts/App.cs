@@ -714,7 +714,7 @@ public class App : MonoBehaviour {
 		if (paused) GUILayout.Label ("PAUSED", lblStyle);
 		if (Environment.TickCount < timeSpeedChg) timeSpeedChg -= UInt32.MaxValue;
 		if (Environment.TickCount < timeSpeedChg + 1000) GUILayout.Label ("SPEED: " + Math.Pow(2, speed) + "x", lblStyle);
-		if (selPlayer.timeGoLiveFail != long.MaxValue) {
+		if (selPlayer.timeGoLiveFail != long.MinValue) {
 			lblStyle.normal.textColor = Color.red;
 			GUILayout.Label ("ERROR: Going live may cause you to have negative resources " + (timeGame - selPlayer.timeNegRsc) / 1000 + " second(s) ago.", lblStyle);
 		}
