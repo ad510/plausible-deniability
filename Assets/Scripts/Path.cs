@@ -223,6 +223,7 @@ public class Path {
 		if (time < g.timeSim) {
 			// move non-live path if in past
 			// if this path already isn't live, a better approach is removing later segments and moves then moving this path, like pre-stacking versions
+			// TODO: this fails if moving non-live unit immediately when it's made (b/c parent is ambiguous), or moving non-live unit when resources are negative
 			if (!makePath (time, units)) throw new SystemException("make non-live path failed when moving units");
 			path2 = g.paths.Last ();
 		}
