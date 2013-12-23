@@ -318,7 +318,7 @@ public class App : MonoBehaviour {
 		g.tiles = new Tile[g.tileLen(), g.tileLen()];
 		for (int i = 0; i < g.tileLen(); i++) {
 			for (int j = 0; j < g.tileLen(); j++) {
-				g.tiles[i, j] = new Tile(g);
+				g.tiles[i, j] = new Tile(g, i, j);
 			}
 		}
 		texTile = new Texture2D(g.tileLen (), g.tileLen (), TextureFormat.ARGB32, false);

@@ -31,7 +31,7 @@ public class PlayerVisRemoveEvt : SimEvt {
 					for (int tY = Math.Max(0, (int)tiles[i].y - 1); tY <= Math.Min(g.tileLen() - 1, (int)tiles[i].y + 1); tY++) {
 						if ((tX != tiles[i].x || tY != tiles[i].y) && g.tiles[tX, tY].playerVisLatest(g.players[player])) {
 							// TODO: use more accurate time
-							g.playerVisRemove(g.players[player], tX, tY, time + (1 << FP.Precision) / g.maxSpeed);
+							g.tiles[tX, tY].playerVisRemove(g.players[player], time + (1 << FP.Precision) / g.maxSpeed);
 						}
 					}
 				}
@@ -50,10 +50,10 @@ public class PlayerVisRemoveEvt : SimEvt {
 							if (g.inVis(tX - tiles[i].x, tY - tiles[i].y) && (iPrev == -1 || !g.inVis(tX - tiles[iPrev].x, tY - tiles[iPrev].y))) {
 								foreach (Player player2 in g.players) {
 									if (player2.id == player && g.tiles[tX, tY].exclusiveLatest(player2)) {
-										g.exclusiveRemove(player2, tX, tY, time);
+										g.tiles[tX, tY].exclusiveRemove(player2, time);
 									}
-									else if (player2.id != player && !g.tiles[tX, tY].exclusiveLatest(player2) && g.calcExclusive(player2, tX, tY)) {
-										g.exclusiveAdd(player2, tX, tY, time);
+									else if (player2.id != player && !g.tiles[tX, tY].exclusiveLatest(player2) && g.tiles[tX, tY].calcExclusive(player2)) {
+										g.tiles[tX, tY].exclusiveAdd(player2, time);
 									}
 								}
 							}

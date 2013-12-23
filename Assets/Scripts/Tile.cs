@@ -10,6 +10,7 @@ using System.Text;
 
 public class Tile {
 	private readonly Sim g;
+	public readonly int x, y;
 	/// <summary>
 	/// stores times when each path started or stopped seeing this tile,
 	/// in format pathVis[path][gain/lose visibility index]
@@ -26,8 +27,10 @@ public class Tile {
 	/// </summary>
 	public List<long>[] exclusive;
 
-	public Tile(Sim simVal) {
+	public Tile(Sim simVal, int xVal, int yVal) {
 		g = simVal;
+		x = xVal;
+		y = yVal;
 		pathVis = new Dictionary<int,List<long>>();
 		playerVis = new List<long>[g.players.Length];
 		exclusive = new List<long>[g.players.Length];
@@ -58,6 +61,29 @@ public class Tile {
 	/// </summary>
 	public bool pathVisWhen(int path, long time) {
 		return pathVis.ContainsKey(path) && visWhen(pathVis[path], time);
+	}
+
+	/// <summary>
+	/// makes this tile not visible to specified player starting at specified time, including effects on surrounding tiles
+	/// </summary>
+	public void playerVisRemove(Player player, long time) {
+		// try adding tile to existing PlayerVisRemoveEvt with same player and time
+		foreach (SimEvt evt in g.events.events) {
+			if (evt is PlayerVisRemoveEvt) {
+				PlayerVisRemoveEvt visEvt = (PlayerVisRemoveEvt)evt;
+				if (player.id == visEvt.player && time == visEvt.time) {
+					// check that tile pos isn't a duplicate (recently added tiles are more likely to be duplicates)
+					for (int i = visEvt.tiles.Count - 1; i >= Math.Max(0, visEvt.tiles.Count - 20); i--) {
+						if (x == visEvt.tiles[i].x && y == visEvt.tiles[i].y) return;
+					}
+					// ok to add tile to existing event
+					visEvt.tiles.Add (new FP.Vector(x, y));
+					return;
+				}
+			}
+		}
+		// if no such PlayerVisRemoveEvt exists, add a new one
+		g.events.add(new PlayerVisRemoveEvt(time, player.id, x, y));
 	}
 
 	/// <summary>
@@ -104,6 +130,60 @@ public class Tile {
 	/// </summary>
 	public bool playerVisWhen(Player player, long time) {
 		return visWhen(playerVis[player.id], time);
+	}
+
+	/// <summary>
+	/// makes this tile exclusive to specified player starting at specified time,
+	/// including how that affects paths on this tile
+	/// </summary>
+	public void exclusiveAdd(Player player, long time) {
+		if (exclusiveLatest(player)) throw new InvalidOperationException("tile (" + x + ", " + y + ") is already exclusive");
+		exclusive[player.id].Add(time);
+		// this player's paths that are on this tile may time travel starting now
+		// TODO: actually safe to time travel at earlier times, as long as unit of same type is at same place when seen by another player
+		foreach (Path path in g.paths) {
+			if (player == path.player && x == path.tileX && y == path.tileY && !path.segments.Last ().unseen) {
+				path.beUnseen(time);
+			}
+		}
+	}
+
+	/// <summary>
+	/// makes this tile not exclusive to specified player starting at specified time,
+	/// including how that affects paths on this tile
+	/// </summary>
+	public void exclusiveRemove(Player player, long time) {
+		if (!exclusiveLatest(player)) throw new InvalidOperationException("tile (" + x + ", " + y + ") is already not exclusive");
+		exclusive[player.id].Add(time);
+		// this player's paths that are on this tile may not time travel starting now
+		foreach (Path path in g.paths) {
+			if (player == path.player && x == path.tileX && y == path.tileY && path.segments.Last ().unseen) {
+				path.beSeen(time);
+			}
+		}
+	}
+
+	/// <summary>
+	/// calculates from player visibility tiles if specified player can infer that no other player can see this tile at latest possible time
+	/// </summary>
+	/// <remarks>
+	/// The worst-case scenario would then be that every tile that this player can't see contains another player's unit
+	/// of the type with the greatest visibility radius (though all units in this game have the same visibility radius).
+	/// If no other player could see this tile in this worst case scenario,
+	/// the player can infer that he/she is the only player that can see this tile.
+	/// </remarks>
+	public bool calcExclusive(Player player) {
+		// check that this player can see all nearby tiles
+		for (int tX = Math.Max(0, x - g.tileVisRadius()); tX <= Math.Min(g.tileLen() - 1, x + g.tileVisRadius()); tX++) {
+			for (int tY = Math.Max(0, y - g.tileVisRadius()); tY <= Math.Min(g.tileLen() - 1, y + g.tileVisRadius()); tY++) {
+				if (g.inVis(tX - x, tY - y) && !g.tiles[tX, tY].playerVisLatest(player)) return false;
+			}
+		}
+		// check that no other players can see this tile
+		foreach (Player player2 in g.players) {
+			if (player != player2 && !player2.immutable && playerVisLatest(player2)) return false;
+		}
+		return true;
 	}
 
 	/// <summary>

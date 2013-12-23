@@ -52,7 +52,7 @@ public class TileMoveEvt : SimEvt {
 						// check if this tile stopped being exclusive to another player
 						foreach (Player player in g.players) {
 							if (player != g.paths[path].player && g.tiles[tX, tY].exclusiveLatest(player)) {
-								g.exclusiveRemove(player, tX, tY, time);
+								g.tiles[tX, tY].exclusiveRemove(player, time);
 							}
 						}
 					}
@@ -86,7 +86,7 @@ public class TileMoveEvt : SimEvt {
 						// so remove this tile's visibility for this player
 						if (timePlayerVis != long.MaxValue) {
 							timePlayerVis = Math.Max(time, timePlayerVis + (1 << FP.Precision) / g.maxSpeed); // TODO: use more accurate time
-							g.playerVisRemove(g.paths[path].player, tX, tY, timePlayerVis);
+							g.tiles[tX, tY].playerVisRemove(g.paths[path].player, timePlayerVis);
 						}
 					}
 				}
@@ -108,8 +108,8 @@ public class TileMoveEvt : SimEvt {
 				for (int tY = exclusiveMinY; tY <= exclusiveMaxY; tY++) {
 					foreach (FP.Vector vec in playerVisAddTiles) {
 						if (g.inVis(tX - vec.x, tY - vec.y)) {
-							if (!g.tiles[tX, tY].exclusiveLatest(g.paths[path].player) && g.calcExclusive(g.paths[path].player, tX, tY)) {
-								g.exclusiveAdd(g.paths[path].player, tX, tY, time);
+							if (!g.tiles[tX, tY].exclusiveLatest(g.paths[path].player) && g.tiles[tX, tY].calcExclusive(g.paths[path].player)) {
+								g.tiles[tX, tY].exclusiveAdd(g.paths[path].player, time);
 							}
 							break;
 						}
@@ -120,11 +120,11 @@ public class TileMoveEvt : SimEvt {
 		if (tileX >= 0 && tileX < g.tileLen() && tileY >= 0 && tileY < g.tileLen()) {
 			if (!Sim.EnableNonLivePaths) {
 				// check exclusivity of tile moved to (fast version for when non-live paths are disabled)
-				if (!g.tiles[tileX, tileY].exclusiveLatest(g.paths[path].player) && g.calcExclusive(g.paths[path].player, tileX, tileY)) {
-					g.exclusiveAdd(g.paths[path].player, tileX, tileY, time);
+				if (!g.tiles[tileX, tileY].exclusiveLatest(g.paths[path].player) && g.tiles[tileX, tileY].calcExclusive(g.paths[path].player)) {
+					g.tiles[tileX, tileY].exclusiveAdd(g.paths[path].player, time);
 				}
-				else if (g.tiles[tileX, tileY].exclusiveLatest(g.paths[path].player) && !g.calcExclusive(g.paths[path].player, tileX, tileY)) {
-					g.exclusiveRemove(g.paths[path].player, tileX, tileY, time);
+				else if (g.tiles[tileX, tileY].exclusiveLatest(g.paths[path].player) && !g.tiles[tileX, tileY].calcExclusive(g.paths[path].player)) {
+					g.tiles[tileX, tileY].exclusiveRemove(g.paths[path].player, time);
 				}
 			}
 			// update whether this path is known to be unseen
@@ -141,7 +141,7 @@ public class TileMoveEvt : SimEvt {
 						for (int tX = Math.Max(0, tileX - 1); tX <= Math.Min(g.tileLen() - 1, tileX + 1); tX++) {
 							for (int tY = Math.Max(0, tileY - 1); tY <= Math.Min(g.tileLen() - 1, tileY + 1); tY++) {
 								// TODO?: use more accurate time at tiles other than (tileX, tileY)
-								g.playerVisRemove(player, tX, tY, time);
+								g.tiles[tX, tY].playerVisRemove(player, time);
 							}
 						}
 					}
@@ -156,7 +156,7 @@ public class TileMoveEvt : SimEvt {
 					for (int tX = Math.Max(0, g.paths[i].tileX - 1); tX <= Math.Min(g.tileLen() - 1, g.paths[i].tileX + 1); tX++) {
 						for (int tY = Math.Max(0, g.paths[i].tileY - 1); tY <= Math.Min(g.tileLen() - 1, g.paths[i].tileY + 1); tY++) {
 							// TODO?: use more accurate time at tiles other than (paths[i].tileX, paths[i].tileY)
-							g.playerVisRemove(g.paths[path].player, tX, tY, time);
+							g.tiles[tX, tY].playerVisRemove(g.paths[path].player, time);
 						}
 					}
 				}
