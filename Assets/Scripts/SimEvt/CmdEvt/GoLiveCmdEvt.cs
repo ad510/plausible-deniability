@@ -12,9 +12,8 @@ using ProtoBuf;
 /// <summary>
 /// command to make a player's time traveling paths be updated in the present
 /// </summary>
-/// <remarks>this doesn't inherit from CmdEvt because it isn't a unit command</remarks>
 [ProtoContract]
-public class GoLiveCmdEvt : SimEvt {
+public class GoLiveCmdEvt : CmdEvt {
 	[ProtoMember(1)]
 	public int player {get;set;}
 

@@ -13,7 +13,7 @@ using ProtoBuf;
 /// command to make a new unit
 /// </summary>
 [ProtoContract]
-public class MakeUnitCmdEvt : CmdEvt {
+public class MakeUnitCmdEvt : UnitCmdEvt {
 	[ProtoMember(1)]
 	public int type {get;set;}
 	[ProtoMember(2)]

@@ -53,14 +53,14 @@ public class UpdateEvt : SimEvt {
 				else if (evt is DeletePathCmdEvt) {
 					cmdType = CmdEvtTag.deletePath;
 				}
-				else if (evt is GoLiveCmdEvt) {
-					cmdType = CmdEvtTag.goLive;
+				else if (evt is DeleteOtherPathsCmdEvt) {
+					cmdType = CmdEvtTag.deleteOtherPaths;
 				}
 				else if (evt is StackCmdEvt) {
 					cmdType = CmdEvtTag.stack;
 				}
-				else if (evt is DeleteOtherPathsCmdEvt) {
-					cmdType = CmdEvtTag.deleteOtherPaths;
+				else if (evt is GoLiveCmdEvt) {
+					cmdType = CmdEvtTag.goLive;
 				}
 				else {
 					throw new InvalidOperationException("pending command's type is not a command");

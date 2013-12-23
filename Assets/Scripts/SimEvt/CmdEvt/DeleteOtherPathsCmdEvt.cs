@@ -13,7 +13,7 @@ using ProtoBuf;
 /// command to remove units from all other paths that, if seen, could cause specified path(s) to disappear
 /// </summary>
 [ProtoContract]
-public class DeleteOtherPathsCmdEvt : CmdEvt {
+public class DeleteOtherPathsCmdEvt : UnitCmdEvt {
 	/// <summary>
 	/// empty constructor for protobuf-net use only
 	/// </summary>

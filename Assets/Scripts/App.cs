@@ -439,7 +439,7 @@ public class App : MonoBehaviour {
 				if (makeUnitType != null) {
 					// make unit
 					FP.Vector pos = makeUnitPos();
-					if (pos.x != Sim.OffMap) g.cmdPending.add(new MakeUnitCmdEvt(g.timeSim, newCmdTime(), CmdEvt.argFromPathDict (selPaths), makeUnitType.id, pos));
+					if (pos.x != Sim.OffMap) g.cmdPending.add(new MakeUnitCmdEvt(g.timeSim, newCmdTime(), UnitCmdEvt.argFromPathDict (selPaths), makeUnitType.id, pos));
 					makeUnitType = null;
 				}
 				else {
@@ -482,11 +482,11 @@ public class App : MonoBehaviour {
 					}
 					if (EnableStacking && stackPath >= 0) {
 						// stack selected paths onto clicked path
-						g.cmdPending.add (new StackCmdEvt(g.timeSim, newCmdTime (), CmdEvt.argFromPathDict (selPaths), stackPath));
+						g.cmdPending.add (new StackCmdEvt(g.timeSim, newCmdTime (), UnitCmdEvt.argFromPathDict (selPaths), stackPath));
 					}
 					else {
 						// move selected paths
-						g.cmdPending.add(new MoveCmdEvt(g.timeSim, newCmdTime(), CmdEvt.argFromPathDict (selPaths), drawToSimPos (Input.mousePosition),
+						g.cmdPending.add(new MoveCmdEvt(g.timeSim, newCmdTime(), UnitCmdEvt.argFromPathDict (selPaths), drawToSimPos (Input.mousePosition),
 							Input.GetKey (KeyCode.LeftControl) ? Formation.Loose : Input.GetKey (KeyCode.LeftAlt) ? Formation.Ring : Formation.Tight));
 					}
 				}
@@ -840,14 +840,14 @@ public class App : MonoBehaviour {
 		else if (cmdType == (int)CmdEvtTag.deletePath) {
 			g.users[user].cmdReceived.add (Serializer.Deserialize<DeletePathCmdEvt>(stream));
 		}
-		else if (cmdType == (int)CmdEvtTag.goLive) {
-			g.users[user].cmdReceived.add (Serializer.Deserialize<GoLiveCmdEvt>(stream));
+		else if (cmdType == (int)CmdEvtTag.deleteOtherPaths) {
+			g.users[user].cmdReceived.add (Serializer.Deserialize<DeleteOtherPathsCmdEvt>(stream));
 		}
 		else if (cmdType == (int)CmdEvtTag.stack) {
 			g.users[user].cmdReceived.add (Serializer.Deserialize<StackCmdEvt>(stream));
 		}
-		else if (cmdType == (int)CmdEvtTag.deleteOtherPaths) {
-			g.users[user].cmdReceived.add (Serializer.Deserialize<DeleteOtherPathsCmdEvt>(stream));
+		else if (cmdType == (int)CmdEvtTag.goLive) {
+			g.users[user].cmdReceived.add (Serializer.Deserialize<GoLiveCmdEvt>(stream));
 		}
 		else {
 			throw new InvalidOperationException("received command of invalid type");
@@ -1011,7 +1011,7 @@ public class App : MonoBehaviour {
 			foreach (KeyValuePair<Path, List<Unit>> path in selPaths) {
 				if (timeGame >= path.Key.segments[0].timeStart) pos[path.Key.id] = makePathMovePos(timeGame, path.Key, path.Value);
 			}
-			g.cmdPending.add(new MakePathCmdEvt(g.timeSim, newCmdTime(), CmdEvt.argFromPathDict(selPaths), pos));
+			g.cmdPending.add(new MakePathCmdEvt(g.timeSim, newCmdTime(), UnitCmdEvt.argFromPathDict(selPaths), pos));
 		}
 	}
 	
@@ -1019,14 +1019,14 @@ public class App : MonoBehaviour {
 	/// deletes selected paths
 	/// </summary>
 	private void deletePaths() {
-		if (selPaths.Count > 0) g.cmdPending.add(new DeletePathCmdEvt(g.timeSim, newCmdTime(), CmdEvt.argFromPathDict(selPaths)));
+		if (selPaths.Count > 0) g.cmdPending.add(new DeletePathCmdEvt(g.timeSim, newCmdTime(), UnitCmdEvt.argFromPathDict(selPaths)));
 	}
 	
 	/// <summary>
 	/// deletes unselected paths of selected units
 	/// </summary>
 	private void deleteOtherPaths() {
-		if (selPaths.Count > 0) g.cmdPending.add (new DeleteOtherPathsCmdEvt(g.timeSim, newCmdTime (), CmdEvt.argFromPathDict (selPaths)));
+		if (selPaths.Count > 0) g.cmdPending.add (new DeleteOtherPathsCmdEvt(g.timeSim, newCmdTime (), UnitCmdEvt.argFromPathDict (selPaths)));
 	}
 	
 	/// <summary>
@@ -1039,7 +1039,7 @@ public class App : MonoBehaviour {
 				// make unit now
 				Dictionary<Path, List<Unit>> pathDict = new Dictionary<Path, List<Unit>>();
 				pathDict.Add (path.Key, path.Value);
-				g.cmdPending.add(new MakeUnitCmdEvt(g.timeSim, newCmdTime(), CmdEvt.argFromPathDict (pathDict), type.id, makeUnitMovePos (timeGame, path.Key, type)));
+				g.cmdPending.add(new MakeUnitCmdEvt(g.timeSim, newCmdTime(), UnitCmdEvt.argFromPathDict (pathDict), type.id, makeUnitMovePos (timeGame, path.Key, type)));
 				break;
 			}
 			else if (g.unitsCanMake (path.Value, type)) {
