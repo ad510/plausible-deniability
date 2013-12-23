@@ -931,11 +931,15 @@ public class App : MonoBehaviour {
 	/// </summary>
 	private Dictionary<Unit, int> selUnits() {
 		Dictionary<Unit, int> ret = new Dictionary<Unit, int>();
-		foreach (List<Unit> units in selPaths.Values) {
-			foreach (Unit unit in units) {
-				// TODO: check for unit existence
-				if (!ret.ContainsKey (unit)) ret.Add (unit, 0);
-				ret[unit]++;
+		foreach (KeyValuePair<Path, List<Unit>> paths in selPaths) {
+			Segment segment = paths.Key.activeSegment (timeGame);
+			if (segment != null) {
+				foreach (Unit unit in paths.Value) {
+					if (segment.units.Contains (unit)) {
+						if (!ret.ContainsKey (unit)) ret.Add (unit, 0);
+						ret[unit]++;
+					}
+				}
 			}
 		}
 		return ret;
