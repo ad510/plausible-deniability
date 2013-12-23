@@ -745,10 +745,10 @@ public class App : MonoBehaviour {
 		GUILayout.BeginArea (new Rect(Screen.width / 4, Screen.height * (1 - g.uiBarHeight), Screen.width / 4, Screen.height * g.uiBarHeight));
 		makeUnitScrollPos = GUILayout.BeginScrollView (makeUnitScrollPos);
 		if (selPaths.Count > 0) {
-			for (int i = 0; i < g.unitT.Length; i++) {
+			foreach (UnitType unitT in g.unitT) {
 				foreach (Path path in selPaths.Keys) {
-					if (timeGame >= path.moves[0].timeStart && path.canMakeUnitType (timeGame, g.unitT[i])) { // TODO: sometimes canMake check should use existing selected units in path
-						if (GUILayout.Button ("Make " + g.unitT[i].name)) makeUnit (g.unitT[i]);
+					if (timeGame >= path.moves[0].timeStart && path.canMakeUnitType (timeGame, unitT)) { // TODO: sometimes canMake check should use existing selected units in path
+						if (GUILayout.Button ("Make " + unitT.name)) makeUnit (unitT);
 						break;
 					}
 				}
