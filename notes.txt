@@ -24,44 +24,28 @@ stacking branch
   selPaths should consider time that paths were selected (affects CmdEvt too)
     don't forget KeyValuePair struct
   do normal move if can't stack onto clicked unit
-  when moving subset of units in path, try to delete unit from old path
   stack/unstack buttons
   if building mine on mineral, path will contain (nonmoving) units of different type (mineral + mine)
-  before merge
-    look at stack todo
-    reorder Path methods
-    compare on perf test
-    remove extra units from scn.json
-    disable stacking in GUI
-    push experimental branches that I like
-    diff
-    multiplayer test
-    revert Unit in master
   after merge
-    use List.Last()
-    "n" variables are redundant with array length property (change after merging stacking branch b/c won't enable many foreach loops)
-    define iterators inline
-    don't make App constants public
-    make id readonly and public
-    make protobuf-net empty constructors private
     if multiple types of events, rename SimEvt to TimedEvt?
-    rename CmdEvt to UnitCmdEvt, make new CmdEvt that GoLiveCmdEvt also inherits that update() automatically adds to cmdHistory
-    move SimEvt and Sim child classes into separate files (don't need different namespace)
-    use constants for protobuf-net class ids?
-    use reference cycles
-    rename getMove, getNode to getMoveAtTime, getNodeAtTime or activeMove, activeNode?
     scoping using {}
-    capitalize methods and make constants lowercase?
-  discuss replays and whether I need to change data structures (no, not yet)
+    capitalize methods and make constants lowercase? (monodevelop says properties, such as protobuf-net ones, are supposed to be uppercase, but unity has them lowercase)
 github issue tracker
 use different lblStyle for white & red text
+fix rscCollected stacking bug
+update tiles at fixed intervals instead of calculating time when moves between tiles?
 license 80 character line wrap?
 don't necessarily decouple UnitSprite from paths
 click & drag line
-unit tests? (https://github.com/tenpn/untest or https://github.com/zoon/nunit-unity3d)
+queue multiple commands to make buildings
+grouping units
+right clicking when holding down n makes new paths going there
+snap mine to closest mineral
+unit tests? (http://blogs.unity3d.com/2013/12/18/unity-test-tools-released/ or https://github.com/zoon/nunit-unity3d or https://github.com/tenpn/untest)
   must justify 2x code complexity vs code review
   key is if find something broken, fix immediately
   maybe just start with removeUnit()
+    returning SegmentUnits to remove would make this easier to unit test (may still need restoring code, otherwise would need to complicate resource check)
 allow selecting any player, but giving commands only on human players?
 attack command & animations
 don't allow attacking while moving for some units
@@ -74,6 +58,7 @@ sound
 pathfinding
 keep non-live paths in yellow areas w/o user help
 darker gray tiles should act more conventionally
+change website link in readme?
 post to tigsource.com or unity forums?
 unity 4.2
   quad primitive
@@ -125,8 +110,8 @@ return true
 
 rscCollected:
 can use tree (not graph) approach most of the time, but be careful not to double count new units made b/c multiple units might be able to make it
-1st calculate min or max rsc collected by each unit like usual, but also return child units made & their rsc collected
-if duplicate child units made, subtract out their rsc collected from total
+return from rscCollected each unit along the way and how much they collected, for every combination of paths
+in Player.resource, loop through each combination to find min or max resources
 
 if ever allow "min" resources to be <0, must handle these cases w/o letting max resources ever be <0 in replays:
 split worker into 2 paths, 1 path makes a mine, other path doesn't
@@ -208,6 +193,8 @@ random notes:
   - if happening in present, only need to check that other players can't see the tile
 - if I make units indistinguishable, Unit should point to segment it's on, and KeyValuePair<Segment, Unit> can be replaced with Unit and some Segment methods can be moved into Unit
   - in short term, can I already do that by making SegmentUnit struct? (struct b/c compares by value)
+  - pass identical checking methods as delegates to List.Find()
+  - deleting other paths with indistinguishable units is tricky
 - someone recommends binary space partitioning as general graphics optimizing technique
 - population limit? (or just make units expensive enough that you can't make too many)
 - company of heroes makes positioning important b/c resource gathering slow, low unit cap, controlling resource locations is important
@@ -242,6 +229,8 @@ multiplayer project files: http://docs.unity3d.ru/Tutorials/M2H_Networking_Tutor
 2d: http://gamasutra.com/blogs/JoshSutphin/20130519/192539/Making_2D_Games_With_Unity.php
 gui guide: https://docs.unity3d.com/Documentation/Components/GUIScriptingGuide.html
 guilayout reference: https://docs.unity3d.com/Documentation/ScriptReference/GUILayout.html
+memory (includes links to later parts): http://www.gamasutra.com/blogs/WendelinReich/20131109/203841/C_Memory_Management_for_Unity_Developers_part_1_of_3.php
+use visual studio compiler: http://forum.unity3d.com/threads/120327-Video-Tutorial-How-to-use-Visual-Studio-for-all-your-Unity-development
 
 other links:
 binary serialization: https://code.google.com/p/protobuf-net/
@@ -250,3 +239,4 @@ serialize at stream position: http://stackoverflow.com/questions/2441608/deseria
 age of empires multiplayer: http://www.gamasutra.com/view/feature/3094/1500_archers_on_a_288_network_.php
 ai war optimization (including multiplayer): http://christophermpark.blogspot.com/2009/06/optimizing-30000-ships-in-realtime-in-c.html
 multiplayer debugging: http://gafferongames.com/networking-for-game-programmers/debugging-multiplayer-games/
+braid rewind: http://gdcvault.com/play/1012210/The-Implementation-of-Rewind-in
