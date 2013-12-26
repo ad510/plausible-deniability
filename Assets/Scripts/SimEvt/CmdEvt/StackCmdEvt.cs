@@ -14,8 +14,7 @@ using ProtoBuf;
 /// </summary>
 [ProtoContract]
 public class StackCmdEvt : UnitCmdEvt {
-	[ProtoMember(1)]
-	public int stackPath {get;set;} // path that paths will be stacked onto
+	[ProtoMember(1)] public int stackPath {get;set;} // path that paths will be stacked onto
 	
 	/// <summary>
 	/// empty constructor for protobuf-net use only

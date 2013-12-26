@@ -16,10 +16,8 @@ public enum Formation : byte { Tight, Loose, Ring };
 /// </summary>
 [ProtoContract]
 public class MoveCmdEvt : UnitCmdEvt {
-	[ProtoMember(1)]
-	public FP.Vector pos {get;set;} // where to move to
-	[ProtoMember(2)]
-	public Formation formation {get;set;}
+	[ProtoMember(1)] public FP.Vector pos {get;set;} // where to move to
+	[ProtoMember(2)] public Formation formation {get;set;}
 	
 	/// <summary>
 	/// empty constructor for protobuf-net use only

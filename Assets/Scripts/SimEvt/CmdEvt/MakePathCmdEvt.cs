@@ -14,8 +14,7 @@ using ProtoBuf;
 /// </summary>
 [ProtoContract]
 public class MakePathCmdEvt : UnitCmdEvt {
-	[ProtoMember(1)]
-	public Dictionary<int, FP.Vector> pos {get;set;} // where new paths should move to
+	[ProtoMember(1)] public Dictionary<int, FP.Vector> pos {get;set;} // where new paths should move to
 	
 	/// <summary>
 	/// empty constructor for protobuf-net use only

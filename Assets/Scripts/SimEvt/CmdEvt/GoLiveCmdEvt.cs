@@ -14,8 +14,7 @@ using ProtoBuf;
 /// </summary>
 [ProtoContract]
 public class GoLiveCmdEvt : CmdEvt {
-	[ProtoMember(1)]
-	public int player {get;set;}
+	[ProtoMember(1)] public int player {get;set;}
 
 	/// <summary>
 	/// empty constructor for protobuf-net use only
