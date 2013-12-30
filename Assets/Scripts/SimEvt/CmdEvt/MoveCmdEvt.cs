@@ -16,8 +16,8 @@ public enum Formation : byte { Tight, Loose, Ring };
 /// </summary>
 [ProtoContract]
 public class MoveCmdEvt : UnitCmdEvt {
-	[ProtoMember(1)] public FP.Vector pos {get;set;} // where to move to
-	[ProtoMember(2)] public Formation formation {get;set;}
+	[ProtoMember(1)] public FP.Vector pos; // where to move to
+	[ProtoMember(2)] public Formation formation;
 	
 	/// <summary>
 	/// empty constructor for protobuf-net use only
@@ -32,7 +32,7 @@ public class MoveCmdEvt : UnitCmdEvt {
 
 	public override void apply(Sim g) {
 		Dictionary<Path, List<Unit>> exPaths = existingPaths (g);
-		FP.Vector goalCenter, goal, rows = new FP.Vector(), offset = new FP.Vector();
+		FP.Vector goal, rows = new FP.Vector(), offset = new FP.Vector();
 		long spacing = 0;
 		int count = 0, i = 0;
 		// count number of units able to move
@@ -69,19 +69,18 @@ public class MoveCmdEvt : UnitCmdEvt {
 		else {
 			throw new NotImplementedException("requested formation is not implemented");
 		}
-		goalCenter = pos;
-		if (goalCenter.x < Math.Min(offset.x, g.mapSize / 2)) goalCenter.x = Math.Min(offset.x, g.mapSize / 2);
-		if (goalCenter.x > g.mapSize - Math.Min(offset.x, g.mapSize / 2)) goalCenter.x = g.mapSize - Math.Min(offset.x, g.mapSize / 2);
-		if (goalCenter.y < Math.Min(offset.y, g.mapSize / 2)) goalCenter.y = Math.Min(offset.y, g.mapSize / 2);
-		if (goalCenter.y > g.mapSize - Math.Min(offset.y, g.mapSize / 2)) goalCenter.y = g.mapSize - Math.Min(offset.y, g.mapSize / 2);
+		if (pos.x < Math.Min(offset.x, g.mapSize / 2)) pos.x = Math.Min(offset.x, g.mapSize / 2);
+		if (pos.x > g.mapSize - Math.Min(offset.x, g.mapSize / 2)) pos.x = g.mapSize - Math.Min(offset.x, g.mapSize / 2);
+		if (pos.y < Math.Min(offset.y, g.mapSize / 2)) pos.y = Math.Min(offset.y, g.mapSize / 2);
+		if (pos.y > g.mapSize - Math.Min(offset.y, g.mapSize / 2)) pos.y = g.mapSize - Math.Min(offset.y, g.mapSize / 2);
 		// move units
 		foreach (KeyValuePair<Path, List<Unit>> path in exPaths) {
 			if (path.Key.canMove(timeCmd)) {
 				if (formation == Formation.Tight || formation == Formation.Loose) {
-					goal = goalCenter + new FP.Vector((i % rows.x) * spacing - offset.x, i / rows.x * spacing - offset.y);
+					goal = pos + new FP.Vector((i % rows.x) * spacing - offset.x, i / rows.x * spacing - offset.y);
 				}
 				else if (formation == Formation.Ring) {
-					goal = goalCenter + offset.x * new FP.Vector(FP.cos(2 * FP.Pi * i / count), FP.sin(2 * FP.Pi * i / count));
+					goal = pos + offset.x * new FP.Vector(FP.cos(2 * FP.Pi * i / count), FP.sin(2 * FP.Pi * i / count));
 				}
 				else {
 					throw new NotImplementedException("requested formation is not implemented");

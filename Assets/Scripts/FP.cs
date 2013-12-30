@@ -25,9 +25,9 @@ public class FP {
 	/// </summary>
 	[ProtoContract]
 	public struct Vector : IEquatable<Vector> {
-		[ProtoMember(1)] public long x {get;set;}
-		[ProtoMember(2)] public long y {get;set;}
-		[ProtoMember(3)] public long z {get;set;}
+		[ProtoMember(1)] public long x;
+		[ProtoMember(2)] public long y;
+		[ProtoMember(3)] public long z;
 
 		public Vector(long xVal, long yVal, long zVal = 0) {
 			x = xVal;

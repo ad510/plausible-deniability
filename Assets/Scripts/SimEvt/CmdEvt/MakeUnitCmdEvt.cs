@@ -14,9 +14,9 @@ using ProtoBuf;
 /// </summary>
 [ProtoContract]
 public class MakeUnitCmdEvt : UnitCmdEvt {
-	[ProtoMember(1)] public int type {get;set;}
-	[ProtoMember(2)] public FP.Vector pos {get;set;}
-	[ProtoMember(3)] bool autoRepeat {get;set;}
+	[ProtoMember(1)] public int type;
+	[ProtoMember(2)] public FP.Vector pos;
+	[ProtoMember(3)] bool autoRepeat;
 	
 	/// <summary>
 	/// empty constructor for protobuf-net use only

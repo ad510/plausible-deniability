@@ -11,7 +11,7 @@ using ProtoBuf;
 [ProtoContract]
 [ProtoInclude(10, typeof(CmdEvt))]
 public abstract class SimEvt {
-	[ProtoMember(1)] public long time {get;set;}
+	[ProtoMember(1)] public long time;
 
 	public abstract void apply(Sim g);
 }
