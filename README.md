@@ -32,6 +32,8 @@ Controls
 - n = create new paths that selected units could take
 - delete = delete selected paths
 - shift + delete/shift + d = delete unselected paths of selected units
+- shift + o = load game
+- shift + s = save game
 
 License
 -------

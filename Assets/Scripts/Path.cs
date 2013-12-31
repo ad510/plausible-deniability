@@ -7,20 +7,28 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using ProtoBuf;
 
 /// <summary>
 /// path that unit(s) of the same speed and player move along
 /// (units that are on the same path stack on top of each other)
 /// </summary>
+[ProtoContract]
 public class Path {
-	public readonly Sim g;
-	public readonly int id; // index in path list
-	public readonly long speed; // in position units per millisecond
-	public readonly Player player;
-	public List<Segment> segments; // composition of the path over time, more recent segments are later in list
-	public List<Move> moves; // how path moved over time, more recent moves are later in list
-	public int tileX, tileY; // current position on visibility tiles
-	public long timeSimPast; // time traveling simulation time if made in the past, otherwise set to long.MaxValue
+	[ProtoMember(1, AsReference = true)] public readonly Sim g;
+	[ProtoMember(2)] public readonly int id; // index in path list
+	[ProtoMember(3)] public readonly long speed; // in position units per millisecond
+	[ProtoMember(4, AsReference = true)] public readonly Player player;
+	[ProtoMember(5, AsReference = true)] public List<Segment> segments; // composition of the path over time, more recent segments are later in list
+	[ProtoMember(6, AsReference = true)] public List<Move> moves; // how path moved over time, more recent moves are later in list
+	[ProtoMember(7)] public int tileX; // current position on visibility tiles
+	[ProtoMember(8)] public int tileY;
+	[ProtoMember(9)] public long timeSimPast; // time traveling simulation time if made in the past, otherwise set to long.MaxValue
+	
+	/// <summary>
+	/// empty constructor for protobuf-net use only
+	/// </summary>
+	private Path() { }
 
 	public Path(Sim simVal, int idVal, long speedVal, Player playerVal, List<Unit> units, long startTime, FP.Vector startPos, bool startUnseen) {
 		g = simVal;

@@ -7,25 +7,35 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using ProtoBuf;
 
+[ProtoContract]
 public class Tile {
-	private readonly Sim g;
-	public readonly int x, y;
+	[ProtoMember(1, AsReference = true)] private readonly Sim g;
+	[ProtoMember(2)] public readonly int x;
+	[ProtoMember(3)] public readonly int y;
 	/// <summary>
 	/// stores times when each path started or stopped seeing this tile,
 	/// in format pathVis[path][gain/lose visibility index]
 	/// </summary>
-	public Dictionary<int, List<long>> pathVis;
+	[ProtoMember(4)] public Dictionary<int, List<long>> pathVis;
 	/// <summary>
 	/// stores times when each player started or stopped seeing this tile,
 	/// in format playerVis[player][gain/lose visibility index]
 	/// </summary>
 	public List<long>[] playerVis;
+	[ProtoMember(5)] private List<long> protoPlayerVis;
 	/// <summary>
 	/// stores times when each player started or stopped knowing that no other player can see this tile,
 	/// in format exclusive[player][gain/lose exclusivity index]
 	/// </summary>
 	public List<long>[] exclusive;
+	[ProtoMember(6)] private List<long> protoExclusive;
+	
+	/// <summary>
+	/// empty constructor for protobuf-net use only
+	/// </summary>
+	private Tile() { }
 
 	public Tile(Sim simVal, int xVal, int yVal) {
 		g = simVal;
@@ -38,6 +48,47 @@ public class Tile {
 			playerVis[i] = new List<long>();
 			exclusive[i] = new List<long>();
 		}
+	}
+	
+	[ProtoBeforeSerialization]
+	private void beforeSerialize() {
+		protoPlayerVis = new List<long>();
+		for (int i = 0; i < playerVis.Length; i++) {
+			protoPlayerVis.Add (playerVis[i].Count);
+			protoPlayerVis.AddRange (playerVis[i]);
+		}
+		protoExclusive = new List<long>();
+		for (int i = 0; i < exclusive.Length; i++) {
+			protoExclusive.Add (exclusive[i].Count);
+			protoExclusive.AddRange (exclusive[i]);
+		}
+	}
+	
+	[ProtoAfterSerialization]
+	private void afterSerialize() {
+		protoPlayerVis = null;
+		protoExclusive = null;
+	}
+	
+	/// <summary>
+	/// called manually from Sim.afterDeserialize()
+	/// </summary>
+	public void afterSimDeserialize() {
+		if (pathVis == null) pathVis = new Dictionary<int, List<long>>();
+		playerVis = new List<long>[g.players.Length];
+		int player = 0;
+		for (int i = 0; i < protoPlayerVis.Count; i += (int)protoPlayerVis[i] + 1) {
+			playerVis[player] = protoPlayerVis.GetRange (i + 1, (int)protoPlayerVis[i]);
+			player++;
+		}
+		protoPlayerVis = null;
+		exclusive = new List<long>[g.players.Length];
+		player = 0;
+		for (int i = 0; i < protoExclusive.Count; i += (int)protoExclusive[i] + 1) {
+			exclusive[player] = protoExclusive.GetRange (i + 1, (int)protoExclusive[i]);
+			player++;
+		}
+		protoExclusive = null;
 	}
 
 	/// <summary>

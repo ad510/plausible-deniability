@@ -7,13 +7,20 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using ProtoBuf;
 
 /// <summary>
 /// event in which a player stops seeing tiles
 /// </summary>
+[ProtoContract]
 public class PlayerVisRemoveEvt : SimEvt {
-	public int player;
-	public List<FP.Vector> tiles;
+	[ProtoMember(1)] public int player;
+	[ProtoMember(2)] public List<FP.Vector> tiles;
+	
+	/// <summary>
+	/// empty constructor for protobuf-net use only
+	/// </summary>
+	private PlayerVisRemoveEvt() { }
 
 	public PlayerVisRemoveEvt(long timeVal, int playerVal, int tileXVal, int tileYVal) {
 		time = timeVal;

@@ -7,19 +7,26 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using ProtoBuf;
 
 /// <summary>
 /// identity of a unit
 /// </summary>
 /// <remarks>how unit moves is stored in Path class, not here</remarks>
+[ProtoContract]
 public class Unit {
-	public readonly Sim g;
-	public readonly int id; // index in unit list
-	public readonly UnitType type;
-	public readonly Player player;
-	public int nTimeHealth;
-	public long[] timeHealth; // times at which each health increment is removed (TODO: change how this is stored to allow switching units on a path)
-	public long timeAttack; // latest time that attacked a unit
+	[ProtoMember(1, AsReference = true)] public readonly Sim g;
+	[ProtoMember(2)] public readonly int id; // index in unit list
+	[ProtoMember(3, AsReference = true)] public readonly UnitType type;
+	[ProtoMember(4, AsReference = true)] public readonly Player player;
+	[ProtoMember(5)] public int nTimeHealth;
+	[ProtoMember(6)] public long[] timeHealth; // times at which each health increment is removed (TODO: change how this is stored to allow switching units on a path)
+	[ProtoMember(7)] public long timeAttack; // latest time that attacked a unit
+	
+	/// <summary>
+	/// empty constructor for protobuf-net use only
+	/// </summary>
+	private Unit() { }
 
 	public Unit(Sim simVal, int idVal, UnitType typeVal, Player playerVal) {
 		g = simVal;

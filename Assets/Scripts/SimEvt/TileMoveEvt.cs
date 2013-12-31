@@ -7,6 +7,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using ProtoBuf;
 
 /// <summary>
 /// event in which path moves between visibility tiles
@@ -15,9 +16,16 @@ using System.Text;
 /// when making this event, can't rely on a path's tileX and tileY being up-to-date
 /// because the latest TileMoveEvts for that path might not be applied yet
 /// </remarks>
+[ProtoContract]
 public class TileMoveEvt : SimEvt {
-	public int path;
-	public int tileX, tileY; // new tile position, set to int.MinValue to keep current value
+	[ProtoMember(1)] public int path;
+	[ProtoMember(2)] public int tileX; // new tile position, set to int.MinValue to keep current value
+	[ProtoMember(3)] public int tileY;
+	
+	/// <summary>
+	/// empty constructor for protobuf-net use only
+	/// </summary>
+	private TileMoveEvt() { }
 
 	public TileMoveEvt(long timeVal, int pathVal, int tileXVal, int tileYVal) {
 		time = timeVal;

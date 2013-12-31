@@ -7,23 +7,32 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using ProtoBuf;
 
 /// <summary>
 /// describes the composition of a section of a path
 /// </summary>
+[ProtoContract]
 public class Segment {
-	public readonly Sim g;
-	public readonly Path path;
-	public int id; // index in segment list
-	public long timeStart;
+	[ProtoMember(1, AsReference = true)] public readonly Sim g;
+	[ProtoMember(2, AsReference = true)] public readonly Path path;
+	[ProtoMember(3)] public int id; // index in segment list
+	[ProtoMember(4)] public long timeStart;
 	/// <summary>
 	/// segments that branch off at the beginning of this segment;
 	/// connected branches share the same List instance so updating this list in one segment updates it for all branches
 	/// (NOTE: protobuf-net won't like that)
 	/// </summary>
-	public List<Segment> branches;
-	public List<Unit> units; // units on this path segment
-	public bool unseen; // whether path segment is known to not be seen by another player
+	[ProtoMember(5, AsReference = true)] public List<Segment> branches;
+	[ProtoMember(6, AsReference = true)] public List<Unit> units; // units on this path segment
+	[ProtoMember(7)] public bool unseen; // whether path segment is known to not be seen by another player
+	
+	/// <summary>
+	/// parameterless constructor for protobuf-net use only
+	/// </summary>
+	private Segment() {
+		units = new List<Unit>();
+	}
 	
 	public Segment(Path pathVal, int idVal, long timeStartVal, List<Unit> unitsVal, bool unseenVal) {
 		path = pathVal;

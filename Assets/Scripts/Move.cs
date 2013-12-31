@@ -7,16 +7,23 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using ProtoBuf;
 
 /// <summary>
 /// represents a single movement that starts at a specified location,
 /// moves at constant velocity to a specified end location, then stops
 /// </summary>
+[ProtoContract]
 public class Move {
-	public long timeStart; // time when starts moving
-	public long timeEnd; // time when finishes moving
-	public FP.Vector vecStart; // location at timeStart, (TODO: z indicates rotation)
-	public FP.Vector vecEnd; // location at timeEnd, (TODO: z indicates rotation)
+	[ProtoMember(1)] public long timeStart; // time when starts moving
+	[ProtoMember(2)] public long timeEnd; // time when finishes moving
+	[ProtoMember(3)] public FP.Vector vecStart; // location at timeStart, (TODO: z indicates rotation)
+	[ProtoMember(4)] public FP.Vector vecEnd; // location at timeEnd, (TODO: z indicates rotation)
+	
+	/// <summary>
+	/// empty constructor for protobuf-net use only
+	/// </summary>
+	private Move() { }
 
 	/// <summary>
 	/// constructor that directly sets all instance variables

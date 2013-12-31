@@ -7,12 +7,14 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using ProtoBuf;
 
 /// <summary>
 /// list of simulation events in order of ascending event time
 /// </summary>
+[ProtoContract]
 public class SimEvtList {
-	public List<SimEvt> events;
+	[ProtoMember(1)] public List<SimEvt> events;
 
 	public SimEvtList() {
 		events = new List<SimEvt>();

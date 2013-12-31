@@ -8,6 +8,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.IO;
 using ProtoBuf;
 
 /// <summary>
@@ -119,6 +120,9 @@ public class App : MonoBehaviour {
 	/// </summary>
 	void Start () {
 		appPath = Application.streamingAssetsPath + '/';
+		ProtoBuf.Meta.RuntimeTypeModel.Default.Add (typeof(Color), false).SetSurrogate (typeof(ProtoColor));
+		ProtoBuf.Meta.RuntimeTypeModel.Default.Add (typeof(Vector2), false).SetSurrogate (typeof(ProtoVector3));
+		ProtoBuf.Meta.RuntimeTypeModel.Default.Add (typeof(Vector3), false).SetSurrogate (typeof(ProtoVector3));
 		winDiag = new Vector2(Screen.width, Screen.height).magnitude;
 		mouseDownPos = new Vector3[3];
 		mouseUpPos = new Vector3[3];
@@ -151,7 +155,6 @@ public class App : MonoBehaviour {
 	private bool scnOpen(string path, int user, bool multiplayer) {
 		Hashtable json;
 		ArrayList jsonA;
-		int nUsers;
 		bool b = false;
 		// TODO: if this ever supports multiplayer games, host should load file & send data to other players, otherwise json double parsing may not match
 		if (!System.IO.File.Exists(path)) return false;
@@ -204,7 +207,6 @@ public class App : MonoBehaviour {
 			}
 		}
 		// players
-		nUsers = 0;
 		g.players = new Player[0];
 		jsonA = jsonArray(json, "players");
 		if (jsonA != null) {
@@ -216,7 +218,6 @@ public class App : MonoBehaviour {
 				player.name = jsonString(jsonO, "name");
 				player.isUser = jsonBool(jsonO, "isUser");
 				player.user = (int)jsonDouble(jsonO, "user");
-				if (player.user >= nUsers) nUsers = player.user + 1;
 				player.startRsc = new long[g.rscNames.Length];
 				for (int i = 0; i < g.rscNames.Length; i++) {
 					player.startRsc[i] = (jsonO2 != null) ? jsonFP(jsonO2, g.rscNames[i]) : 0;
@@ -242,11 +243,6 @@ public class App : MonoBehaviour {
 			foreach (Player player in g.players) {
 				player.immutable = player.calcImmutable();
 			}
-		}
-		// users
-		g.users = new User[nUsers];
-		for (int i = 0; i < g.users.Length; i++) {
-			g.users[i] = new User();
 		}
 		// unit types
 		g.unitT = new UnitType[0];
@@ -304,16 +300,6 @@ public class App : MonoBehaviour {
 				}
 			}
 		}
-		texUnits = new Texture[g.unitT.Length, g.players.Length];
-		for (int i = 0; i < g.unitT.Length; i++) {
-			for (int j = 0; j < g.players.Length; j++) {
-				if (!(texUnits[i, j] = loadTexture (appPath + modPath + g.players[j].name + '.' + g.unitT[i].imgPath))) {
-					if (!(texUnits[i, j] = loadTexture (appPath + modPath + g.unitT[i].imgPath))) {
-						Debug.LogWarning ("Failed to load " + modPath + g.players[j].name + '.' + g.unitT[i].imgPath);
-					}
-				}
-			}
-		}
 		// tiles
 		g.tiles = new Tile[g.tileLen(), g.tileLen()];
 		for (int i = 0; i < g.tileLen(); i++) {
@@ -321,7 +307,6 @@ public class App : MonoBehaviour {
 				g.tiles[i, j] = new Tile(g, i, j);
 			}
 		}
-		texTile = new Texture2D(g.tileLen (), g.tileLen (), TextureFormat.ARGB32, false);
 		// units
 		g.units = new List<Unit>();
 		g.paths = new List<Path>();
@@ -348,6 +333,38 @@ public class App : MonoBehaviour {
 			}
 		}
 		g.nRootPaths = g.paths.Count;
+		// start game
+		loadUI ();
+		timeGame = 0;
+		timeSpeedChg = (long)(Time.time * 1000) - 1000;
+		timeNow = (long)(Time.time * 1000);
+		return true;
+	}
+	
+	private void loadUI() {
+		// users
+		int nUsers = 0;
+		foreach (Player player in g.players) {
+			if (player.user >= nUsers) nUsers = player.user + 1;
+		}
+		g.users = new User[nUsers];
+		for (int i = 0; i < g.users.Length; i++) {
+			g.users[i] = new User();
+		}
+		// unit types
+		texUnits = new Texture[g.unitT.Length, g.players.Length];
+		for (int i = 0; i < g.unitT.Length; i++) {
+			for (int j = 0; j < g.players.Length; j++) {
+				if (!(texUnits[i, j] = loadTexture (appPath + modPath + g.players[j].name + '.' + g.unitT[i].imgPath))) {
+					if (!(texUnits[i, j] = loadTexture (appPath + modPath + g.unitT[i].imgPath))) {
+						Debug.LogWarning ("Failed to load " + modPath + g.players[j].name + '.' + g.unitT[i].imgPath);
+					}
+				}
+			}
+		}
+		// tiles
+		texTile = new Texture2D(g.tileLen (), g.tileLen (), TextureFormat.ARGB32, false);
+		// units
 		if (sprUnits != null) {
 			foreach (List<UnitSprite> sprs in sprUnits) {
 				foreach (UnitSprite spr in sprs) {
@@ -356,7 +373,7 @@ public class App : MonoBehaviour {
 			}
 		}
 		sprUnits = new List<List<UnitSprite>>();
-		// start game
+		// miscellaneous
 		Camera.main.backgroundColor = g.backCol;
 		border.line.material.color = g.borderCol;
 		selPlayer = g.players[0];
@@ -365,10 +382,6 @@ public class App : MonoBehaviour {
 		makeUnitType = null;
 		paused = false;
 		speed = 0;
-		timeGame = 0;
-		timeSpeedChg = (long)(Time.time * 1000) - 1000;
-		timeNow = (long)(Time.time * 1000);
-		return true;
 	}
 	
 	private Texture2D loadTexture(string path) {
@@ -537,6 +550,20 @@ public class App : MonoBehaviour {
 		if (Input.GetKeyDown (KeyCode.D) && Input.GetKey (KeyCode.LeftShift)) {
 			// delete unselected paths of selected units (alternate shortcut)
 			deleteOtherPaths ();
+		}
+		if (Input.GetKeyDown (KeyCode.O) && Input.GetKey (KeyCode.LeftShift)) {
+			// open binary game file
+			using (FileStream file = File.OpenRead (appPath + modPath + "savegame.sav")) {
+				g = Serializer.Deserialize<Sim>(file);
+			}
+			loadUI ();
+			GC.Collect ();
+		}
+		if (Input.GetKeyDown (KeyCode.S) && Input.GetKey (KeyCode.LeftShift)) {
+			// save binary game file
+			using (FileStream file = File.Create (appPath + modPath + "savegame.sav")) {
+				Serializer.Serialize(file, g);
+			}
 		}
 		// move camera
 		if (Input.GetKey (KeyCode.LeftArrow) || (Input.mousePosition.x == 0 && Screen.fullScreen)) {

@@ -7,12 +7,19 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using ProtoBuf;
 
 /// <summary>
 /// event to stack multiple paths together if they are at exactly the same place
 /// </summary>
+[ProtoContract]
 public class StackEvt : SimEvt {
-	public int[] paths;
+	[ProtoMember(1)] public int[] paths;
+	
+	/// <summary>
+	/// empty constructor for protobuf-net use only
+	/// </summary>
+	private StackEvt() { }
 	
 	public StackEvt(long timeVal, int[] pathsVal) {
 		time = timeVal;

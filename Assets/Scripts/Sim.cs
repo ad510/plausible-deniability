@@ -8,10 +8,12 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using ProtoBuf;
 
 /// <summary>
 /// top-level game simulation class (instances of this are often named "g")
 /// </summary>
+[ProtoContract]
 public class Sim {
 	// constants
 	public const bool EnableNonLivePaths = true;
@@ -19,58 +21,84 @@ public class Sim {
 	public const int CompUser = -1;
 
 	// general simulation parameters
-	public long mapSize;
-	public long updateInterval;
-	public long visRadius;
+	[ProtoMember(1)] public long mapSize;
+	[ProtoMember(2)] public long updateInterval;
+	[ProtoMember(3)] public long visRadius;
 
 	// camera properties
-	public FP.Vector camPos;
-	public long camSpeed; // in position units per millisecond
-	public float zoom; // size of simulation length unit relative to diagonal length of screen
-	public float zoomMin;
-	public float zoomMax;
-	public float zoomSpeed;
-	public float zoomMouseWheelSpeed;
+	[ProtoMember(4)] public FP.Vector camPos;
+	[ProtoMember(5)] public long camSpeed; // in position units per millisecond
+	[ProtoMember(6)] public float zoom; // size of simulation length unit relative to diagonal length of screen
+	[ProtoMember(7)] public float zoomMin;
+	[ProtoMember(8)] public float zoomMax;
+	[ProtoMember(9)] public float zoomSpeed;
+	[ProtoMember(10)] public float zoomMouseWheelSpeed;
 
 	// UI scaling variables
-	public float uiBarHeight; // height of UI bar relative to screen height
-	public Vector2 healthBarSize; // size of health bar relative to diagonal length of screen
-	public float healthBarYOffset; // how high to draw center of health bar above top of selectable part of unit
+	[ProtoMember(11)] public float uiBarHeight; // height of UI bar relative to screen height
+	[ProtoMember(12)] public Vector2 healthBarSize; // size of health bar relative to diagonal length of screen
+	[ProtoMember(13)] public float healthBarYOffset; // how high to draw center of health bar above top of selectable part of unit
 
 	// colors
-	public Color backCol;
-	public Color borderCol;
-	public Color noVisCol;
-	public Color playerVisCol;
-	public Color unitVisCol;
-	public Color exclusiveCol;
-	public Color pathCol;
-	public Color healthBarBackCol;
-	public Color healthBarFullCol;
-	public Color healthBarEmptyCol;
+	[ProtoMember(14)] public Color backCol;
+	[ProtoMember(15)] public Color borderCol;
+	[ProtoMember(16)] public Color noVisCol;
+	[ProtoMember(17)] public Color playerVisCol;
+	[ProtoMember(18)] public Color unitVisCol;
+	[ProtoMember(19)] public Color exclusiveCol;
+	[ProtoMember(20)] public Color pathCol;
+	[ProtoMember(21)] public Color healthBarBackCol;
+	[ProtoMember(22)] public Color healthBarFullCol;
+	[ProtoMember(23)] public Color healthBarEmptyCol;
 
 	// core game objects
 	public User[] users;
-	public string[] rscNames;
-	public Player[] players;
-	public UnitType[] unitT;
-	public List<Unit> units;
-	public List<Path> paths;
+	[ProtoMember(25)] public string[] rscNames;
+	[ProtoMember(26, AsReference = true)] public Player[] players;
+	[ProtoMember(27, AsReference = true)] public UnitType[] unitT;
+	[ProtoMember(28, AsReference = true)] public List<Unit> units;
+	[ProtoMember(29, AsReference = true)] public List<Path> paths;
 
 	// helper variables not loaded from scenario file
-	public int selUser;
+	[ProtoMember(30)] public int selUser;
 	public NetworkView networkView; // to do RPCs in multiplayer (set to null in single player)
 	public Tile[,] tiles; // each tile is 1 fixed-point unit (2^FP.Precision raw integer units) wide, so bit shift by FP.Precision to convert between position and tile position
-	public SimEvtList events; // simulation events to be applied
-	public SimEvtList cmdPending; // user commands to be sent to other users in the next update
-	public SimEvtList cmdHistory; // user commands that have already been applied
+	[ProtoMember(31)] private Tile[] protoTiles;
+	[ProtoMember(32)] public SimEvtList events; // simulation events to be applied
+	[ProtoMember(33)] public SimEvtList cmdPending; // user commands to be sent to other users in the next update
+	[ProtoMember(34)] public SimEvtList cmdHistory; // user commands that have already been applied
 	public List<int> movedPaths; // indices of paths that moved in the latest simulation event, invalidating later TileMoveEvts for that path
-	public int nRootPaths; // number of paths that don't have a parent (because they were defined in scenario file); these are all at beginning of paths list
-	public long maxSpeed; // speed of fastest unit (is max speed that players can gain or lose visibility)
-	public int checksum; // sent to other users during each UpdateEvt to check for multiplayer desyncs
-	public bool synced; // whether all checksums between users matched so far
-	public long timeSim; // current simulation time
-	public long timeUpdateEvt; // last time that an UpdateEvt was applied
+	[ProtoMember(36)] public int nRootPaths; // number of paths that don't have a parent (because they were defined in scenario file); these are all at beginning of paths list
+	[ProtoMember(37)] public long maxSpeed; // speed of fastest unit (is max speed that players can gain or lose visibility)
+	[ProtoMember(38)] public int checksum; // sent to other users during each UpdateEvt to check for multiplayer desyncs
+	[ProtoMember(39)] public bool synced; // whether all checksums between users matched so far
+	[ProtoMember(40)] public long timeSim; // current simulation time
+	[ProtoMember(41)] public long timeUpdateEvt; // last time that an UpdateEvt was applied
+	
+	[ProtoBeforeSerialization]
+	private void beforeSerialize() {
+		protoTiles = new Tile[tileLen () * tileLen ()];
+		for (int tX = 0; tX < tileLen (); tX++) {
+			for (int tY = 0; tY < tileLen (); tY++) {
+				protoTiles[tX * tileLen () + tY] = tiles[tX, tY];
+			}
+		}
+	}
+	
+	[ProtoAfterSerialization]
+	private void afterSerialize() {
+		protoTiles = null;
+	}
+	
+	[ProtoAfterDeserialization]
+	private void afterDeserialize() {
+		tiles = new Tile[tileLen (), tileLen ()];
+		for (int i = 0; i < protoTiles.Length; i++) {
+			protoTiles[i].afterSimDeserialize ();
+			tiles[i / tileLen (), i % tileLen ()] = protoTiles[i];
+		}
+		protoTiles = null;
+	}
 
 	/// <summary>
 	/// master update method which updates the live game simulation to the specified time

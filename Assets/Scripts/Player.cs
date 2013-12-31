@@ -7,21 +7,23 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using ProtoBuf;
 
+[ProtoContract]
 public class Player {
-	public Sim g;
-	public int id; // index in player array
+	[ProtoMember(1, AsReference = true)] public Sim g;
+	[ProtoMember(2)] public int id; // index in player array
 	// stored in scenario files
-	public string name;
-	public bool isUser; // whether actively participates in the game
-	public int user; // -2 = nobody, -1 = computer, 0+ = human
-	public long[] startRsc; // resources at beginning of game
-	public bool[] mayAttack; // if this player's units may attack each other player's units
+	[ProtoMember(3)] public string name;
+	[ProtoMember(4)] public bool isUser; // whether actively participates in the game
+	[ProtoMember(5)] public int user; // -2 = nobody, -1 = computer, 0+ = human
+	[ProtoMember(6)] public long[] startRsc; // resources at beginning of game
+	[ProtoMember(7)] public bool[] mayAttack; // if this player's units may attack each other player's units
 	// not stored in scenario files
-	public bool immutable; // whether player's units will never unpredictably move or change
-	public bool hasNonLivePaths; // whether currently might have time traveling paths (ok to sometimes incorrectly be set to true)
-	public long timeGoLiveFail; // latest time that player's time traveling paths failed to go live (resets to long.MinValue after success)
-	public long timeNegRsc; // time that player could have negative resources if time traveling paths went live
+	[ProtoMember(8)] public bool immutable; // whether player's units will never unpredictably move or change
+	[ProtoMember(9)] public bool hasNonLivePaths; // whether currently might have time traveling paths (ok to sometimes incorrectly be set to true)
+	[ProtoMember(10)] public long timeGoLiveFail; // latest time that player's time traveling paths failed to go live (resets to long.MinValue after success)
+	[ProtoMember(11)] public long timeNegRsc; // time that player could have negative resources if time traveling paths went live
 
 	public Player() {
 		hasNonLivePaths = false;
