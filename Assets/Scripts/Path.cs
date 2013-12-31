@@ -134,12 +134,8 @@ public class Path {
 
 	public void beSeen(long time) {
 		Segment segment = insertSegment(time);
-		List<SegmentUnit> seenUnits = new List<SegmentUnit>();
 		segment.unseen = false;
-		foreach (Unit unit in segment.units) {
-			seenUnits.Add (new SegmentUnit(segment, unit));
-		}
-		if (!g.deleteOtherPaths (seenUnits)) throw new SystemException("failed to delete other paths of seen path");
+		if (!g.deleteOtherPaths (segment.segmentUnits())) throw new SystemException("failed to delete other paths of seen path");
 	}
 
 	/// <summary>

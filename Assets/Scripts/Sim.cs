@@ -144,7 +144,7 @@ public class Sim {
 	/// removes units from all other paths that, if seen, could cause specified units to be removed from specified segments;
 	/// returns whether successful
 	/// </summary>
-	public bool deleteOtherPaths(List<SegmentUnit> segmentUnits) {
+	public bool deleteOtherPaths(IEnumerable<SegmentUnit> segmentUnits) {
 		HashSet<SegmentUnit> ancestors = new HashSet<SegmentUnit>();
 		HashSet<SegmentUnit> prev = new HashSet<SegmentUnit>();
 		bool success = true;
