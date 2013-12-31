@@ -25,11 +25,6 @@ public class Player {
 	[ProtoMember(10)] public long timeGoLiveFail; // latest time that player's time traveling paths failed to go live (resets to long.MinValue after success)
 	[ProtoMember(11)] public long timeNegRsc; // time that player could have negative resources if time traveling paths went live
 
-	public Player() {
-		hasNonLivePaths = false;
-		timeGoLiveFail = long.MinValue;
-	}
-
 	/// <summary>
 	/// update player's non-live (time traveling) paths
 	/// </summary>

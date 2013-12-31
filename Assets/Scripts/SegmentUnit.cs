@@ -32,11 +32,10 @@ public struct SegmentUnit {
 	/// </summary>
 	public bool delete() {
 		if (!segment.units.Contains (unit)) return true; // if this segment already doesn't contain this unit, return true
-		List<SegmentUnit> ancestors = new List<SegmentUnit>();
+		List<SegmentUnit> ancestors = new List<SegmentUnit> { this };
 		Dictionary<Segment, List<Unit>> removed = new Dictionary<Segment, List<Unit>>();
 		long timeEarliestChild = long.MaxValue;
 		int i;
-		ancestors.Add (this);
 		// find all ancestor segments to start removal from
 		for (i = 0; i < ancestors.Count; i++) {
 			if (ancestors[i].prev ().Any ()) {

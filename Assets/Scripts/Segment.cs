@@ -39,8 +39,7 @@ public class Segment {
 		g = path.g;
 		id = idVal;
 		timeStart = timeStartVal;
-		branches = new List<Segment>();
-		branches.Add (this);
+		branches = new List<Segment> { this };
 		units = unitsVal;
 		unseen = unseenVal;
 	}

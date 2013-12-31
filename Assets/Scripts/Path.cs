@@ -36,10 +36,12 @@ public class Path {
 		speed = speedVal;
 		player = playerVal;
 		if (!g.stackAllowed (units, speed, player)) throw new ArgumentException("specified units may not be on the same path");
-		segments = new List<Segment>();
-		segments.Add (new Segment(this, 0, startTime, units, startUnseen));
-		moves = new List<Move>();
-		moves.Add (new Move(startTime, startPos));
+		segments = new List<Segment> {
+			new Segment(this, 0, startTime, units, startUnseen)
+		};
+		moves = new List<Move> {
+			new Move(startTime, startPos)
+		};
 		tileX = Sim.OffMap + 1;
 		tileY = Sim.OffMap + 1;
 		timeSimPast = (startTime >= g.timeSim) ? long.MaxValue : startTime;

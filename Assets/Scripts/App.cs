@@ -161,44 +161,48 @@ public class App : MonoBehaviour {
 		json = (Hashtable)Procurios.Public.JSON.JsonDecode(System.IO.File.ReadAllText(path), ref b);
 		if (!b) return false;
 		// base scenario
-		g = new Sim();
-		g.selUser = user;
-		g.networkView = multiplayer ? networkView : null;
-		g.events = new SimEvtList();
-		g.cmdPending = new SimEvtList();
-		g.cmdHistory = new SimEvtList();
-		g.checksum = 0;
-		g.synced = true;
-		g.timeSim = 0;
-		g.timeUpdateEvt = long.MinValue;
+		g = new Sim {
+			selUser = user,
+			networkView = multiplayer ? networkView : null,
+			events = new SimEvtList(),
+			cmdPending = new SimEvtList(),
+			cmdHistory = new SimEvtList(),
+			checksum = 0,
+			synced = true,
+			timeSim = 0,
+			timeUpdateEvt = long.MinValue,
+			maxSpeed = 0,
+			mapSize = jsonFP(json, "mapSize"),
+			updateInterval = (long)jsonDouble(json, "updateInterval"),
+			visRadius = jsonFP(json, "visRadius"),
+			camSpeed = jsonFP(json, "camSpeed"),
+			zoom = (float)jsonDouble(json, "zoom"),
+			zoomMin = (float)jsonDouble(json, "zoomMin"),
+			zoomMax = (float)jsonDouble(json, "zoomMax"),
+			zoomSpeed = (float)jsonDouble (json, "zoomSpeed"),
+			zoomMouseWheelSpeed = (float)jsonDouble (json, "zoomMouseWheelSpeed"),
+			uiBarHeight = (float)jsonDouble (json, "uiBarHeight"),
+			healthBarSize = jsonVector2(json, "healthBarSize"),
+			healthBarYOffset = (float)jsonDouble(json, "healthBarYOffset"),
+			backCol = jsonColor(json, "backCol"),
+			borderCol = jsonColor(json, "borderCol"),
+			noVisCol = jsonColor(json, "noVisCol"),
+			playerVisCol = jsonColor(json, "playerVisCol"),
+			unitVisCol = jsonColor(json, "unitVisCol"),
+			exclusiveCol = jsonColor(json, "exclusiveCol"),
+			pathCol = jsonColor(json, "pathCol"),
+			healthBarBackCol = jsonColor(json, "healthBarBackCol"),
+			healthBarFullCol = jsonColor(json, "healthBarFullCol"),
+			healthBarEmptyCol = jsonColor(json, "healthBarEmptyCol"),
+			rscNames = new string[0],
+			players = new Player[0],
+			unitT = new UnitType[0],
+			units = new List<Unit>(),
+			paths = new List<Path>(),
+		};
 		g.events.add(new UpdateEvt(0));
-		g.maxSpeed = 0;
-		g.mapSize = jsonFP(json, "mapSize");
-		g.updateInterval = (long)jsonDouble(json, "updateInterval");
-		g.visRadius = jsonFP(json, "visRadius");
 		g.camPos = jsonFPVector(json, "camPos", new FP.Vector(g.mapSize / 2, g.mapSize / 2));
-		g.camSpeed = jsonFP(json, "camSpeed");
-		g.zoom = (float)jsonDouble(json, "zoom");
-		g.zoomMin = (float)jsonDouble(json, "zoomMin");
-		g.zoomMax = (float)jsonDouble(json, "zoomMax");
-		g.zoomSpeed = (float)jsonDouble (json, "zoomSpeed");
-		g.zoomMouseWheelSpeed = (float)jsonDouble (json, "zoomMouseWheelSpeed");
-		g.uiBarHeight = (float)jsonDouble (json, "uiBarHeight");
-		g.healthBarSize = jsonVector2(json, "healthBarSize");
-		g.healthBarYOffset = (float)jsonDouble(json, "healthBarYOffset");
-		g.backCol = jsonColor(json, "backCol");
-		g.borderCol = jsonColor(json, "borderCol");
-		g.noVisCol = jsonColor(json, "noVisCol");
-		g.playerVisCol = jsonColor(json, "playerVisCol");
-		g.unitVisCol = jsonColor(json, "unitVisCol");
-		g.exclusiveCol = jsonColor(json, "exclusiveCol");
-		g.pathCol = jsonColor(json, "pathCol");
-		g.healthBarBackCol = jsonColor(json, "healthBarBackCol");
-		g.healthBarFullCol = jsonColor(json, "healthBarFullCol");
-		g.healthBarEmptyCol = jsonColor(json, "healthBarEmptyCol");
-		//Sim.music = jsonString(json, "music");
 		// resources
-		g.rscNames = new string[0];
 		jsonA = jsonArray(json, "resources");
 		if (jsonA != null) {
 			foreach (string rscName in jsonA) {
@@ -207,18 +211,20 @@ public class App : MonoBehaviour {
 			}
 		}
 		// players
-		g.players = new Player[0];
 		jsonA = jsonArray(json, "players");
 		if (jsonA != null) {
 			foreach (Hashtable jsonO in jsonA) {
 				Hashtable jsonO2 = jsonObject(jsonO, "startRsc");
-				Player player = new Player();
-				player.g = g;
-				player.id = g.players.Length;
-				player.name = jsonString(jsonO, "name");
-				player.isUser = jsonBool(jsonO, "isUser");
-				player.user = (int)jsonDouble(jsonO, "user");
-				player.startRsc = new long[g.rscNames.Length];
+				Player player = new Player {
+					g = this.g,
+					id = g.players.Length,
+					name = jsonString(jsonO, "name"),
+					isUser = jsonBool(jsonO, "isUser"),
+					user = (int)jsonDouble(jsonO, "user"),
+					startRsc = new long[g.rscNames.Length],
+					hasNonLivePaths = false,
+					timeGoLiveFail = long.MinValue,
+				};
 				for (int i = 0; i < g.rscNames.Length; i++) {
 					player.startRsc[i] = (jsonO2 != null) ? jsonFP(jsonO2, g.rscNames[i]) : 0;
 				}
@@ -245,32 +251,32 @@ public class App : MonoBehaviour {
 			}
 		}
 		// unit types
-		g.unitT = new UnitType[0];
 		jsonA = jsonArray(json, "unitTypes");
 		if (jsonA != null) {
 			foreach (Hashtable jsonO in jsonA) {
 				Hashtable jsonO2 = jsonObject(jsonO, "rscCost");
 				Hashtable jsonO3 = jsonObject(jsonO, "rscCollectRate");
-				UnitType unitT = new UnitType();
-				unitT.id = g.unitT.Length;
-				unitT.name = jsonString(jsonO, "name");
-				unitT.imgPath = jsonString(jsonO, "imgPath");
-				unitT.imgOffset = jsonFPVector (jsonO, "imgOffset");
-				unitT.imgHalfHeight = jsonFP (jsonO, "imgHalfHeight");
+				UnitType unitT = new UnitType {
+					id = g.unitT.Length,
+					name = jsonString(jsonO, "name"),
+					imgPath = jsonString(jsonO, "imgPath"),
+					imgOffset = jsonFPVector (jsonO, "imgOffset"),
+					imgHalfHeight = jsonFP (jsonO, "imgHalfHeight"),
+					maxHealth = (int)jsonDouble(jsonO, "maxHealth"),
+					speed = jsonFP(jsonO, "speed"),
+					reload = (long)jsonDouble(jsonO, "reload"),
+					range = jsonFP(jsonO, "range"),
+					tightFormationSpacing = jsonFP(jsonO, "tightFormationSpacing"),
+					makeUnitMinDist = jsonFP(jsonO, "makeUnitMinDist"),
+					makeUnitMaxDist = jsonFP(jsonO, "makeUnitMaxDist"),
+					makePathMinDist = jsonFP(jsonO, "makePathMinDist"),
+					makePathMaxDist = jsonFP(jsonO, "makePathMaxDist"),
+					rscCost = new long[g.rscNames.Length],
+					rscCollectRate = new long[g.rscNames.Length],
+				};
 				unitT.selMinPos = jsonFPVector (jsonO, "selMinPos", new FP.Vector(unitT.imgOffset.x - unitT.imgHalfHeight, unitT.imgOffset.y - unitT.imgHalfHeight));
 				unitT.selMaxPos = jsonFPVector (jsonO, "selMaxPos", new FP.Vector(unitT.imgOffset.x + unitT.imgHalfHeight, unitT.imgOffset.y + unitT.imgHalfHeight));
-				unitT.maxHealth = (int)jsonDouble(jsonO, "maxHealth");
-				unitT.speed = jsonFP(jsonO, "speed");
 				if (unitT.speed > g.maxSpeed) g.maxSpeed = unitT.speed;
-				unitT.reload = (long)jsonDouble(jsonO, "reload");
-				unitT.range = jsonFP(jsonO, "range");
-				unitT.tightFormationSpacing = jsonFP(jsonO, "tightFormationSpacing");
-				unitT.makeUnitMinDist = jsonFP(jsonO, "makeUnitMinDist");
-				unitT.makeUnitMaxDist = jsonFP(jsonO, "makeUnitMaxDist");
-				unitT.makePathMinDist = jsonFP(jsonO, "makePathMinDist");
-				unitT.makePathMaxDist = jsonFP(jsonO, "makePathMaxDist");
-				unitT.rscCost = new long[g.rscNames.Length];
-				unitT.rscCollectRate = new long[g.rscNames.Length];
 				for (int i = 0; i < g.rscNames.Length; i++) {
 					unitT.rscCost[i] = (jsonO2 != null) ? jsonFP(jsonO2, g.rscNames[i]) : 0;
 					unitT.rscCollectRate[i] = (jsonO3 != null) ? jsonFP(jsonO3, g.rscNames[i]) : 0;
@@ -308,8 +314,6 @@ public class App : MonoBehaviour {
 			}
 		}
 		// units
-		g.units = new List<Unit>();
-		g.paths = new List<Path>();
 		jsonA = jsonArray(json, "units");
 		if (jsonA != null) {
 			foreach (Hashtable jsonO in jsonA) {
