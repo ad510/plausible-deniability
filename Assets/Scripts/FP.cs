@@ -74,8 +74,7 @@ public class FP {
 			return false;
 		}
 
-		public bool Equals(Vector other)
-		{
+		public bool Equals(Vector other) {
 			return x == other.x && y == other.y && z == other.z;
 		}
 
@@ -100,8 +99,8 @@ public class FP {
 			return new Vector(mul(left.x, right), mul(left.y, right), mul(left.z, right));
 		}
 
-		public static Vector operator *(long right, Vector left) {
-			return left * right;
+		public static Vector operator *(long left, Vector right) {
+			return new Vector(mul(left, right.x), mul(left, right.y), mul(left, right.z));
 		}
 
 		public static Vector operator /(Vector left, long right) {
