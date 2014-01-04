@@ -77,6 +77,15 @@ public class Sim {
 	
 	[ProtoBeforeSerialization]
 	private void beforeSerialize() {
+		foreach (Path path in paths) {
+			foreach (Segment segment in path.segments) {
+				if (segment.branches != null) {
+					foreach (Segment segment2 in segment.branches) {
+						if (segment != segment2) segment2.branches = null;
+					}
+				}
+			}
+		}
 		protoTiles = new Tile[tileLen () * tileLen ()];
 		for (int tX = 0; tX < tileLen (); tX++) {
 			for (int tY = 0; tY < tileLen (); tY++) {
@@ -87,6 +96,15 @@ public class Sim {
 	
 	[ProtoAfterSerialization]
 	private void afterSerialize() {
+		foreach (Path path in paths) {
+			foreach (Segment segment in path.segments) {
+				if (segment.branches != null) {
+					foreach (Segment segment2 in segment.branches) {
+						if (segment2.branches == null) segment2.branches = segment.branches;
+					}
+				}
+			}
+		}
 		protoTiles = null;
 	}
 	
@@ -97,7 +115,7 @@ public class Sim {
 			protoTiles[i].afterSimDeserialize ();
 			tiles[i / tileLen (), i % tileLen ()] = protoTiles[i];
 		}
-		protoTiles = null;
+		afterSerialize ();
 	}
 
 	/// <summary>
