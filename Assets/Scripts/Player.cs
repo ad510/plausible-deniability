@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2013 Andrew Downing
+﻿// Copyright (c) 2013-2014 Andrew Downing
 // Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 // The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
@@ -46,13 +46,48 @@ public class Player {
 	/// since different paths can have collected different resource amounts,
 	/// determines whether to use paths that collected least or most resources in calculation
 	/// </param>
+	// TODO: this is really slow after making paths then stacking them a few times
 	public long resource(long time, int rscType, bool max, bool includeNonLiveChildren) {
+		List<List<Dictionary<Unit, long>>> segmentUnitCollected = new List<List<Dictionary<Unit, long>>>();
 		long ret = startRsc[rscType];
 		for (int i = 0; i < g.nRootPaths; i++) {
 			if (this == g.paths[i].player) {
 				foreach (SegmentUnit segmentUnit in g.paths[i].segments[0].segmentUnits ()) {
+					// TODO: this may calculate/store the resources collected by each unit redundantly
 					// TODO: this will double-count units that are in multiple paths at beginning of scenario
-					ret += segmentUnit.rscCollected(time, rscType, max, includeNonLiveChildren);
+					segmentUnitCollected.Add (segmentUnit.rscCollected(time, rscType, includeNonLiveChildren));
+				}
+			}
+		}
+		if (segmentUnitCollected.Count > 0) {
+			List<int> indices = new List<int> { 0 };
+			bool firstCombination = true;
+			while (indices.Count > 0) {
+				if (indices[indices.Count - 1] < segmentUnitCollected[indices.Count - 1].Count) {
+					if (indices.Count < segmentUnitCollected.Count) {
+						indices.Add (0);
+					}
+					else {
+						List<Unit> consideredUnits = new List<Unit>();
+						long sum = startRsc[rscType];
+						for (int i = 0; i < segmentUnitCollected.Count; i++) {
+							foreach (KeyValuePair<Unit, long> item in segmentUnitCollected[i][indices[i]]) {
+								if (!consideredUnits.Contains (item.Key)) {
+									consideredUnits.Add (item.Key);
+									sum += item.Value;
+								}
+							}
+						}
+						if (firstCombination || (max ^ (sum < ret))) {
+							ret = sum;
+							firstCombination = false;
+						}
+						indices[indices.Count - 1]++;
+					}
+				}
+				else {
+					indices.RemoveAt (indices.Count - 1);
+					if (indices.Count > 0) indices[indices.Count - 1]++;
 				}
 			}
 		}

@@ -1,4 +1,4 @@
-// Copyright (c) 2013 Andrew Downing
+// Copyright (c) 2013-2014 Andrew Downing
 // Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 // The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
@@ -124,41 +124,51 @@ public struct SegmentUnit {
 	}
 
 	/// <summary>
-	/// returns resource amount gained by this unit and its children (subtracting cost to make children)
+	/// returns resource amount gained by this unit and its children (subtracting cost to make children) for every combination of paths,
 	/// from this segment's start time to specified time
 	/// </summary>
-	/// <param name="max">
-	/// since different paths can have collected different resource amounts,
-	/// determines whether to use paths that collected least or most resources in calculation
-	/// </param>
-	// TODO: this currently double-counts child paths/units if paths merge, fix this before enabling stacking
-	public long rscCollected(long time, int rscType, bool max, bool includeNonLiveChildren) {
+	public List<Dictionary<Unit, long>> rscCollected(long time, int rscType, bool includeNonLiveChildren) {
+		List<Dictionary<Unit, long>> ret = new List<Dictionary<Unit, long>>();
 		// if this segment wasn't active yet, unit can't have collected anything
-		if (time < segment.timeStart) return 0;
+		if (time < segment.timeStart) return ret;
 		// if next segment wasn't active yet, return resources collected from timeStart to time
 		if (segment.nextOnPath () == null || time < segment.nextOnPath ().timeStart) {
-			return unit.type.rscCollectRate[rscType] * (time - segment.timeStart);
+			ret.Add (new Dictionary<Unit, long>());
+			ret[0][unit] = unit.type.rscCollectRate[rscType] * (time - segment.timeStart);
+			return ret;
 		}
-		long ret = 0;
-		bool foundNextSeg = false;
-		// add resources gained in next segment that collected either least or most resources (depending on max parameter)
+		// add resources gained in each combination of next segments
 		foreach (SegmentUnit segmentUnit in next ()) {
 			if (includeNonLiveChildren || segmentUnit.segment.path.timeSimPast == long.MaxValue) {
-				long segCollected = segmentUnit.rscCollected (time, rscType, max, includeNonLiveChildren);
-				if (!foundNextSeg || (max ^ (segCollected < ret))) {
-					ret = segCollected;
-					foundNextSeg = true;
-				}
+				ret.AddRange (segmentUnit.rscCollected (time, rscType, includeNonLiveChildren));
 			}
 		}
 		// add resources gained by children
 		foreach (SegmentUnit child in children ()) {
-			ret += child.rscCollected (time, rscType, max, includeNonLiveChildren);
+			List<Dictionary<Unit, long>> childCollected = child.rscCollected (time, rscType, includeNonLiveChildren);
+			List<Dictionary<Unit, long>> newRet = new List<Dictionary<Unit, long>>();
 			// subtract cost to make child unit
-			ret -= child.unit.type.rscCost[rscType];
+			foreach (Dictionary<Unit, long> childCombination in childCollected) {
+				childCombination[child.unit] -= child.unit.type.rscCost[rscType];
+			}
+			// add each child unit combination to each combination so far
+			foreach (Dictionary<Unit, long> combination in ret) {
+				foreach (Dictionary<Unit, long> childCombination in childCollected) {
+					Dictionary<Unit, long> newCombination = new Dictionary<Unit, long>(combination);
+					foreach (KeyValuePair<Unit, long> item in childCombination) {
+						if (!newCombination.ContainsKey (item.Key)) newCombination[item.Key] = item.Value;
+						if (newCombination[item.Key] != item.Value) throw new SystemException("unit collected different amount of resources in different calculations (this should never happen)");
+					}
+					newRet.Add (newCombination);
+				}
+			}
+			ret = newRet;
 		}
 		// add resources collected on this segment
-		ret += unit.type.rscCollectRate[rscType] * (segment.nextOnPath ().timeStart - segment.timeStart);
+		foreach (Dictionary<Unit, long> combination in ret) {
+			if (!combination.ContainsKey (unit)) combination[unit] = 0;
+			combination[unit] += unit.type.rscCollectRate[rscType] * (segment.nextOnPath ().timeStart - segment.timeStart);
+		}
 		return ret;
 	}
 	
