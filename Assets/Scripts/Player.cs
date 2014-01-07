@@ -24,6 +24,7 @@ public class Player {
 	[ProtoMember(9)] public bool hasNonLivePaths; // whether currently might have time traveling paths (ok to sometimes incorrectly be set to true)
 	[ProtoMember(10)] public long timeGoLiveFail; // latest time that player's time traveling paths failed to go live (resets to long.MinValue after success)
 	[ProtoMember(11)] public long timeNegRsc; // time that player could have negative resources if time traveling paths went live
+	public List<HashSet<SegmentUnit>> unitCombinations; // each combination of units that this player could have
 
 	/// <summary>
 	/// update player's non-live (time traveling) paths
@@ -46,33 +47,20 @@ public class Player {
 	/// since different paths can have collected different resource amounts,
 	/// determines whether to use paths that collected least or most resources in calculation
 	/// </param>
-	// TODO: this is really slow after making paths then stacking them a few times
 	public long resource(long time, int rscType, bool max, bool includeNonLiveChildren) {
-		List<HashSet<SegmentUnit>> unitCombinations = new List<HashSet<SegmentUnit>> { new HashSet<SegmentUnit>() };
 		long ret = startRsc[rscType];
 		bool firstCombination = true;
-		for (int i = 0; i < g.nRootPaths; i++) {
-			if (this == g.paths[i].player) {
-				foreach (SegmentUnit segmentUnit in g.paths[i].segments[0].segmentUnits ()) {
-					// TODO: this will double-count units that are in multiple paths at beginning of scenario
-					List<HashSet<SegmentUnit>> newUnitCombinations = new List<HashSet<SegmentUnit>>();
-					foreach (HashSet<SegmentUnit> children in segmentUnit.allChildren (time, includeNonLiveChildren)) {
-						foreach (HashSet<SegmentUnit> combination in unitCombinations) {
-							HashSet<SegmentUnit> newCombination = new HashSet<SegmentUnit> { segmentUnit };
-							newCombination.UnionWith (children);
-							newCombination.UnionWith (combination);
-							if (newUnitCombinations.Find (x => x.SetEquals (newCombination)) == null) newUnitCombinations.Add (newCombination);
-						}
-					}
-					unitCombinations = newUnitCombinations;
-				}
-			}
-		}
+		if (unitCombinations == null) calcUnitCombinations ();
 		foreach (HashSet<SegmentUnit> combination in unitCombinations) {
 			long sum = startRsc[rscType];
 			foreach (SegmentUnit segmentUnit in combination) {
-				sum += segmentUnit.unit.type.rscCollectRate[rscType] * (((segmentUnit.unit.healthWhen (time) == 0) ? segmentUnit.unit.timeHealth[segmentUnit.unit.nTimeHealth - 1] : time) - segmentUnit.segment.timeStart);
-				if (segmentUnit.segment.path.id >= g.nRootPaths) sum -= segmentUnit.unit.type.rscCost[rscType];
+				if (includeNonLiveChildren || segmentUnit.segment.path.timeSimPast == long.MaxValue) {
+					long existsInterval = ((segmentUnit.unit.healthWhen (time) == 0) ? segmentUnit.unit.timeHealth[segmentUnit.unit.nTimeHealth - 1] : time) - segmentUnit.segment.timeStart;
+					if (existsInterval >= 0) {
+						sum += segmentUnit.unit.type.rscCollectRate[rscType] * existsInterval;
+						if (segmentUnit.segment.path.id >= g.nRootPaths) sum -= segmentUnit.unit.type.rscCost[rscType];
+					}
+				}
 			}
 			if (firstCombination || (max ^ (sum < ret))) {
 				ret = sum;
@@ -98,6 +86,30 @@ public class Player {
 			}
 		}
 		return -1;
+	}
+	
+	/// <summary>
+	/// updates unitCombinations for this player
+	/// </summary>
+	public void calcUnitCombinations() {
+		unitCombinations = new List<HashSet<SegmentUnit>> { new HashSet<SegmentUnit>() };
+		for (int i = 0; i < g.nRootPaths; i++) {
+			if (this == g.paths[i].player) {
+				foreach (SegmentUnit segmentUnit in g.paths[i].segments[0].segmentUnits ()) {
+					// TODO: this will double-count units that are in multiple paths at beginning of scenario
+					List<HashSet<SegmentUnit>> newUnitCombinations = new List<HashSet<SegmentUnit>>();
+					foreach (HashSet<SegmentUnit> children in segmentUnit.allChildren ()) {
+						foreach (HashSet<SegmentUnit> combination in unitCombinations) {
+							HashSet<SegmentUnit> newCombination = new HashSet<SegmentUnit> { segmentUnit };
+							newCombination.UnionWith (children);
+							newCombination.UnionWith (combination);
+							if (newUnitCombinations.Find (x => x.SetEquals (newCombination)) == null) newUnitCombinations.Add (newCombination);
+						}
+					}
+					unitCombinations = newUnitCombinations;
+				}
+			}
+		}
 	}
 
 	/// <summary>

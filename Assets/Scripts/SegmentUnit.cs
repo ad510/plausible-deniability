@@ -69,12 +69,16 @@ public struct SegmentUnit {
 		for (i = 0; i < ancestors.Count; i++) {
 			if (!ancestors[i].deleteAfter (ref removed, ref timeEarliestChild)) break;
 		}
+		// update player's list of unit combinations
+		List<HashSet<SegmentUnit>> oldUnitCombinations = unit.player.unitCombinations;
+		unit.player.calcUnitCombinations ();
 		// if a removeUnitAfter() call failed or removing unit might have led to player having negative resources,
 		// add units back to segments they were removed from
 		if (i < ancestors.Count || (timeEarliestChild != long.MaxValue && segment.path.player.checkNegRsc (timeEarliestChild, false) >= 0)) {
 			foreach (KeyValuePair<Segment, List<Unit>> item in removed) {
 				item.Key.units.AddRange (item.Value);
 			}
+			unit.player.unitCombinations = oldUnitCombinations;
 			return false;
 		}
 		// remove paths that no longer contain units from visibility tiles
@@ -125,45 +129,38 @@ public struct SegmentUnit {
 
 	/// <summary>
 	/// returns every combination of units that this unit could have made
-	/// between this segment's start time and specified time
 	/// </summary>
-	public List<HashSet<SegmentUnit>> allChildren(long time, bool includeNonLiveChildren) {
+	public List<HashSet<SegmentUnit>> allChildren() {
 		List<HashSet<SegmentUnit>> ret = new List<HashSet<SegmentUnit>>();
-		// if this segment wasn't active yet, return no combinations
-		if (time < segment.timeStart) return ret;
-		// if next segment wasn't active yet, return no children
-		if (segment.nextOnPath () == null || time < segment.nextOnPath ().timeStart) {
+		// if this is last segment, return no children
+		if (segment.nextOnPath () == null) {
 			ret.Add (new HashSet<SegmentUnit>());
 			return ret;
 		}
 		// add children in each combination of next segments
 		foreach (SegmentUnit segmentUnit in next ()) {
-			if (includeNonLiveChildren || segmentUnit.segment.path.timeSimPast == long.MaxValue) {
-				foreach (HashSet<SegmentUnit> nextCombination in segmentUnit.allChildren (time, includeNonLiveChildren)) {
-					if (ret.Find (x => x.SetEquals (nextCombination)) == null) ret.Add (nextCombination);
-				}
+			foreach (HashSet<SegmentUnit> nextCombination in segmentUnit.allChildren ()) {
+				if (ret.Find (x => x.SetEquals (nextCombination)) == null) ret.Add (nextCombination);
 			}
 		}
 		// add children in this segment
 		foreach (SegmentUnit child in children ()) {
-			if (includeNonLiveChildren || child.segment.path.timeSimPast == long.MaxValue) {
-				List<HashSet<SegmentUnit>> childChildren = child.allChildren (time, includeNonLiveChildren);
-				// add child to each combination so far
-				foreach (HashSet<SegmentUnit> combination in ret) {
-					combination.Add (child);
-				}
-				if (childChildren.Count != 1 || childChildren[0].Count != 0) {
-					// add each child unit combination to each combination so far
-					List<HashSet<SegmentUnit>> newRet = new List<HashSet<SegmentUnit>>();
-					foreach (HashSet<SegmentUnit> childCombination in childChildren) {
-						foreach (HashSet<SegmentUnit> combination in ret) {
-							HashSet<SegmentUnit> newCombination = new HashSet<SegmentUnit>(combination);
-							newCombination.UnionWith (childCombination);
-							if (newRet.Find (x => x.SetEquals (newCombination)) == null) newRet.Add (newCombination);
-						}
+			List<HashSet<SegmentUnit>> childChildren = child.allChildren ();
+			// add child to each combination so far
+			foreach (HashSet<SegmentUnit> combination in ret) {
+				combination.Add (child);
+			}
+			if (childChildren.Count != 1 || childChildren[0].Count != 0) {
+				// add each child unit combination to each combination so far
+				List<HashSet<SegmentUnit>> newRet = new List<HashSet<SegmentUnit>>();
+				foreach (HashSet<SegmentUnit> childCombination in childChildren) {
+					foreach (HashSet<SegmentUnit> combination in ret) {
+						HashSet<SegmentUnit> newCombination = new HashSet<SegmentUnit>(combination);
+						newCombination.UnionWith (childCombination);
+						if (newRet.Find (x => x.SetEquals (newCombination)) == null) newRet.Add (newCombination);
 					}
-					ret = newRet;
 				}
+				ret = newRet;
 			}
 		}
 		return ret;
