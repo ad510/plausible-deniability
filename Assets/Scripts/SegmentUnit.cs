@@ -124,50 +124,47 @@ public struct SegmentUnit {
 	}
 
 	/// <summary>
-	/// returns resource amount gained by this unit and its children (subtracting cost to make children) for every combination of paths,
-	/// from this segment's start time to specified time
+	/// returns every combination of units that this unit could have made
+	/// between this segment's start time and specified time
 	/// </summary>
-	public List<Dictionary<Unit, long>> rscCollected(long time, int rscType, bool includeNonLiveChildren) {
-		List<Dictionary<Unit, long>> ret = new List<Dictionary<Unit, long>>();
-		// if this segment wasn't active yet, unit can't have collected anything
+	public List<HashSet<SegmentUnit>> allChildren(long time, bool includeNonLiveChildren) {
+		List<HashSet<SegmentUnit>> ret = new List<HashSet<SegmentUnit>>();
+		// if this segment wasn't active yet, return no combinations
 		if (time < segment.timeStart) return ret;
-		// if next segment wasn't active yet, return resources collected from timeStart to time
+		// if next segment wasn't active yet, return no children
 		if (segment.nextOnPath () == null || time < segment.nextOnPath ().timeStart) {
-			ret.Add (new Dictionary<Unit, long>());
-			ret[0][unit] = unit.type.rscCollectRate[rscType] * (time - segment.timeStart);
+			ret.Add (new HashSet<SegmentUnit>());
 			return ret;
 		}
-		// add resources gained in each combination of next segments
+		// add children in each combination of next segments
 		foreach (SegmentUnit segmentUnit in next ()) {
 			if (includeNonLiveChildren || segmentUnit.segment.path.timeSimPast == long.MaxValue) {
-				ret.AddRange (segmentUnit.rscCollected (time, rscType, includeNonLiveChildren));
-			}
-		}
-		// add resources gained by children
-		foreach (SegmentUnit child in children ()) {
-			List<Dictionary<Unit, long>> childCollected = child.rscCollected (time, rscType, includeNonLiveChildren);
-			List<Dictionary<Unit, long>> newRet = new List<Dictionary<Unit, long>>();
-			// subtract cost to make child unit
-			foreach (Dictionary<Unit, long> childCombination in childCollected) {
-				childCombination[child.unit] -= child.unit.type.rscCost[rscType];
-			}
-			// add each child unit combination to each combination so far
-			foreach (Dictionary<Unit, long> combination in ret) {
-				foreach (Dictionary<Unit, long> childCombination in childCollected) {
-					Dictionary<Unit, long> newCombination = new Dictionary<Unit, long>(combination);
-					foreach (KeyValuePair<Unit, long> item in childCombination) {
-						if (!newCombination.ContainsKey (item.Key)) newCombination[item.Key] = item.Value;
-						if (newCombination[item.Key] != item.Value) throw new SystemException("unit collected different amount of resources in different calculations (this should never happen)");
-					}
-					newRet.Add (newCombination);
+				foreach (HashSet<SegmentUnit> nextCombination in segmentUnit.allChildren (time, includeNonLiveChildren)) {
+					if (ret.Find (x => x.SetEquals (nextCombination)) == null) ret.Add (nextCombination);
 				}
 			}
-			ret = newRet;
 		}
-		// add resources collected on this segment
-		foreach (Dictionary<Unit, long> combination in ret) {
-			if (!combination.ContainsKey (unit)) combination[unit] = 0;
-			combination[unit] += unit.type.rscCollectRate[rscType] * (segment.nextOnPath ().timeStart - segment.timeStart);
+		// add children in this segment
+		foreach (SegmentUnit child in children ()) {
+			if (includeNonLiveChildren || child.segment.path.timeSimPast == long.MaxValue) {
+				List<HashSet<SegmentUnit>> childChildren = child.allChildren (time, includeNonLiveChildren);
+				// add child to each combination so far
+				foreach (HashSet<SegmentUnit> combination in ret) {
+					combination.Add (child);
+				}
+				if (childChildren.Count != 1 || childChildren[0].Count != 0) {
+					// add each child unit combination to each combination so far
+					List<HashSet<SegmentUnit>> newRet = new List<HashSet<SegmentUnit>>();
+					foreach (HashSet<SegmentUnit> childCombination in childChildren) {
+						foreach (HashSet<SegmentUnit> combination in ret) {
+							HashSet<SegmentUnit> newCombination = new HashSet<SegmentUnit>(combination);
+							newCombination.UnionWith (childCombination);
+							if (newRet.Find (x => x.SetEquals (newCombination)) == null) newRet.Add (newCombination);
+						}
+					}
+					ret = newRet;
+				}
+			}
 		}
 		return ret;
 	}

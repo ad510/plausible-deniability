@@ -48,47 +48,35 @@ public class Player {
 	/// </param>
 	// TODO: this is really slow after making paths then stacking them a few times
 	public long resource(long time, int rscType, bool max, bool includeNonLiveChildren) {
-		List<List<Dictionary<Unit, long>>> segmentUnitCollected = new List<List<Dictionary<Unit, long>>>();
+		List<HashSet<SegmentUnit>> unitCombinations = new List<HashSet<SegmentUnit>> { new HashSet<SegmentUnit>() };
 		long ret = startRsc[rscType];
+		bool firstCombination = true;
 		for (int i = 0; i < g.nRootPaths; i++) {
 			if (this == g.paths[i].player) {
 				foreach (SegmentUnit segmentUnit in g.paths[i].segments[0].segmentUnits ()) {
-					// TODO: this may calculate/store the resources collected by each unit redundantly
 					// TODO: this will double-count units that are in multiple paths at beginning of scenario
-					segmentUnitCollected.Add (segmentUnit.rscCollected(time, rscType, includeNonLiveChildren));
+					List<HashSet<SegmentUnit>> newUnitCombinations = new List<HashSet<SegmentUnit>>();
+					foreach (HashSet<SegmentUnit> children in segmentUnit.allChildren (time, includeNonLiveChildren)) {
+						foreach (HashSet<SegmentUnit> combination in unitCombinations) {
+							HashSet<SegmentUnit> newCombination = new HashSet<SegmentUnit> { segmentUnit };
+							newCombination.UnionWith (children);
+							newCombination.UnionWith (combination);
+							if (newUnitCombinations.Find (x => x.SetEquals (newCombination)) == null) newUnitCombinations.Add (newCombination);
+						}
+					}
+					unitCombinations = newUnitCombinations;
 				}
 			}
 		}
-		if (segmentUnitCollected.Count > 0) {
-			List<int> indices = new List<int> { 0 };
-			bool firstCombination = true;
-			while (indices.Count > 0) {
-				if (indices[indices.Count - 1] < segmentUnitCollected[indices.Count - 1].Count) {
-					if (indices.Count < segmentUnitCollected.Count) {
-						indices.Add (0);
-					}
-					else {
-						List<Unit> consideredUnits = new List<Unit>();
-						long sum = startRsc[rscType];
-						for (int i = 0; i < segmentUnitCollected.Count; i++) {
-							foreach (KeyValuePair<Unit, long> item in segmentUnitCollected[i][indices[i]]) {
-								if (!consideredUnits.Contains (item.Key)) {
-									consideredUnits.Add (item.Key);
-									sum += item.Value;
-								}
-							}
-						}
-						if (firstCombination || (max ^ (sum < ret))) {
-							ret = sum;
-							firstCombination = false;
-						}
-						indices[indices.Count - 1]++;
-					}
-				}
-				else {
-					indices.RemoveAt (indices.Count - 1);
-					if (indices.Count > 0) indices[indices.Count - 1]++;
-				}
+		foreach (HashSet<SegmentUnit> combination in unitCombinations) {
+			long sum = startRsc[rscType];
+			foreach (SegmentUnit segmentUnit in combination) {
+				sum += segmentUnit.unit.type.rscCollectRate[rscType] * (((segmentUnit.unit.healthWhen (time) == 0) ? segmentUnit.unit.timeHealth[segmentUnit.unit.nTimeHealth - 1] : time) - segmentUnit.segment.timeStart);
+				if (segmentUnit.segment.path.id >= g.nRootPaths) sum -= segmentUnit.unit.type.rscCost[rscType];
+			}
+			if (firstCombination || (max ^ (sum < ret))) {
+				ret = sum;
+				firstCombination = false;
 			}
 		}
 		return ret;
