@@ -554,6 +554,14 @@ public class App : MonoBehaviour {
 			// delete unselected paths of selected units (alternate shortcut)
 			deleteOtherPaths ();
 		}
+		/*for (KeyCode keyCode = KeyCode.Alpha1; keyCode <= KeyCode.Alpha9; keyCode++) {
+			// set # units that other players may see on selected paths
+			if (Input.GetKeyDown (keyCode)) {
+				foreach (Path path in selPaths.Keys) {
+					path.nSeeUnits = keyCode - KeyCode.Alpha1 + 1; // this doesn't sync across multiplayer
+				}
+			}
+		}*/
 		if (Input.GetKeyDown (KeyCode.O) && Input.GetKey (KeyCode.LeftShift)) {
 			// open binary game file
 			using (FileStream file = File.OpenRead (appPath + modPath + "savegame.sav")) {
@@ -768,6 +776,7 @@ public class App : MonoBehaviour {
 			if (GUILayout.Button ("New Path" + plural)) makePaths ();
 			if (GUILayout.Button ("Delete Path" + plural)) deletePaths ();
 			if (GUILayout.Button ("Delete Other Paths")) deleteOtherPaths ();
+			if (GUILayout.Button ("Share Paths") && selPaths.Count > 0) g.cmdPending.add (new SharePathsCmdEvt(g.timeSim, newCmdTime (), UnitCmdEvt.argFromPathDict (selPaths)));
 		}
 		GUILayout.EndScrollView ();
 		GUILayout.EndArea ();
@@ -873,6 +882,9 @@ public class App : MonoBehaviour {
 		}
 		else if (cmdType == (int)CmdEvtTag.stack) {
 			g.users[user].cmdReceived.add (Serializer.Deserialize<StackCmdEvt>(stream));
+		}
+		else if (cmdType == (int)CmdEvtTag.sharePaths) {
+			g.users[user].cmdReceived.add (Serializer.Deserialize<SharePathsCmdEvt>(stream));
 		}
 		else if (cmdType == (int)CmdEvtTag.goLive) {
 			g.users[user].cmdReceived.add (Serializer.Deserialize<GoLiveCmdEvt>(stream));

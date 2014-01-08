@@ -21,6 +21,7 @@ public class Path {
 	[ProtoMember(4, AsReference = true)] public readonly Player player;
 	[ProtoMember(5, AsReference = true)] public List<Segment> segments; // composition of the path over time, more recent segments are later in list
 	[ProtoMember(6, AsReference = true)] public List<Move> moves; // how path moved over time, more recent moves are later in list
+	[ProtoMember(10)] public int nSeeUnits; // max # units that should be on this path when it's seen by another player
 	[ProtoMember(7)] public int tileX; // current position on visibility tiles
 	[ProtoMember(8)] public int tileY;
 	[ProtoMember(9)] public long timeSimPast; // time traveling simulation time if made in the past, otherwise set to long.MaxValue
@@ -30,7 +31,7 @@ public class Path {
 	/// </summary>
 	private Path() { }
 
-	public Path(Sim simVal, int idVal, long speedVal, Player playerVal, List<Unit> units, long startTime, FP.Vector startPos, bool startUnseen) {
+	public Path(Sim simVal, int idVal, long speedVal, Player playerVal, List<Unit> units, long startTime, FP.Vector startPos, bool startUnseen, int nSeeUnitsVal) {
 		g = simVal;
 		id = idVal;
 		speed = speedVal;
@@ -42,6 +43,7 @@ public class Path {
 		moves = new List<Move> {
 			new Move(startTime, startPos)
 		};
+		nSeeUnits = nSeeUnitsVal;
 		tileX = Sim.OffMap + 1;
 		tileY = Sim.OffMap + 1;
 		timeSimPast = (startTime >= g.timeSim) ? long.MaxValue : startTime;
@@ -49,7 +51,7 @@ public class Path {
 	
 	public Path(Sim simVal, int idVal, List<Unit> units, long startTime, FP.Vector startPos)
 		: this(simVal, idVal, units[0].type.speed, units[0].player, units,
-		startTime, startPos, simVal.tileAt(startPos).exclusiveWhen(units[0].player, startTime)) {
+		startTime, startPos, simVal.tileAt(startPos).exclusiveWhen(units[0].player, startTime), int.MaxValue) {
 	}
 
 	/// <summary>
@@ -134,8 +136,12 @@ public class Path {
 
 	public void beSeen(long time) {
 		Segment segment = insertSegment(time);
-		segment.unseen = false;
+		for (int i = segment.units.Count - 1; i >= 0 && segment.units.Count > nSeeUnits; i--) {
+			new SegmentUnit(segment, segment.units[i]).delete ();
+		}
+		nSeeUnits = int.MaxValue;
 		if (!g.deleteOtherPaths (segment.segmentUnits())) throw new SystemException("failed to delete other paths of seen path");
+		segment.unseen = false;
 	}
 
 	/// <summary>
@@ -145,7 +151,7 @@ public class Path {
 		if (canMakePath(time, units)) {
 			Segment segment = insertSegment (time);
 			FP.Vector pos = calcPos (time);
-			g.paths.Add (new Path(g, g.paths.Count, units[0].type.speed, player, units, time, pos, segment.unseen));
+			g.paths.Add (new Path(g, g.paths.Count, units[0].type.speed, player, units, time, pos, segment.unseen, nSeeUnits));
 			connect (time, g.paths.Last ());
 			if (timeSimPast != long.MaxValue) g.paths.Last ().timeSimPast = time;
 			if (g.paths.Last ().timeSimPast == long.MaxValue) {
