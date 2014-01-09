@@ -24,7 +24,6 @@ public class SharePathsCmdEvt : UnitCmdEvt {
 		Dictionary<Path, List<Unit>> sharedUnits = new Dictionary<Path, List<Unit>>();
 		int nSeeUnits = int.MaxValue;
 		foreach (Path path in exPaths.Keys) {
-			if (path.speed != exPaths.Keys.First ().speed || !path.canMove (timeCmd)) return;
 			Segment segment = path.activeSegment (timeCmd);
 			if (segment.units.Count < nSeeUnits) nSeeUnits = segment.units.Count;
 			sharedUnits[path] = new List<Unit>(segment.units);
@@ -32,10 +31,12 @@ public class SharePathsCmdEvt : UnitCmdEvt {
 		foreach (Path path in exPaths.Keys) {
 			Dictionary<Path, List<Unit>> movePaths = new Dictionary<Path, List<Unit>>();
 			foreach (KeyValuePair<Path, List<Unit>> path2 in exPaths) {
-				List<Unit> moveUnits = path2.Value.FindAll (u => !sharedUnits[path].Contains (u));
-				if (path2.Key.makePath (timeCmd, moveUnits)) {
-					movePaths[g.paths.Last ()] = moveUnits;
-					sharedUnits[path].AddRange (moveUnits);
+				if (path2.Key.speed == path.speed && path2.Key.canMove (timeCmd)) {
+					List<Unit> moveUnits = path2.Value.FindAll (u => !sharedUnits[path].Contains (u));
+					if (path2.Key.makePath (timeCmd, moveUnits)) {
+						movePaths[g.paths.Last ()] = moveUnits;
+						sharedUnits[path].AddRange (moveUnits);
+					}
 				}
 			}
 			new StackCmdEvt(time, timeCmd, argFromPathDict (movePaths), path.id, nSeeUnits).apply (g);
