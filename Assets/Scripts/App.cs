@@ -396,8 +396,6 @@ public class App : MonoBehaviour {
 		return tex;
 	}
 
-	long lastDatacenterTime = 0;
-
 	/// <summary>
 	/// Update is called once per frame
 	/// </summary>
@@ -414,31 +412,43 @@ public class App : MonoBehaviour {
 		draw ();
 	}
 
+	long lastDatacenterTime = 0;
+
 	private void datacenterAI() {
     // TODO: Add some real AI
-		//List<Unit> datacenters = new List<Unit>();
-		//foreach (Path path in g.paths) {
-			//if (g.units[i].type == g.unitTypeNamed("Datacenter")) {
-				//datacenters.Add(path);
-			//}
-		//}
+		var datacenters = new List<SegmentUnit>();
+		foreach (Segment segment in g.activeSegments(timeGame)) {
+      foreach (SegmentUnit segUnit in segment.segmentUnits()) {
+        if (segUnit.unit.type == g.unitTypeNamed("Datacenter")) {
+          datacenters.Add(segUnit);
+        }
+      }
+		}
 
-		//if (timeGame - lastDatacenterTime > 5000)
-		//{
-			//foreach (Unit datacenter in datacenters) {
-				//g.cmdPending.add(new MoveCmdEvt(g.timeSim, g.timeSim,
-							//new int[] { datacenter.id }, new
-							//FP.Vector((int)UnityEngine.Random.Range(-100<<FP.Precision, 100<<FP.Precision),
-								//(int)UnityEngine.Random.Range(-100<<FP.Precision, 100<<FP.Precision)),
-							//Formation.Tight));
+		if (timeGame - lastDatacenterTime > 5000) 
+		{
+			foreach (SegmentUnit datacenter in datacenters) {
+        g.cmdPending.add(new MoveCmdEvt(g.timeSim, g.timeSim,
+              UnitCmdEvt.argFromPathDict(new Dictionary<Path, List<Unit>>
+                {{datacenter.segment.path, new List<Unit> {datacenter.unit}}}),
+              new FP.Vector((long)UnityEngine.Random.Range(0, g.mapSize),
+                (long)UnityEngine.Random.Range(0, g.mapSize)), Formation.Tight));
 
-				//g.cmdPending.add(new MakePathCmdEvt(g.timeSim, g.timeSim, new int[] {
-							//datacenter.id }, new FP.Vector[] { new
-							//FP.Vector(-100<<FP.Precision, 100<<FP.Precision) }));
-			//}
+				g.cmdPending.add(new MakePathCmdEvt(g.timeSim, g.timeSim,
+              UnitCmdEvt.argFromPathDict(new Dictionary<Path, List<Unit>>
+                {{datacenter.segment.path, new List<Unit> {datacenter.unit}}}),
+              new Dictionary<int, FP.Vector> {
+                {
+                  datacenter.segment.path.id,
+                  new FP.Vector((long)UnityEngine.Random.Range(0, g.mapSize),
+                    (long)UnityEngine.Random.Range(0, g.mapSize))
+                }
+              }
+            ));
+			}
 
-			//lastDatacenterTime = timeGame;
-		//}
+			lastDatacenterTime = timeGame;
+		}
 	}
 	
 	private void updateTime() {
