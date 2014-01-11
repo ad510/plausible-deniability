@@ -83,7 +83,7 @@
       "imgPath": "red.building.png",
       "imgHalfHeight": 2,
       "maxHealth": 1337,
-      "speed": 0.01,
+      "speed": 0.005,
       "makeUnitMinDist": 4,
       "makeUnitMaxDist": 8,
       "selRadius": 32,

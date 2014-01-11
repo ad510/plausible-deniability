@@ -412,10 +412,10 @@ public class App : MonoBehaviour {
 		draw ();
 	}
 
-  long lastDatacenterTime = 0;
+	const int numDatacenters = 10;
+  long lastDatacenterMoveTime = 0;
 
 	private void datacenterAI() {
-    // TODO: Add some real AI
 		var datacenters = new List<SegmentUnit>();
 		foreach (Segment segment in g.activeSegments(timeGame)) {
       foreach (SegmentUnit segUnit in segment.segmentUnits()) {
@@ -436,15 +436,8 @@ public class App : MonoBehaviour {
       }
     }
 
-		if (timeGame - lastDatacenterTime > 5000) 
-		{
+		for (var i = datacenters.Count; i <= numDatacenters; i++) {
 			foreach (SegmentUnit datacenter in datacenters) {
-        g.cmdPending.add(new MoveCmdEvt(g.timeSim, g.timeSim,
-              UnitCmdEvt.argFromPathDict(new Dictionary<Path, List<Unit>>
-                {{datacenter.segment.path, new List<Unit> {datacenter.unit}}}),
-              new FP.Vector((long)UnityEngine.Random.Range(0, g.mapSize),
-                (long)UnityEngine.Random.Range(0, g.mapSize)), Formation.Tight));
-
 				g.cmdPending.add(new MakePathCmdEvt(g.timeSim, g.timeSim,
               UnitCmdEvt.argFromPathDict(new Dictionary<Path, List<Unit>>
                 {{datacenter.segment.path, new List<Unit> {datacenter.unit}}}),
@@ -457,9 +450,19 @@ public class App : MonoBehaviour {
               }
             ));
 			}
-
-			lastDatacenterTime = timeGame;
 		}
+
+    if (timeGame - lastDatacenterMoveTime > 5000) {
+      lastDatacenterMoveTime = timeGame;
+
+			foreach (SegmentUnit datacenter in datacenters) {
+        g.cmdPending.add(new MoveCmdEvt(g.timeSim, g.timeSim,
+              UnitCmdEvt.argFromPathDict(new Dictionary<Path, List<Unit>>
+                {{datacenter.segment.path, new List<Unit> {datacenter.unit}}}),
+              new FP.Vector((long)UnityEngine.Random.Range(0, g.mapSize),
+                (long)UnityEngine.Random.Range(0, g.mapSize)), Formation.Tight));
+			}
+    }
 	}
 	
 	private void updateTime() {
