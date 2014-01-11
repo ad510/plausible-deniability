@@ -413,56 +413,56 @@ public class App : MonoBehaviour {
 	}
 
 	const int numDatacenters = 10;
-  long lastDatacenterMoveTime = 0;
+	long lastDatacenterMoveTime = 0;
 
 	private void datacenterAI() {
 		var datacenters = new List<SegmentUnit>();
 		foreach (Segment segment in g.activeSegments(timeGame)) {
-      foreach (SegmentUnit segUnit in segment.segmentUnits()) {
-        if (segUnit.unit.type == g.unitTypeNamed("Datacenter")) {
-          datacenters.Add(segUnit);
-        }
-      }
+			foreach (SegmentUnit segUnit in segment.segmentUnits()) {
+				if (segUnit.unit.type == g.unitTypeNamed("Datacenter")) {
+					datacenters.Add(segUnit);
+				}
+			}
 		}
 
-    foreach (SegmentUnit datacenter in datacenters) {
-      foreach (Segment segment in g.activeSegments(timeGame)) {
-        if (segment.path.player == g.playerNamed("Blue")
-            && new FP.Vector(segment.path.calcPos(timeGame) - datacenter.segment.path.calcPos(timeGame)).lengthSq() < (g.visRadius + (10 << FP.Precision)) * (g.visRadius + (10 << FP.Precision))) {
-          g.cmdPending.add(new DeletePathCmdEvt(g.timeSim, g.timeSim,
-                UnitCmdEvt.argFromPathDict(new Dictionary<Path, List<Unit>>
-                {{datacenter.segment.path, new List<Unit> {datacenter.unit}}})));
-        }
-      }
-    }
+		foreach (SegmentUnit datacenter in datacenters) {
+			foreach (Segment segment in g.activeSegments(timeGame)) {
+				if (segment.path.player == g.playerNamed("Blue")
+						&& new FP.Vector(segment.path.calcPos(timeGame) - datacenter.segment.path.calcPos(timeGame)).lengthSq() < (g.visRadius + (10 << FP.Precision)) * (g.visRadius + (10 << FP.Precision))) {
+					g.cmdPending.add(new DeletePathCmdEvt(g.timeSim, g.timeSim,
+								UnitCmdEvt.argFromPathDict(new Dictionary<Path, List<Unit>>
+								{{datacenter.segment.path, new List<Unit> {datacenter.unit}}})));
+				}
+			}
+		}
 
 		for (var i = datacenters.Count; i <= numDatacenters; i++) {
 			foreach (SegmentUnit datacenter in datacenters) {
 				g.cmdPending.add(new MakePathCmdEvt(g.timeSim, g.timeSim,
-              UnitCmdEvt.argFromPathDict(new Dictionary<Path, List<Unit>>
-                {{datacenter.segment.path, new List<Unit> {datacenter.unit}}}),
-              new Dictionary<int, FP.Vector> {
-                {
-                  datacenter.segment.path.id,
-                  new FP.Vector((long)UnityEngine.Random.Range(0, g.mapSize),
-                    (long)UnityEngine.Random.Range(0, g.mapSize))
-                }
-              }
-            ));
+							UnitCmdEvt.argFromPathDict(new Dictionary<Path, List<Unit>>
+								{{datacenter.segment.path, new List<Unit> {datacenter.unit}}}),
+							new Dictionary<int, FP.Vector> {
+								{
+									datacenter.segment.path.id,
+									new FP.Vector((long)UnityEngine.Random.Range(0, g.mapSize),
+										(long)UnityEngine.Random.Range(0, g.mapSize))
+								}
+							}
+						));
 			}
 		}
 
-    if (timeGame - lastDatacenterMoveTime > 5000) {
-      lastDatacenterMoveTime = timeGame;
+		if (timeGame - lastDatacenterMoveTime > 5000) {
+			lastDatacenterMoveTime = timeGame;
 
 			foreach (SegmentUnit datacenter in datacenters) {
-        g.cmdPending.add(new MoveCmdEvt(g.timeSim, g.timeSim,
-              UnitCmdEvt.argFromPathDict(new Dictionary<Path, List<Unit>>
-                {{datacenter.segment.path, new List<Unit> {datacenter.unit}}}),
-              new FP.Vector((long)UnityEngine.Random.Range(0, g.mapSize),
-                (long)UnityEngine.Random.Range(0, g.mapSize)), Formation.Tight));
+				g.cmdPending.add(new MoveCmdEvt(g.timeSim, g.timeSim,
+							UnitCmdEvt.argFromPathDict(new Dictionary<Path, List<Unit>>
+								{{datacenter.segment.path, new List<Unit> {datacenter.unit}}}),
+							new FP.Vector((long)UnityEngine.Random.Range(0, g.mapSize),
+								(long)UnityEngine.Random.Range(0, g.mapSize)), Formation.Tight));
 			}
-    }
+		}
 	}
 	
 	private void updateTime() {
