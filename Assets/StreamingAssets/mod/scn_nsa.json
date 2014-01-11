@@ -97,7 +97,7 @@
   "units":
   [
     {
-      "type": "Marine",
+      "types": ["Marine"],
       "player": "Blue",
       "startPos": 
       {
@@ -106,7 +106,7 @@
       }
     },
     {
-      "type": "Datacenter",
+      "types": ["Datacenter"],
       "player": "Red",
     }
   ]

@@ -48,8 +48,8 @@
       "reload": 2000,
       "range": 12,
       "tightFormationSpacing": 4,
-      "makeUnitMinDist": 2,
-      "makeUnitMaxDist": 4,
+      "makePathMinDist": 2,
+      "makePathMaxDist": 4,
       "selRadius": 16,
       "damage":
       {
@@ -60,12 +60,12 @@
   "units":
   [
     {
-      "type": "marine",
+      "types": ["marine"],
       "player": "blue",
       "startPos": {"x": 80, "y": 80}
     },
     {
-      "type": "marine",
+      "types": ["marine"],
       "player": "red",
       "startPos": {"x": 0, "y": 80}
     }
