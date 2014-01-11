@@ -96,6 +96,7 @@ public class App : MonoBehaviour {
 	GameObject sprMakeUnit;
 	LineBox selectBox;
 	GUIStyle lblStyle;
+	GUIStyle lblErrStyle;
 	Vector2 cmdsScrollPos;
 	Vector2 makeUnitScrollPos;
 	Vector2 selUnitsScrollPos;
@@ -143,6 +144,8 @@ public class App : MonoBehaviour {
 		lblStyle = GUIStyle.none;
 		lblStyle.fontSize = (int)(Screen.height * FntSize);
 		lblStyle.normal.textColor = Color.white;
+		lblErrStyle = new GUIStyle(lblStyle);
+		lblErrStyle.normal.textColor = Color.red;
 		if (!scnOpen (appPath + modPath + "scn.json", 0, false)) {
 			Debug.LogError ("Scenario failed to load.");
 		}
@@ -742,25 +745,21 @@ public class App : MonoBehaviour {
 		// text at top left
 		GUILayout.BeginArea (new Rect(0, 0, Screen.width, Screen.height * (1 - g.uiBarHeight)));
 		if (!g.synced) {
-			lblStyle.normal.textColor = Color.red;
-			GUILayout.Label ("OUT OF SYNC", lblStyle);
-			lblStyle.normal.textColor = Color.white;
+			GUILayout.Label ("OUT OF SYNC", lblErrStyle);
 		}
 		GUILayout.Label ((timeGame >= g.timeSim) ? "LIVE" : "TIME TRAVELING", lblStyle);
 		if (paused) GUILayout.Label ("PAUSED", lblStyle);
 		if (Environment.TickCount < timeSpeedChg) timeSpeedChg -= UInt32.MaxValue;
 		if (Environment.TickCount < timeSpeedChg + 1000) GUILayout.Label ("SPEED: " + Math.Pow(2, speed) + "x", lblStyle);
 		if (selPlayer.timeGoLiveFail != long.MinValue) {
-			lblStyle.normal.textColor = Color.red;
-			GUILayout.Label ("ERROR: Going live may cause you to have negative resources " + (timeGame - selPlayer.timeNegRsc) / 1000 + " second(s) ago.", lblStyle);
+			GUILayout.Label ("ERROR: Going live may cause you to have negative resources " + (timeGame - selPlayer.timeNegRsc) / 1000 + " second(s) ago.", lblErrStyle);
 		}
 		// text at bottom left
 		GUILayout.FlexibleSpace ();
 		for (int i = 0; i < g.rscNames.Length; i++) {
 			long rscMin = (long)Math.Floor(FP.toDouble(selPlayer.resource(timeGame, i, false, true)));
 			long rscMax = (long)Math.Floor(FP.toDouble(selPlayer.resource(timeGame, i, true, true)));
-			lblStyle.normal.textColor = (rscMin >= 0) ? Color.white : Color.red;
-			GUILayout.Label (g.rscNames[i] + ": " + rscMin + ((rscMax != rscMin) ? " to " + rscMax : ""), lblStyle);
+			GUILayout.Label (g.rscNames[i] + ": " + rscMin + ((rscMax != rscMin) ? " to " + rscMax : ""), (rscMin >= 0) ? lblStyle : lblErrStyle);
 		}
 		GUILayout.EndArea ();
 		// command menu
