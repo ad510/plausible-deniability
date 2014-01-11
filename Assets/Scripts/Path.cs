@@ -68,7 +68,7 @@ public class Path {
 		pos = calcPos(timeSimPast);
 		tX = (int)(pos.x >> FP.Precision);
 		tY = (int)(pos.y >> FP.Precision);
-		// TODO: without modifications, line below may cause syncing problems in multiplayer b/c addTileMoveEvts() sometimes adds events before timeSimPast
+		// ISSUE #26: without modifications, line below may cause syncing problems in multiplayer b/c addTileMoveEvts() sometimes adds events before timeSimPast
 		addTileMoveEvts(ref pastEvents, timeSimPast, timeSimPastNext);
 		evt = (TileMoveEvt)pastEvents.pop();
 		exclusiveIndex = g.tiles[tX, tY].exclusiveIndexWhen(player, (evt != null) ? evt.time - 1 : curTime);
@@ -194,7 +194,7 @@ public class Path {
 		bool newPathIsLive = (time >= g.timeSim && timeSimPast == long.MaxValue);
 		if (!newPathIsLive && !Sim.EnableNonLivePaths) return false;
 		for (int i = 0; i < g.rscNames.Length; i++) {
-			// TODO: may be more permissive by passing in max = true, but this really complicates removeUnit() algorithm (see planning notes)
+			// TODO: may be more permissive by passing in max = true, but this really complicates SegmentUnit.delete() algorithm (see planning notes)
 			if (player.resource(time, i, false, !newPathIsLive) < rscCost[i]) return false;
 		}
 		return true;
@@ -236,7 +236,7 @@ public class Path {
 		if (time < g.timeSim) {
 			// move non-live path if in past
 			// if this path already isn't live, a better approach is removing later segments and moves then moving this path, like pre-stacking versions
-			// TODO: this fails if moving non-live unit immediately when it's made (b/c parent is ambiguous), or moving non-live unit when resources are negative
+			// ISSUE #27: this fails if moving non-live unit immediately when it's made (b/c parent is ambiguous), or moving non-live unit when resources are negative
 			if (!makePath (time, units)) throw new SystemException("make non-live path failed when moving units");
 			path2 = g.paths.Last ();
 		}
@@ -281,7 +281,7 @@ public class Path {
 	/// returns whether allowed to move at specified time
 	/// </summary>
 	public bool canMove(long time) {
-		// TODO: maybe make overloaded version that also checks units
+		// ISSUE #32: moving unit is incorrectly disallowed when another unit on same segment is seen later (maybe make overloaded version that also checks units)
 		if (time < moves[0].timeStart || speed <= 0) return false;
 		if (time < g.timeSim) {
 			Segment segment = activeSegment (time);

@@ -37,7 +37,7 @@ public class PlayerVisRemoveEvt : SimEvt {
 				for (int tX = Math.Max(0, (int)tiles[i].x - 1); tX <= Math.Min(g.tileLen() - 1, (int)tiles[i].x + 1); tX++) {
 					for (int tY = Math.Max(0, (int)tiles[i].y - 1); tY <= Math.Min(g.tileLen() - 1, (int)tiles[i].y + 1); tY++) {
 						if ((tX != tiles[i].x || tY != tiles[i].y) && g.tiles[tX, tY].playerVisLatest(g.players[player])) {
-							// TODO: use more accurate time
+							// ISSUE #29: lose visibility in a circle instead of a square
 							g.tiles[tX, tY].playerVisRemove(g.players[player], time + (1 << FP.Precision) / g.maxSpeed);
 						}
 					}

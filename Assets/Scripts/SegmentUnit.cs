@@ -72,7 +72,7 @@ public struct SegmentUnit {
 		// update player's list of unit combinations
 		List<HashSet<SegmentUnit>> oldUnitCombinations = unit.player.unitCombinations;
 		unit.player.calcUnitCombinations ();
-		// if a removeUnitAfter() call failed or removing unit might have led to player having negative resources,
+		// if a deleteAfter() call failed or removing unit might have led to player having negative resources,
 		// add units back to segments they were removed from
 		if (i < ancestors.Count || (timeEarliestChild != long.MaxValue && segment.path.player.checkNegRsc (timeEarliestChild, false) >= 0)) {
 			foreach (KeyValuePair<Segment, List<Unit>> item in removed) {

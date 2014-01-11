@@ -17,8 +17,8 @@ using ProtoBuf;
 public class Move {
 	[ProtoMember(1)] public long timeStart; // time when starts moving
 	[ProtoMember(2)] public long timeEnd; // time when finishes moving
-	[ProtoMember(3)] public FP.Vector vecStart; // location at timeStart, (TODO: z indicates rotation)
-	[ProtoMember(4)] public FP.Vector vecEnd; // location at timeEnd, (TODO: z indicates rotation)
+	[ProtoMember(3)] public FP.Vector vecStart; // location at timeStart (if rotation is implemented, can store it in z value)
+	[ProtoMember(4)] public FP.Vector vecEnd; // location at timeEnd
 	
 	/// <summary>
 	/// empty constructor for protobuf-net use only

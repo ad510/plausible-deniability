@@ -62,7 +62,7 @@ public class MakeUnitCmdEvt : UnitCmdEvt {
 					bool newPathIsLive = (time >= g.timeSim && path.Key.timeSimPast == long.MaxValue);
 					int i;
 					for (i = 0; i < g.rscNames.Length; i++) {
-						// TODO: may be more permissive by passing in max = true, but this really complicates removeUnit() algorithm (see planning notes)
+						// TODO: may be more permissive by passing in max = true, but this really complicates SegmentUnit.delete() algorithm (see planning notes)
 						if (path.Key.player.resource(time, i, false, !newPathIsLive) < g.unitT[type].rscCost[i]) break;
 					}
 					if (i == g.rscNames.Length) movePath = path.Key;

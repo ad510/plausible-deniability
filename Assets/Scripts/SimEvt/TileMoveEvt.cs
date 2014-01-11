@@ -93,7 +93,7 @@ public class TileMoveEvt : SimEvt {
 						// if player can't see all neighboring tiles, they won't be able to tell if another player's unit moves into this tile
 						// so remove this tile's visibility for this player
 						if (timePlayerVis != long.MaxValue) {
-							timePlayerVis = Math.Max(time, timePlayerVis + (1 << FP.Precision) / g.maxSpeed); // TODO: use more accurate time
+							timePlayerVis = Math.Max(time, timePlayerVis + (1 << FP.Precision) / g.maxSpeed); // ISSUE #29: lose visibility in a circle instead of a square
 							g.tiles[tX, tY].playerVisRemove(g.paths[path].player, timePlayerVis);
 						}
 					}
@@ -142,13 +142,13 @@ public class TileMoveEvt : SimEvt {
 			else if (g.paths[path].segments.Last ().unseen && !g.tiles[tileX, tileY].exclusiveLatest(g.paths[path].player)) {
 				g.paths[path].beSeen(time);
 			}
-			// if this path moved out of another player's visibility, remove that player's visibility here
+			// if this path moved out of another player's direct visibility, remove that player's visibility here
 			if (!g.paths[path].player.immutable && tXPrev >= 0 && tXPrev < g.tileLen() && tYPrev >= 0 && tYPrev < g.tileLen()) {
 				foreach (Player player in g.players) {
 					if (player != g.paths[path].player && g.tiles[tXPrev, tYPrev].playerDirectVisLatest(player) && !g.tiles[tileX, tileY].playerDirectVisLatest(player)) {
 						for (int tX = Math.Max(0, tileX - 1); tX <= Math.Min(g.tileLen() - 1, tileX + 1); tX++) {
 							for (int tY = Math.Max(0, tileY - 1); tY <= Math.Min(g.tileLen() - 1, tileY + 1); tY++) {
-								// TODO?: use more accurate time at tiles other than (tileX, tileY)
+								// ISSUE #30: perhaps use more accurate time at tiles other than (tileX, tileY)
 								g.tiles[tX, tY].playerVisRemove(player, time);
 							}
 						}
@@ -163,7 +163,7 @@ public class TileMoveEvt : SimEvt {
 					&& g.inVis(g.paths[i].tileX - tXPrev, g.paths[i].tileY - tYPrev) && !g.tiles[g.paths[i].tileX, g.paths[i].tileY].playerDirectVisLatest(g.paths[path].player)) {
 					for (int tX = Math.Max(0, g.paths[i].tileX - 1); tX <= Math.Min(g.tileLen() - 1, g.paths[i].tileX + 1); tX++) {
 						for (int tY = Math.Max(0, g.paths[i].tileY - 1); tY <= Math.Min(g.tileLen() - 1, g.paths[i].tileY + 1); tY++) {
-							// TODO?: use more accurate time at tiles other than (paths[i].tileX, paths[i].tileY)
+							// ISSUE #30: perhaps use more accurate time at tiles other than (paths[i].tileX, paths[i].tileY)
 							g.tiles[tX, tY].playerVisRemove(g.paths[path].player, time);
 						}
 					}

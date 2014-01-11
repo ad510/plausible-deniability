@@ -32,7 +32,7 @@ public class StackCmdEvt : UnitCmdEvt {
 		Dictionary<Path, List<Unit>> exPaths = existingPaths (g);
 		List<int> movedPaths = new List<int>();
 		// move paths to final location of stackPath
-		// TODO: if stackPathVal < 0 (pressing stack button will do that) then move all paths to their average location
+		// related to ISSUE #20: if stackPathVal < 0 (pressing stack button will do that) then move all paths to their average location
 		foreach (KeyValuePair<Path, List<Unit>> path in exPaths) {
 			if (path.Key.speed == g.paths[stackPath].speed && path.Key.canMove (timeCmd)) {
 				movedPaths.Add (path.Key.moveTo (timeCmd, new List<Unit>(path.Value), g.paths[stackPath].moves.Last ().vecEnd).id);

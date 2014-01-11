@@ -101,7 +101,7 @@ public class App : MonoBehaviour {
 	Vector2 selUnitsScrollPos;
 	Sim g;
 	Player selPlayer;
-	Dictionary<Path, List<Unit>> selPaths; // TODO: this should consider time that paths were selected
+	Dictionary<Path, List<Unit>> selPaths; // ISSUE #12: this should consider time that paths were selected
 	UnitType makeUnitType;
 	long timeNow;
 	long timeLast;
@@ -133,13 +133,13 @@ public class App : MonoBehaviour {
 		quadPrefab.transform.rotation = new Quaternion(0, 1, 0, 0);
 		sprTile = Instantiate (quadPrefab) as GameObject;
 		border = new LineBox();
-		border.line.SetWidth (2, 2); // TODO: make width customizable by mod
+		border.line.SetWidth (2, 2); // ISSUE #16: make width customizable by mod
 		sprMakeUnit = Instantiate (quadPrefab) as GameObject;
-		// TODO: make color and width customizable by mod
+		// ISSUE #16: make color and width customizable by mod
 		selectBox = new LineBox();
 		selectBox.line.material.color = Color.white;
 		selectBox.line.SetWidth (2, 2);
-		// TODO: make font, size, and color customizable by mod
+		// ISSUE #16: make font, size, and color customizable by mod
 		lblStyle = GUIStyle.none;
 		lblStyle.fontSize = (int)(Screen.height * FntSize);
 		lblStyle.normal.textColor = Color.white;
@@ -155,7 +155,7 @@ public class App : MonoBehaviour {
 		Hashtable json;
 		ArrayList jsonA;
 		bool b = false;
-		// TODO: if this ever supports multiplayer games, host should load file & send data to other players, otherwise json double parsing may not match
+		// ISSUE #17: in multiplayer games, host should load file & send data to other players, otherwise json double parsing may not match
 		if (!System.IO.File.Exists(path)) return false;
 		json = (Hashtable)Procurios.Public.JSON.JsonDecode(System.IO.File.ReadAllText(path), ref b);
 		if (!b) return false;
@@ -465,7 +465,7 @@ public class App : MonoBehaviour {
 						if (selPlayer == path.player && timeGame >= path.moves[0].timeStart
 							&& FP.rectIntersects (drawToSimPos (mouseMinPos), drawToSimPos (mouseMaxPos),
 							path.selMinPos(timeGame), path.selMaxPos(timeGame))) {
-							// TODO: if not all units in path are selected, select remaining units instead of deselecting path
+							// ISSUE #18: if not all units in path are selected, select remaining units instead of deselecting path
 							if (selPaths.ContainsKey (path)) {
 								selPaths.Remove(path);
 							}
@@ -610,7 +610,7 @@ public class App : MonoBehaviour {
 	private void draw() {
 		Vector3 vec = new Vector3();
 		// visibility tiles
-		// TODO: don't draw tiles off map
+		// ISSUE #19: don't draw tiles off map
 		for (int tX = 0; tX < g.tileLen(); tX++) {
 			for (int tY = 0; tY < g.tileLen(); tY++) {
 				Color col = g.noVisCol;
@@ -657,7 +657,7 @@ public class App : MonoBehaviour {
 						sprUnits[i][j].sprite.renderer.material.color = new Color(1, 1, 1, 1);
 					}
 					else {
-						sprUnits[i][j].sprite.renderer.material.color = new Color(1, 1, 1, 0.5f); // TODO: make transparency amount customizable
+						sprUnits[i][j].sprite.renderer.material.color = new Color(1, 1, 1, 0.5f); // ISSUE #16: make transparency amount customizable
 					}
 					sprUnits[i][j].sprite.transform.position = vec + simToDrawScl (unit.type.imgOffset);
 					sprUnits[i][j].sprite.transform.localScale = unitScale (unit.type, unit.player);
@@ -692,7 +692,7 @@ public class App : MonoBehaviour {
 				sprMakeUnit.transform.position = simToDrawPos(pos + makeUnitType.imgOffset, UnitDepth);
 			}
 			else {
-				sprMakeUnit.renderer.material.color = new Color(1, 1, 1, 0.5f); // TODO: make transparency amount customizable
+				sprMakeUnit.renderer.material.color = new Color(1, 1, 1, 0.5f); // ISSUE #16: make transparency amount customizable
 				sprMakeUnit.transform.position = new Vector3(Input.mousePosition.x, Input.mousePosition.y, UnitDepth) + simToDrawScl (makeUnitType.imgOffset);
 			}
 			sprMakeUnit.transform.localScale = unitScale (makeUnitType, selPlayer);
@@ -763,11 +763,8 @@ public class App : MonoBehaviour {
 			GUILayout.Label (g.rscNames[i] + ": " + rscMin + ((rscMax != rscMin) ? " to " + rscMax : ""), lblStyle);
 		}
 		GUILayout.EndArea ();
-		// TODO: formation buttons
-		// TODO: timeline
-		// TODO: mini map
 		// command menu
-		// TODO: show text or hide button if can't do any of these actions
+		// ISSUE #21: show text or hide button if can't do any of these actions
 		GUI.Box (new Rect(0, Screen.height * (1 - g.uiBarHeight), Screen.width / 2, Screen.height * g.uiBarHeight), new GUIContent());
 		GUILayout.BeginArea (new Rect(0, Screen.height * (1 - g.uiBarHeight), Screen.width / 4, Screen.height * g.uiBarHeight));
 		cmdsScrollPos = GUILayout.BeginScrollView (cmdsScrollPos);
@@ -786,7 +783,7 @@ public class App : MonoBehaviour {
 		if (selPaths.Count > 0) {
 			foreach (UnitType unitT in g.unitT) {
 				foreach (Path path in selPaths.Keys) {
-					if (timeGame >= path.moves[0].timeStart && path.canMakeUnitType (timeGame, unitT)) { // TODO: sometimes canMake check should use existing selected units in path
+					if (timeGame >= path.moves[0].timeStart && path.canMakeUnitType (timeGame, unitT)) { // ISSUE #22: sometimes canMake check should use existing selected units in path
 						if (GUILayout.Button ("Make " + unitT.name)) makeUnit (unitT);
 						break;
 					}
@@ -824,7 +821,7 @@ public class App : MonoBehaviour {
 		GUILayout.EndScrollView ();
 		GUILayout.EndArea ();
 		// multiplayer GUI
-		// TODO: implement main menu and move this there
+		// ISSUE #23: implement main menu and move this there
 		GUILayout.BeginArea (new Rect(0, Screen.height / 3, lblStyle.fontSize * 10, Screen.height));
 		if (Network.peerType == NetworkPeerType.Disconnected) {
 			serverAddr = GUILayout.TextField (serverAddr);
@@ -861,7 +858,7 @@ public class App : MonoBehaviour {
 		scnOpen (appPath + modPath + "scn.json", user, true);
 	}
 	
-	// TODO: add NetworkMessageInfo as last parameter to authenticate user, according to http://forum.unity3d.com/threads/141156-Determine-sender-of-RPC
+	// ISSUE #24: add NetworkMessageInfo as last parameter to authenticate user, according to http://forum.unity3d.com/threads/141156-Determine-sender-of-RPC
 	[RPC]
 	void addCmd(int user, int cmdType, byte[] cmdData) {
 		System.IO.MemoryStream stream = new System.IO.MemoryStream(cmdData);
@@ -994,7 +991,7 @@ public class App : MonoBehaviour {
 		if (FP.rectContains (new FP.Vector(), new FP.Vector(g.mapSize, g.mapSize), drawToSimPos(Input.mousePosition))) {
 			if (makeUnitType.makeOnUnitT != null) {
 				// selected unit type must be made on top of another unit of correct type
-				// TODO: prevent putting multiple units on same unit (unless on different paths of same unit and maybe some other cases)
+				// ISSUE #25: prevent putting multiple units on same unit (unless on different paths of same unit and maybe some other cases)
 				foreach (Path path in g.paths) {
 					if (timeGame >= path.segments[0].timeStart) {
 						FP.Vector pos = path.calcPos(timeGame);
@@ -1077,7 +1074,7 @@ public class App : MonoBehaviour {
 	/// makes a new unit using selected units
 	/// </summary>
 	private void makeUnit(UnitType type) {
-		// TODO: this should only iterate through existing paths (fix when selPaths considers selection time)
+		// related to ISSUE #12: this should only iterate through existing paths (fix when selPaths considers selection time)
 		foreach (KeyValuePair<Path, List<Unit>> path in selPaths) {
 			if (type.speed > 0 && type.makeOnUnitT == null && path.Key.canMakeUnitType (timeGame, type)) {
 				// make unit now

@@ -50,7 +50,7 @@ public class MoveCmdEvt : UnitCmdEvt {
 		if (count == 0) return;
 		// calculate spacing
 		// (if tight formation, then spacing was already calculated above)
-		// TODO: loose formation should be triangular
+		// ISSUE #28: loose formation should be triangular
 		if (formation == Formation.Loose) {
 			spacing = FP.mul(g.visRadius, FP.Sqrt2) >> FP.Precision << FP.Precision;
 		}

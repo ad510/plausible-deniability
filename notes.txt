@@ -10,7 +10,6 @@ things zach can work on (add him to copyright line)
     zach suggests tree/graph of dependencies
     run these in coroutines? save state like http://dotnet.agilekiwi.com/blog/2007/05/implementing-workflow-with-persistent.html
     dependency based system only has advantage over simpler event based system when event has >1 dependency
-  use delta time instead of timeNow & timeLast (nope, would cause sub-millisecond timing errors)
   level map
   memos and other messages
   main menu
@@ -21,18 +20,12 @@ scenario branch
   try making path at timeSim + 1
 look at starcraft 2 tutorial
 stacking branch
-  selPaths should consider time that paths were selected (affects CmdEvt too)
-    don't forget KeyValuePair struct
-  do normal move if can't stack onto clicked unit
-  stack/unstack buttons
   if building mine on mineral, path will contain (nonmoving) units of different type (mineral + mine)
   after merge
     if multiple types of events, rename SimEvt to TimedEvt?
     scoping using {}
     capitalize methods and make constants lowercase? (monodevelop says properties, such as protobuf-net ones, are supposed to be uppercase, but unity has them lowercase)
 github issue tracker
-use different lblStyle for white & red text
-fix rscCollected stacking bug
 update tiles at fixed intervals instead of calculating time when moves between tiles?
 license 80 character line wrap?
 don't necessarily decouple UnitSprite from paths
@@ -51,11 +44,9 @@ attack command & animations
 don't allow attacking while moving for some units
 repair building command
 way to make multiple paths at a time
-making new paths should select new ones as well?
 don't make units come out in random directions?
 allow selecting only 1 building at a time, and no units in addition?
 sound
-pathfinding
 keep non-live paths in yellow areas w/o user help
 darker gray tiles should act more conventionally
 change website link in readme?
@@ -65,53 +56,6 @@ unity 4.2
     quad primitive doesn't display in player mode (output_log.txt says "The resource Quad.fbx could not be loaded from the resource file!")
   "Texture importer now has "Alpha is Transparency" setting, which does color dilation to fix edge artifacts on semitransparent textures. It is enabled by default for GUI textures."
   "fullscreen at native resolution" player setting"
-
-improved delete other paths algorithm:
-for each selected unit:
-  for each parent of this unit:
-    for each child of parent:
-      if child is a path and child isn't an ancestor of a selected unit:
-        delete child (be careful of unit renumbering)
-
-stacking data structures:
-Node:
-  long timeStart
-  Segment[] branches
-  int[] units
-  bool unseen
-Path:
-  Segment[] segments
-  Move[] moves
-  moved from Unit: tileX, tileY, timeSimPast
-
-bool Path.removeUnit(time, unit):
-get node at time
-if unit not in node then return true
-loop through previous nodes & connected paths until another child path w/ this unit is found
-  may find multiple such nodes (if 2 branches split off children then joined into this node)
-  if run into node initialized by scenario (no parent paths) then return false
-for each parent node:
-  do simulated remove, if fails then return false
-for each parent node:
-  removeUnitAfter(unit, parent node)
-
-private bool Path.removeUnitAfter(unit, node):
-if unit not in node then return true
-if node is seen then return false
-if no connected path contains unit just before node time:
-  remove unit from each connected path containing unit just after node time
-  remove units that can no longer be made using units at path intersection (consider effect on resources)
-  if units in this node same as units in prev node and no units in connected paths can be made using or are the same as units in this path:
-    delete node
-    return removeUnitAfter(unit, node)
-if not last node and !removeUnitAfter(unit, node + 1) then return false
-remove unit from node
-return true
-
-rscCollected:
-can use tree (not graph) approach most of the time, but be careful not to double count new units made b/c multiple units might be able to make it
-return from rscCollected each unit along the way and how much they collected, for every combination of paths
-in Player.resource, loop through each combination to find min or max resources
 
 if ever allow "min" resources to be <0, must handle these cases w/o letting max resources ever be <0 in replays:
 split worker into 2 paths, 1 path makes a mine, other path doesn't

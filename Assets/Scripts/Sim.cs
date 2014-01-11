@@ -238,7 +238,7 @@ public class Sim {
 		return tiles[pos.x >> FP.Precision, pos.y >> FP.Precision];
 	}
 
-	public int tileLen() { // TODO: use unitVis.GetUpperBound instead of this function
+	public int tileLen() { // when fixing ISSUE #31, use tiles.GetUpperBound instead of this function
 		return (int)((mapSize >> FP.Precision) + 1);
 	}
 
