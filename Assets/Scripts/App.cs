@@ -416,6 +416,7 @@ public class App : MonoBehaviour {
 	long lastDatacenterMoveTime = 0;
 
 	private void datacenterAI() {
+		// find our datacenters
 		var datacenters = new List<SegmentUnit>();
 		foreach (Segment segment in g.activeSegments(timeGame)) {
 			foreach (SegmentUnit segUnit in segment.segmentUnits()) {
@@ -425,6 +426,7 @@ public class App : MonoBehaviour {
 			}
 		}
 
+		// delete datacenters that get too close to player's paths
 		foreach (SegmentUnit datacenter in datacenters) {
 			foreach (Segment segment in g.activeSegments(timeGame)) {
 				if (segment.path.player == g.playerNamed("Blue")
@@ -436,6 +438,7 @@ public class App : MonoBehaviour {
 			}
 		}
 
+		// if number of datacenter paths is less than the max, make some more paths
 		for (var i = datacenters.Count; i <= numDatacenters; i++) {
 			foreach (SegmentUnit datacenter in datacenters) {
 				g.cmdPending.add(new MakePathCmdEvt(g.timeSim, g.timeSim,
@@ -452,6 +455,7 @@ public class App : MonoBehaviour {
 			}
 		}
 
+		// move datacenters every 5 seconds
 		if (timeGame - lastDatacenterMoveTime > 5000) {
 			lastDatacenterMoveTime = timeGame;
 
