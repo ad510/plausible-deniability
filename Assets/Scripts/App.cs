@@ -1078,9 +1078,9 @@ public class App : MonoBehaviour {
 		foreach (KeyValuePair<Path, List<Unit>> path in selPaths) {
 			if (type.speed > 0 && type.makeOnUnitT == null && path.Key.canMakeUnitType (timeGame, type)) {
 				// make unit now
-				Dictionary<Path, List<Unit>> pathDict = new Dictionary<Path, List<Unit>>();
-				pathDict.Add (path.Key, path.Value);
-				g.cmdPending.add(new MakeUnitCmdEvt(g.timeSim, newCmdTime(), UnitCmdEvt.argFromPathDict (pathDict), type.id, makeUnitMovePos (timeGame, path.Key, type)));
+				g.cmdPending.add(new MakeUnitCmdEvt(g.timeSim, newCmdTime(),
+					UnitCmdEvt.argFromPathDict (new Dictionary<Path, List<Unit>> { { path.Key, path.Value } }),
+					type.id, makeUnitMovePos (timeGame, path.Key, type)));
 				break;
 			}
 			else if (g.unitsCanMake (path.Value, type)) {
