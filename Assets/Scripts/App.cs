@@ -412,7 +412,7 @@ public class App : MonoBehaviour {
 		draw ();
 	}
 
-	long lastDatacenterTime = 0;
+  long lastDatacenterTime = 0;
 
 	private void datacenterAI() {
     // TODO: Add some real AI
@@ -424,6 +424,17 @@ public class App : MonoBehaviour {
         }
       }
 		}
+
+    foreach (SegmentUnit datacenter in datacenters) {
+      foreach (Segment segment in g.activeSegments(timeGame)) {
+        if (segment.path.player == g.playerNamed("Blue")
+            && new FP.Vector(segment.path.calcPos(timeGame) - datacenter.segment.path.calcPos(timeGame)).lengthSq() < (g.visRadius + (10 << FP.Precision)) * (g.visRadius + (10 << FP.Precision))) {
+          g.cmdPending.add(new DeletePathCmdEvt(g.timeSim, g.timeSim,
+                UnitCmdEvt.argFromPathDict(new Dictionary<Path, List<Unit>>
+                {{datacenter.segment.path, new List<Unit> {datacenter.unit}}})));
+        }
+      }
+    }
 
 		if (timeGame - lastDatacenterTime > 5000) 
 		{

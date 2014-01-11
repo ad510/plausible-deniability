@@ -16,7 +16,7 @@ using ProtoBuf;
 [ProtoContract]
 public class Sim {
 	// constants
-	public const bool EnableNonLivePaths = true;
+	public const bool EnableNonLivePaths = false;
 	public const int OffMap = -10000; // don't set to int.MinValue so doesn't overflow in inVis()
 	public const int CompUser = -1;
 
