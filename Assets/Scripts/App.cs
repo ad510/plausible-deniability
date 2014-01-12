@@ -105,7 +105,7 @@ public class App : MonoBehaviour {
 	Dictionary<Path, List<Unit>> selPaths; // ISSUE #12: this should consider time that paths were selected
 	UnitType makeUnitType;
 	long timeNow;
-	long timeLast;
+	long timeDelta;
 	long timeGame;
 	bool paused;
 	int speed;
@@ -410,23 +410,23 @@ public class App : MonoBehaviour {
 	}
 	
 	private void updateTime() {
-		timeLast = timeNow;
-		timeNow = (long)(Time.time * 1000);
+		timeDelta = (long)(Time.time * 1000) - timeNow;
+		timeNow += timeDelta;
 		if (!paused) {
-			long timeGameDiff;
+			long timeGameDelta;
 			if (Input.GetKey (KeyCode.R)) {
 				// rewind
-				timeGameDiff = -(timeNow - timeLast);
+				timeGameDelta = -timeDelta;
 			}
-			else if (timeNow - timeLast > g.updateInterval && timeGame + timeNow - timeLast >= g.timeSim) {
+			else if (timeDelta > g.updateInterval && timeGame + timeDelta >= g.timeSim) {
 				// cap time difference to a max amount
-				timeGameDiff = g.updateInterval;
+				timeGameDelta = g.updateInterval;
 			}
 			else {
 				// normal speed
-				timeGameDiff = timeNow - timeLast;
+				timeGameDelta = timeDelta;
 			}
-			timeGame += (long)(timeGameDiff * Math.Pow(2, speed)); // adjust game speed based on user setting
+			timeGame += (long)(timeGameDelta * Math.Pow(2, speed)); // adjust game speed based on user setting
 		}
 		// don't increment time past latest time that commands were synced across network
 		if (g.networkView != null && timeGame >= g.timeUpdateEvt + g.updateInterval) {
@@ -581,27 +581,27 @@ public class App : MonoBehaviour {
 		}
 		// move camera
 		if (Input.GetKey (KeyCode.LeftArrow) || (Input.mousePosition.x == 0 && Screen.fullScreen)) {
-			g.camPos.x -= g.camSpeed * (timeNow - timeLast);
+			g.camPos.x -= g.camSpeed * timeDelta;
 			if (g.camPos.x < 0) g.camPos.x = 0;
 		}
 		if (Input.GetKey (KeyCode.RightArrow) || (Input.mousePosition.x == Screen.width - 1 && Screen.fullScreen)) {
-			g.camPos.x += g.camSpeed * (timeNow - timeLast);
+			g.camPos.x += g.camSpeed * timeDelta;
 			if (g.camPos.x > g.mapSize) g.camPos.x = g.mapSize;
 		}
 		if (Input.GetKey (KeyCode.DownArrow) || (Input.mousePosition.y == 0 && Screen.fullScreen)) {
-			g.camPos.y -= g.camSpeed * (timeNow - timeLast);
+			g.camPos.y -= g.camSpeed * timeDelta;
 			if (g.camPos.y < 0) g.camPos.y = 0;
 		}
 		if (Input.GetKey (KeyCode.UpArrow) || (Input.mousePosition.y == Screen.height - 1 && Screen.fullScreen)) {
-			g.camPos.y += g.camSpeed * (timeNow - timeLast);
+			g.camPos.y += g.camSpeed * timeDelta;
 			if (g.camPos.y > g.mapSize) g.camPos.y = g.mapSize;
 		}
 		// zoom camera
 		if (Input.GetKey (KeyCode.PageUp)) {
-			g.zoom /= (float)Math.Exp (g.zoomSpeed * (timeNow - timeLast));
+			g.zoom /= (float)Math.Exp (g.zoomSpeed * timeDelta);
 		}
 		if (Input.GetKey (KeyCode.PageDown)) {
-			g.zoom *= (float)Math.Exp (g.zoomSpeed * (timeNow - timeLast));
+			g.zoom *= (float)Math.Exp (g.zoomSpeed * timeDelta);
 		}
 		if (Input.mousePosition.y > Screen.height * g.uiBarHeight && Input.GetAxis ("Mouse ScrollWheel") != 0) {
 			g.zoom *= (float)Math.Exp (g.zoomMouseWheelSpeed * Input.GetAxis ("Mouse ScrollWheel"));
