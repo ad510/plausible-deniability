@@ -50,7 +50,6 @@
       "tightFormationSpacing": 4,
       "makePathMinDist": 2,
       "makePathMaxDist": 4,
-      "selRadius": 16,
       "damage":
       {
         "marine": 1
