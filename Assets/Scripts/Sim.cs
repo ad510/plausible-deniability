@@ -110,6 +110,11 @@ public class Sim {
 	
 	[ProtoAfterDeserialization]
 	private void afterDeserialize() {
+		if (rscNames == null) rscNames = new string[0];
+		if (players == null) players = new Player[0];
+		if (unitT == null) unitT = new UnitType[0];
+		if (units == null) units = new List<Unit>();
+		if (paths == null) paths = new List<Path>();
 		tiles = new Tile[tileLen (), tileLen ()];
 		for (int i = 0; i < protoTiles.Length; i++) {
 			protoTiles[i].afterSimDeserialize ();
