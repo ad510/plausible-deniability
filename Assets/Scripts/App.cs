@@ -402,7 +402,7 @@ public class App : MonoBehaviour {
 	void Update () {
 		updateTime ();
 
-		if (g.timeSim > 0) {
+		if (!paused) {
 			datacenterAI();
 		}
 
@@ -412,59 +412,52 @@ public class App : MonoBehaviour {
 		draw ();
 	}
 
-	const int numDatacenters = 10;
+	const int numDatacenters = 50;
 	long lastDatacenterMoveTime = 0;
 
 	private void datacenterAI() {
 		// find our datacenters
-		var datacenters = new List<SegmentUnit>();
-		foreach (Segment segment in g.activeSegments(timeGame)) {
-			foreach (SegmentUnit segUnit in segment.segmentUnits()) {
-				if (segUnit.unit.type == g.unitTypeNamed("Datacenter")) {
-					datacenters.Add(segUnit);
-				}
-			}
-		}
+		List<Segment> datacenters = g.activeSegments (g.timeSim).Where (s => s.units.Find (u => u.player == g.playerNamed ("Red")) != null).ToList ();
 
 		// delete datacenters that get too close to player's paths
-		foreach (SegmentUnit datacenter in datacenters) {
-			foreach (Segment segment in g.activeSegments(timeGame)) {
-				if (segment.path.player == g.playerNamed("Blue")
-						&& new FP.Vector(segment.path.calcPos(timeGame) - datacenter.segment.path.calcPos(timeGame)).lengthSq() < (g.visRadius + (10 << FP.Precision)) * (g.visRadius + (10 << FP.Precision))) {
+		foreach (Segment datacenter in datacenters) {
+			foreach (Segment segment in g.activeSegments(g.timeSim)) {
+				if (segment.units.Count > 0 && segment.path.player == g.playerNamed("Blue")
+						&& new FP.Vector(segment.path.calcPos(g.timeSim) - datacenter.path.calcPos(g.timeSim)).lengthSq() < (g.visRadius + (5 << FP.Precision)) * (g.visRadius + (5 << FP.Precision))) {
 					g.cmdPending.add(new DeletePathCmdEvt(g.timeSim, g.timeSim,
 								UnitCmdEvt.argFromPathDict(new Dictionary<Path, List<Unit>>
-								{{datacenter.segment.path, new List<Unit> {datacenter.unit}}})));
+								{{datacenter.path, datacenter.units}})));
 				}
 			}
 		}
 
 		// if number of datacenter paths is less than the max, make some more paths
-		for (var i = datacenters.Count; i <= numDatacenters; i++) {
-			foreach (SegmentUnit datacenter in datacenters) {
-				g.cmdPending.add(new MakePathCmdEvt(g.timeSim, g.timeSim,
-							UnitCmdEvt.argFromPathDict(new Dictionary<Path, List<Unit>>
-								{{datacenter.segment.path, new List<Unit> {datacenter.unit}}}),
-							new Dictionary<int, FP.Vector> {
-								{
-									datacenter.segment.path.id,
-									new FP.Vector((long)UnityEngine.Random.Range(0, g.mapSize),
-										(long)UnityEngine.Random.Range(0, g.mapSize))
-								}
+		if (datacenters.Count < numDatacenters) {
+			Segment datacenter = datacenters[UnityEngine.Random.Range (0, datacenters.Count)];
+			Vector2 randPos = UnityEngine.Random.insideUnitCircle * 100;
+			g.cmdPending.add(new MakePathCmdEvt(g.timeSim, g.timeSim,
+						UnitCmdEvt.argFromPathDict(new Dictionary<Path, List<Unit>>
+							{{datacenter.path, datacenter.units}}),
+						new Dictionary<int, FP.Vector> {
+							{
+								datacenter.path.id,
+								datacenter.path.calcPos (g.timeSim) + new FP.Vector(FP.fromDouble (randPos.x), FP.fromDouble (randPos.y))
 							}
-						));
-			}
+						}
+					));
 		}
 
 		// move datacenters every 5 seconds
-		if (timeGame - lastDatacenterMoveTime > 5000) {
-			lastDatacenterMoveTime = timeGame;
+		if (g.timeSim - lastDatacenterMoveTime > 5000) {
+			lastDatacenterMoveTime = g.timeSim;
 
-			foreach (SegmentUnit datacenter in datacenters) {
+			foreach (Segment datacenter in datacenters) {
+				Vector2 randPos = UnityEngine.Random.insideUnitCircle * 100;
 				g.cmdPending.add(new MoveCmdEvt(g.timeSim, g.timeSim,
 							UnitCmdEvt.argFromPathDict(new Dictionary<Path, List<Unit>>
-								{{datacenter.segment.path, new List<Unit> {datacenter.unit}}}),
-							new FP.Vector((long)UnityEngine.Random.Range(0, g.mapSize),
-								(long)UnityEngine.Random.Range(0, g.mapSize)), Formation.Tight));
+								{{datacenter.path, datacenter.units}}),
+							datacenter.path.calcPos (g.timeSim) + new FP.Vector(FP.fromDouble (randPos.x), FP.fromDouble (randPos.y)),
+							Formation.Tight));
 			}
 		}
 	}
