@@ -22,31 +22,17 @@
   "healthBarFullCol": {"r": 0, "g": 1, "b": 0},
   "healthBarEmptyCol": {"r": 1, "g": 0, "b": 0},
   "music": "",
-  "resources": ["Minerals"],
   "players":
   [
     {
       "name": "Blue",
       "isUser": true,
-      "user": 0,
-      "startRsc":
-      {
-        "Minerals": 20
-      }
+      "user": 0
     },
     {
       "name": "Red",
       "isUser": true,
-      "user": 0,
-      "startRsc":
-      {
-        "Minerals": 4242
-      }
-    },
-    {
-      "name": "Resources",
-      "isUser": false,
-      "user": -2
+      "user": 0
     }
   ],
   "unitTypes":
@@ -60,38 +46,18 @@
       "selMaxPos": {"x": 1, "y": 3},
       "maxHealth": 50,
       "speed": 0.004,
-      "reload": 2000,
-      "range": 6,
       "tightFormationSpacing": 2,
       "makePathMinDist": 2,
-      "makePathMaxDist": 4,
-      "selRadius": 6,
-      "damage":
-      {
-        "Worker": 10,
-        "Marine": 10,
-        "Building": 10,
-        "Mine": 10
-      },
-      "rscCost":
-      {
-        "Minerals": 5
-      }
+      "makePathMaxDist": 4
     },
     {
       "name": "Datacenter",
-      "imgPath": "red.building.png",
+      "imgPath": "building.png",
       "imgHalfHeight": 2,
       "maxHealth": 1337,
       "speed": 0.005,
       "makePathMinDist": 4,
-      "makePathMaxDist": 8,
-      "selRadius": 32,
-      "canMake": ["Marine"],
-      "rscCost":
-      {
-        "Minerals": 5000
-      }
+      "makePathMaxDist": 8
     },
   ],
   "units":
