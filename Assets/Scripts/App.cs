@@ -202,7 +202,7 @@ public class App : MonoBehaviour {
 			units = new List<Unit>(),
 			paths = new List<Path>(),
 		};
-		g.events.add(new UpdateEvt(0));
+		if (g.updateInterval > 0) g.events.add(new UpdateEvt(0));
 		g.camPos = jsonFPVector(json, "camPos", new FP.Vector(g.mapSize / 2, g.mapSize / 2));
 		// resources
 		jsonA = jsonArray(json, "resources");
