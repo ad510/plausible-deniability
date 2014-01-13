@@ -159,8 +159,8 @@ public class App : MonoBehaviour {
 		ArrayList jsonA;
 		bool b = false;
 		// ISSUE #17: in multiplayer games, host should load file & send data to other players, otherwise json double parsing may not match
-		if (!System.IO.File.Exists(path)) return false;
-		json = (Hashtable)Procurios.Public.JSON.JsonDecode(System.IO.File.ReadAllText(path), ref b);
+		if (!File.Exists(path)) return false;
+		json = (Hashtable)Procurios.Public.JSON.JsonDecode(File.ReadAllText(path), ref b);
 		if (!b) return false;
 		// base scenario
 		g = new Sim {
@@ -391,9 +391,9 @@ public class App : MonoBehaviour {
 	}
 	
 	private Texture2D loadTexture(string path) {
-		if (!System.IO.File.Exists (path)) return null;
+		if (!File.Exists (path)) return null;
 		Texture2D tex = new Texture2D(0, 0);
-		byte[] imgBytes = System.IO.File.ReadAllBytes (path);
+		byte[] imgBytes = File.ReadAllBytes (path);
 		tex.LoadImage (imgBytes);
 		return tex;
 	}
@@ -860,7 +860,7 @@ public class App : MonoBehaviour {
 	// ISSUE #24: add NetworkMessageInfo as last parameter to authenticate user, according to http://forum.unity3d.com/threads/141156-Determine-sender-of-RPC
 	[RPC]
 	void nextTurnWithCmds(int user, byte[] cmdData, int checksum) {
-		g.users[user].cmdReceived.events.AddRange (Serializer.Deserialize<SimEvtList>(new System.IO.MemoryStream(cmdData)).events);
+		g.users[user].cmdReceived.events.AddRange (Serializer.Deserialize<SimEvtList>(new MemoryStream(cmdData)).events);
 		nextTurn (user, checksum);
 	}
 	
