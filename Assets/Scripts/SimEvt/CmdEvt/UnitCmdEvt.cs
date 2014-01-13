@@ -13,13 +13,13 @@ using ProtoBuf;
 /// base class for unit commands
 /// </summary>
 [ProtoContract]
-[ProtoInclude((int)CmdEvtTag.move, typeof(MoveCmdEvt))]
-[ProtoInclude((int)CmdEvtTag.makeUnit, typeof(MakeUnitCmdEvt))]
-[ProtoInclude((int)CmdEvtTag.makePath, typeof(MakePathCmdEvt))]
-[ProtoInclude((int)CmdEvtTag.deletePath, typeof(DeletePathCmdEvt))]
-[ProtoInclude((int)CmdEvtTag.deleteOtherPaths, typeof(DeleteOtherPathsCmdEvt))]
-[ProtoInclude((int)CmdEvtTag.stack, typeof(StackCmdEvt))]
-[ProtoInclude((int)CmdEvtTag.sharePaths, typeof(SharePathsCmdEvt))]
+[ProtoInclude(10, typeof(MoveCmdEvt))]
+[ProtoInclude(11, typeof(MakeUnitCmdEvt))]
+[ProtoInclude(12, typeof(MakePathCmdEvt))]
+[ProtoInclude(13, typeof(DeletePathCmdEvt))]
+[ProtoInclude(14, typeof(DeleteOtherPathsCmdEvt))]
+[ProtoInclude(15, typeof(StackCmdEvt))]
+[ProtoInclude(16, typeof(SharePathsCmdEvt))]
 public abstract class UnitCmdEvt : CmdEvt {
 	[ProtoMember(1)] public long timeCmd; // time is latest simulation time when command is given, timeCmd is when event takes place (may be in past)
 	[ProtoMember(2)] public Dictionary<int, int[]> paths; // key is path index, value is list of unit indices

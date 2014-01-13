@@ -6,24 +6,9 @@
 using ProtoBuf;
 
 /// <summary>
-/// protobuf-net identifiers of each type of CmdEvt
-/// </summary>
-public enum CmdEvtTag {
-	unit = 10,
-	move = 11,
-	makeUnit = 12,
-	makePath = 13,
-	deletePath = 14,
-	deleteOtherPaths = 15,
-	stack = 16,
-	sharePaths = 17,
-	goLive = 18,
-}
-
-/// <summary>
 /// base class for user commands
 /// </summary>
 [ProtoContract]
-[ProtoInclude((int)CmdEvtTag.unit, typeof(UnitCmdEvt))]
-[ProtoInclude((int)CmdEvtTag.goLive, typeof(GoLiveCmdEvt))]
+[ProtoInclude(10, typeof(UnitCmdEvt))]
+[ProtoInclude(11, typeof(GoLiveCmdEvt))]
 public abstract class CmdEvt : SimEvt { }

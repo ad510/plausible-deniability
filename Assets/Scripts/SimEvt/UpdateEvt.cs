@@ -28,7 +28,7 @@ public class UpdateEvt : SimEvt {
 		if (g.networkView != null) {
 			// apply received user commands (multiplayer only)
 			for (int i = 0; i < g.users.Length; i++) {
-				if (g.users[i].timeSync < time) throw new InvalidOperationException("UpdateEvt is being applied before all commands were received from user " + i);
+				if (g.users[i].timeSync < time) throw new InvalidOperationException("UpdateEvt is being applied before commands were received from user " + i);
 				if (time > 0 && g.users[i].checksums[time] != g.users[g.selUser].checksums[time]) g.synced = false;
 				while (g.users[i].cmdReceived.peekTime () == time) {
 					// TODO: could command be applied after another event with same time, causing desyncs in replays?
@@ -42,41 +42,17 @@ public class UpdateEvt : SimEvt {
 				}
 			}
 			// send pending commands to other users
-			foreach (SimEvt evt in g.cmdPending.events) {
+			if (g.cmdPending.events.Count > 0) {
+				foreach (SimEvt evt in g.cmdPending.events) {
+					evt.time = time + g.updateInterval; // set event time to when it will be applied
+				}
 				System.IO.MemoryStream stream = new System.IO.MemoryStream();
-				CmdEvtTag cmdType;
-				evt.time = time + g.updateInterval; // set event time to when it will be applied
-				Serializer.Serialize (stream, evt);
-				if (evt is MoveCmdEvt) {
-					cmdType = CmdEvtTag.move;
-				}
-				else if (evt is MakeUnitCmdEvt) {
-					cmdType = CmdEvtTag.makeUnit;
-				}
-				else if (evt is MakePathCmdEvt) {
-					cmdType = CmdEvtTag.makePath;
-				}
-				else if (evt is DeletePathCmdEvt) {
-					cmdType = CmdEvtTag.deletePath;
-				}
-				else if (evt is DeleteOtherPathsCmdEvt) {
-					cmdType = CmdEvtTag.deleteOtherPaths;
-				}
-				else if (evt is StackCmdEvt) {
-					cmdType = CmdEvtTag.stack;
-				}
-				else if (evt is SharePathsCmdEvt) {
-					cmdType = CmdEvtTag.sharePaths;
-				}
-				else if (evt is GoLiveCmdEvt) {
-					cmdType = CmdEvtTag.goLive;
-				}
-				else {
-					throw new InvalidOperationException("pending command's type is not a command");
-				}
-				g.networkView.RPC ("addCmd", RPCMode.Others, g.selUser, (int)cmdType, stream.ToArray ());
+				Serializer.Serialize (stream, g.cmdPending);
+				g.networkView.RPC ("nextTurnWithCmds", RPCMode.Others, g.selUser, stream.ToArray (), g.checksum);
 			}
-			g.networkView.RPC ("allCmdsSent", RPCMode.Others, g.selUser, g.checksum);
+			else {
+				g.networkView.RPC ("nextTurn", RPCMode.Others, g.selUser, g.checksum);
+			}
 			// move pending commands to cmdReceived
 			g.users[g.selUser].cmdReceived = g.cmdPending;
 			g.users[g.selUser].timeSync += g.updateInterval;
