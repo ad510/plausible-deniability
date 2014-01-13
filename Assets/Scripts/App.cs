@@ -332,6 +332,12 @@ public class App : MonoBehaviour {
 					g.paths.Add (new Path(g, g.paths.Count, units, (long)jsonDouble(jsonO, "startTime"),
 						jsonFPVector(jsonO, "startPos", new FP.Vector((long)(UnityEngine.Random.value * g.mapSize), (long)(UnityEngine.Random.value * g.mapSize)))));
 					Move move = g.paths.Last ().moves[0];
+					// prevent datacenters from spawning in sight of player
+					while (g.paths.Last ().player == g.playerNamed ("Red")
+						&& (move.vecStart - new FP.Vector(g.mapSize / 2, g.mapSize / 2)).lengthSq () < (g.visRadius + (5 << FP.Precision)) * (g.visRadius + (5 << FP.Precision))) {
+						move = new Move(0, new FP.Vector((long)(UnityEngine.Random.value * g.mapSize), (long)(UnityEngine.Random.value * g.mapSize)));
+						g.paths.Last ().moves[0] = move;
+					}
 					g.events.add(new TileMoveEvt(move.timeStart, g.paths.Count - 1, (int)(move.vecStart.x >> FP.Precision), (int)(move.vecStart.y >> FP.Precision)));
 				}
 			}
