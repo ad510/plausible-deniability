@@ -402,7 +402,7 @@ public class App : MonoBehaviour {
 	void Update () {
 		updateTime ();
 
-		if (!paused) {
+		if (timeGame > g.timeSim) {
 			datacenterAI();
 		}
 
@@ -414,16 +414,24 @@ public class App : MonoBehaviour {
 
 	const int numDatacenters = 50;
 	long lastDatacenterMoveTime = 0;
+	bool win = false;
+	bool replay = false;
 
 	private void datacenterAI() {
+		if (replay) {
+			timeGame = g.timeSim;
+			paused = true;
+			return;
+		}
+		
 		// find our datacenters
-		List<Segment> datacenters = g.activeSegments (g.timeSim).Where (s => s.units.Find (u => u.player == g.playerNamed ("Red")) != null).ToList ();
+		List<Segment> datacenters = g.activeSegments (g.timeSim).Where (s => s.path.player == g.playerNamed ("Red") && s.units.Count > 0).ToList ();
 
 		// delete datacenters that get too close to player's paths
 		foreach (Segment datacenter in datacenters) {
 			foreach (Segment segment in g.activeSegments(g.timeSim)) {
 				if (segment.units.Count > 0 && segment.path.player == g.playerNamed("Blue")
-						&& new FP.Vector(segment.path.calcPos(g.timeSim) - datacenter.path.calcPos(g.timeSim)).lengthSq() < (g.visRadius + (5 << FP.Precision)) * (g.visRadius + (5 << FP.Precision))) {
+						&& (segment.path.calcPos(g.timeSim) - datacenter.path.calcPos(g.timeSim)).lengthSq() < (g.visRadius + (5 << FP.Precision)) * (g.visRadius + (5 << FP.Precision))) {
 					g.cmdPending.add(new DeletePathCmdEvt(g.timeSim, g.timeSim,
 								UnitCmdEvt.argFromPathDict(new Dictionary<Path, List<Unit>>
 								{{datacenter.path, datacenter.units}})));
@@ -460,6 +468,9 @@ public class App : MonoBehaviour {
 							Formation.Tight));
 			}
 		}
+		
+		// if a datacenter is seen, player wins
+		if (!win && datacenters.Find (s => !s.unseen) != null) win = true;
 	}
 	
 	private void updateTime() {
@@ -794,7 +805,7 @@ public class App : MonoBehaviour {
 			GUILayout.Label ("OUT OF SYNC", lblStyle);
 			lblStyle.normal.textColor = Color.white;
 		}
-		GUILayout.Label ((timeGame >= g.timeSim) ? "LIVE" : "TIME TRAVELING", lblStyle);
+		GUILayout.Label (replay ? "REPLAY" : (timeGame >= g.timeSim) ? "LIVE" : "TIME TRAVELING", lblStyle);
 		if (paused) GUILayout.Label ("PAUSED", lblStyle);
 		if (Environment.TickCount < timeSpeedChg) timeSpeedChg -= UInt32.MaxValue;
 		if (Environment.TickCount < timeSpeedChg + 1000) GUILayout.Label ("SPEED: " + Math.Pow(2, speed) + "x", lblStyle);
@@ -890,6 +901,14 @@ public class App : MonoBehaviour {
 			}
 		}
 		GUILayout.EndArea ();
+		if (win && !replay && GUI.Button (new Rect(Screen.width / 2 - lblStyle.fontSize * 5, Screen.height / 2, lblStyle.fontSize * 10, lblStyle.fontSize * 3), "Continue")) {
+			// instant replay
+			timeGame = 0;
+			foreach (Tile tile in g.tiles) {
+				tile.playerVis[g.playerNamed ("Blue").id] = new List<long> { 0 };
+			}
+			replay = true;
+		}
 	}
 	
 	void OnPlayerConnected(NetworkPlayer player) {
