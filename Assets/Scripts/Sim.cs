@@ -147,7 +147,7 @@ public class Sim {
 			// if event caused path(s) to move, delete and recalculate later events moving them between tiles
 			if (movedPaths.Count > 0) {
 				for (int i = 0; i < events.events.Count; i++) {
-					if (events.events[i] is TileMoveEvt && events.events[i].time > timeSim && movedPaths.Contains(((TileMoveEvt)events.events[i]).path)) {
+					if (events.events[i] is TileMoveEvt && events.events[i].time > timeSim && movedPaths.Contains((events.events[i] as TileMoveEvt).path)) {
 						events.events.RemoveAt(i);
 						i--;
 					}

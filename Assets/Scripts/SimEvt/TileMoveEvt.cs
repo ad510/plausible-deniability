@@ -1,4 +1,4 @@
-// Copyright (c) 2013 Andrew Downing
+// Copyright (c) 2013-2014 Andrew Downing
 // Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 // The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
@@ -37,6 +37,7 @@ public class TileMoveEvt : SimEvt {
 	public override void apply(Sim g) {
 		if (g.paths[path].tileX == Sim.OffMap) return; // skip event if path no longer exists
 		List<FP.Vector> playerVisAddTiles = new List<FP.Vector>();
+		List<FP.Vector> playerVisRemoveTiles = new List<FP.Vector>();
 		int exclusiveMinX = g.tileLen() - 1;
 		int exclusiveMaxX = 0;
 		int exclusiveMinY = g.tileLen() - 1;
@@ -101,6 +102,19 @@ public class TileMoveEvt : SimEvt {
 			}
 		}
 		if (Sim.EnableNonLivePaths) {
+			// apply PlayerVisRemoveEvts that occur immediately
+			foreach (SimEvt evt in g.events.events) {
+				if (evt.time > time) break;
+				if (evt is PlayerVisRemoveEvt) {
+					PlayerVisRemoveEvt visEvt = evt as PlayerVisRemoveEvt;
+					if (visEvt.player == g.paths[path].player.id) {
+						visEvt.apply (g);
+						g.events.events.Remove (evt);
+						playerVisRemoveTiles = visEvt.tiles;
+						break;
+					}
+				}
+			}
 			// check if tiles became exclusive to this player (slow version for when non-live paths are enabled)
 			foreach (FP.Vector vec in playerVisAddTiles) {
 				if (vec.x < exclusiveMinX) exclusiveMinX = (int)vec.x;
@@ -114,13 +128,10 @@ public class TileMoveEvt : SimEvt {
 			exclusiveMaxY = Math.Min(g.tileLen() - 1, exclusiveMaxY + g.tileVisRadius());
 			for (int tX = exclusiveMinX; tX <= exclusiveMaxX; tX++) {
 				for (int tY = exclusiveMinY; tY <= exclusiveMaxY; tY++) {
-					foreach (FP.Vector vec in playerVisAddTiles) {
-						if (g.inVis(tX - vec.x, tY - vec.y)) {
-							if (!g.tiles[tX, tY].exclusiveLatest(g.paths[path].player) && g.tiles[tX, tY].calcExclusive(g.paths[path].player)) {
-								g.tiles[tX, tY].exclusiveAdd(g.paths[path].player, time);
-							}
-							break;
-						}
+					if (!g.tiles[tX, tY].exclusiveLatest(g.paths[path].player)
+						&& playerVisAddTiles.FindIndex (v => g.inVis(tX - v.x, tY - v.y)) != -1 && playerVisRemoveTiles.FindIndex (v => g.inVis (tX - v.x, tY - v.y)) == -1
+						&& g.tiles[tX, tY].calcExclusive(g.paths[path].player)) {
+						g.tiles[tX, tY].exclusiveAdd(g.paths[path].player, time);
 					}
 				}
 			}

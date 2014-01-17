@@ -1,4 +1,4 @@
-// Copyright (c) 2013 Andrew Downing
+// Copyright (c) 2013-2014 Andrew Downing
 // Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 // The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
@@ -121,7 +121,7 @@ public class Tile {
 		// try adding tile to existing PlayerVisRemoveEvt with same player and time
 		foreach (SimEvt evt in g.events.events) {
 			if (evt is PlayerVisRemoveEvt) {
-				PlayerVisRemoveEvt visEvt = (PlayerVisRemoveEvt)evt;
+				PlayerVisRemoveEvt visEvt = evt as PlayerVisRemoveEvt;
 				if (player.id == visEvt.player && time == visEvt.time) {
 					// check that tile pos isn't a duplicate (recently added tiles are more likely to be duplicates)
 					for (int i = visEvt.tiles.Count - 1; i >= Math.Max(0, visEvt.tiles.Count - 20); i--) {
@@ -225,8 +225,10 @@ public class Tile {
 	/// </remarks>
 	public bool calcExclusive(Player player) {
 		// check that this player can see all nearby tiles
-		for (int tX = Math.Max(0, x - g.tileVisRadius()); tX <= Math.Min(g.tileLen() - 1, x + g.tileVisRadius()); tX++) {
-			for (int tY = Math.Max(0, y - g.tileVisRadius()); tY <= Math.Min(g.tileLen() - 1, y + g.tileVisRadius()); tY++) {
+		int tXMax = Math.Min(g.tileLen() - 1, x + g.tileVisRadius());
+		int tYMax = Math.Min(g.tileLen() - 1, y + g.tileVisRadius());
+		for (int tX = Math.Max(0, x - g.tileVisRadius()); tX <= tXMax; tX++) {
+			for (int tY = Math.Max(0, y - g.tileVisRadius()); tY <= tYMax; tY++) {
 				if (g.inVis(tX - x, tY - y) && !g.tiles[tX, tY].playerVisLatest(player)) return false;
 			}
 		}
