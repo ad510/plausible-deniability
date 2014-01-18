@@ -36,8 +36,6 @@ public class TileMoveEvt : SimEvt {
 
 	public override void apply(Sim g) {
 		if (g.paths[path].tileX == Sim.OffMap) return; // skip event if path no longer exists
-		List<FP.Vector> playerVisAddTiles = new List<FP.Vector>();
-		List<FP.Vector> playerVisRemoveTiles = new List<FP.Vector>();
 		int exclusiveMinX = g.tileLen() - 1;
 		int exclusiveMaxX = 0;
 		int exclusiveMinY = g.tileLen() - 1;
@@ -57,7 +55,10 @@ public class TileMoveEvt : SimEvt {
 					g.tiles[tX, tY].pathVisToggle(path, time);
 					if (!g.tiles[tX, tY].playerVisLatest(g.paths[path].player)) {
 						g.tiles[tX, tY].playerVis[g.paths[path].player.id].Add(time);
-						playerVisAddTiles.Add(new FP.Vector(tX, tY));
+						if (tX < exclusiveMinX) exclusiveMinX = tX;
+						if (tX > exclusiveMaxX) exclusiveMaxX = tX;
+						if (tY < exclusiveMinY) exclusiveMinY = tY;
+						if (tY > exclusiveMaxY) exclusiveMaxY = tY;
 						// check if this tile stopped being exclusive to another player
 						foreach (Player player in g.players) {
 							if (player != g.paths[path].player && g.tiles[tX, tY].exclusiveLatest(player)) {
@@ -110,27 +111,18 @@ public class TileMoveEvt : SimEvt {
 					if (visEvt.player == g.paths[path].player.id) {
 						visEvt.apply (g);
 						g.events.events.Remove (evt);
-						playerVisRemoveTiles = visEvt.tiles;
 						break;
 					}
 				}
 			}
 			// check if tiles became exclusive to this player (slow version for when non-live paths are enabled)
-			foreach (FP.Vector vec in playerVisAddTiles) {
-				if (vec.x < exclusiveMinX) exclusiveMinX = (int)vec.x;
-				if (vec.x > exclusiveMaxX) exclusiveMaxX = (int)vec.x;
-				if (vec.y < exclusiveMinY) exclusiveMinY = (int)vec.y;
-				if (vec.y > exclusiveMaxY) exclusiveMaxY = (int)vec.y;
-			}
 			exclusiveMinX = Math.Max(0, exclusiveMinX - g.tileVisRadius());
 			exclusiveMaxX = Math.Min(g.tileLen() - 1, exclusiveMaxX + g.tileVisRadius());
 			exclusiveMinY = Math.Max(0, exclusiveMinY - g.tileVisRadius());
 			exclusiveMaxY = Math.Min(g.tileLen() - 1, exclusiveMaxY + g.tileVisRadius());
 			for (int tX = exclusiveMinX; tX <= exclusiveMaxX; tX++) {
 				for (int tY = exclusiveMinY; tY <= exclusiveMaxY; tY++) {
-					if (!g.tiles[tX, tY].exclusiveLatest(g.paths[path].player)
-						&& playerVisAddTiles.FindIndex (v => g.inVis(tX - v.x, tY - v.y)) != -1 && playerVisRemoveTiles.FindIndex (v => g.inVis (tX - v.x, tY - v.y)) == -1
-						&& g.tiles[tX, tY].calcExclusive(g.paths[path].player)) {
+					if (!g.tiles[tX, tY].exclusiveLatest(g.paths[path].player) && g.tiles[tX, tY].calcExclusive(g.paths[path].player)) {
 						g.tiles[tX, tY].exclusiveAdd(g.paths[path].player, time);
 					}
 				}
