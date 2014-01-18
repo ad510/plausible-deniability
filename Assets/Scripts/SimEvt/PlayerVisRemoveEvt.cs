@@ -25,15 +25,22 @@ public class PlayerVisRemoveEvt : SimEvt {
 	public PlayerVisRemoveEvt(long timeVal, int playerVal, int tileXVal, int tileYVal) {
 		time = timeVal;
 		player = playerVal;
-		tiles = new List<FP.Vector>();
-		tiles.Add (new FP.Vector(tileXVal, tileYVal));
+		tiles = new List<FP.Vector> { new FP.Vector(tileXVal, tileYVal) };
 	}
 
 	public override void apply(Sim g) {
+		// remove visibility from specified tiles
 		for (int i = 0; i < tiles.Count; i++) {
 			if (g.tiles[tiles[i].x, tiles[i].y].playerVisLatest(g.players[player]) && !g.tiles[tiles[i].x, tiles[i].y].playerDirectVisLatest(g.players[player])) {
 				g.tiles[tiles[i].x, tiles[i].y].playerVis[player].Add(time);
-				// add events to remove visibility from surrounding tiles
+			}
+			else {
+				tiles[i] = new FP.Vector(Sim.OffMap, Sim.OffMap);
+			}
+		}
+		// add events to remove visibility from surrounding tiles
+		for (int i = 0; i < tiles.Count; i++) {
+			if (tiles[i].x != Sim.OffMap) {
 				for (int tX = Math.Max(0, (int)tiles[i].x - 1); tX <= Math.Min(g.tileLen() - 1, (int)tiles[i].x + 1); tX++) {
 					for (int tY = Math.Max(0, (int)tiles[i].y - 1); tY <= Math.Min(g.tileLen() - 1, (int)tiles[i].y + 1); tY++) {
 						if ((tX != tiles[i].x || tY != tiles[i].y) && g.tiles[tX, tY].playerVisLatest(g.players[player])) {
@@ -42,9 +49,6 @@ public class PlayerVisRemoveEvt : SimEvt {
 						}
 					}
 				}
-			}
-			else {
-				tiles[i] = new FP.Vector(Sim.OffMap, Sim.OffMap);
 			}
 		}
 		if (Sim.EnableNonLivePaths) {
