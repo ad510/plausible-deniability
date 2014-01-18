@@ -64,6 +64,7 @@ public class Sim {
 	public NetworkView networkView; // to do RPCs in multiplayer (set to null in single player)
 	public Tile[,] tiles; // each tile is 1 fixed-point unit (2^FP.Precision raw integer units) wide, so bit shift by FP.Precision to convert between position and tile position
 	[ProtoMember(31)] private Tile[] protoTiles;
+	public FP.Vector lastUnseenTile;
 	[ProtoMember(32)] public SimEvtList events; // simulation events to be applied
 	[ProtoMember(33)] public SimEvtList cmdPending; // user commands to be sent to other users in the next update
 	[ProtoMember(34)] public SimEvtList cmdHistory; // user commands that have already been applied

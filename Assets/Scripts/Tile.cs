@@ -225,11 +225,16 @@ public class Tile {
 	/// </remarks>
 	public bool calcExclusive(Player player) {
 		// check that this player can see all nearby tiles
-		int tXMax = Math.Min(g.tileLen() - 1, x + g.tileVisRadius());
-		int tYMax = Math.Min(g.tileLen() - 1, y + g.tileVisRadius());
-		for (int tX = Math.Max(0, x - g.tileVisRadius()); tX <= tXMax; tX++) {
-			for (int tY = Math.Max(0, y - g.tileVisRadius()); tY <= tYMax; tY++) {
-				if (g.inVis(tX - x, tY - y) && !g.tiles[tX, tY].playerVisLatest(player)) return false;
+		if (g.inVis(g.lastUnseenTile.x - x, g.lastUnseenTile.y - y) && !g.tiles[g.lastUnseenTile.x, g.lastUnseenTile.y].playerVisLatest(player)) return false;
+		int tXMin = Math.Max(0, x - g.tileVisRadius());
+		int tYMin = Math.Max(0, y - g.tileVisRadius());
+		for (int tX = Math.Min(g.tileLen() - 1, x + g.tileVisRadius()); tX >= tXMin; tX--) {
+			for (int tY = Math.Min(g.tileLen() - 1, y + g.tileVisRadius()); tY >= tYMin; tY--) {
+				if (g.inVis(tX - x, tY - y) && !g.tiles[tX, tY].playerVisLatest(player)) {
+					g.lastUnseenTile.x = tX;
+					g.lastUnseenTile.y = tY;
+					return false;
+				}
 			}
 		}
 		// check that no other players can see this tile
