@@ -56,8 +56,10 @@ public class PlayerVisRemoveEvt : SimEvt {
 			int iPrev = -1;
 			for (int i = 0; i < tiles.Count; i++) {
 				if (tiles[i].x != Sim.OffMap) {
-					for (int tX = Math.Max(0, (int)tiles[i].x - g.tileVisRadius()); tX <= Math.Min(g.tileLen() - 1, (int)tiles[i].x + g.tileVisRadius()); tX++) {
-						for (int tY = Math.Max(0, (int)tiles[i].y - g.tileVisRadius()); tY <= Math.Min(g.tileLen() - 1, (int)tiles[i].y + g.tileVisRadius()); tY++) {
+					int tXMax = Math.Min(g.tileLen() - 1, (int)tiles[i].x + g.tileVisRadius());
+					int tYMax = Math.Min(g.tileLen() - 1, (int)tiles[i].y + g.tileVisRadius());
+					for (int tX = Math.Max(0, (int)tiles[i].x - g.tileVisRadius()); tX <= tXMax; tX++) {
+						for (int tY = Math.Max(0, (int)tiles[i].y - g.tileVisRadius()); tY <= tYMax; tY++) {
 							if (g.inVis(tX - tiles[i].x, tY - tiles[i].y) && (iPrev == -1 || !g.inVis(tX - tiles[iPrev].x, tY - tiles[iPrev].y))) {
 								foreach (Player player2 in g.players) {
 									if (player2.id == player && g.tiles[tX, tY].exclusiveLatest(player2)) {
