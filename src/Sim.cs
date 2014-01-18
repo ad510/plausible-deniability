@@ -271,6 +271,7 @@ namespace Decoherence
 
         // helper variables not loaded from scenario file
         public Tile[,] tiles; // each tile is 1 fixed-point unit (2^FP.Precision raw integer units) wide, so bit shift by FP.Precision to convert between position and tile position
+        public FP.Vector lastUnseenTile;
         public SimEvtList events; // simulation events to be applied
         public SimEvtList cmdHistory; // user commands that have already been applied
         public List<int> movedUnits; // indices of units that moved in the latest simulation event, invalidating later TileMoveEvts for that unit
@@ -426,11 +427,17 @@ namespace Decoherence
         {
             int i, tX, tY;
             // check that this player can see all nearby tiles
-            for (tX = Math.Max(0, tileX - tileVisRadius()); tX <= Math.Min(tileLen() - 1, tileX + tileVisRadius()); tX++)
+            if (inVis(lastUnseenTile.x - tileX, lastUnseenTile.y - tileY) && !tiles[lastUnseenTile.x, lastUnseenTile.y].playerVisLatest(player)) return false;
+            for (tX = Math.Min(tileLen() - 1, tileX + tileVisRadius()); tX >= Math.Max(0, tileX - tileVisRadius()); tX--)
             {
-                for (tY = Math.Max(0, tileY - tileVisRadius()); tY <= Math.Min(tileLen() - 1, tileY + tileVisRadius()); tY++)
+                for (tY = Math.Min(tileLen() - 1, tileY + tileVisRadius()); tY >= Math.Max(0, tileY - tileVisRadius()); tY--)
                 {
-                    if (inVis(tX - tileX, tY - tileY) && !tiles[tX, tY].playerVisLatest(player)) return false;
+                    if (inVis(tX - tileX, tY - tileY) && !tiles[tX, tY].playerVisLatest(player))
+                    {
+                        lastUnseenTile.x = tX;
+                        lastUnseenTile.y = tY;
+                        return false;
+                    }
                 }
             }
             // check that no other players can see this tile
