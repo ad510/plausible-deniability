@@ -46,7 +46,7 @@ public class Move {
 	/// alternate method to create Move object that asks for speed (in position units per millisecond) instead of end time
 	/// </summary>
 	public static Move fromSpeed(long timeStartVal, long speed, FP.Vector vecStartVal, FP.Vector vecEndVal) {
-		return new Move(timeStartVal, timeStartVal + new FP.Vector(vecEndVal - vecStartVal).length() / speed, vecStartVal, vecEndVal);
+		return new Move(timeStartVal, timeStartVal + (vecEndVal - vecStartVal).length() / speed, vecStartVal, vecEndVal);
 	}
 
 	/// <summary>
