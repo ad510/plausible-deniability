@@ -1,0 +1,264 @@
+{
+  "mapSize": 80,
+  "updateInterval": 200,
+  "visRadius": 8,
+  "camSpeed": 0.02,
+  "zoom": 0.01,
+  "zoomMin": 0.002,
+  "zoomMax": 0.05,
+  "zoomSpeed": 0.001,
+  "zoomMouseWheelSpeed": 1,
+  "uiBarHeight": 0.2,
+  "healthBarSize": {"x": 0.017, "y": 0.005},
+  "healthBarYOffset": 0.005,
+  "backCol": {"r": 0, "g": 0, "b": 0},
+  "borderCol": {"r": 1, "g": 0.5, "b": 0},
+  "noVisCol": {"r": 0, "g": 0, "b": 0},
+  "playerVisCol": {"r": 0, "g": 0.3, "b": 0},
+  "unitVisCol": {"r": 0, "g": 0.3, "b": 0},
+  "exclusiveCol": {"r": 0.5, "g": 0, "b": 0},
+  "pathCol": {"r": 0, "g": 1, "b": 1},
+  "healthBarBackCol": {"r": 0, "g": 0, "b": 0},
+  "healthBarFullCol": {"r": 0, "g": 1, "b": 0},
+  "healthBarEmptyCol": {"r": 1, "g": 0, "b": 0},
+  "music": "",
+  "resources": ["Minerals"],
+  "players":
+  [
+    {
+      "name": "Blue",
+      "isUser": true,
+      "user": 0,
+      "startRsc":
+      {
+        "Minerals": 20
+      },
+      "mayAttack": ["Red"]
+    },
+    {
+      "name": "Red",
+      "isUser": true,
+      "user": 0,
+      "startRsc":
+      {
+        "Minerals": 20
+      },
+      "mayAttack": ["Blue"]
+    },
+    {
+      "name": "Resources",
+      "isUser": false,
+      "user": -2
+    }
+  ],
+  "unitTypes":
+  [
+    {
+      "name": "Worker",
+      "imgPath": "worker.png",
+      "imgOffset": {"y": 2},
+      "imgHalfHeight": 2,
+      "selMinPos": {"x": -1, "y": 0},
+      "selMaxPos": {"x": 1, "y": 3.5},
+      "maxHealth": 20,
+      "speed": 0.004,
+      "reload": 2000,
+      "range": 3,
+      "tightFormationSpacing": 2,
+      "makeUnitMinDist": 4,
+      "makeUnitMaxDist": 8,
+      "makePathMinDist": 2,
+      "makePathMaxDist": 4,
+      "canMake": ["Building", "Mine"],
+      "damage":
+      {
+        "Quantum Marine": 2,
+        "Quantum Building": 2,
+        "Quantum Air Mine": 2
+      },
+      "rscCost":
+      {
+        "Minerals": 5
+      }
+    },
+    {
+      "name": "Marine",
+      "imgPath": "marine.png",
+      "imgOffset": {"y": 2},
+      "imgHalfHeight": 2,
+      "selMinPos": {"x": -1, "y": 0},
+      "selMaxPos": {"x": 1, "y": 3},
+      "maxHealth": 50,
+      "speed": 0.004,
+      "reload": 2000,
+      "range": 6,
+      "tightFormationSpacing": 2,
+      "makeUnitMinDist": 4,
+      "makeUnitMaxDist": 8,
+      "makePathMinDist": 2,
+      "makePathMaxDist": 4,
+      "damage":
+      {
+        "Quantum Worker": 10,
+        "Quantum Marine": 10,
+        "Quantum Building": 10,
+        "Quantum Air Mine": 10
+      },
+      "rscCost":
+      {
+        "Minerals": 5
+      }
+    },
+    {
+      "name": "Building",
+      "imgPath": "building.png",
+      "imgHalfHeight": 2,
+      "maxHealth": 500,
+      "speed": 0,
+      "canMake": ["Worker", "Marine"],
+      "rscCost":
+      {
+        "Minerals": 10
+      }
+    },
+    {
+      "name": "Mine",
+      "imgPath": "mine.png",
+      "imgHalfHeight": 2,
+      "maxHealth": 200,
+      "speed": 0,
+      "makeOnUnitT": "Mineral",
+      "rscCost":
+      {
+        "Minerals": 10
+      },
+      "rscCollectRate":
+      {
+        "Minerals": 0.001
+      }
+    },
+    {
+      "name": "Quantum Worker",
+      "imgPath": "worker.png",
+      "imgOffset": {"y": 2},
+      "imgHalfHeight": 2,
+      "selMinPos": {"x": -1, "y": 0},
+      "selMaxPos": {"x": 1, "y": 3.5},
+      "maxHealth": 20,
+      "speed": 0.004,
+      "reload": 2000,
+      "range": 3,
+      "tightFormationSpacing": 2,
+      "makeUnitMinDist": 4,
+      "makeUnitMaxDist": 8,
+      "makePathMinDist": 2,
+      "makePathMaxDist": 4,
+      "canMake": ["Quantum Building", "Quantum Air Mine"],
+      "damage":
+      {
+        "Marine": 2,
+        "Building": 2,
+        "Mine": 2
+      }
+    },
+    {
+      "name": "Quantum Marine",
+      "imgPath": "marine.png",
+      "imgOffset": {"y": 2},
+      "imgHalfHeight": 2,
+      "selMinPos": {"x": -1, "y": 0},
+      "selMaxPos": {"x": 1, "y": 3},
+      "maxHealth": 50,
+      "speed": 0.004,
+      "reload": 2000,
+      "range": 6,
+      "tightFormationSpacing": 2,
+      "makeUnitMinDist": 4,
+      "makeUnitMaxDist": 8,
+      "makePathMinDist": 2,
+      "makePathMaxDist": 4,
+      "damage":
+      {
+        "Worker": 10,
+        "Marine": 10,
+        "Building": 10,
+        "Mine": 10
+      }
+    },
+    {
+      "name": "Quantum Building",
+      "imgPath": "building.png",
+      "imgHalfHeight": 2,
+      "maxHealth": 500,
+      "speed": 0.002,
+      "canMake": ["Quantum Worker", "Quantum Marine"]
+    },
+    {
+      "name": "Quantum Air Mine",
+      "imgPath": "mine.png",
+      "imgHalfHeight": 2,
+      "maxHealth": 200,
+      "speed": 0.002
+    },
+    {
+      "name": "Mineral",
+      "imgPath": "mineral.png",
+      "imgHalfHeight": 1,
+      "maxHealth": 1,
+      "speed": 0
+    }
+  ],
+  "units":
+  [
+    {
+      "types": ["Mineral"],
+      "player": "Resources"
+    },
+    {
+      "types": ["Mineral"],
+      "player": "Resources"
+    },
+    {
+      "types": ["Mineral"],
+      "player": "Resources"
+    },
+    {
+      "types": ["Mineral"],
+      "player": "Resources"
+    },
+    {
+      "types": ["Mineral"],
+      "player": "Resources"
+    },
+    {
+      "types": ["Mineral"],
+      "player": "Resources"
+    },
+    {
+      "types": ["Mineral"],
+      "player": "Resources"
+    },
+    {
+      "types": ["Mineral"],
+      "player": "Resources"
+    },
+    {
+      "types": ["Mineral"],
+      "player": "Resources"
+    },
+    {
+      "types": ["Mineral"],
+      "player": "Resources"
+    },
+    {
+      "types": ["Worker"],
+      "player": "Blue",
+      "startPos": {"x": 40, "y": 40}
+    },
+    {
+      "types": ["Quantum Worker"],
+      "player": "Red",
+      "startPos": {"x": 45, "y": 40}
+    }
+  ]
+}

@@ -24,6 +24,10 @@ public class Menu : MonoBehaviour {
 	
 	void OnGUI() {
 		GUILayout.BeginArea (new Rect(0, Screen.height / 3, Screen.width / 3, Screen.height));
+		if (GUILayout.Button ("Welcome to Quantum Land")) {
+			App.scnPath = "scn_welcome.json";
+			Application.LoadLevel ("GameScene");
+		}
 		if (GUILayout.Button ("Find the Datacenter")) {
 			App.scnPath = "scn_nsa.json";
 			Application.LoadLevel ("GameScene");
