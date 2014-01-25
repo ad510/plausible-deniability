@@ -1,8 +1,8 @@
 {
-  "mapSize": 256,
+  "mapSize": 80,
   "updateInterval": 200,
   "visRadius": 8,
-  "camSpeed": 0.1,
+  "camSpeed": 0.02,
   "zoom": 0.01,
   "zoomMin": 0.002,
   "zoomMax": 0.05,
@@ -55,7 +55,7 @@
       "imgPath": "building.png",
       "imgHalfHeight": 2,
       "maxHealth": 1337,
-      "speed": 0.005,
+      "speed": 0.002,
       "makePathMinDist": 4,
       "makePathMaxDist": 8
     },
@@ -67,8 +67,8 @@
       "player": "Blue",
       "startPos": 
       {
-        "x": 128,
-        "y": 128
+        "x": 40,
+        "y": 40
       }
     },
     {
