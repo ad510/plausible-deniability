@@ -86,6 +86,8 @@ public class App : MonoBehaviour {
 	
 	public GameObject quadPrefab;
 	
+	public static string scnPath = "scn.json";
+	
 	string appPath;
 	string modPath = "mod/";
 	float winDiag; // diagonal length of screen in pixels
@@ -146,7 +148,7 @@ public class App : MonoBehaviour {
 		lblStyle = GUIStyle.none;
 		lblStyle.fontSize = (int)(Screen.height * FntSize);
 		lblStyle.normal.textColor = Color.white;
-		if (!scnOpen (appPath + modPath + "scn_nsa.json", 0, false)) {
+		if (!scnOpen (appPath + modPath + scnPath, 0, false)) {
 			Debug.LogError ("Scenario failed to load.");
 		}
 	}
@@ -580,8 +582,8 @@ public class App : MonoBehaviour {
 		}
 		// handle changed keys
 		if (Input.GetKeyDown (KeyCode.Escape)) {
-			// exit
-			Application.Quit ();
+			// return to menu
+			Application.LoadLevel ("MenuScene");
 		}
 		if (Input.GetKeyDown (KeyCode.Space)) {
 			// change selected player
@@ -918,9 +920,13 @@ public class App : MonoBehaviour {
 			}
 		}
 		GUILayout.EndArea ();
-		if (win && !replay && GUI.Button (new Rect(Screen.width / 2 - lblStyle.fontSize * 5, Screen.height / 2, lblStyle.fontSize * 10, lblStyle.fontSize * 3), "Continue")) {
-			// instant replay
-			instantReplay ();
+		if (win && timeGame >= g.timeSim - 1 && GUI.Button (new Rect(Screen.width / 2 - lblStyle.fontSize * 5, Screen.height / 2, lblStyle.fontSize * 10, lblStyle.fontSize * 3), "Continue")) {
+			if (replay) {
+				Application.LoadLevel ("MenuScene");
+			}
+			else {
+				instantReplay ();
+			}
 		}
 	}
 	
@@ -937,7 +943,7 @@ public class App : MonoBehaviour {
 	[RPC]
 	void scnOpenMultiplayer(int user, int seed) {
 		UnityEngine.Random.seed = seed;
-		scnOpen (appPath + modPath + "scn.json", user, true);
+		scnOpen (appPath + modPath + scnPath, user, true);
 	}
 	
 	// TODO: add NetworkMessageInfo as last parameter to authenticate user, according to http://forum.unity3d.com/threads/141156-Determine-sender-of-RPC
