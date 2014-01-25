@@ -224,7 +224,7 @@ public class Sim {
 	public IEnumerable<Segment> activeSegments(long time) {
 		foreach (Path path in paths) {
 			Segment segment = path.activeSegment (time);
-			if (segment != null) yield return segment;
+			if (segment != null && segment.units.Count > 0) yield return segment;
 		}
 	}
 
