@@ -107,6 +107,8 @@ public class App : MonoBehaviour {
 	long timeNow;
 	long timeLast;
 	long timeGame;
+	bool replay;
+	bool showDeletedUnits;
 	bool paused;
 	int speed;
 	long timeSpeedChg;
@@ -390,6 +392,8 @@ public class App : MonoBehaviour {
 		while (selPlayer.user != g.selUser) selPlayer = g.players[(selPlayer.id + 1) % g.players.Length];
 		selPaths = new Dictionary<Path, List<Unit>>();
 		makeUnitType = null;
+		replay = false;
+		showDeletedUnits = false;
 		paused = false;
 		speed = 0;
 	}
@@ -497,6 +501,7 @@ public class App : MonoBehaviour {
 				timeGameDiff = timeNow - timeLast;
 			}
 			timeGame += (long)(timeGameDiff * Math.Pow(2, speed)); // adjust game speed based on user setting
+			if (replay && timeGame >= g.timeSim) timeGame = g.timeSim - 1;
 		}
 		// don't increment time past latest time that commands were synced across network
 		if (g.networkView != null && timeGame >= g.timeUpdateEvt + g.updateInterval) {
@@ -627,6 +632,10 @@ public class App : MonoBehaviour {
 			// delete unselected paths of selected units (alternate shortcut)
 			deleteOtherPaths ();
 		}
+		if (Input.GetKeyDown (KeyCode.R) && Input.GetKey (KeyCode.LeftShift)) {
+			// instant replay
+			instantReplay ();
+		}
 		if (Input.GetKeyDown (KeyCode.O) && Input.GetKey (KeyCode.LeftShift)) {
 			// open binary game file
 			using (FileStream file = File.OpenRead (appPath + modPath + "savegame.sav")) {
@@ -681,8 +690,8 @@ public class App : MonoBehaviour {
 				Color col = g.noVisCol;
 				if (g.tiles[tX, tY].playerVisWhen(selPlayer, timeGame)) {
 					col += g.playerVisCol;
-					if (g.tiles[tX, tY].playerDirectVisWhen(selPlayer, timeGame)) col += g.unitVisCol;
-					if (Sim.EnableNonLivePaths && g.tiles[tX, tY].exclusiveWhen(selPlayer, timeGame)) col += g.exclusiveCol;
+					if (g.tiles[tX, tY].playerDirectVisWhen(selPlayer, timeGame, !showDeletedUnits)) col += g.unitVisCol;
+					if (Sim.EnableNonLivePaths && (!replay || showDeletedUnits) && g.tiles[tX, tY].exclusiveWhen(selPlayer, timeGame)) col += g.exclusiveCol;
 				}
 				texTile.SetPixel (tX, tY, col);
 			}
@@ -697,9 +706,10 @@ public class App : MonoBehaviour {
 		// units
 		for (int i = 0; i < g.paths.Count; i++) {
 			Segment segment = g.paths[i].activeSegment (timeGame);
+			bool showPathDeletedUnits = showDeletedUnits && selPlayer == g.paths[i].player;
 			if (i == sprUnits.Count) sprUnits.Add (new List<UnitSprite>());
 			if (segment != null) {
-				while (sprUnits[i].Count < segment.units.Count) sprUnits[i].Add (new UnitSprite(quadPrefab));
+				while (sprUnits[i].Count < segment.units.Count + segment.deletedUnits.Count) sprUnits[i].Add (new UnitSprite(quadPrefab));
 			}
 			for (int j = 0; j < sprUnits[i].Count; j++) {
 				sprUnits[i][j].sprite.renderer.enabled = false;
@@ -709,8 +719,9 @@ public class App : MonoBehaviour {
 				sprUnits[i][j].pathLine.enabled = false;
 			}
 			if (pathDrawPos(g.paths[i], ref vec)) {
-				for (int j = 0; j < segment.units.Count; j++) {
-					Unit unit = segment.units[j];
+				for (int j = 0; j < segment.units.Count + (showPathDeletedUnits ? segment.deletedUnits.Count : 0); j++) {
+					bool deleted = j >= segment.units.Count;
+					Unit unit = deleted ? segment.deletedUnits[j - segment.units.Count] : segment.units[j];
 					if (sprUnits[i][j].type != unit.type || sprUnits[i][j].player != unit.player) {
 						sprUnits[i][j].sprite.renderer.material.mainTexture = texUnits[unit.type.id, unit.player.id];
 						sprUnits[i][j].preview.renderer.material.mainTexture = texUnits[unit.type.id, unit.player.id];
@@ -730,7 +741,7 @@ public class App : MonoBehaviour {
 					for (int k = i + 1; k < g.paths.Count; k++) {
 						Segment segment2 = g.paths[k].activeSegment (timeGame);
 						if (segment2 != null && g.paths[i].speed == g.paths[k].speed && g.paths[i].player == g.paths[k].player
-							&& segment2.units.Contains (unit)) {
+							&& (segment2.units.Contains (unit) || (showPathDeletedUnits && segment2.deletedUnits.Contains (unit)))) {
 							// unit path line
 							sprUnits[i][j].pathLine.SetPosition (0, new Vector3(vec.x, vec.y, PathLineDepth));
 							sprUnits[i][j].pathLine.SetPosition (1, simToDrawPos (g.paths[k].calcPos(timeGame), PathLineDepth));
@@ -828,65 +839,74 @@ public class App : MonoBehaviour {
 			GUILayout.Label (g.rscNames[i] + ": " + rscMin + ((rscMax != rscMin) ? " to " + rscMax : ""), lblStyle);
 		}
 		GUILayout.EndArea ();
-		// TODO: formation buttons
-		// TODO: timeline
-		// TODO: mini map
-		// command menu
-		// TODO: show text or hide button if can't do any of these actions
-		GUI.Box (new Rect(0, Screen.height * (1 - g.uiBarHeight), Screen.width / 2, Screen.height * g.uiBarHeight), new GUIContent());
-		GUILayout.BeginArea (new Rect(0, Screen.height * (1 - g.uiBarHeight), Screen.width / 4, Screen.height * g.uiBarHeight));
-		cmdsScrollPos = GUILayout.BeginScrollView (cmdsScrollPos);
-		if (selPaths.Count > 0) {
-			string plural = (selPaths.Count == 1) ? "" : "s";
-			if (GUILayout.Button ("New Path" + plural)) makePaths ();
-			if (GUILayout.Button ("Delete Path" + plural)) deletePaths ();
-			if (GUILayout.Button ("Delete Other Paths")) deleteOtherPaths ();
+		if (replay) {
+			// replay UI
+			GUILayout.BeginArea (new Rect(Screen.width * 0.3f, Screen.height * (1 - g.uiBarHeight), Screen.width * 0.4f, Screen.height * g.uiBarHeight));
+			showDeletedUnits = GUILayout.Toolbar (showDeletedUnits ? 1 : 0, new string[] {"They See", "You See"}) != 0;
+			timeGame = (long)GUILayout.HorizontalSlider (timeGame, 0, g.timeSim);
+			GUILayout.EndArea ();
 		}
-		GUILayout.EndScrollView ();
-		GUILayout.EndArea ();
-		// make unit menu
-		GUILayout.BeginArea (new Rect(Screen.width / 4, Screen.height * (1 - g.uiBarHeight), Screen.width / 4, Screen.height * g.uiBarHeight));
-		makeUnitScrollPos = GUILayout.BeginScrollView (makeUnitScrollPos);
-		if (selPaths.Count > 0) {
-			foreach (UnitType unitT in g.unitT) {
-				foreach (Path path in selPaths.Keys) {
-					if (timeGame >= path.moves[0].timeStart && path.canMakeUnitType (timeGame, unitT)) { // TODO: sometimes canMake check should use existing selected units in path
-						if (GUILayout.Button ("Make " + unitT.name)) makeUnit (unitT);
-						break;
-					}
-				}
+		else {
+			// TODO: formation buttons
+			// TODO: timeline
+			// TODO: mini map
+			// command menu
+			// TODO: show text or hide button if can't do any of these actions
+			GUI.Box (new Rect(0, Screen.height * (1 - g.uiBarHeight), Screen.width / 2, Screen.height * g.uiBarHeight), new GUIContent());
+			GUILayout.BeginArea (new Rect(0, Screen.height * (1 - g.uiBarHeight), Screen.width / 4, Screen.height * g.uiBarHeight));
+			cmdsScrollPos = GUILayout.BeginScrollView (cmdsScrollPos);
+			if (selPaths.Count > 0) {
+				string plural = (selPaths.Count == 1) ? "" : "s";
+				if (GUILayout.Button ("New Path" + plural)) makePaths ();
+				if (GUILayout.Button ("Delete Path" + plural)) deletePaths ();
+				if (GUILayout.Button ("Delete Other Paths")) deleteOtherPaths ();
 			}
-		}
-		GUILayout.EndScrollView ();
-		GUILayout.EndArea ();
-		// unit selection bar
-		GUILayout.BeginArea (new Rect(Screen.width / 2, Screen.height * (1 - g.uiBarHeight), Screen.width / 2, Screen.height * g.uiBarHeight));
-		selUnitsScrollPos = GUILayout.BeginScrollView (selUnitsScrollPos, "box");
-		foreach (KeyValuePair<Unit, int> item in selUnits()) {
-			if (GUILayout.Button (item.Key.type.name + (item.Value != 1 ? " (" + item.Value + " paths)" : ""))) {
-				if (Event.current.button == 0) { // left button
-					// select unit
-					foreach (Path path in selPaths.Keys.ToArray ()) {
-						for (int i = 0; i < selPaths[path].Count; i++) {
-							if (selPaths[path][i] != item.Key) {
-								selPaths[path].RemoveAt (i);
-								i--;
-							}
+			GUILayout.EndScrollView ();
+			GUILayout.EndArea ();
+			// make unit menu
+			GUILayout.BeginArea (new Rect(Screen.width / 4, Screen.height * (1 - g.uiBarHeight), Screen.width / 4, Screen.height * g.uiBarHeight));
+			makeUnitScrollPos = GUILayout.BeginScrollView (makeUnitScrollPos);
+			if (selPaths.Count > 0) {
+				foreach (UnitType unitT in g.unitT) {
+					foreach (Path path in selPaths.Keys) {
+						if (timeGame >= path.moves[0].timeStart && path.canMakeUnitType (timeGame, unitT)) { // TODO: sometimes canMake check should use existing selected units in path
+							if (GUILayout.Button ("Make " + unitT.name)) makeUnit (unitT);
+							break;
 						}
-						if (selPaths[path].Count == 0) selPaths.Remove (path);
-					}
-				}
-				else if (Event.current.button == 1) { // right button
-					// deselect unit
-					foreach (Path path in selPaths.Keys.ToArray ()) {
-						selPaths[path].Remove (item.Key);
-						if (selPaths[path].Count == 0) selPaths.Remove (path);
 					}
 				}
 			}
+			GUILayout.EndScrollView ();
+			GUILayout.EndArea ();
+			// unit selection bar
+			GUILayout.BeginArea (new Rect(Screen.width / 2, Screen.height * (1 - g.uiBarHeight), Screen.width / 2, Screen.height * g.uiBarHeight));
+			selUnitsScrollPos = GUILayout.BeginScrollView (selUnitsScrollPos, "box");
+			foreach (KeyValuePair<Unit, int> item in selUnits()) {
+				if (GUILayout.Button (item.Key.type.name + (item.Value != 1 ? " (" + item.Value + " paths)" : ""))) {
+					if (Event.current.button == 0) { // left button
+						// select unit
+						foreach (Path path in selPaths.Keys.ToArray ()) {
+							for (int i = 0; i < selPaths[path].Count; i++) {
+								if (selPaths[path][i] != item.Key) {
+									selPaths[path].RemoveAt (i);
+									i--;
+								}
+							}
+							if (selPaths[path].Count == 0) selPaths.Remove (path);
+						}
+					}
+					else if (Event.current.button == 1) { // right button
+						// deselect unit
+						foreach (Path path in selPaths.Keys.ToArray ()) {
+							selPaths[path].Remove (item.Key);
+							if (selPaths[path].Count == 0) selPaths.Remove (path);
+						}
+					}
+				}
+			}
+			GUILayout.EndScrollView ();
+			GUILayout.EndArea ();
 		}
-		GUILayout.EndScrollView ();
-		GUILayout.EndArea ();
 		// multiplayer GUI
 		// TODO: implement main menu and move this there
 		GUILayout.BeginArea (new Rect(0, Screen.height / 3, lblStyle.fontSize * 10, Screen.height));
@@ -1035,6 +1055,22 @@ public class App : MonoBehaviour {
 				(float)jsonDouble((Hashtable)json[key], "a", 1));
 		}
 		return new Color();
+	}
+	
+	private void instantReplay() {
+		timeGame = 0;
+		replay = true;
+		selPaths.Clear ();
+		foreach (Path path in g.paths) {
+			foreach (Segment segment in path.segments) {
+				g.deleteOtherPaths (segment.segmentUnits ());
+			}
+		}
+		foreach (Tile tile in g.tiles) {
+			for (int i = 0; i < g.players.Length; i++) {
+				tile.playerVis[i] = new List<long> { 0 };
+			}
+		}
 	}
 	
 	/// <summary>
