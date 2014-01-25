@@ -150,9 +150,10 @@ public class Tile {
 	/// <summary>
 	/// returns if this tile is in the direct line of sight of a unit of specified player at specified time
 	/// </summary>
-	public bool playerDirectVisWhen(Player player, long time) {
+	public bool playerDirectVisWhen(Player player, long time, bool checkUnits = true) {
 		foreach (int i in pathVis.Keys) {
 			if (player == g.paths[i].player && visWhen(pathVis[i], time)) {
+				if (!checkUnits) return true;
 				Segment segment = g.paths[i].activeSegment (time);
 				if (segment != null && segment.units.Count > 0) return true;
 			}

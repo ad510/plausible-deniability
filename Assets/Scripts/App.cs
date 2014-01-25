@@ -618,7 +618,7 @@ public class App : MonoBehaviour {
 				Color col = g.noVisCol;
 				if (g.tiles[tX, tY].playerVisWhen(selPlayer, timeGame)) {
 					col += g.playerVisCol;
-					if (g.tiles[tX, tY].playerDirectVisWhen(selPlayer, timeGame)) col += g.unitVisCol;
+					if (g.tiles[tX, tY].playerDirectVisWhen(selPlayer, timeGame, !showDeletedUnits)) col += g.unitVisCol;
 					if (Sim.EnableNonLivePaths && (!replay || showDeletedUnits) && g.tiles[tX, tY].exclusiveWhen(selPlayer, timeGame)) col += g.exclusiveCol;
 				}
 				texTile.SetPixel (tX, tY, col);
