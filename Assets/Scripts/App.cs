@@ -771,6 +771,7 @@ public class App : MonoBehaviour {
 			// replay UI
 			GUILayout.BeginArea (new Rect(Screen.width * 0.3f, Screen.height * (1 - g.uiBarHeight), Screen.width * 0.4f, Screen.height * g.uiBarHeight));
 			showDeletedUnits = GUILayout.Toolbar (showDeletedUnits ? 1 : 0, new string[] {"They See", "You See"}) != 0;
+			timeGame = (long)GUILayout.HorizontalSlider (timeGame, 0, g.timeSim);
 			GUILayout.EndArea ();
 		}
 		else {
