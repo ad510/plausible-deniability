@@ -294,6 +294,7 @@ public class Path {
 		Segment segment = activeSegment (time);
 		if (segment != null && segment.timeStart == time) return segment;
 		segments.Insert (segment.id + 1, new Segment(this, segment.id + 1, time, new List<Unit>(segment.units), segment.unseen));
+		segments[segment.id + 1].deletedUnits = new List<Unit>(segment.deletedUnits);
 		for (int i = segment.id + 2; i < segments.Count; i++) {
 			segments[i].id = i;
 		}
