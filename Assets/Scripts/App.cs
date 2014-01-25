@@ -411,11 +411,7 @@ public class App : MonoBehaviour {
 	/// </summary>
 	void Update () {
 		updateTime ();
-
-		if (timeGame > g.timeSim) {
-			datacenterAI();
-		}
-
+		datacenterAI();
 		selPlayer.updatePast (timeGame);
 		g.update (timeGame);
 		updateInput ();
@@ -425,14 +421,9 @@ public class App : MonoBehaviour {
 	const int numDatacenters = 50;
 	long lastDatacenterMoveTime = 0;
 	bool win = false;
-	bool replay = false;
 
 	private void datacenterAI() {
-		if (replay) {
-			timeGame = g.timeSim;
-			paused = true;
-			return;
-		}
+		if (timeGame <= g.timeSim || replay) return;
 		
 		// find our datacenters
 		List<Segment> datacenters = g.activeSegments (g.timeSim).Where (s => s.path.player == g.playerNamed ("Red") && s.units.Count > 0).ToList ();
@@ -929,11 +920,7 @@ public class App : MonoBehaviour {
 		GUILayout.EndArea ();
 		if (win && !replay && GUI.Button (new Rect(Screen.width / 2 - lblStyle.fontSize * 5, Screen.height / 2, lblStyle.fontSize * 10, lblStyle.fontSize * 3), "Continue")) {
 			// instant replay
-			timeGame = 0;
-			foreach (Tile tile in g.tiles) {
-				tile.playerVis[g.playerNamed ("Blue").id] = new List<long> { 0 };
-			}
-			replay = true;
+			instantReplay ();
 		}
 	}
 	
