@@ -428,12 +428,12 @@ public class App : MonoBehaviour {
 		if (timeGame <= g.timeSim || replay) return;
 		
 		// find our datacenters
-		List<Segment> datacenters = g.activeSegments (g.timeSim).Where (s => s.path.player == g.playerNamed ("Red") && s.units.Count > 0).ToList ();
+		List<Segment> datacenters = g.activeSegments (g.timeSim).Where (s => s.path.player == g.playerNamed ("Red")).ToList ();
 
 		// delete datacenters that get too close to player's paths
 		foreach (Segment datacenter in datacenters) {
 			foreach (Segment segment in g.activeSegments(g.timeSim)) {
-				if (segment.units.Count > 0 && segment.path.player == g.playerNamed("Blue")
+				if (segment.path.player == g.playerNamed("Blue")
 						&& (segment.path.calcPos(g.timeSim) - datacenter.path.calcPos(g.timeSim)).lengthSq() < (g.visRadius + (5 << FP.Precision)) * (g.visRadius + (5 << FP.Precision))) {
 					g.cmdPending.add(new DeletePathCmdEvt(g.timeSim, g.timeSim,
 								UnitCmdEvt.argFromPathDict(new Dictionary<Path, List<Unit>>
