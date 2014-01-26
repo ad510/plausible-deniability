@@ -573,9 +573,16 @@ public class App : MonoBehaviour {
 		}
 		
 		// if an AI unit is seen, player wins
-		if (!g.gameOver && scnPath == "scn_nsa.json" && datacenters.Find (s => !s.unseen) != null) g.gameOver = true;
+		if ((!g.gameOver || g.tourGuide == null || g.tourGuide.activeSegment (g.timeSim).units.Count == 0)
+			&& scnPath == "scn_nsa.json" && datacenters.Find (s => !s.unseen) != null) {
+			g.gameOver = true;
+			g.tourGuide = datacenters.Find (s => !s.unseen).path;
+			g.greeting = "Objective: Infiltrate [player]'s new base in Quantum Land.\n\nSUCCESS";
+		}
 		// if no player units left, player loses
-		if (!g.gameOver && scnPath == "scn_welcome.json" && !g.activeSegments (g.timeSim).Where(s => s.path.player == g.playerNamed ("Blue")).Any()) g.gameOver = true;
+		if (!g.gameOver && scnPath == "scn_welcome.json" && !g.activeSegments (g.timeSim).Where(s => s.path.player == g.playerNamed ("Blue")).Any()) {
+			g.gameOver = true;
+		}
 	}
 	
 	private IEnumerator welcomeAI() {
