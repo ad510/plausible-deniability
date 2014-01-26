@@ -343,7 +343,7 @@ public class App : MonoBehaviour {
 						g.paths.Last ().moves[0] = move;
 					}
 					// find tour guide
-					if (units[0].type == g.unitTypeNamed ("Quantum Worker")) tourGuide = g.paths.Last ();
+					if (units[0].type == g.unitTypeNamed ("Quantum Worker")) g.tourGuide = g.paths.Last ();
 					g.events.add(new TileMoveEvt(move.timeStart, g.paths.Count - 1, (int)(move.vecStart.x >> FP.Precision), (int)(move.vecStart.y >> FP.Precision)));
 				}
 			}
@@ -351,11 +351,33 @@ public class App : MonoBehaviour {
 		g.nRootPaths = g.paths.Count;
 		// start game
 		loadUI ();
-		if (aiState == AIState.Welcome) StartCoroutine ("welcomeAI");
+		if (g.aiState == AIState.Welcome) StartCoroutine ("welcomeAI");
 		timeGame = 0;
 		timeSpeedChg = (long)(Time.time * 1000) - 1000;
 		timeNow = (long)(Time.time * 1000);
 		return true;
+	}
+	
+	/// <summary>
+	/// opens binary game file
+	/// </summary>
+	private void gameOpen(string path) {
+		using (FileStream file = File.OpenRead (path)) {
+			// TODO: if line below runs, return to menu, then open game scene, there's a bunch of null reference exceptions!
+			g = Serializer.Deserialize<Sim>(file);
+		}
+		timeGame = g.timeSim; // TODO: better solution would be including timeGame in saved game
+		loadUI ();
+		GC.Collect ();
+	}
+	
+	/// <summary>
+	/// saves binary game file
+	/// </summary>
+	private void gameSave(string path) {
+		using (FileStream file = File.Create (path)) {
+			Serializer.Serialize(file, g);
+		}
 	}
 	
 	private void loadUI() {
@@ -422,33 +444,23 @@ public class App : MonoBehaviour {
 		updateInput ();
 		draw ();
 	}
-
-	readonly int numDatacenters = (scnPath == "scn_welcome.json") ? 100 : 50;
-	enum AIState { Welcome, Hide, Attack };
-	AIState aiState = (scnPath == "scn_welcome.json") ? AIState.Welcome : AIState.Hide;
-	Path tourGuide;
-	string greeting = "";
+	
 	string message = "";
-	long lastMoveTime = 0;
-	long lastMakeTime = 0;
-	long makeInterval = 500;
-	long attackCounter = 0;
-	bool gameOver = false;
 
 	private void updateAI() {
-		if (timeGame <= g.timeSim || replay || aiState == AIState.Welcome) return;
+		if (timeGame <= g.timeSim || replay || g.aiState == AIState.Welcome) return;
 		
 		// find our units
 		List<Segment> datacenters = g.activeSegments (g.timeSim).Where (s => s.path.player == g.playerNamed ("Red")).ToList ();
 		List<Segment> workers = datacenters.Where (s => (s.units[0].type == g.unitTypeNamed ("Quantum Worker")
 			|| s.units[0].type == g.unitTypeNamed ("Quantum Building")) && s.unseen).ToList ();
 
-		if (aiState == AIState.Hide) {
+		if (g.aiState == AIState.Hide) {
 			// delete units that get too close to player's paths
 			int datacentersCount = datacenters.Count;
 			bool attack = false;
 			foreach (Segment datacenter in datacenters) {
-				if (makeInterval == 0 && datacentersCount < numDatacenters / 2) {
+				if (g.makeInterval == 0 && datacentersCount < g.numDatacenters / 2) {
 					attack = true;
 					break;
 				}
@@ -462,15 +474,15 @@ public class App : MonoBehaviour {
 				}
 			}
 			if (attack) {
-				attackCounter++;
-				if (attackCounter >= 5) {
-					aiState = AIState.Attack;
-					greeting = "";
+				g.attackCounter++;
+				if (g.attackCounter >= 5) {
+					g.aiState = AIState.Attack;
+					g.greeting = "";
 					Invoke ("allYourMatter", 1);
 				}
 			}
 			else {
-				attackCounter = 0;
+				g.attackCounter = 0;
 			}
 			
 			// disband units that existed for too long
@@ -481,7 +493,7 @@ public class App : MonoBehaviour {
 			}
 		}
 
-		if (datacenters.Count < numDatacenters) {
+		if (datacenters.Count < g.numDatacenters) {
 			if (scnPath == "scn_nsa.json") {
 				// if number of paths is less than the max, make some more paths
 				Segment datacenter = datacenters[UnityEngine.Random.Range (0, datacenters.Count)];
@@ -494,13 +506,13 @@ public class App : MonoBehaviour {
 							}
 						));
 			}
-			else if (scnPath == "scn_welcome.json" && g.timeSim - lastMakeTime > makeInterval) {
+			else if (scnPath == "scn_welcome.json" && g.timeSim - g.lastMakeTime > g.makeInterval) {
 				// make units every second
-				lastMakeTime = g.timeSim;
+				g.lastMakeTime = g.timeSim;
 				
 				foreach (Segment worker in workers) {
 					int type;
-					if (aiState == AIState.Attack) {
+					if (g.aiState == AIState.Attack) {
 						if (UnityEngine.Random.value <= 0.8) {
 							type = g.unitTypeNamed ("Quantum Marine").id; // 80% chance
 						}
@@ -519,21 +531,21 @@ public class App : MonoBehaviour {
 				}
 			}
 		}
-		else if (makeInterval != 0) {
+		else if (scnPath == "scn_welcome.json" && g.makeInterval != 0) {
 			// we reached unit cap, be aggressive about keeping it
-			makeInterval = 0;
+			g.makeInterval = 0;
 			message = "Subatomic particles can be in multiple places at once, but no one will ever see them doing this.\n\n"
-				+ "According to reports, Quantum has developed technology that lets macroscopic beings be in multiple places at once, but no one will ever see them using it.\n\n"
-				+ "Quantum has a floating building hiding in the desert. Let's find it and see if it has anything to offer.";
+				+ "Quantum has developed technology that lets macroscopic beings be in multiple places at once, but no one will ever see them using it.\n\n"
+				+ "We've received reports that Quantum has a floating building hiding in the desert. Let's find it and see if it has anything to offer.";
 		}
 
 		// move units every few seconds
-		if (g.timeSim - lastMoveTime > 5000) {
-			lastMoveTime = g.timeSim;
+		if (g.timeSim - g.lastMoveTime > 5000) {
+			g.lastMoveTime = g.timeSim;
 
 			foreach (Segment datacenter in datacenters) {
 				FP.Vector movePos = datacenter.path.calcPos (g.timeSim) + randInsideCircle ();
-				if (aiState == AIState.Attack && datacenter.units.Count > 0 && datacenter.units[0].type == g.unitTypeNamed ("Quantum Marine")) {
+				if (g.aiState == AIState.Attack && datacenter.units.Count > 0 && datacenter.units[0].type == g.unitTypeNamed ("Quantum Marine")) {
 					movePos.x = -g.mapSize * 2;
 					foreach (Segment segment in g.activeSegments (g.timeSim)) {
 						if (segment.path.player == g.playerNamed ("Blue")
@@ -561,40 +573,40 @@ public class App : MonoBehaviour {
 		}
 		
 		// if an AI unit is seen, player wins
-		if (!gameOver && scnPath == "scn_nsa.json" && datacenters.Find (s => !s.unseen) != null) gameOver = true;
+		if (!g.gameOver && scnPath == "scn_nsa.json" && datacenters.Find (s => !s.unseen) != null) g.gameOver = true;
 		// if no player units left, player loses
-		if (!gameOver && scnPath == "scn_welcome.json" && !g.activeSegments (g.timeSim).Where(s => s.path.player == g.playerNamed ("Blue")).Any()) gameOver = true;
+		if (!g.gameOver && scnPath == "scn_welcome.json" && !g.activeSegments (g.timeSim).Where(s => s.path.player == g.playerNamed ("Blue")).Any()) g.gameOver = true;
 	}
 	
 	private IEnumerator welcomeAI() {
-		greeting = "Welcome to Quantum Land!";
+		g.greeting = "Welcome to Quantum Land!";
 		yield return new WaitForSeconds(3);
-		greeting = "Click your blue worker to select it.";
+		g.greeting = "Click your blue worker to select it.";
 		while (selPaths.Count == 0) yield return null;
-		greeting = "You can right click on the map to move your worker around.";
+		g.greeting = "You can right click on the map to move your worker around.";
 		while (g.cmdHistory.events.Count == 0) yield return null;
 		yield return new WaitForSeconds(1);
-		greeting = "Follow me to a mineral!";
+		g.greeting = "Follow me to a mineral!";
 		yield return new WaitForSeconds(2);
 		FP.Vector mineralPos;
 		{
 			Path mineral = null;
 			foreach (Path path in g.paths) {
 				if (path.player == g.playerNamed ("Resources")
-					&& (mineral == null || (path.calcPos (g.timeSim) - tourGuide.calcPos (g.timeSim)).lengthSq () < (mineral.calcPos (g.timeSim) - tourGuide.calcPos (g.timeSim)).lengthSq())) {
+					&& (mineral == null || (path.calcPos (g.timeSim) - g.tourGuide.calcPos (g.timeSim)).lengthSq () < (mineral.calcPos (g.timeSim) - g.tourGuide.calcPos (g.timeSim)).lengthSq())) {
 					mineral = path;
 				}
 			}
 			mineralPos = mineral.calcPos (g.timeSim) + randInsideCircle (3);
 		}
-		g.cmdPending.add (new MoveCmdEvt(g.timeSim, g.timeSim, argFromSegment (tourGuide.activeSegment(g.timeSim)), mineralPos, Formation.Tight));
-		while (tourGuide.calcPos (g.timeSim) != mineralPos) yield return null;
-		greeting = "You can start your base here.";
+		g.cmdPending.add (new MoveCmdEvt(g.timeSim, g.timeSim, argFromSegment (g.tourGuide.activeSegment(g.timeSim)), mineralPos, Formation.Tight));
+		while (g.tourGuide.calcPos (g.timeSim) != mineralPos) yield return null;
+		g.greeting = "You can start your base here.";
 		yield return new WaitForSeconds(5);
-		greeting = "See you later!";
-		aiState = AIState.Hide;
+		g.greeting = "See you later!";
+		g.aiState = AIState.Hide;
 		yield return new WaitForSeconds(5);
-		greeting = "Hello again! How's it going?";
+		g.greeting = "Hello again! How's it going?";
 	}
 	
 	private void allYourMatter() {
@@ -765,17 +777,15 @@ public class App : MonoBehaviour {
 		}
 		if (Input.GetKeyDown (KeyCode.O) && Input.GetKey (KeyCode.LeftShift)) {
 			// open binary game file
-			using (FileStream file = File.OpenRead (appPath + modPath + "savegame.sav")) {
-				g = Serializer.Deserialize<Sim>(file);
-			}
-			loadUI ();
-			GC.Collect ();
+			gameOpen (appPath + modPath + "savegame.sav");
 		}
 		if (Input.GetKeyDown (KeyCode.S) && Input.GetKey (KeyCode.LeftShift)) {
 			// save binary game file
-			using (FileStream file = File.Create (appPath + modPath + "savegame.sav")) {
-				Serializer.Serialize(file, g);
-			}
+			gameSave (appPath + modPath + "savegame.sav");
+		}
+		if (Input.GetKeyDown (KeyCode.T)) {
+			g = (Sim)ProtoBuf.Meta.RuntimeTypeModel.Default.DeepClone (g);
+			loadUI ();
 		}
 		// move camera
 		if (Input.GetKey (KeyCode.LeftArrow) || (Input.mousePosition.x == 0 && Screen.fullScreen)) {
@@ -953,19 +963,24 @@ public class App : MonoBehaviour {
 			if (GUILayout.Button ("OK")) {
 				message = "";
 				paused = false;
+				if (scnPath == "scn_welcome.json" && g.aiState == AIState.Hide) {
+					gameSave (appPath + modPath + "scn_welcome.sav");
+					scnPath = "scn_nsa.json";
+					scnOpen (appPath + modPath + scnPath, 0, false);
+				}
 			}
 			GUILayout.EndArea ();
 			return;
 		}
-		if (tourGuide != null) {
+		if (g.tourGuide != null) {
 			// speech bubble
-			Segment tourGuideSeg = tourGuide.activeSegment (timeGame);
+			Segment tourGuideSeg = g.tourGuide.activeSegment (timeGame);
 			if (tourGuideSeg != null && tourGuideSeg.units.Count > 0) {
-				FP.Vector tourGuideSimPos = tourGuide.calcPos (timeGame);
+				FP.Vector tourGuideSimPos = g.tourGuide.calcPos (timeGame);
 				if (g.tileAt (tourGuideSimPos).playerDirectVisWhen (g.playerNamed ("Blue"), timeGame)) {
 					Vector3 tourGuideDrawPos = simToDrawPos (tourGuideSimPos);
 					tourGuideDrawPos.y = Screen.height - tourGuideDrawPos.y;
-					GUI.Label (new Rect(tourGuideDrawPos.x, tourGuideDrawPos.y - 0.05f * winDiag, 100, 100), greeting, lblStyle);
+					GUI.Label (new Rect(tourGuideDrawPos.x, tourGuideDrawPos.y - 0.05f * winDiag, 100, 100), g.greeting, lblStyle);
 				}
 			}
 		}
@@ -1081,9 +1096,16 @@ public class App : MonoBehaviour {
 			}
 		}
 		GUILayout.EndArea ();
-		if (gameOver && timeGame >= g.timeSim - 1 && GUI.Button (new Rect(Screen.width / 2 - lblStyle.fontSize * 5, Screen.height / 2, lblStyle.fontSize * 10, lblStyle.fontSize * 3), "Continue")) {
+		if (g.gameOver && timeGame >= g.timeSim - 1 && GUI.Button (new Rect(Screen.width / 2 - lblStyle.fontSize * 5, Screen.height / 2, lblStyle.fontSize * 10, lblStyle.fontSize * 3), "Continue")) {
 			if (replay) {
-				Application.LoadLevel ("MenuScene");
+				if (scnPath == "scn_nsa.json") {
+					scnPath = "scn_welcome.json";
+					gameOpen (appPath + modPath + "scn_welcome.sav");
+					g.makeInterval = 0; // TODO: no clue why I have to set this explicitly
+				}
+				else {
+					Application.LoadLevel ("MenuScene");
+				}
 			}
 			else {
 				instantReplay ();

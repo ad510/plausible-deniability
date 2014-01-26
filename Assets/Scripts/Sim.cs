@@ -10,6 +10,8 @@ using System.Linq;
 using System.Text;
 using ProtoBuf;
 
+public enum AIState { Welcome, Hide, Attack };
+
 /// <summary>
 /// top-level game simulation class (instances of this are often named "g")
 /// </summary>
@@ -74,6 +76,17 @@ public class Sim {
 	[ProtoMember(39)] public bool synced; // whether all checksums between users matched so far
 	[ProtoMember(40)] public long timeSim; // current simulation time
 	[ProtoMember(41)] public long timeUpdateEvt; // last time that an UpdateEvt was applied
+	
+	// AI variables
+	[ProtoMember(100)] public readonly int numDatacenters = (App.scnPath == "scn_welcome.json") ? 100 : 50;
+	[ProtoMember(101)] public AIState aiState = (App.scnPath == "scn_welcome.json") ? AIState.Welcome : AIState.Hide;
+	[ProtoMember(102, AsReference = true)] public Path tourGuide;
+	[ProtoMember(103)] public string greeting = "";
+	[ProtoMember(104)] public long lastMoveTime = 0;
+	[ProtoMember(105)] public long lastMakeTime = 0;
+	[ProtoMember(106)] public long makeInterval = 500;
+	[ProtoMember(107)] public long attackCounter = 0;
+	[ProtoMember(108)] public bool gameOver = false;
 	
 	[ProtoBeforeSerialization]
 	private void beforeSerialize() {
