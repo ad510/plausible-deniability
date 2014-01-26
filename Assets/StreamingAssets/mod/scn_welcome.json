@@ -39,10 +39,7 @@
       "name": "Red",
       "isUser": true,
       "user": 0,
-      "startRsc":
-      {
-        "Minerals": 20
-      },
+      "ignoreRsc": true,
       "mayAttack": ["Blue"]
     },
     {

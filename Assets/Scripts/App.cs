@@ -225,6 +225,7 @@ public class App : MonoBehaviour {
 					name = jsonString(jsonO, "name"),
 					isUser = jsonBool(jsonO, "isUser"),
 					user = (int)jsonDouble(jsonO, "user"),
+					ignoreRsc = jsonBool (jsonO, "ignoreRsc"),
 					startRsc = new long[g.rscNames.Length],
 					hasNonLivePaths = false,
 					timeGoLiveFail = long.MinValue,
