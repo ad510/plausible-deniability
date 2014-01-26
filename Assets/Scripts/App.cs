@@ -86,7 +86,7 @@ public class App : MonoBehaviour {
 	
 	public GameObject quadPrefab;
 	
-	public static string scnPath = "scn.json";
+	public static string scnPath = "scn_welcome.json";
 	public static bool tutorial = true;
 	
 	string appPath;
