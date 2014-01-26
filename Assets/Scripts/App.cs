@@ -487,10 +487,12 @@ public class App : MonoBehaviour {
 				g.attackCounter = 0;
 			}
 			
-			// disband units that existed for too long
-			foreach (Segment datacenter in datacenters) {
-				if (g.timeSim - datacenter.path.segments[0].timeStart >= 30000 && datacenter.path.id >= g.nRootPaths) {
-					while (datacenter.units.Count > 0 && datacenter.units[0].healthLatest () > 0) datacenter.units[0].takeHealth (g.timeSim, datacenter.path);
+			if (scnPath == "scn_welcome.json") {
+				// disband units that existed for too long
+				foreach (Segment datacenter in datacenters) {
+					if (g.timeSim - datacenter.path.segments[0].timeStart >= 30000 && datacenter.path.id >= g.nRootPaths) {
+						while (datacenter.units.Count > 0 && datacenter.units[0].healthLatest () > 0) datacenter.units[0].takeHealth (g.timeSim, datacenter.path);
+					}
 				}
 			}
 		}
