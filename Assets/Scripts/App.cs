@@ -428,6 +428,7 @@ public class App : MonoBehaviour {
 	AIState aiState = (scnPath == "scn_welcome.json") ? AIState.Welcome : AIState.Hide;
 	Path tourGuide;
 	string greeting = "";
+	string message = "";
 	long lastMoveTime = 0;
 	long lastMakeTime = 0;
 	long makeInterval = 500;
@@ -465,6 +466,7 @@ public class App : MonoBehaviour {
 				if (attackCounter >= 5) {
 					aiState = AIState.Attack;
 					greeting = "";
+					Invoke ("allYourMatter", 1);
 				}
 			}
 			else {
@@ -517,9 +519,12 @@ public class App : MonoBehaviour {
 				}
 			}
 		}
-		else {
+		else if (makeInterval != 0) {
 			// we reached unit cap, be aggressive about keeping it
 			makeInterval = 0;
+			message = "Subatomic particles can be in multiple places at once, but no one will ever see them doing this.\n\n"
+				+ "According to reports, Quantum has developed technology that lets macroscopic beings be in multiple places at once, but no one will ever see them using it.\n\n"
+				+ "Quantum has a floating building hiding in the desert. Let's find it and see if it has anything to offer.";
 		}
 
 		// move units every few seconds
@@ -590,6 +595,10 @@ public class App : MonoBehaviour {
 		aiState = AIState.Hide;
 		yield return new WaitForSeconds(5);
 		greeting = "Hello again! How's it going?";
+	}
+	
+	private void allYourMatter() {
+		message = "All your matter are belong to us.\n\n--Quantum";
 	}
 	
 	private Dictionary<int, int[]> argFromSegment(Segment segment) {
@@ -933,6 +942,21 @@ public class App : MonoBehaviour {
 	void OnGUI() {
 		GUI.skin.button.fontSize = lblStyle.fontSize;
 		GUI.skin.textField.fontSize = lblStyle.fontSize;
+		if (message != "") {
+			paused = true;
+			GUI.Box (new Rect(Screen.width / 3, Screen.height / 4, Screen.width / 3, Screen.height / 2), new GUIContent());
+			GUILayout.BeginArea(new Rect(Screen.width / 3, Screen.height / 4, Screen.width / 3, Screen.height / 2));
+			lblStyle.wordWrap = true;
+			GUILayout.Label (message, lblStyle);
+			lblStyle.wordWrap = false;
+			GUILayout.FlexibleSpace ();
+			if (GUILayout.Button ("OK")) {
+				message = "";
+				paused = false;
+			}
+			GUILayout.EndArea ();
+			return;
+		}
 		if (tourGuide != null) {
 			// speech bubble
 			Segment tourGuideSeg = tourGuide.activeSegment (timeGame);
