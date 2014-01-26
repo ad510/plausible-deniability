@@ -153,13 +153,7 @@
       "makeUnitMaxDist": 8,
       "makePathMinDist": 2,
       "makePathMaxDist": 4,
-      "canMake": ["Quantum Building", "Quantum Air Mine"],
-      "damage":
-      {
-        "Marine": 2,
-        "Building": 2,
-        "Mine": 2
-      }
+      "canMake": ["Quantum Building", "Quantum Air Mine"]
     },
     {
       "name": "Quantum Marine",
@@ -248,7 +242,8 @@
     },
     {
       "types": ["Mineral"],
-      "player": "Resources"
+      "player": "Resources",
+      "startPos": {"x": 35, "y": 40}
     },
     {
       "types": ["Worker"],

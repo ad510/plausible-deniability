@@ -413,67 +413,153 @@ public class App : MonoBehaviour {
 	/// </summary>
 	void Update () {
 		updateTime ();
-		datacenterAI();
+		updateAI();
 		selPlayer.updatePast (timeGame);
 		g.update (timeGame);
 		updateInput ();
 		draw ();
 	}
 
-	const int numDatacenters = 50;
-	long lastDatacenterMoveTime = 0;
-	bool win = false;
+	readonly int numDatacenters = scnPath == "scn_welcome.json" ? 100 : 50;
+	enum AIState { Hide, Attack };
+	AIState aiState = AIState.Hide;
+	long lastMoveTime = 0;
+	long lastMakeTime = 0;
+	long makeInterval = 500;
+	long attackCounter = 0;
+	bool gameOver = false;
 
-	private void datacenterAI() {
+	private void updateAI() {
 		if (timeGame <= g.timeSim || replay) return;
 		
-		// find our datacenters
+		// find our units
 		List<Segment> datacenters = g.activeSegments (g.timeSim).Where (s => s.path.player == g.playerNamed ("Red")).ToList ();
+		List<Segment> workers = datacenters.Where (s => (s.units[0].type == g.unitTypeNamed ("Quantum Worker")
+			|| s.units[0].type == g.unitTypeNamed ("Quantum Building")) && s.unseen).ToList ();
 
-		// delete datacenters that get too close to player's paths
-		foreach (Segment datacenter in datacenters) {
-			foreach (Segment segment in g.activeSegments(g.timeSim)) {
-				if (segment.path.player == g.playerNamed("Blue")
-						&& (segment.path.calcPos(g.timeSim) - datacenter.path.calcPos(g.timeSim)).lengthSq() < (g.visRadius + (5 << FP.Precision)) * (g.visRadius + (5 << FP.Precision))) {
-					g.cmdPending.add(new DeletePathCmdEvt(g.timeSim, g.timeSim,
-								UnitCmdEvt.argFromPathDict(new Dictionary<Path, List<Unit>>
-								{{datacenter.path, datacenter.units}})));
+		if (aiState == AIState.Hide) {
+			// delete units that get too close to player's paths
+			int datacentersCount = datacenters.Count;
+			bool attack = false;
+			foreach (Segment datacenter in datacenters) {
+				if (makeInterval == 0 && datacentersCount < numDatacenters / 2) {
+					attack = true;
+					break;
+				}
+				foreach (Segment segment in g.activeSegments(g.timeSim)) {
+					if (segment.path.player == g.playerNamed("Blue")
+							&& (segment.path.calcPos(g.timeSim) - datacenter.path.calcPos(g.timeSim)).lengthSq() < (g.visRadius + (5 << FP.Precision)) * (g.visRadius + (5 << FP.Precision))) {
+						g.cmdPending.add(new DeletePathCmdEvt(g.timeSim, g.timeSim, argFromSegment (datacenter)));
+						datacentersCount--;
+						break;
+					}
+				}
+			}
+			if (attack) {
+				attackCounter++;
+				if (attackCounter >= 5) aiState = AIState.Attack;
+			}
+			else {
+				attackCounter = 0;
+			}
+			
+			// disband units that existed for too long
+			foreach (Segment datacenter in datacenters) {
+				if (g.timeSim - datacenter.path.segments[0].timeStart >= 30000 && datacenter.path.id >= g.nRootPaths) {
+					while (datacenter.units.Count > 0 && datacenter.units[0].healthLatest () > 0) datacenter.units[0].takeHealth (g.timeSim, datacenter.path);
 				}
 			}
 		}
 
-		// if number of datacenter paths is less than the max, make some more paths
 		if (datacenters.Count < numDatacenters) {
-			Segment datacenter = datacenters[UnityEngine.Random.Range (0, datacenters.Count)];
-			Vector2 randPos = UnityEngine.Random.insideUnitCircle * 100;
-			g.cmdPending.add(new MakePathCmdEvt(g.timeSim, g.timeSim,
-						UnitCmdEvt.argFromPathDict(new Dictionary<Path, List<Unit>>
-							{{datacenter.path, datacenter.units}}),
-						new Dictionary<int, FP.Vector> {
-							{
-								datacenter.path.id,
-								datacenter.path.calcPos (g.timeSim) + new FP.Vector(FP.fromDouble (randPos.x), FP.fromDouble (randPos.y))
+			if (scnPath == "scn_nsa.json") {
+				// if number of paths is less than the max, make some more paths
+				Segment datacenter = datacenters[UnityEngine.Random.Range (0, datacenters.Count)];
+				g.cmdPending.add(new MakePathCmdEvt(g.timeSim, g.timeSim, argFromSegment (datacenter),
+							new Dictionary<int, FP.Vector> {
+								{
+									datacenter.path.id,
+									datacenter.path.calcPos (g.timeSim) + randInsideCircle()
+								}
 							}
+						));
+			}
+			else if (scnPath == "scn_welcome.json" && g.timeSim - lastMakeTime > makeInterval) {
+				// make units every second
+				lastMakeTime = g.timeSim;
+				
+				foreach (Segment worker in workers) {
+					int type;
+					if (aiState == AIState.Attack) {
+						if (UnityEngine.Random.value <= 0.8) {
+							type = g.unitTypeNamed ("Quantum Marine").id; // 80% chance
 						}
-					));
+						else if (UnityEngine.Random.value <= 0.5) {
+							type = g.unitTypeNamed ("Quantum Worker").id; // 10% chance
+						}
+						else {
+							type = g.unitTypeNamed ("Quantum Building").id; // 10% chance
+						}
+					}
+					else {
+						type = UnityEngine.Random.Range (0, g.unitT.Length);
+					}
+					g.cmdPending.add (new MakeUnitCmdEvt(g.timeSim, g.timeSim, argFromSegment (worker),
+						type, worker.path.calcPos (g.timeSim) + randInsideCircle (), false));
+				}
+			}
+		}
+		else {
+			// we reached unit cap, be aggressive about keeping it
+			makeInterval = 0;
 		}
 
-		// move datacenters every 5 seconds
-		if (g.timeSim - lastDatacenterMoveTime > 5000) {
-			lastDatacenterMoveTime = g.timeSim;
+		// move units every few seconds
+		if (g.timeSim - lastMoveTime > 5000) {
+			lastMoveTime = g.timeSim;
 
 			foreach (Segment datacenter in datacenters) {
-				Vector2 randPos = UnityEngine.Random.insideUnitCircle * 100;
-				g.cmdPending.add(new MoveCmdEvt(g.timeSim, g.timeSim,
-							UnitCmdEvt.argFromPathDict(new Dictionary<Path, List<Unit>>
-								{{datacenter.path, datacenter.units}}),
-							datacenter.path.calcPos (g.timeSim) + new FP.Vector(FP.fromDouble (randPos.x), FP.fromDouble (randPos.y)),
-							Formation.Tight));
+				FP.Vector movePos = datacenter.path.calcPos (g.timeSim) + randInsideCircle ();
+				if (aiState == AIState.Attack && datacenter.units.Count > 0 && datacenter.units[0].type == g.unitTypeNamed ("Quantum Marine")) {
+					movePos.x = -g.mapSize * 2;
+					foreach (Segment segment in g.activeSegments (g.timeSim)) {
+						if (segment.path.player == g.playerNamed ("Blue")
+							&& (segment.path.calcPos (g.timeSim) - datacenter.path.calcPos (g.timeSim)).lengthSq () < (movePos - datacenter.path.calcPos (g.timeSim)).lengthSq()) {
+							movePos = segment.path.calcPos (g.timeSim);
+						}
+					}
+					movePos += randInsideCircle (4);
+				}
+				/*else if (scnPath == "scn_welcome.json") {
+					Tile tileAtMovePos;
+					for (int i = 0; i < 5; i++) {
+						movePos = datacenter.path.calcPos (g.timeSim) + randInsideCircle (10);
+						try {
+							tileAtMovePos = g.tileAt (movePos);
+						}
+						catch (IndexOutOfRangeException ex) {
+							tileAtMovePos = null;
+						}
+						if (tileAtMovePos == null || !tileAtMovePos.playerDirectVisLatest (g.playerNamed ("Blue"))) break;
+					}
+				}*/
+				g.cmdPending.add(new MoveCmdEvt(g.timeSim, g.timeSim, argFromSegment (datacenter), movePos, Formation.Tight));
 			}
 		}
 		
-		// if a datacenter is seen, player wins
-		if (!win && datacenters.Find (s => !s.unseen) != null) win = true;
+		// if an AI unit is seen, player wins
+		if (!gameOver && scnPath == "scn_nsa.json" && datacenters.Find (s => !s.unseen) != null) gameOver = true;
+		// if no player units left, player loses
+		if (!gameOver && scnPath == "scn_welcome.json" && !g.activeSegments (g.timeSim).Where(s => s.path.player == g.playerNamed ("Blue")).Any()) gameOver = true;
+	}
+	
+	private Dictionary<int, int[]> argFromSegment(Segment segment) {
+		return UnitCmdEvt.argFromPathDict(new Dictionary<Path, List<Unit>> {{segment.path, segment.units}});
+	}
+	
+	private FP.Vector randInsideCircle(int size = 100) {
+		Vector2 randPos = UnityEngine.Random.insideUnitCircle * size;
+		return new FP.Vector(FP.fromDouble (randPos.x), FP.fromDouble (randPos.y));
 	}
 	
 	private void updateTime() {
@@ -920,7 +1006,7 @@ public class App : MonoBehaviour {
 			}
 		}
 		GUILayout.EndArea ();
-		if (win && timeGame >= g.timeSim - 1 && GUI.Button (new Rect(Screen.width / 2 - lblStyle.fontSize * 5, Screen.height / 2, lblStyle.fontSize * 10, lblStyle.fontSize * 3), "Continue")) {
+		if (gameOver && timeGame >= g.timeSim - 1 && GUI.Button (new Rect(Screen.width / 2 - lblStyle.fontSize * 5, Screen.height / 2, lblStyle.fontSize * 10, lblStyle.fontSize * 3), "Continue")) {
 			if (replay) {
 				Application.LoadLevel ("MenuScene");
 			}
