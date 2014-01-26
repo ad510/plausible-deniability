@@ -87,6 +87,7 @@ public class Sim {
 	[ProtoMember(106)] public long makeInterval = 500;
 	[ProtoMember(107)] public long attackCounter = 0;
 	[ProtoMember(108)] public bool gameOver = false;
+	[ProtoMember(109)] public long guideSeenTime = 0;
 	
 	[ProtoBeforeSerialization]
 	private void beforeSerialize() {

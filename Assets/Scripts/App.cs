@@ -87,6 +87,7 @@ public class App : MonoBehaviour {
 	public GameObject quadPrefab;
 	
 	public static string scnPath = "scn.json";
+	public static bool tutorial = true;
 	
 	string appPath;
 	string modPath = "mod/";
@@ -535,9 +536,12 @@ public class App : MonoBehaviour {
 		else if (scnPath == "scn_welcome.json" && g.makeInterval != 0) {
 			// we reached unit cap, be aggressive about keeping it
 			g.makeInterval = 0;
-			message = "Subatomic particles can be in multiple places at once, but no one will ever see them doing this.\n\n"
-				+ "Quantum has developed technology that lets macroscopic beings be in multiple places at once, but no one will ever see them using it.\n\n"
-				+ "We've received reports that Quantum has a floating building hiding in the desert. Let's find it and see if it has anything to offer.";
+			if (tutorial) {
+				message = "Subatomic particles can be in multiple places at once, but no one will ever see them doing this.\n\n"
+					+ "Quantum has developed technology that lets macroscopic beings be in multiple places at once, but no one will ever see them using it.\n\n"
+					+ "We've received reports that Quantum has a floating building hiding in the desert. Let's find it and see if it has anything to offer.";
+			}
+			tutorial = false;
 		}
 
 		// move units every few seconds
@@ -573,6 +577,28 @@ public class App : MonoBehaviour {
 			}
 		}
 		
+		if (scnPath == "scn_welcome.json" && g.aiState == AIState.Hide && g.tourGuide != null
+			&& g.tourGuide.activeSegment (g.timeSim).units.Count > 0 && !g.tourGuide.activeSegment (g.timeSim).unseen) {
+			// tour guide is being watched
+			if (workers.Count == 0) {
+				g.guideSeenTime += timeNow - timeLast;
+				if (g.guideSeenTime >= 25000) {
+					while (g.tourGuide.activeSegment (g.timeSim).units.Count > 0 && g.tourGuide.activeSegment (g.timeSim).units[0].healthLatest () > 0) {
+						g.tourGuide.activeSegment (g.timeSim).units[0].takeHealth (g.timeSim, g.tourGuide);
+					}
+				}
+				else if (g.guideSeenTime >= 20000) {
+					g.greeting = "Looks like you don't need my help anymore. Goodbye!";
+				}
+				else if (g.guideSeenTime >= 10000) {
+					g.greeting = "Why are you following me?";
+				}
+			}
+			else if (g.greeting != "See you later!") {
+				g.greeting = "Hello again! How's it going?";
+			}
+		}
+		
 		// if an AI unit is seen, player wins
 		if ((!g.gameOver || g.tourGuide == null || g.tourGuide.activeSegment (g.timeSim).units.Count == 0)
 			&& scnPath == "scn_nsa.json" && datacenters.Find (s => !s.unseen) != null) {
@@ -589,11 +615,13 @@ public class App : MonoBehaviour {
 	private IEnumerator welcomeAI() {
 		g.greeting = "Welcome to Quantum Land!";
 		yield return new WaitForSeconds(3);
-		g.greeting = "Click your blue worker to select it.";
-		while (selPaths.Count == 0) yield return null;
-		g.greeting = "You can right click on the map to move your worker around.";
-		while (g.cmdHistory.events.Count == 0) yield return null;
-		yield return new WaitForSeconds(1);
+		if (tutorial) {
+			g.greeting = "Click your blue worker to select it.";
+			while (selPaths.Count == 0) yield return null;
+			g.greeting = "You can right click on the map to move your worker around.";
+			while (g.cmdHistory.events.Count == 0) yield return null;
+			yield return new WaitForSeconds(1);
+		}
 		g.greeting = "Follow me to a mineral!";
 		yield return new WaitForSeconds(2);
 		FP.Vector mineralPos;
@@ -609,7 +637,7 @@ public class App : MonoBehaviour {
 		}
 		g.cmdPending.add (new MoveCmdEvt(g.timeSim, g.timeSim, argFromSegment (g.tourGuide.activeSegment(g.timeSim)), mineralPos, Formation.Tight));
 		while (g.tourGuide.calcPos (g.timeSim) != mineralPos) yield return null;
-		g.greeting = "You can start your base here.";
+		g.greeting = "You can build your base here.";
 		yield return new WaitForSeconds(5);
 		g.greeting = "See you later!";
 		g.aiState = AIState.Hide;
