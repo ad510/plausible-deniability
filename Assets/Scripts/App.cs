@@ -818,10 +818,6 @@ public class App : MonoBehaviour {
 			// save binary game file
 			gameSave (appPath + modPath + "savegame.sav");
 		}
-		if (Input.GetKeyDown (KeyCode.T)) {
-			g = (Sim)ProtoBuf.Meta.RuntimeTypeModel.Default.DeepClone (g);
-			loadUI ();
-		}
 		// move camera
 		if (Input.GetKey (KeyCode.LeftArrow) || (Input.mousePosition.x == 0 && Screen.fullScreen)) {
 			g.camPos.x -= g.camSpeed * (timeNow - timeLast);
