@@ -342,6 +342,8 @@ public class App : MonoBehaviour {
 						move = new Move(0, new FP.Vector((long)(UnityEngine.Random.value * g.mapSize), (long)(UnityEngine.Random.value * g.mapSize)));
 						g.paths.Last ().moves[0] = move;
 					}
+					// find tour guide
+					if (units[0].type == g.unitTypeNamed ("Quantum Worker")) tourGuide = g.paths.Last ();
 					g.events.add(new TileMoveEvt(move.timeStart, g.paths.Count - 1, (int)(move.vecStart.x >> FP.Precision), (int)(move.vecStart.y >> FP.Precision)));
 				}
 			}
@@ -349,6 +351,7 @@ public class App : MonoBehaviour {
 		g.nRootPaths = g.paths.Count;
 		// start game
 		loadUI ();
+		if (aiState == AIState.Welcome) StartCoroutine ("welcomeAI");
 		timeGame = 0;
 		timeSpeedChg = (long)(Time.time * 1000) - 1000;
 		timeNow = (long)(Time.time * 1000);
@@ -420,9 +423,11 @@ public class App : MonoBehaviour {
 		draw ();
 	}
 
-	readonly int numDatacenters = scnPath == "scn_welcome.json" ? 100 : 50;
-	enum AIState { Hide, Attack };
-	AIState aiState = AIState.Hide;
+	readonly int numDatacenters = (scnPath == "scn_welcome.json") ? 100 : 50;
+	enum AIState { Welcome, Hide, Attack };
+	AIState aiState = (scnPath == "scn_welcome.json") ? AIState.Welcome : AIState.Hide;
+	Path tourGuide;
+	string greeting = "";
 	long lastMoveTime = 0;
 	long lastMakeTime = 0;
 	long makeInterval = 500;
@@ -430,7 +435,7 @@ public class App : MonoBehaviour {
 	bool gameOver = false;
 
 	private void updateAI() {
-		if (timeGame <= g.timeSim || replay) return;
+		if (timeGame <= g.timeSim || replay || aiState == AIState.Welcome) return;
 		
 		// find our units
 		List<Segment> datacenters = g.activeSegments (g.timeSim).Where (s => s.path.player == g.playerNamed ("Red")).ToList ();
@@ -457,7 +462,10 @@ public class App : MonoBehaviour {
 			}
 			if (attack) {
 				attackCounter++;
-				if (attackCounter >= 5) aiState = AIState.Attack;
+				if (attackCounter >= 5) {
+					aiState = AIState.Attack;
+					greeting = "";
+				}
 			}
 			else {
 				attackCounter = 0;
@@ -551,6 +559,37 @@ public class App : MonoBehaviour {
 		if (!gameOver && scnPath == "scn_nsa.json" && datacenters.Find (s => !s.unseen) != null) gameOver = true;
 		// if no player units left, player loses
 		if (!gameOver && scnPath == "scn_welcome.json" && !g.activeSegments (g.timeSim).Where(s => s.path.player == g.playerNamed ("Blue")).Any()) gameOver = true;
+	}
+	
+	private IEnumerator welcomeAI() {
+		greeting = "Welcome to Quantum Land!";
+		yield return new WaitForSeconds(3);
+		greeting = "Click your blue worker to select it.";
+		while (selPaths.Count == 0) yield return null;
+		greeting = "You can right click on the map to move your worker around.";
+		while (g.cmdHistory.events.Count == 0) yield return null;
+		yield return new WaitForSeconds(1);
+		greeting = "Follow me to a mineral!";
+		yield return new WaitForSeconds(2);
+		FP.Vector mineralPos;
+		{
+			Path mineral = null;
+			foreach (Path path in g.paths) {
+				if (path.player == g.playerNamed ("Resources")
+					&& (mineral == null || (path.calcPos (g.timeSim) - tourGuide.calcPos (g.timeSim)).lengthSq () < (mineral.calcPos (g.timeSim) - tourGuide.calcPos (g.timeSim)).lengthSq())) {
+					mineral = path;
+				}
+			}
+			mineralPos = mineral.calcPos (g.timeSim) + randInsideCircle (3);
+		}
+		g.cmdPending.add (new MoveCmdEvt(g.timeSim, g.timeSim, argFromSegment (tourGuide.activeSegment(g.timeSim)), mineralPos, Formation.Tight));
+		while (tourGuide.calcPos (g.timeSim) != mineralPos) yield return null;
+		greeting = "You can start your base here.";
+		yield return new WaitForSeconds(5);
+		greeting = "See you later!";
+		aiState = AIState.Hide;
+		yield return new WaitForSeconds(5);
+		greeting = "Hello again! How's it going?";
 	}
 	
 	private Dictionary<int, int[]> argFromSegment(Segment segment) {
@@ -894,6 +933,18 @@ public class App : MonoBehaviour {
 	void OnGUI() {
 		GUI.skin.button.fontSize = lblStyle.fontSize;
 		GUI.skin.textField.fontSize = lblStyle.fontSize;
+		if (tourGuide != null) {
+			// speech bubble
+			Segment tourGuideSeg = tourGuide.activeSegment (timeGame);
+			if (tourGuideSeg != null && tourGuideSeg.units.Count > 0) {
+				FP.Vector tourGuideSimPos = tourGuide.calcPos (timeGame);
+				if (g.tileAt (tourGuideSimPos).playerDirectVisWhen (g.playerNamed ("Blue"), timeGame)) {
+					Vector3 tourGuideDrawPos = simToDrawPos (tourGuideSimPos);
+					tourGuideDrawPos.y = Screen.height - tourGuideDrawPos.y;
+					GUI.Label (new Rect(tourGuideDrawPos.x, tourGuideDrawPos.y - 0.05f * winDiag, 100, 100), greeting, lblStyle);
+				}
+			}
+		}
 		// text at top left
 		GUILayout.BeginArea (new Rect(0, 0, Screen.width, Screen.height * (1 - g.uiBarHeight)));
 		if (!g.synced) {

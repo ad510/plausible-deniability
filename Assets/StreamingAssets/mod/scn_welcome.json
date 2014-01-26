@@ -242,8 +242,7 @@
     },
     {
       "types": ["Mineral"],
-      "player": "Resources",
-      "startPos": {"x": 35, "y": 40}
+      "player": "Resources"
     },
     {
       "types": ["Worker"],
