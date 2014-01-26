@@ -33,6 +33,7 @@ public class Segment {
 	/// </summary>
 	private Segment() {
 		units = new List<Unit>();
+		deletedUnits = new List<Unit>();
 	}
 	
 	public Segment(Path pathVal, int idVal, long timeStartVal, List<Unit> unitsVal, bool unseenVal) {
