@@ -1109,7 +1109,7 @@ public class App : MonoBehaviour {
 		}
 		// multiplayer GUI
 		// TODO: implement main menu and move this there
-		GUILayout.BeginArea (new Rect(0, Screen.height / 3, lblStyle.fontSize * 10, Screen.height));
+		/*GUILayout.BeginArea (new Rect(0, Screen.height / 3, lblStyle.fontSize * 10, Screen.height));
 		if (Network.peerType == NetworkPeerType.Disconnected) {
 			serverAddr = GUILayout.TextField (serverAddr);
 			serverPort = int.Parse (GUILayout.TextField (serverPort.ToString ()));
@@ -1126,7 +1126,7 @@ public class App : MonoBehaviour {
 				Network.Disconnect (200);
 			}
 		}
-		GUILayout.EndArea ();
+		GUILayout.EndArea ();*/
 		if (g.gameOver && timeGame >= g.timeSim - 1) {
 			string continueText = "Continue";
 			if (replay) {
