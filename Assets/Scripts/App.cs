@@ -541,7 +541,6 @@ public class App : MonoBehaviour {
 					+ "Quantum has developed technology that lets macroscopic beings be in multiple places at once, but no one will ever see them using it.\n\n"
 					+ "We've received reports that Quantum has a floating building hiding in the desert. Let's find it and see if it has anything to offer.";
 			}
-			tutorial = false;
 		}
 
 		// move units every few seconds
@@ -1132,19 +1131,34 @@ public class App : MonoBehaviour {
 			}
 		}
 		GUILayout.EndArea ();
-		if (g.gameOver && timeGame >= g.timeSim - 1 && GUI.Button (new Rect(Screen.width / 2 - lblStyle.fontSize * 5, Screen.height / 2, lblStyle.fontSize * 10, lblStyle.fontSize * 3), "Continue")) {
+		if (g.gameOver && timeGame >= g.timeSim - 1) {
+			string continueText = "Continue";
 			if (replay) {
-				if (scnPath == "scn_nsa.json") {
-					scnPath = "scn_welcome.json";
-					gameOpen (appPath + modPath + "scn_welcome.sav");
-					g.makeInterval = 0; // TODO: no clue why I have to set this explicitly
+				if (scnPath == "scn_welcome.json") {
+					continueText = "Start New Base";
 				}
-				else {
-					Application.LoadLevel ("MenuScene");
+				else if (scnPath == "scn_nsa.json") {
+					continueText = "Return to Base";
 				}
 			}
-			else {
-				instantReplay ();
+			if (GUI.Button (new Rect(Screen.width / 2 - lblStyle.fontSize * 5, Screen.height / 2, lblStyle.fontSize * 10, lblStyle.fontSize * 3), continueText)) {
+				if (replay) {
+					if (scnPath == "scn_welcome.json") {
+						tutorial = false;
+						scnOpen (appPath + modPath + scnPath, 0, false);
+					}
+					else if (scnPath == "scn_nsa.json") {
+						scnPath = "scn_welcome.json";
+						gameOpen (appPath + modPath + "scn_welcome.sav");
+						g.makeInterval = 0; // TODO: no clue why I have to set this explicitly
+					}
+					else {
+						Application.LoadLevel ("MenuScene");
+					}
+				}
+				else {
+					instantReplay ();
+				}
 			}
 		}
 	}
