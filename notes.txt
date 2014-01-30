@@ -15,9 +15,6 @@ things zach can work on (add him to copyright line)
   main menu
   replay toggle
   profile scn_perf_test in pro trial?
-scenario branch
-  use exists()
-  try making path at timeSim + 1
 look at starcraft 2 tutorial
 stacking branch
   if building mine on mineral, path will contain (nonmoving) units of different type (mineral + mine)
@@ -86,11 +83,51 @@ find disconnected regions
 path smoothing
 would graph be too big?
 
-other questions:
-puzzle brainstorming
+levels:
+- tutorial
+- find NSA's secret (big) hovering/floating datacenter in utah desert
+  - have obvious toggle in replay to switch between what NSA sees and what you see (or NSA's replay and your replay)
+  - mentor introduces quantum computers
+- that was just a decoy, use sharing paths to find real, much bigger datacenter
+  - datacenters mention successful missions to infiltrate each country, last one is the player's
+- discover infiltration
+  - emergency message from someone, about to say something classified but they get shot out of nowhere
+  - agent from tutorial asks what's going on, some of player's units get shot out of nowhere
+  - player discovers a ton of NSA units hiding in the corner, "all your data are belong to us"
+  - NSA units seize the base but player picks up top secret replay
+  - mentor describes virtual particles
+- player's agency extracts sniper tech from replay
+  - someone tries to leak location of an NSA base then gets shot (if player didn't figure it out yet)
+- figure out to follow potential traitors
+  - mentor describes double slit experiment
+- identical units with different health?
+- sniper level
+  - nsa insists on escorting everyone in building, so use sniper to kill escort and let you be unseen
+  - on completion, get access to changing the past knowledge
+- player's assignment changes to home country of spy agency, so can correct past mistakes
+- introduce time travel (how exactly?)
+  - mentor describes wavefunctions
+- explore potentially infiltrated base, but there's no one hiding there and player becomes superuser
+  - mentor says how nature controls/sees everything (1 player game) & how we measure it, describes path integral & wavefunction equivalence (or maybe save that for later)
+  - email from US press secretary says US does not and will not infiltrate another countrys' bases, and as of today we can confirm that US has never infiltrated another country either! as part of president's transparency initiative, we are declassifying attached replay
+    - mentor says replay only shows one way it could have happened (describe feynman diagrams here or later?)
+- player gets to infiltrate another country's base, NSA style? (to introduce superuser-only commands)
+  - if player fails to maintain superuser, other country's agents disappear and new one comes out of airport
+- player's agency finds identical twin of cooperating NSA agent, use it to steal data (how exactly?)
+  - mentor describes feynman diagrams (unless did so already)
+  - leak says NSA is superuser by cheating, NSA has secret base at classified location that no one (not even in NSA) knows
+- to find final NSA base, fill US map with new bases, last one says "Error: This location is already occupied", top secret NSA base appears there but requires superuser access
+  - terminal opens suggesting to type "make me a sandwich", after refuses point out that google is your friend
+  - use identical twin to get superuser access
+  - then fail like regular make does before activating special NSA make
+- final NSA base
+  - has quantum computer and lots of virtual agents
+  - leak things to press (or pick up quantum mechanics applications), on first leak all you data start belong to NSA at all other bases
+  - mentor says something like quantum mechanics infiltrates every aspect of our lives (list some applications), so better get used to it
+  - suggest donating :)
+  - go to multiplayer lobby
 
-changing the past and wavefunctions levels:
-- do these levels at home country of spy agency, so can correct past mistakes
+old changing the past and wavefunctions levels:
 - what they didn't see
   - Matthew's 3/17/2013 email has alternate idea for 1st level
 - better than a coin flip
@@ -111,22 +148,46 @@ changing the past and wavefunctions levels:
   - put introduction text in "what they didn't see" repeat
   - initially show detailed animation for each move command, then short animation retracing particle's movement every time after that
 
-paths levels: (find better synonym for "part 2" such as redux?)
-- find NSA's secret (big) hovering/floating datacenter in utah desert
-  - have obvious toggle in replay to switch between what NSA sees and what you see (or NSA's replay and your replay)
-- if watching everything they do, they can't do sneaky stuff
+old paths levels: (find better synonym for "part 2" such as redux?)
 - better than a coin flip, part 2
 - spreading coherence, part 2
 - retroactive coherence, part 2
 - can introduce sharing paths between different unit types by having several hired guards of different nationalities/abilities
 - snipers
-  - nsa insists on escorting everyone in building, so use sniper to kill escort and let you be unseen
+
+alternate path implementation:
+- features that require storing history
+  - replays of what "they see" (most important)
+    - making then deleting nested paths in various orders seems to at least require tree, stacking requires graph
+  - manual (not automatic) time travel
+  - delete last path of unit
+- if only concerned with the present, 90% of what the engine does is really easy to write, so if I also want replays & time travel does it really have to be that much harder?
+- possible alternative: for each unit store parent(s) and every possible history of moves + children
+  - make sure these aren't hard: identical units, figuring out what to copy, keeping copies (i.e. stacks) in sync
+  - theory is move responsibility of delete paths (current hardest part) onto making & maintaining copies in alternate histories, since copying may be easier than figuring out whether shared data is needed elsewhere
+    - doesn't simplify resource double-counting when multiple parents problem
+  - determine whether units stacked by whether at same location
+    - if too slow then cache Dictionary<FP.Vector, UnitPath> at timeSim & timeGame, recalculate whenever time changes
+      - store nSeeUnits (for sharing paths) here
+    - don't use path segments, would be tricky to keep in sync when deleting
+  - when giving commands, make sure they're applied to all of unit's paths in stack
+    - simple duplication: move, delete path, delete other paths
+    - less simple: make unit, make path
+    - stack is simple duplication when moving, but probably want to avoid duplicate StackEvts at same time
+    - share paths needs to track nSeeUnits
+  - what needs to be copied
+    - moves
+      - stacking onto moving unit requires new kind of timeStart, but don't need to support that right away
+    - children
+    - parents of children
+  - copying unit tiles is hard, so instead store tiles per unit (not path) and use inVis() to check which paths of unit see there
+  - delete other paths with identical units is something like if other units in stack seen elsewhere then delete other paths, need to define "seen elsewhere"
+    - also true in current implementation if keep unit ids
+    - if remove unit ids to make units truly indistinguishable, then counting parents is tricky
 
 random notes:
 - form 2 paths of same unit, then stack those paths is example of why merging paths must be handled directly (justifying stacking branch)
 - phrase from AI wisdom: "expand selection by radius"
-- only share paths if option is checked for a selection of units (don't want units randomly disappearing out of nowhere)
-  - if some wavefunctions don't overlap yet, send paths going between those units
 - make paths with same parent unit(s) pulse in phase with each other as excuse to say they're coherent (if not in a quantum way)
   - if multiple parent units share some but not all paths with each other, show superposition of their pulsing (maybe with offset positions so it's clearer they're separate)
   - pulse parent units at different frequencies? (faster pulsing can be done with lower amplitude b/c more noticeable)
@@ -153,8 +214,7 @@ random notes:
   - can have ranged units with visible laser paths
     - except can only see own snipers' laser paths (from all possible snipers)
     - other units' range is less than vis radius, so would have decohered by the time they shoot (so ok for anyone to see laser path)
-  - have few increments of health, so easier to switch with someone with same health
-    - having a healer unit also makes switching units easier
+  - healer? (not necessary to support switching units if disallow seeing health of other players' units)
   - can't have mines (they'd have to be visible to the opponent when in seeing range)
   - sniper unit that shoots further than visibility range (but can shoot units that other units see)
     - which sniper shot it?
@@ -175,6 +235,7 @@ gui guide: https://docs.unity3d.com/Documentation/Components/GUIScriptingGuide.h
 guilayout reference: https://docs.unity3d.com/Documentation/ScriptReference/GUILayout.html
 memory (includes links to later parts): http://www.gamasutra.com/blogs/WendelinReich/20131109/203841/C_Memory_Management_for_Unity_Developers_part_1_of_3.php
 use visual studio compiler: http://forum.unity3d.com/threads/120327-Video-Tutorial-How-to-use-Visual-Studio-for-all-your-Unity-development
+pdb2mdb ienumerator fix: http://forum.unity3d.com/threads/161685-How-to-build-and-debug-external-DLLs/page2
 
 other links:
 binary serialization: https://code.google.com/p/protobuf-net/
@@ -184,3 +245,4 @@ age of empires multiplayer: http://www.gamasutra.com/view/feature/3094/1500_arch
 ai war optimization (including multiplayer): http://christophermpark.blogspot.com/2009/06/optimizing-30000-ships-in-realtime-in-c.html
 multiplayer debugging: http://gafferongames.com/networking-for-game-programmers/debugging-multiplayer-games/
 braid rewind: http://gdcvault.com/play/1012210/The-Implementation-of-Rewind-in
+managing copyright info: http://softwarefreedom.org/resources/2012/ManagingCopyrightInformation.html
