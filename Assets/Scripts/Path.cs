@@ -148,7 +148,36 @@ public class Path {
 	/// makes a new path containing specified units, returns whether successful
 	/// </summary>
 	public bool makePath(long time, List<Unit> units) {
-		if (canMakePath(time, units)) {
+		{ // check whether can make path
+			if (units.Count == 0) return false;
+			Segment segment = activeSegment(time);
+			if (segment == null) return false;
+			long[] rscCost = new long[g.rscNames.Length];
+			foreach (Unit unit in units) {
+				if (segment.units.Contains (unit)) {
+					// unit in path would be child path
+					SegmentUnit segmentUnit = new SegmentUnit(segment, unit);
+					// check parent made before (not at same time as) child, so it's unambiguous who is the parent
+					if (!segmentUnit.canBeUnambiguousParent (time)) return false;
+					// check parent unit won't be seen later
+					if (!segmentUnit.unseenAfter ()) return false;
+				}
+				else {
+					if (!canMakeUnitType (time, unit.type)) return false;
+					// unit in path would be non-path child unit
+					for (int i = 0; i < g.rscNames.Length; i++) {
+						rscCost[i] += unit.type.rscCost[i];
+					}
+				}
+			}
+			bool newPathIsLive = (time >= g.timeSim && timeSimPast == long.MaxValue);
+			if (!newPathIsLive && !Sim.EnableNonLivePaths) return false;
+			for (int i = 0; i < g.rscNames.Length; i++) {
+				// TODO: may be more permissive by passing in max = true, but this really complicates SegmentUnit.delete() algorithm (see planning notes)
+				if (player.resource(time, i, false, !newPathIsLive) < rscCost[i]) return false;
+			}
+		}
+		{ // make path
 			Segment segment = insertSegment (time);
 			FP.Vector pos = calcPos (time);
 			g.paths.Add (new Path(g, g.paths.Count, units[0].type.speed, player, units, time, pos, segment.unseen, nSeeUnits));
@@ -161,41 +190,6 @@ public class Path {
 				player.hasNonLivePaths = true;
 			}
 			player.calcUnitCombinations ();
-			return true;
-		}
-		return false;
-	}
-
-	/// <summary>
-	/// returns whether this path can make a new path as specified
-	/// </summary>
-	public bool canMakePath(long time, List<Unit> units) {
-		if (units.Count == 0) return false;
-		Segment segment = activeSegment(time);
-		if (segment == null) return false;
-		long[] rscCost = new long[g.rscNames.Length];
-		foreach (Unit unit in units) {
-			if (segment.units.Contains (unit)) {
-				// unit in path would be child path
-				SegmentUnit segmentUnit = new SegmentUnit(segment, unit);
-				// check parent made before (not at same time as) child, so it's unambiguous who is the parent
-				if (!segmentUnit.canBeUnambiguousParent (time)) return false;
-				// check parent unit won't be seen later
-				if (!segmentUnit.unseenAfter ()) return false;
-			}
-			else {
-				if (!canMakeUnitType (time, unit.type)) return false;
-				// unit in path would be non-path child unit
-				for (int i = 0; i < g.rscNames.Length; i++) {
-					rscCost[i] += unit.type.rscCost[i];
-				}
-			}
-		}
-		bool newPathIsLive = (time >= g.timeSim && timeSimPast == long.MaxValue);
-		if (!newPathIsLive && !Sim.EnableNonLivePaths) return false;
-		for (int i = 0; i < g.rscNames.Length; i++) {
-			// TODO: may be more permissive by passing in max = true, but this really complicates SegmentUnit.delete() algorithm (see planning notes)
-			if (player.resource(time, i, false, !newPathIsLive) < rscCost[i]) return false;
 		}
 		return true;
 	}
