@@ -147,7 +147,7 @@ public class Path {
 	/// <summary>
 	/// makes a new path containing specified units, returns whether successful
 	/// </summary>
-	public bool makePath(long time, List<Unit> units) {
+	public bool makePath(long time, List<Unit> units, bool ignoreSeen = false) {
 		{ // check whether can make path
 			if (units.Count == 0) return false;
 			Segment segment = activeSegment(time);
@@ -160,7 +160,7 @@ public class Path {
 					// check parent made before (not at same time as) child, so it's unambiguous who is the parent
 					if (!segmentUnit.canBeUnambiguousParent (time)) return false;
 					// check parent unit won't be seen later
-					if (!segmentUnit.unseenAfter ()) return false;
+					if (!ignoreSeen && !segmentUnit.unseenAfter ()) return false;
 				}
 				else {
 					if (!canMakeUnitType (time, unit.type)) return false;
@@ -238,7 +238,7 @@ public class Path {
 			foreach (Unit unit in activeSegment(time).units) {
 				if (!units.Contains (unit)) {
 					// some units in path aren't being moved, so make a new path
-					if (!makePath (time, units)) throw new SystemException("make new path failed when moving units");
+					if (!makePath (time, units, true)) throw new SystemException("make new path failed when moving units");
 					path2 = g.paths.Last ();
 					break;
 				}
