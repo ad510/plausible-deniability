@@ -456,6 +456,101 @@ public class App : MonoBehaviour {
 		List<Segment> datacenters = g.activeSegments (g.timeSim).Where (s => s.path.player == g.playerNamed ("Red")).ToList ();
 		List<Segment> workers = datacenters.Where (s => (s.units[0].type == g.unitTypeNamed ("Quantum Worker")
 			|| s.units[0].type == g.unitTypeNamed ("Quantum Building")) && s.unseen).ToList ();
+		
+		if (scnPath == "scn_welcome.json") {
+			if (g.aiState == AIState.Hide) {
+				// disband units that existed for too long
+				foreach (Segment datacenter in datacenters) {
+					if (g.timeSim - datacenter.path.segments[0].timeStart >= 30000 && datacenter.path.id >= g.nRootPaths) {
+						while (datacenter.units.Count > 0 && datacenter.units[0].healthLatest () > 0) datacenter.units[0].takeHealth (g.timeSim, datacenter.path);
+					}
+				}
+		
+				if (g.tourGuide != null && g.tourGuide.activeSegment (g.timeSim).units.Count > 0 && !g.tourGuide.activeSegment (g.timeSim).unseen) {
+					// tour guide is being watched
+					if (workers.Count == 0) {
+						g.guideSeenTime += timeNow - timeLast;
+						if (g.guideSeenTime >= 25000) {
+							while (g.tourGuide.activeSegment (g.timeSim).units.Count > 0 && g.tourGuide.activeSegment (g.timeSim).units[0].healthLatest () > 0) {
+								g.tourGuide.activeSegment (g.timeSim).units[0].takeHealth (g.timeSim, g.tourGuide);
+							}
+						}
+						else if (g.guideSeenTime >= 20000) {
+							g.greeting = "Looks like you don't need my help anymore. Goodbye!";
+						}
+						else if (g.guideSeenTime >= 10000) {
+							g.greeting = "Why are you following me?";
+						}
+					}
+					else if (g.greeting != "See you later!") {
+						g.greeting = "Hello again! How's it going?";
+					}
+				}
+			}
+			
+			if (datacenters.Count < g.numDatacenters) {
+				if (g.timeSim - g.lastMakeTime > g.makeInterval) {
+					// make units every second
+					g.lastMakeTime = g.timeSim;
+					
+					foreach (Segment worker in workers) {
+						int type;
+						if (g.aiState == AIState.Attack) {
+							if (UnityEngine.Random.value <= 0.8) {
+								type = g.unitTypeNamed ("Quantum Marine").id; // 80% chance
+							}
+							else if (UnityEngine.Random.value <= 0.5) {
+								type = g.unitTypeNamed ("Quantum Worker").id; // 10% chance
+							}
+							else {
+								type = g.unitTypeNamed ("Quantum Building").id; // 10% chance
+							}
+						}
+						else {
+							type = UnityEngine.Random.Range (0, g.unitT.Length);
+						}
+						g.cmdPending.add (new MakeUnitCmdEvt(g.timeSim, g.timeSim, argFromSegment (worker),
+							type, worker.path.calcPos (g.timeSim) + randInsideCircle (), false));
+					}
+				}
+			}
+			else if (g.makeInterval != 0) {
+				// we reached unit cap, be aggressive about keeping it
+				g.makeInterval = 0;
+				if (tutorial) {
+					message = "Subatomic particles can be in multiple places at once, but no one will ever see them doing this.\n\n"
+						+ "Quantum has developed technology that lets macroscopic beings be in multiple places at once, but no one will ever see them using it.\n\n"
+						+ "We've received reports that Quantum has a floating building hiding in the desert. Let's find it and see if it has anything to offer.";
+				}
+			}
+			
+			// if no player units left, player loses
+			if (!g.gameOver && !g.activeSegments (g.timeSim).Where(s => s.path.player == g.playerNamed ("Blue")).Any()) {
+				g.gameOver = true;
+			}
+		}
+		else if (scnPath == "scn_nsa.json") {
+			if (datacenters.Count < g.numDatacenters) {
+				// if number of paths is less than the max, make some more paths
+				Segment datacenter = datacenters[UnityEngine.Random.Range (0, datacenters.Count)];
+				g.cmdPending.add(new MakePathCmdEvt(g.timeSim, g.timeSim, argFromSegment (datacenter),
+							new Dictionary<int, FP.Vector> {
+								{
+									datacenter.path.id,
+									datacenter.path.calcPos (g.timeSim) + randInsideCircle()
+								}
+							}
+						));
+			}
+			
+			// if an AI unit is seen, player wins
+			if ((!g.gameOver || g.tourGuide == null || g.tourGuide.activeSegment (g.timeSim).units.Count == 0)
+				&& scnPath == "scn_nsa.json" && datacenters.Find (s => !s.unseen) != null) {
+				g.gameOver = true;
+				g.tourGuide = datacenters.Find (s => !s.unseen).path;
+				g.greeting = "Objective: Infiltrate [player]'s new base in Quantum Land.\n\nSUCCESS";
+			}
+		}
 
 		if (g.aiState == AIState.Hide) {
 			// delete units that get too close to player's paths
@@ -485,63 +580,6 @@ public class App : MonoBehaviour {
 			}
 			else {
 				g.attackCounter = 0;
-			}
-			
-			if (scnPath == "scn_welcome.json") {
-				// disband units that existed for too long
-				foreach (Segment datacenter in datacenters) {
-					if (g.timeSim - datacenter.path.segments[0].timeStart >= 30000 && datacenter.path.id >= g.nRootPaths) {
-						while (datacenter.units.Count > 0 && datacenter.units[0].healthLatest () > 0) datacenter.units[0].takeHealth (g.timeSim, datacenter.path);
-					}
-				}
-			}
-		}
-
-		if (datacenters.Count < g.numDatacenters) {
-			if (scnPath == "scn_nsa.json") {
-				// if number of paths is less than the max, make some more paths
-				Segment datacenter = datacenters[UnityEngine.Random.Range (0, datacenters.Count)];
-				g.cmdPending.add(new MakePathCmdEvt(g.timeSim, g.timeSim, argFromSegment (datacenter),
-							new Dictionary<int, FP.Vector> {
-								{
-									datacenter.path.id,
-									datacenter.path.calcPos (g.timeSim) + randInsideCircle()
-								}
-							}
-						));
-			}
-			else if (scnPath == "scn_welcome.json" && g.timeSim - g.lastMakeTime > g.makeInterval) {
-				// make units every second
-				g.lastMakeTime = g.timeSim;
-				
-				foreach (Segment worker in workers) {
-					int type;
-					if (g.aiState == AIState.Attack) {
-						if (UnityEngine.Random.value <= 0.8) {
-							type = g.unitTypeNamed ("Quantum Marine").id; // 80% chance
-						}
-						else if (UnityEngine.Random.value <= 0.5) {
-							type = g.unitTypeNamed ("Quantum Worker").id; // 10% chance
-						}
-						else {
-							type = g.unitTypeNamed ("Quantum Building").id; // 10% chance
-						}
-					}
-					else {
-						type = UnityEngine.Random.Range (0, g.unitT.Length);
-					}
-					g.cmdPending.add (new MakeUnitCmdEvt(g.timeSim, g.timeSim, argFromSegment (worker),
-						type, worker.path.calcPos (g.timeSim) + randInsideCircle (), false));
-				}
-			}
-		}
-		else if (scnPath == "scn_welcome.json" && g.makeInterval != 0) {
-			// we reached unit cap, be aggressive about keeping it
-			g.makeInterval = 0;
-			if (tutorial) {
-				message = "Subatomic particles can be in multiple places at once, but no one will ever see them doing this.\n\n"
-					+ "Quantum has developed technology that lets macroscopic beings be in multiple places at once, but no one will ever see them using it.\n\n"
-					+ "We've received reports that Quantum has a floating building hiding in the desert. Let's find it and see if it has anything to offer.";
 			}
 		}
 
@@ -576,40 +614,6 @@ public class App : MonoBehaviour {
 				}*/
 				g.cmdPending.add(new MoveCmdEvt(g.timeSim, g.timeSim, argFromSegment (datacenter), movePos, Formation.Tight));
 			}
-		}
-		
-		if (scnPath == "scn_welcome.json" && g.aiState == AIState.Hide && g.tourGuide != null
-			&& g.tourGuide.activeSegment (g.timeSim).units.Count > 0 && !g.tourGuide.activeSegment (g.timeSim).unseen) {
-			// tour guide is being watched
-			if (workers.Count == 0) {
-				g.guideSeenTime += timeNow - timeLast;
-				if (g.guideSeenTime >= 25000) {
-					while (g.tourGuide.activeSegment (g.timeSim).units.Count > 0 && g.tourGuide.activeSegment (g.timeSim).units[0].healthLatest () > 0) {
-						g.tourGuide.activeSegment (g.timeSim).units[0].takeHealth (g.timeSim, g.tourGuide);
-					}
-				}
-				else if (g.guideSeenTime >= 20000) {
-					g.greeting = "Looks like you don't need my help anymore. Goodbye!";
-				}
-				else if (g.guideSeenTime >= 10000) {
-					g.greeting = "Why are you following me?";
-				}
-			}
-			else if (g.greeting != "See you later!") {
-				g.greeting = "Hello again! How's it going?";
-			}
-		}
-		
-		// if an AI unit is seen, player wins
-		if ((!g.gameOver || g.tourGuide == null || g.tourGuide.activeSegment (g.timeSim).units.Count == 0)
-			&& scnPath == "scn_nsa.json" && datacenters.Find (s => !s.unseen) != null) {
-			g.gameOver = true;
-			g.tourGuide = datacenters.Find (s => !s.unseen).path;
-			g.greeting = "Objective: Infiltrate [player]'s new base in Quantum Land.\n\nSUCCESS";
-		}
-		// if no player units left, player loses
-		if (!g.gameOver && scnPath == "scn_welcome.json" && !g.activeSegments (g.timeSim).Where(s => s.path.player == g.playerNamed ("Blue")).Any()) {
-			g.gameOver = true;
 		}
 	}
 	
