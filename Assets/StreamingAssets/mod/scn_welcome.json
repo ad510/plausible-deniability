@@ -39,7 +39,6 @@
       "name": "Red",
       "isUser": true,
       "user": 0,
-      "ignoreRsc": true,
       "mayAttack": ["Blue"]
     },
     {

@@ -17,7 +17,6 @@ public class Player {
 	[ProtoMember(3)] public string name;
 	[ProtoMember(4)] public bool isUser; // whether actively participates in the game
 	[ProtoMember(5)] public int user; // -2 = nobody, -1 = computer, 0+ = human
-	[ProtoMember(12)] public bool ignoreRsc;
 	[ProtoMember(6)] public long[] startRsc; // resources at beginning of game
 	[ProtoMember(7)] public bool[] mayAttack; // if this player's units may attack each other player's units
 	// not stored in scenario files
@@ -65,7 +64,6 @@ public class Player {
 	/// </summary>
 	/// <returns>a time that player could have negative resources, or -1 if no such time found</returns>
 	public long checkNegRsc(long timeMin, bool includeNonLiveChildren) {
-		if (ignoreRsc) return -1;
 		foreach (Path path in g.paths) {
 			// check all times since timeMin that a path of specified player was made
 			if (this == path.player && path.segments[0].timeStart >= timeMin) {
