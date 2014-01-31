@@ -125,9 +125,11 @@ public class App : MonoBehaviour {
 	/// </summary>
 	void Start () {
 		appPath = Application.streamingAssetsPath + '/';
-		ProtoBuf.Meta.RuntimeTypeModel.Default.Add (typeof(Color), false).SetSurrogate (typeof(ProtoColor));
-		ProtoBuf.Meta.RuntimeTypeModel.Default.Add (typeof(Vector2), false).SetSurrogate (typeof(ProtoVector3));
-		ProtoBuf.Meta.RuntimeTypeModel.Default.Add (typeof(Vector3), false).SetSurrogate (typeof(ProtoVector3));
+		if (!ProtoBuf.Meta.RuntimeTypeModel.Default.CanSerialize (typeof(Vector3))) {
+			ProtoBuf.Meta.RuntimeTypeModel.Default.Add (typeof(Color), false).SetSurrogate (typeof(ProtoColor));
+			ProtoBuf.Meta.RuntimeTypeModel.Default.Add (typeof(Vector2), false).SetSurrogate (typeof(ProtoVector3));
+			ProtoBuf.Meta.RuntimeTypeModel.Default.Add (typeof(Vector3), false).SetSurrogate (typeof(ProtoVector3));
+		}
 		winDiag = new Vector2(Screen.width, Screen.height).magnitude;
 		mouseDownPos = new Vector3[3];
 		mouseUpPos = new Vector3[3];
@@ -365,7 +367,6 @@ public class App : MonoBehaviour {
 	/// </summary>
 	private void gameOpen(string path) {
 		using (FileStream file = File.OpenRead (path)) {
-			// TODO: if line below runs, return to menu, then open game scene, there's a bunch of null reference exceptions!
 			g = Serializer.Deserialize<Sim>(file);
 		}
 		timeGame = g.timeSim; // TODO: better solution would be including timeGame in saved game
