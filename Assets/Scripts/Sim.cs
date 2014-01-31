@@ -81,7 +81,7 @@ public class Sim {
 	[ProtoMember(100)] public readonly int numDatacenters = (App.scnPath == "scn_welcome.json") ? 100 : 50;
 	[ProtoMember(101)] public AIState aiState = (App.scnPath == "scn_welcome.json") ? AIState.Welcome : AIState.Hide;
 	[ProtoMember(102, AsReference = true)] public Path tourGuide;
-	[ProtoMember(103)] public string greeting = "";
+	[ProtoMember(103)] public List<PathText> pathTexts = new List<PathText>();
 	[ProtoMember(104)] public long lastMoveTime = 0;
 	[ProtoMember(105)] public long lastMakeTime = 0;
 	[ProtoMember(106)] public long makeInterval = 500;

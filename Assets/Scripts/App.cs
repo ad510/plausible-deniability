@@ -347,6 +347,7 @@ public class App : MonoBehaviour {
 					}
 					// find tour guide
 					if (units[0].type == g.unitTypeNamed ("Quantum Worker")) g.tourGuide = g.paths.Last ();
+					if (units[0].type == g.unitTypeNamed ("Datacenter")) g.pathTexts.Add (new PathText(0, g.paths.Last (), "Objective: Infiltrate [player]'s new base in Quantum Land.\n\nSUCCESS"));
 					g.events.add(new TileMoveEvt(move.timeStart, g.paths.Count - 1, (int)(move.vecStart.x >> FP.Precision), (int)(move.vecStart.y >> FP.Precision)));
 				}
 			}
@@ -476,14 +477,18 @@ public class App : MonoBehaviour {
 							}
 						}
 						else if (g.guideSeenTime >= 20000) {
-							g.greeting = "Looks like you don't need my help anymore. Goodbye!";
+							if (g.pathTexts.Last().text != "Looks like you don't need my help anymore. Goodbye!") {
+								g.pathTexts.Add (new PathText(g.timeSim, g.tourGuide, "Looks like you don't need my help anymore. Goodbye!"));
+							}
 						}
 						else if (g.guideSeenTime >= 10000) {
-							g.greeting = "Why are you following me?";
+							if (g.pathTexts.Last ().text != "Why are you following me?") {
+								g.pathTexts.Add (new PathText(g.timeSim, g.tourGuide, "Why are you following me?"));
+							}
 						}
 					}
-					else if (g.greeting != "See you later!") {
-						g.greeting = "Hello again! How's it going?";
+					else if (g.pathTexts.Last ().text != "See you later!" && g.pathTexts.Last ().text != "Hello again! How's it going?") {
+						g.pathTexts.Add (new PathText(g.timeSim, g.tourGuide, "Hello again! How's it going?"));
 					}
 				}
 			}
@@ -544,11 +549,16 @@ public class App : MonoBehaviour {
 			}
 			
 			// if an AI unit is seen, player wins
-			if ((!g.gameOver || g.tourGuide == null || g.tourGuide.activeSegment (g.timeSim).units.Count == 0)
-				&& scnPath == "scn_nsa.json" && datacenters.Find (s => !s.unseen) != null) {
+			if ((!g.gameOver || g.pathTexts.Last ().path.segments.Last ().units.Count == 0) && datacenters.Find (s => !s.unseen) != null) {
 				g.gameOver = true;
-				g.tourGuide = datacenters.Find (s => !s.unseen).path;
-				g.greeting = "Objective: Infiltrate [player]'s new base in Quantum Land.\n\nSUCCESS";
+				// TODO: also update text when setting up replay
+				SegmentUnit datacenter = g.pathTexts.Last ().path.segments[0].segmentUnits ().First ();
+				while (datacenter.next ().Any ()) {
+					datacenter = datacenter.next ().First ();
+					if (datacenter.segment.path != g.pathTexts.Last ().path) {
+						g.pathTexts.Add (new PathText(datacenter.segment.timeStart, datacenter.segment.path, g.pathTexts[0].text));
+					}
+				}
 			}
 		}
 
@@ -574,7 +584,7 @@ public class App : MonoBehaviour {
 				g.attackCounter++;
 				if (g.attackCounter >= 5) {
 					g.aiState = AIState.Attack;
-					g.greeting = "";
+					g.pathTexts.Add (new PathText(g.timeSim, null, null));
 					Invoke ("allYourMatter", 1);
 				}
 			}
@@ -618,16 +628,16 @@ public class App : MonoBehaviour {
 	}
 	
 	private IEnumerator welcomeAI() {
-		g.greeting = "Welcome to Quantum Land!";
+		g.pathTexts.Add (new PathText(g.timeSim, g.tourGuide, "Welcome to Quantum Land!"));
 		yield return new WaitForSeconds(3);
 		if (tutorial) {
-			g.greeting = "Click your blue worker to select it.";
+			g.pathTexts.Add (new PathText(g.timeSim, g.tourGuide, "Click your blue worker to select it."));
 			while (selPaths.Count == 0) yield return null;
-			g.greeting = "You can right click on the map to move your worker around.";
+			g.pathTexts.Add (new PathText(g.timeSim, g.tourGuide, "You can right click on the map to move your worker around."));
 			while (g.cmdHistory.events.Count == 0) yield return null;
 			yield return new WaitForSeconds(1);
 		}
-		g.greeting = "Follow me to a mineral!";
+		g.pathTexts.Add (new PathText(g.timeSim, g.tourGuide, "Follow me to a mineral!"));
 		yield return new WaitForSeconds(2);
 		FP.Vector mineralPos;
 		{
@@ -642,12 +652,12 @@ public class App : MonoBehaviour {
 		}
 		g.cmdPending.add (new MoveCmdEvt(g.timeSim, g.timeSim, argFromSegment (g.tourGuide.activeSegment(g.timeSim)), mineralPos, Formation.Tight));
 		while (g.tourGuide.calcPos (g.timeSim) != mineralPos) yield return null;
-		g.greeting = "You can build your base here.";
+		g.pathTexts.Add (new PathText(g.timeSim, g.tourGuide, "You can build your base here."));
 		yield return new WaitForSeconds(5);
-		g.greeting = "See you later!";
+		g.pathTexts.Add (new PathText(g.timeSim, g.tourGuide, "See you later!"));
 		g.aiState = AIState.Hide;
 		yield return new WaitForSeconds(5);
-		g.greeting = "Hello again! How's it going?";
+		g.pathTexts.Add (new PathText(g.timeSim, g.tourGuide, "Hello again! How's it going?"));
 	}
 	
 	private void allYourMatter() {
@@ -989,6 +999,7 @@ public class App : MonoBehaviour {
 	void OnGUI() {
 		GUI.skin.button.fontSize = lblStyle.fontSize;
 		GUI.skin.textField.fontSize = lblStyle.fontSize;
+		// message
 		if (message != "") {
 			paused = true;
 			GUI.Box (new Rect(Screen.width / 3, Screen.height / 4, Screen.width / 3, Screen.height / 2), new GUIContent());
@@ -1009,15 +1020,24 @@ public class App : MonoBehaviour {
 			GUILayout.EndArea ();
 			return;
 		}
-		if (g.tourGuide != null) {
-			// speech bubble
-			Segment tourGuideSeg = g.tourGuide.activeSegment (timeGame);
-			if (tourGuideSeg != null && tourGuideSeg.units.Count > 0) {
-				FP.Vector tourGuideSimPos = g.tourGuide.calcPos (timeGame);
-				if (g.tileAt (tourGuideSimPos).playerDirectVisWhen (g.playerNamed ("Blue"), timeGame)) {
-					Vector3 tourGuideDrawPos = simToDrawPos (tourGuideSimPos);
-					tourGuideDrawPos.y = Screen.height - tourGuideDrawPos.y;
-					GUI.Label (new Rect(tourGuideDrawPos.x, tourGuideDrawPos.y - 0.05f * winDiag, 100, 100), g.greeting, lblStyle);
+		{ // path text
+			PathText activePathText = null;
+			for (int i = g.pathTexts.Count - 1; i >= 0; i--) {
+				if (timeGame >= g.pathTexts[i].timeStart) {
+					activePathText = g.pathTexts[i];
+					break;
+				}
+			}
+			if (activePathText != null && activePathText.path != null) {
+				Segment segment = activePathText.path.activeSegment (timeGame);
+				if (segment != null && segment.units.Count > 0) {
+					FP.Vector simPos = activePathText.path.calcPos (timeGame);
+					if (g.tileAt (simPos).playerVisWhen (selPlayer, timeGame)) {
+						Vector3 drawPos = simToDrawPos (simPos);
+						drawPos.y = Screen.height - drawPos.y;
+						// TODO: make draw height smarter or customizable
+						GUI.Label (new Rect(drawPos.x, drawPos.y - 0.05f * winDiag, 100, 100), activePathText.text, lblStyle);
+					}
 				}
 			}
 		}
@@ -1133,6 +1153,7 @@ public class App : MonoBehaviour {
 			}
 		}
 		GUILayout.EndArea ();*/
+		// continue button
 		if (g.gameOver && timeGame >= g.timeSim - 1) {
 			string continueText = "Continue";
 			if (replay) {
