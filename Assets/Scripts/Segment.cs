@@ -25,6 +25,7 @@ public class Segment {
 	/// </summary>
 	[ProtoMember(5, AsReference = true)] public List<Segment> branches;
 	[ProtoMember(6, AsReference = true)] public List<Unit> units; // units on this path segment
+	[ProtoMember(8, AsReference = true)] public List<Unit> deletedUnits;
 	[ProtoMember(7)] public bool unseen; // whether path segment is known to not be seen by another player
 	
 	/// <summary>
@@ -32,6 +33,7 @@ public class Segment {
 	/// </summary>
 	private Segment() {
 		units = new List<Unit>();
+		deletedUnits = new List<Unit>();
 	}
 	
 	public Segment(Path pathVal, int idVal, long timeStartVal, List<Unit> unitsVal, bool unseenVal) {
@@ -41,6 +43,7 @@ public class Segment {
 		timeStart = timeStartVal;
 		branches = new List<Segment> { this };
 		units = unitsVal;
+		deletedUnits = new List<Unit>();
 		unseen = unseenVal;
 	}
 	

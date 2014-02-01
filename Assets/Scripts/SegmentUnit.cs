@@ -93,6 +93,9 @@ public struct SegmentUnit {
 	private bool deleteAfter(ref Dictionary<Segment, List<Unit>> removed, ref long timeEarliestChild) {
 		if (segment.units.Contains (unit)) {
 			if (!segment.unseen && segment.timeStart < g.timeSim) return false;
+			if (segment.timeStart < g.timeSim && segment.nextOnPath () == null) {
+				segment.path.insertSegment (g.timeSim);
+			}
 			// only remove units from next segments if this is their only previous segment
 			if (segment.nextOnPath () == null || new SegmentUnit(segment.nextOnPath (), unit).prev ().Count () == 1) {
 				// remove unit from next segments
@@ -110,6 +113,7 @@ public struct SegmentUnit {
 			}
 			// remove unit from this segment
 			segment.units.Remove (unit);
+			if (segment.timeStart < g.timeSim) segment.deletedUnits.Add (unit);
 			if (!removed.ContainsKey (segment)) removed.Add (segment, new List<Unit>());
 			removed[segment].Add (unit);
 		}
