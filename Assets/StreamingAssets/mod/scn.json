@@ -65,6 +65,7 @@
       "reload": 2000,
       "range": 3,
       "tightFormationSpacing": 2,
+      "seePrecedence": 1,
       "makeUnitMinDist": 4,
       "makeUnitMaxDist": 8,
       "makePathMinDist": 2,

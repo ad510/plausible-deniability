@@ -269,6 +269,7 @@ public class App : MonoBehaviour {
 					reload = (long)jsonDouble(jsonO, "reload"),
 					range = jsonFP(jsonO, "range"),
 					tightFormationSpacing = jsonFP(jsonO, "tightFormationSpacing"),
+					seePrecedence = (int)jsonDouble (jsonO, "seePrecedence"),
 					makeUnitMinDist = jsonFP(jsonO, "makeUnitMinDist"),
 					makeUnitMaxDist = jsonFP(jsonO, "makeUnitMaxDist"),
 					makePathMinDist = jsonFP(jsonO, "makePathMinDist"),

@@ -136,8 +136,9 @@ public class Path {
 
 	public void beSeen(long time) {
 		Segment segment = insertSegment(time);
-		for (int i = segment.units.Count - 1; i >= 0 && segment.units.Count > nSeeUnits; i--) {
-			new SegmentUnit(segment, segment.units[i]).delete ();
+		foreach (Unit unit in segment.units.OrderByDescending (u => u.type.seePrecedence)) {
+			if (segment.units.Count <= nSeeUnits) break;
+			new SegmentUnit(segment, unit).delete ();
 		}
 		nSeeUnits = int.MaxValue;
 		if (!g.deleteOtherPaths (segment.segmentUnits())) throw new SystemException("failed to delete other paths of seen path");
