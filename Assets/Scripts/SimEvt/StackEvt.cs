@@ -39,21 +39,23 @@ public class StackEvt : SimEvt {
 				FP.Vector iPos = g.paths[paths[i]].calcPos (time);
 				Segment iSegment = g.paths[paths[i]].activeSegment (time);
 				for (int j = i + 1; j < paths.Length; j++) {
-					FP.Vector jPos = g.paths[paths[j]].calcPos (time);
-					Segment jSegment = g.paths[paths[j]].activeSegment (time);
-					// check that paths are at same position
-					if (iPos.x == jPos.x && iPos.y == jPos.y) {
-						// check whether allowed to stack the paths' units together
-						List<Unit> stackUnits = iSegment.units.Union (jSegment.units).ToList ();
-						if (g.stackAllowed (stackUnits, g.paths[paths[i]].speed, g.paths[paths[i]].player)) {
-							// merge the paths onto path i
-							iSegment = g.paths[paths[i]].connect (time, g.paths[paths[j]]);
-							jSegment = g.paths[paths[j]].activeSegment (time);
-							iSegment.units = stackUnits;
-							jSegment.removeAllUnits ();
-							g.paths[paths[i]].nSeeUnits = nSeeUnits;
-							pathsStacked[i] = true;
-							pathsStacked[j] = true;
+					if (!pathsStacked[j]) {
+						FP.Vector jPos = g.paths[paths[j]].calcPos (time);
+						Segment jSegment = g.paths[paths[j]].activeSegment (time);
+						// check that paths are at same position
+						if (iPos.x == jPos.x && iPos.y == jPos.y) {
+							// check whether allowed to stack the paths' units together
+							List<Unit> stackUnits = iSegment.units.Union (jSegment.units).ToList ();
+							if (g.stackAllowed (stackUnits, g.paths[paths[i]].speed, g.paths[paths[i]].player)) {
+								// merge the paths onto path i
+								iSegment = g.paths[paths[i]].connect (time, g.paths[paths[j]]);
+								jSegment = g.paths[paths[j]].activeSegment (time);
+								iSegment.units = stackUnits;
+								jSegment.removeAllUnits ();
+								g.paths[paths[i]].nSeeUnits = nSeeUnits;
+								pathsStacked[i] = true;
+								pathsStacked[j] = true;
+							}
 						}
 					}
 				}
