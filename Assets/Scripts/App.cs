@@ -563,6 +563,10 @@ public class App : MonoBehaviour {
 			// delete unselected paths of selected units (alternate shortcut)
 			deleteOtherPaths ();
 		}
+		if (Input.GetKeyDown (KeyCode.S) && !Input.GetKey (KeyCode.LeftShift)) {
+			// share selected paths
+			sharePaths ();
+		}
 		/*for (KeyCode keyCode = KeyCode.Alpha1; keyCode <= KeyCode.Alpha9; keyCode++) {
 			// set # units that other players may see on selected paths
 			if (Input.GetKeyDown (keyCode)) {
@@ -792,7 +796,7 @@ public class App : MonoBehaviour {
 				if (GUILayout.Button ("New Path" + plural)) makePaths ();
 				if (GUILayout.Button ("Delete Path" + plural)) deletePaths ();
 				if (GUILayout.Button ("Delete Other Paths")) deleteOtherPaths ();
-				if (GUILayout.Button ("Share Paths") && selPaths.Count > 0) g.cmdPending.add (new SharePathsCmdEvt(g.timeSim, newCmdTime (), UnitCmdEvt.argFromPathDict (selPaths)));
+				if (GUILayout.Button ("Share Paths")) sharePaths ();
 			}
 			GUILayout.EndScrollView ();
 			GUILayout.EndArea ();
@@ -1078,6 +1082,13 @@ public class App : MonoBehaviour {
 	/// </summary>
 	private void deleteOtherPaths() {
 		if (selPaths.Count > 0) g.cmdPending.add (new DeleteOtherPathsCmdEvt(g.timeSim, newCmdTime (), UnitCmdEvt.argFromPathDict (selPaths)));
+	}
+	
+	/// <summary>
+	/// shares selected paths
+	/// </summary>
+	private void sharePaths() {
+		if (selPaths.Count > 0) g.cmdPending.add (new SharePathsCmdEvt(g.timeSim, newCmdTime (), UnitCmdEvt.argFromPathDict (selPaths)));
 	}
 	
 	/// <summary>

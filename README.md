@@ -32,6 +32,7 @@ Controls
 - n = create new paths that selected units could take
 - delete = delete selected paths
 - shift + delete/shift + d = delete unselected paths of selected units
+- s = share selected paths
 - shift + r = instant replay
 - shift + o = load game
 - shift + s = save game
