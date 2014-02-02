@@ -69,9 +69,9 @@ public struct SegmentUnit {
 		for (i = 0; i < ancestors.Count; i++) {
 			if (!ancestors[i].deleteAfter (ref removed, ref timeEarliestChild)) break;
 		}
-		// update player's list of unit combinations
+		// obsolesce player's list of unit combinations
 		List<HashSet<SegmentUnit>> oldUnitCombinations = unit.player.unitCombinations;
-		unit.player.calcUnitCombinations ();
+		unit.player.unitCombinations = null;
 		// if a deleteAfter() call failed or removing unit might have led to player having negative resources,
 		// add units back to segments they were removed from
 		if (i < ancestors.Count || (timeEarliestChild != long.MaxValue && segment.path.player.checkNegRsc (timeEarliestChild, false) >= 0)) {

@@ -175,7 +175,7 @@ public class Path {
 			if (!newPathIsLive && !Sim.EnableNonLivePaths) return false;
 			for (int i = 0; i < g.rscNames.Length; i++) {
 				// TODO: may be more permissive by passing in max = true, but this really complicates SegmentUnit.delete() algorithm (see planning notes)
-				if (player.resource(time, i, false, !newPathIsLive) < rscCost[i]) return false;
+				if (rscCost[i] > 0 && player.resource(time, i, false, !newPathIsLive) < rscCost[i]) return false;
 			}
 		}
 		{ // make path
@@ -190,7 +190,7 @@ public class Path {
 			else {
 				player.hasNonLivePaths = true;
 			}
-			player.calcUnitCombinations ();
+			player.unitCombinations = null;
 		}
 		return true;
 	}

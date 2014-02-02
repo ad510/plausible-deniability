@@ -50,7 +50,26 @@ public class Player {
 	public long resource(long time, int rscType, bool max, bool includeNonLiveChildren) {
 		long ret = startRsc[rscType];
 		bool firstCombination = true;
-		if (unitCombinations == null) calcUnitCombinations ();
+		if (unitCombinations == null) {
+			unitCombinations = new List<HashSet<SegmentUnit>> { new HashSet<SegmentUnit>() };
+			for (int i = 0; i < g.nRootPaths; i++) {
+				if (this == g.paths[i].player) {
+					foreach (SegmentUnit segmentUnit in g.paths[i].segments[0].segmentUnits ()) {
+						// TODO: this will double-count units that are in multiple paths at beginning of scenario
+						List<HashSet<SegmentUnit>> newUnitCombinations = new List<HashSet<SegmentUnit>>();
+						foreach (HashSet<SegmentUnit> children in segmentUnit.allChildren ()) {
+							foreach (HashSet<SegmentUnit> combination in unitCombinations) {
+								HashSet<SegmentUnit> newCombination = new HashSet<SegmentUnit> { segmentUnit };
+								newCombination.UnionWith (children);
+								newCombination.UnionWith (combination);
+								if (newUnitCombinations.Find (x => x.SetEquals (newCombination)) == null) newUnitCombinations.Add (newCombination);
+							}
+						}
+						unitCombinations = newUnitCombinations;
+					}
+				}
+			}
+		}
 		foreach (HashSet<SegmentUnit> combination in unitCombinations) {
 			long sum = startRsc[rscType];
 			foreach (SegmentUnit segmentUnit in combination) {
@@ -86,30 +105,6 @@ public class Player {
 			}
 		}
 		return -1;
-	}
-	
-	/// <summary>
-	/// updates unitCombinations for this player
-	/// </summary>
-	public void calcUnitCombinations() {
-		unitCombinations = new List<HashSet<SegmentUnit>> { new HashSet<SegmentUnit>() };
-		for (int i = 0; i < g.nRootPaths; i++) {
-			if (this == g.paths[i].player) {
-				foreach (SegmentUnit segmentUnit in g.paths[i].segments[0].segmentUnits ()) {
-					// TODO: this will double-count units that are in multiple paths at beginning of scenario
-					List<HashSet<SegmentUnit>> newUnitCombinations = new List<HashSet<SegmentUnit>>();
-					foreach (HashSet<SegmentUnit> children in segmentUnit.allChildren ()) {
-						foreach (HashSet<SegmentUnit> combination in unitCombinations) {
-							HashSet<SegmentUnit> newCombination = new HashSet<SegmentUnit> { segmentUnit };
-							newCombination.UnionWith (children);
-							newCombination.UnionWith (combination);
-							if (newUnitCombinations.Find (x => x.SetEquals (newCombination)) == null) newUnitCombinations.Add (newCombination);
-						}
-					}
-					unitCombinations = newUnitCombinations;
-				}
-			}
-		}
 	}
 
 	/// <summary>
