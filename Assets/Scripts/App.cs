@@ -365,13 +365,20 @@ public class App : MonoBehaviour {
 	/// <summary>
 	/// opens binary game file
 	/// </summary>
-	private void gameOpen(string path) {
+	private bool gameOpen(string path) {
+		if (!File.Exists (path)) return false;
 		using (FileStream file = File.OpenRead (path)) {
-			g = Serializer.Deserialize<Sim>(file);
+			try {
+				g = Serializer.Deserialize<Sim>(file);
+			}
+			catch (ProtoException) {
+				return false;
+			}
 		}
 		timeGame = g.timeSim; // TODO: better solution would be including timeGame in saved game
 		loadUI ();
 		GC.Collect ();
+		return true;
 	}
 	
 	/// <summary>
@@ -1172,8 +1179,9 @@ public class App : MonoBehaviour {
 					}
 					else if (scnPath == "scn_nsa.json") {
 						scnPath = "scn_welcome.json";
-						gameOpen (appPath + modPath + "scn_welcome.sav");
-						g.makeInterval = 0; // TODO: no clue why I have to set this explicitly
+						if (gameOpen (appPath + modPath + "scn_welcome.sav")) {
+							g.makeInterval = 0; // TODO: no clue why I have to set this explicitly
+						}
 					}
 					else {
 						Application.LoadLevel ("MenuScene");
