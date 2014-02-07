@@ -643,6 +643,9 @@ public class App : MonoBehaviour {
 			g.pathTexts.Add (new PathText(g.timeSim, g.tourGuide, "You can right click on the map to move your worker around."));
 			while (g.cmdHistory.events.Count == 0) yield return null;
 			yield return new WaitForSeconds(1);
+			g.cmdPending.add (new MoveCmdEvt(g.timeSim, g.timeSim, argFromSegment (g.tourGuide.activeSegment (g.timeSim)),
+				g.paths.Find (p => p.player == g.playerNamed ("Blue")).moves.Last ().vecEnd + randInsideCircle (3), Formation.Tight));
+			yield return new WaitForSeconds(2);
 		}
 		g.pathTexts.Add (new PathText(g.timeSim, g.tourGuide, "Follow me to a mineral!"));
 		yield return new WaitForSeconds(2);
@@ -659,7 +662,14 @@ public class App : MonoBehaviour {
 		}
 		g.cmdPending.add (new MoveCmdEvt(g.timeSim, g.timeSim, argFromSegment (g.tourGuide.activeSegment(g.timeSim)), mineralPos, Formation.Tight));
 		while (g.tourGuide.calcPos (g.timeSim) != mineralPos) yield return null;
-		g.pathTexts.Add (new PathText(g.timeSim, g.tourGuide, "You can build your base here."));
+		if (tutorial) {
+			g.pathTexts.Add (new PathText(g.timeSim, g.tourGuide, "The purple triangle is a mineral. You can build a mine on it."));
+			while (g.units.Find (u => u.type == g.unitTypeNamed ("Mine")) == null) yield return null;
+			g.pathTexts.Add (new PathText(g.timeSim, g.tourGuide, "You can also make buildings to make other types of units."));
+		}
+		else {
+			g.pathTexts.Add (new PathText(g.timeSim, g.tourGuide, "You can start your base here."));
+		}
 		yield return new WaitForSeconds(5);
 		g.pathTexts.Add (new PathText(g.timeSim, g.tourGuide, "See you later!"));
 		g.aiState = AIState.Hide;
