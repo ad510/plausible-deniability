@@ -1088,7 +1088,7 @@ public class App : MonoBehaviour {
 			GUI.Box (new Rect(0, Screen.height * (1 - g.uiBarHeight), Screen.width / 2, Screen.height * g.uiBarHeight), new GUIContent());
 			GUILayout.BeginArea (new Rect(0, Screen.height * (1 - g.uiBarHeight), Screen.width / 4, Screen.height * g.uiBarHeight));
 			cmdsScrollPos = GUILayout.BeginScrollView (cmdsScrollPos);
-			if (selPaths.Count > 0) {
+			if (selPaths.Count > 0 && (scnPath != "scn_welcome.json" || g.makeInterval == 0)) {
 				string plural = (selPaths.Count == 1) ? "" : "s";
 				if (GUILayout.Button ("New Path" + plural)) makePaths ();
 				if (GUILayout.Button ("Delete Path" + plural)) deletePaths ();
