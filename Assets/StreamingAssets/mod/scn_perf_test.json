@@ -8,7 +8,7 @@
   "zoomMax": 0.025,
   "zoomSpeed": 0.001,
   "zoomMouseWheelSpeed": 1,
-  "uiBarHeight": 0.2,
+  "uiBarHeight": 0.25,
   "healthBarSize": {"x": 0.017, "y": 0.005},
   "healthBarYOffset": 0.005,
   "backCol": {"r": 0, "g": 0, "b": 0},
