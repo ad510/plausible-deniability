@@ -19,9 +19,7 @@ Controls
 - move mouse to edge of screen (fullscreen only) = move view
 - page up, page down, mouse wheel = zoom view
 - (ctrl/shift) left click/drag = select units
-- right click = move selected units in tight formation
-- ctrl + right click = move selected units in loose formation
-- alt + right click = move selected units in ring formation
+- right click = move selected units
 - right click on friendly unit = stack selected units onto clicked unit
 - shift = show final positions of selected units
 - spacebar = change selected player
@@ -29,6 +27,9 @@ Controls
 - r = go backwards in time
 - + = increase speed
 - - = decrease speed
+- t = tight formation
+- l = loose formation
+- o = ring formation
 - n = create new paths that selected units could take
 - delete = delete selected paths
 - shift + delete/shift + d = delete unselected paths of selected units

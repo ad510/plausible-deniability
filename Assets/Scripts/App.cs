@@ -103,6 +103,7 @@ public class App : MonoBehaviour {
 	Sim g;
 	Player selPlayer;
 	Dictionary<Path, List<Unit>> selPaths; // ISSUE #12: this should consider time that paths were selected
+	Formation selFormation;
 	UnitType makeUnitType;
 	long timeNow;
 	long timeDelta;
@@ -388,6 +389,7 @@ public class App : MonoBehaviour {
 		selPlayer = g.players[0];
 		while (selPlayer.user != g.selUser) selPlayer = g.players[(selPlayer.id + 1) % g.players.Length];
 		selPaths = new Dictionary<Path, List<Unit>>();
+		selFormation = Formation.Tight;
 		makeUnitType = null;
 		replay = false;
 		showDeletedUnits = false;
@@ -509,8 +511,7 @@ public class App : MonoBehaviour {
 					}
 					else {
 						// move selected paths
-						g.cmdPending.add(new MoveCmdEvt(g.timeSim, newCmdTime(), UnitCmdEvt.argFromPathDict (selPaths), drawToSimPos (Input.mousePosition),
-							Input.GetKey (KeyCode.LeftControl) ? Formation.Loose : Input.GetKey (KeyCode.LeftAlt) ? Formation.Ring : Formation.Tight));
+						g.cmdPending.add(new MoveCmdEvt(g.timeSim, newCmdTime(), UnitCmdEvt.argFromPathDict (selPaths), drawToSimPos (Input.mousePosition), selFormation));
 					}
 				}
 			}
@@ -544,6 +545,21 @@ public class App : MonoBehaviour {
 			// decrease speed
 			speed--;
 			timeSpeedChg = Environment.TickCount;
+		}
+		if (Input.GetKeyDown (KeyCode.T)) {
+			// tight formation
+			selFormation = Formation.Tight;
+			applyFormation ();
+		}
+		if (Input.GetKeyDown (KeyCode.L)) {
+			// loose formation
+			selFormation = Formation.Loose;
+			applyFormation ();
+		}
+		if (Input.GetKeyDown (KeyCode.O) && !Input.GetKey (KeyCode.LeftShift)) {
+			// ring formation
+			selFormation = Formation.Ring;
+			applyFormation ();
 		}
 		if (Input.GetKeyDown (KeyCode.N)) {
 			// create new paths that selected units could take
@@ -793,6 +809,8 @@ public class App : MonoBehaviour {
 			cmdsScrollPos = GUILayout.BeginScrollView (cmdsScrollPos);
 			if (selPaths.Count > 0) {
 				string plural = (selPaths.Count == 1) ? "" : "s";
+				selFormation = (Formation)GUILayout.Toolbar((int)selFormation, new string[] {"Tight", "Loose", "Ring"});
+				if (GUI.changed) applyFormation ();
 				if (GUILayout.Button ("New Path" + plural)) makePaths ();
 				if (GUILayout.Button ("Delete Path" + plural)) deletePaths ();
 				if (GUILayout.Button ("Delete Other Paths")) deleteOtherPaths ();
@@ -1055,6 +1073,25 @@ public class App : MonoBehaviour {
 		} while (ret.lengthSq() < makePathMinDist * makePathMinDist
 			|| ret.lengthSq() > makePathMaxDist * makePathMaxDist);
 		return ret + path.calcPos(time);
+	}
+	
+	/// <summary>
+	/// applies selected formation to selected paths
+	/// </summary>
+	private void applyFormation() {
+		if (selPaths.Count > 0) {
+			long minX = g.mapSize, maxX = 0, minY = g.mapSize, maxY = 0;
+			foreach (KeyValuePair<Path, List<Unit>> path in selPaths) {
+				if (path.Key.canMove (timeGame) && path.Key.activeSegment (timeGame).units.Intersect (path.Value).Any ()) {
+					FP.Vector pos = path.Key.calcPos(timeGame);
+					if (pos.x < minX) minX = pos.x;
+					if (pos.x > maxX) maxX = pos.x;
+					if (pos.y < minY) minY = pos.y;
+					if (pos.y > maxY) maxY = pos.y;
+				}
+			}
+			g.cmdPending.add(new MoveCmdEvt(g.timeSim, newCmdTime(), UnitCmdEvt.argFromPathDict (selPaths), new FP.Vector((minX + maxX) / 2, (minY + maxY) / 2), selFormation));
+		}
 	}
 	
 	/// <summary>
