@@ -97,6 +97,7 @@ public class App : MonoBehaviour {
 	LineBox selectBox;
 	GUIStyle lblStyle;
 	GUIStyle lblErrStyle;
+	float uiBarTop;
 	Vector2 cmdsScrollPos;
 	Vector2 makeUnitScrollPos;
 	Vector2 selUnitsScrollPos;
@@ -386,6 +387,7 @@ public class App : MonoBehaviour {
 		// miscellaneous
 		Camera.main.backgroundColor = g.backCol;
 		border.line.material.color = g.borderCol;
+		uiBarTop = Screen.height * g.uiBarHeight;
 		selPlayer = g.players[0];
 		while (selPlayer.user != g.selUser) selPlayer = g.players[(selPlayer.id + 1) % g.players.Length];
 		selPaths = new Dictionary<Path, List<Unit>>();
@@ -460,7 +462,7 @@ public class App : MonoBehaviour {
 		}
 		if (Input.GetMouseButtonUp (0)) { // left button up
 			mouseUpPos[0] = Input.mousePosition;
-			if (mouseDownPos[0].y > Screen.height * g.uiBarHeight) {
+			if (mouseDownPos[0].y > uiBarTop) {
 				if (makeUnitType != null) {
 					// make unit
 					FP.Vector pos = makeUnitPos();
@@ -491,7 +493,7 @@ public class App : MonoBehaviour {
 		}
 		if (Input.GetMouseButtonUp (1)) { // right button up
 			mouseUpPos[1] = Input.mousePosition;
-			if (mouseDownPos[1].y > Screen.height * g.uiBarHeight) {
+			if (mouseDownPos[1].y > uiBarTop) {
 				if (makeUnitType != null) {
 					// cancel making unit
 					makeUnitType = null;
@@ -633,7 +635,7 @@ public class App : MonoBehaviour {
 		if (Input.GetKey (KeyCode.PageDown)) {
 			g.zoom *= (float)Math.Exp (g.zoomSpeed * timeDelta);
 		}
-		if (Input.mousePosition.y > Screen.height * g.uiBarHeight && Input.GetAxis ("Mouse ScrollWheel") != 0) {
+		if (Input.mousePosition.y > uiBarTop && Input.GetAxis ("Mouse ScrollWheel") != 0) {
 			g.zoom *= (float)Math.Exp (g.zoomMouseWheelSpeed * Input.GetAxis ("Mouse ScrollWheel"));
 		}
 		if (g.zoom < g.zoomMin) g.zoom = g.zoomMin;
@@ -762,7 +764,7 @@ public class App : MonoBehaviour {
 			}
 		}
 		// select box (if needed)
-		if (Input.GetMouseButton (0) && makeUnitType == null && SelBoxMin <= (Input.mousePosition - mouseDownPos[0]).sqrMagnitude && mouseDownPos[0].y > Screen.height * g.uiBarHeight) {
+		if (Input.GetMouseButton (0) && makeUnitType == null && SelBoxMin <= (Input.mousePosition - mouseDownPos[0]).sqrMagnitude && mouseDownPos[0].y > uiBarTop) {
 			selectBox.setRect (mouseDownPos[0], Input.mousePosition, SelectBoxDepth);
 			selectBox.line.enabled = true;
 		}
@@ -793,12 +795,15 @@ public class App : MonoBehaviour {
 			long rscMax = (long)Math.Floor(FP.toDouble(selPlayer.resource(timeGame, i, true, true)));
 			GUILayout.Label (g.rscNames[i] + ": " + rscMin + ((rscMax != rscMin) ? " to " + rscMax : ""), (rscMin >= 0) ? lblStyle : lblErrStyle);
 		}
+		if (Sim.EnableNonLivePaths || replay) {
+			timeGame = (long)GUILayout.HorizontalSlider (timeGame, 0, g.timeSim);
+			uiBarTop = Screen.height - GUILayoutUtility.GetLastRect ().y;
+		}
 		GUILayout.EndArea ();
 		if (replay) {
 			// replay UI
 			GUILayout.BeginArea (new Rect(Screen.width * 0.3f, Screen.height * (1 - g.uiBarHeight), Screen.width * 0.4f, Screen.height * g.uiBarHeight));
 			showDeletedUnits = GUILayout.Toolbar (showDeletedUnits ? 1 : 0, new string[] {"They See", "You See"}) != 0;
-			timeGame = (long)GUILayout.HorizontalSlider (timeGame, 0, g.timeSim);
 			GUILayout.EndArea ();
 		}
 		else {
