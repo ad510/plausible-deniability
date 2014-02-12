@@ -109,6 +109,7 @@ public class App : MonoBehaviour {
 	long timeDelta;
 	long timeGame;
 	bool replay;
+	bool hasDeletedUnits;
 	bool showDeletedUnits;
 	bool paused;
 	int speed;
@@ -678,6 +679,7 @@ public class App : MonoBehaviour {
 				sprUnits[i][j].pathLine.enabled = false;
 			}
 			if (pathDrawPos(g.paths[i], ref vec)) {
+				if (segment.deletedUnits.Count > 0) hasDeletedUnits = true;
 				for (int j = 0; j < segment.units.Count + (showPathDeletedUnits ? segment.deletedUnits.Count : 0); j++) {
 					bool deleted = j >= segment.units.Count;
 					Unit unit = deleted ? segment.deletedUnits[j - segment.units.Count] : segment.units[j];
@@ -797,7 +799,7 @@ public class App : MonoBehaviour {
 		if (replay) {
 			// replay UI
 			GUILayout.BeginArea (new Rect(Screen.width * 0.3f, Screen.height * (1 - g.uiBarHeight), Screen.width * 0.4f, Screen.height * g.uiBarHeight));
-			showDeletedUnits = GUILayout.Toolbar (showDeletedUnits ? 1 : 0, new string[] {"They See", "You See"}) != 0;
+			if (hasDeletedUnits) showDeletedUnits = GUILayout.Toolbar (showDeletedUnits ? 1 : 0, new string[] {"They See", "You See"}) != 0;
 			timeGame = (long)GUILayout.HorizontalSlider (timeGame, 0, g.timeSim);
 			GUILayout.EndArea ();
 		}
@@ -984,6 +986,8 @@ public class App : MonoBehaviour {
 	private void instantReplay() {
 		timeGame = 0;
 		replay = true;
+		hasDeletedUnits = false;
+		showDeletedUnits = false;
 		selPaths.Clear ();
 		foreach (Path path in g.paths) {
 			foreach (Segment segment in path.segments) {
