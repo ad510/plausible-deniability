@@ -24,7 +24,6 @@ Controls
 - shift = show final positions of selected units
 - spacebar = change selected player
 - p = pause/resume
-- r = go backwards in time
 - + = increase speed
 - - = decrease speed
 - t = tight formation

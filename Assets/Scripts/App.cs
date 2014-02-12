@@ -423,11 +423,7 @@ public class App : MonoBehaviour {
 		timeNow += timeDelta;
 		if (!paused) {
 			long timeGameDelta;
-			if (Input.GetKey (KeyCode.R)) {
-				// rewind
-				timeGameDelta = -timeDelta;
-			}
-			else if (timeDelta > g.updateInterval && timeGame + timeDelta >= g.timeSim) {
+			if (timeDelta > g.updateInterval && timeGame + timeDelta >= g.timeSim) {
 				// cap time difference to a max amount
 				timeGameDelta = g.updateInterval;
 			}
