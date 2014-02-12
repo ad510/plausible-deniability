@@ -28,7 +28,7 @@ Controls
 - - = decrease speed
 - t = tight formation
 - l = loose formation
-- o = ring formation
+- r = ring formation
 - n = create new paths that selected units could take
 - delete = delete selected paths
 - shift + delete/shift + d = delete unselected paths of selected units

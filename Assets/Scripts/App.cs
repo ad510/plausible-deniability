@@ -554,7 +554,7 @@ public class App : MonoBehaviour {
 			selFormation = Formation.Loose;
 			applyFormation ();
 		}
-		if (Input.GetKeyDown (KeyCode.O) && !Input.GetKey (KeyCode.LeftShift)) {
+		if (Input.GetKeyDown (KeyCode.R) && !Input.GetKey (KeyCode.LeftShift)) {
 			// ring formation
 			selFormation = Formation.Ring;
 			applyFormation ();
