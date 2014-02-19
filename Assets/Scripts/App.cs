@@ -803,26 +803,30 @@ public class App : MonoBehaviour {
 			GUILayout.EndArea ();
 		}
 		else {
-			// command menu
+			// cheat menu
 			// ISSUE #21: show text or hide button if can't do any of these actions
-			GUI.Box (new Rect(0, Screen.height * (1 - g.uiBarHeight), Screen.width / 2, Screen.height * g.uiBarHeight), new GUIContent());
-			GUILayout.BeginArea (new Rect(0, Screen.height * (1 - g.uiBarHeight), Screen.width / 4, Screen.height * g.uiBarHeight));
-			cmdsScrollPos = GUILayout.BeginScrollView (cmdsScrollPos);
 			if (selPaths.Count > 0) {
 				string plural = (selPaths.Count == 1) ? "" : "s";
-				selFormation = (Formation)GUILayout.Toolbar((int)selFormation, new string[] {"Tight", "Loose", "Ring"});
-				if (GUI.changed) applyFormation ();
+				GUILayout.BeginArea (new Rect(0, Screen.height * (1 - g.uiBarHeight), Screen.width / 4, Screen.height * g.uiBarHeight), (GUIStyle)"box");
+				GUI.color = Color.yellow;
+				GUILayout.Label ("Cheat Panel", lblStyle);
+				GUI.color = Color.white;
+				cmdsScrollPos = GUILayout.BeginScrollView (cmdsScrollPos);
+				GUI.color = Color.yellow;
 				if (GUILayout.Button ("New Path" + plural)) makePaths ();
 				if (GUILayout.Button ("Delete Path" + plural)) deletePaths ();
 				if (GUILayout.Button ("Delete Other Paths")) deleteOtherPaths ();
 				if (GUILayout.Button ("Share Paths")) sharePaths ();
+				GUI.color = Color.white;
+				GUILayout.EndScrollView ();
+				GUILayout.EndArea ();
 			}
-			GUILayout.EndScrollView ();
-			GUILayout.EndArea ();
-			// make unit menu
-			GUILayout.BeginArea (new Rect(Screen.width / 4, Screen.height * (1 - g.uiBarHeight), Screen.width / 4, Screen.height * g.uiBarHeight));
-			makeUnitScrollPos = GUILayout.BeginScrollView (makeUnitScrollPos);
+			// command menu
+			GUILayout.BeginArea (new Rect(Screen.width / 4, Screen.height * (1 - g.uiBarHeight), Screen.width / 4, Screen.height * g.uiBarHeight), (GUIStyle)"box");
 			if (selPaths.Count > 0) {
+				selFormation = (Formation)GUILayout.Toolbar((int)selFormation, new string[] {"Tight", "Loose", "Ring"});
+				if (GUI.changed) applyFormation ();
+				makeUnitScrollPos = GUILayout.BeginScrollView (makeUnitScrollPos);
 				foreach (UnitType unitT in g.unitT) {
 					foreach (Path path in selPaths.Keys) {
 						if (timeGame >= path.moves[0].timeStart && path.canMakeUnitType (timeGame, unitT)) { // ISSUE #22: sometimes canMake check should use existing selected units in path
@@ -831,8 +835,8 @@ public class App : MonoBehaviour {
 						}
 					}
 				}
+				GUILayout.EndScrollView ();
 			}
-			GUILayout.EndScrollView ();
 			GUILayout.EndArea ();
 			// unit selection bar
 			GUILayout.BeginArea (new Rect(Screen.width / 2, Screen.height * (1 - g.uiBarHeight), Screen.width / 2, Screen.height * g.uiBarHeight));
