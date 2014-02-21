@@ -546,18 +546,15 @@ public class App : MonoBehaviour {
 		}
 		if (Input.GetKeyDown (KeyCode.T)) {
 			// tight formation
-			selFormation = Formation.Tight;
-			applyFormation ();
+			setFormation (Formation.Tight);
 		}
 		if (Input.GetKeyDown (KeyCode.L)) {
 			// loose formation
-			selFormation = Formation.Loose;
-			applyFormation ();
+			setFormation (Formation.Loose);
 		}
 		if (Input.GetKeyDown (KeyCode.R) && !Input.GetKey (KeyCode.LeftShift)) {
 			// ring formation
-			selFormation = Formation.Ring;
-			applyFormation ();
+			setFormation (Formation.Ring);
 		}
 		if (Input.GetKeyDown (KeyCode.N)) {
 			// create new paths that selected units could take
@@ -824,8 +821,9 @@ public class App : MonoBehaviour {
 			// command menu
 			GUILayout.BeginArea (new Rect(Screen.width / 4, Screen.height * (1 - g.uiBarHeight), Screen.width / 4, Screen.height * g.uiBarHeight), (GUIStyle)"box");
 			if (selPaths.Count > 0) {
-				selFormation = (Formation)GUILayout.Toolbar((int)selFormation, new string[] {"Tight", "Loose", "Ring"});
-				if (GUI.changed) applyFormation ();
+				int inFormation = (Event.current.type == EventType.MouseUp) ? -1 : (int)selFormation;
+				int outFormation = GUILayout.Toolbar(inFormation, new string[] {"Tight", "Loose", "Ring"});
+				if (inFormation != outFormation) setFormation ((Formation)outFormation);
 				makeUnitScrollPos = GUILayout.BeginScrollView (makeUnitScrollPos);
 				foreach (UnitType unitT in g.unitT) {
 					foreach (Path path in selPaths.Keys) {
@@ -1081,9 +1079,10 @@ public class App : MonoBehaviour {
 	}
 	
 	/// <summary>
-	/// applies selected formation to selected paths
+	/// applies specified formation to selected paths
 	/// </summary>
-	private void applyFormation() {
+	private void setFormation(Formation formation) {
+		selFormation = formation;
 		if (selPaths.Count > 0) {
 			long minX = g.mapSize, maxX = 0, minY = g.mapSize, maxY = 0;
 			foreach (KeyValuePair<Path, List<Unit>> path in selPaths) {
