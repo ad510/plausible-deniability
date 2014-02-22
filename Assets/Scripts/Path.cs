@@ -288,6 +288,15 @@ public class Path {
 		return true;
 	}
 	
+	public IEnumerable<FP.Vector> moveLines(long timeStart, long timeEnd) {
+		yield return calcPos (timeStart);
+		for (int i = activeMove (timeStart) + 1; i <= activeMove (timeEnd); i++) {
+			yield return moves[i].vecStart;
+			yield return moves[i].vecStart;
+		}
+		yield return calcPos (timeEnd);
+	}
+	
 	/// <summary>
 	/// inserts a segment starting at specified time if no segment already starts at that time,
 	/// returns that segment

@@ -215,7 +215,7 @@ public class App : MonoBehaviour {
 			unitT = new UnitType[0],
 			units = new List<Unit>(),
 			paths = new List<Path>(),
-			deletedUnits = new Dictionary<long, List<Segment>>(),
+			deleteLines = new List<MoveLine>(),
 		};
 		if (g.updateInterval > 0) g.events.add(new UpdateEvt(0));
 		g.camPos = jsonFPVector(json, "camPos", new FP.Vector(g.mapSize / 2, g.mapSize / 2));
@@ -674,29 +674,22 @@ public class App : MonoBehaviour {
 			List<Vector3> vertices = new List<Vector3>();
 			List<int> triangles = new List<int>();
 			// ISSUE #16: make width, fade interval, color customizable by mod
-			foreach (KeyValuePair<long, List<Segment>> deletedUnit in g.deletedUnits) {
-				if (timeGame - deletedUnit.Key >= 0 && timeGame - deletedUnit.Key < 500) {
-					foreach (Segment segment in deletedUnit.Value) {
-						if (segment.path.player == selPlayer) {
-							long timeEnd = (segment.nextOnPath () == null || segment.nextOnPath ().timeStart > deletedUnit.Key) ? deletedUnit.Key : segment.nextOnPath ().timeStart;
-							int moveStart = segment.path.activeMove (segment.timeStart);
-							int moveEnd = segment.path.activeMove (timeEnd);
-							for (int i = moveStart; i <= moveEnd; i++) {
-								Vector3 posStart = simToDrawPos (segment.path.calcPos ((i == moveStart) ? segment.timeStart : segment.path.moves[i].timeStart), DeleteLineDepth);
-								Vector3 posEnd = simToDrawPos (segment.path.calcPos ((i == moveEnd) ? timeEnd : segment.path.moves[i + 1].timeStart), DeleteLineDepth);
-								Vector3 offset = 2 * (1 - (timeGame - deletedUnit.Key) / 500f) * new Vector3(posStart.y - posEnd.y, posEnd.x - posStart.x, 0) / Vector3.Distance (posStart, posEnd);
-								vertices.Add (posStart - offset);
-								vertices.Add (posStart + offset);
-								vertices.Add (posEnd - offset);
-								vertices.Add (posEnd + offset);
-								triangles.Add (vertices.Count - 4);
-								triangles.Add (vertices.Count - 3);
-								triangles.Add (vertices.Count - 2);
-								triangles.Add (vertices.Count - 1);
-								triangles.Add (vertices.Count - 2);
-								triangles.Add (vertices.Count - 3);
-							}
-						}
+			foreach (MoveLine deleteLine in g.deleteLines) {
+				if (deleteLine.player == selPlayer && timeGame - deleteLine.time >= 0 && timeGame - deleteLine.time < 500) {
+					for (int i = 0; i < deleteLine.vertices.Count; i += 2) {
+						Vector3 posStart = simToDrawPos (deleteLine.vertices[i], DeleteLineDepth);
+						Vector3 posEnd = simToDrawPos (deleteLine.vertices[i + 1], DeleteLineDepth);
+						Vector3 offset = 2 * (1 - (timeGame - deleteLine.time) / 500f) * new Vector3(posStart.y - posEnd.y, posEnd.x - posStart.x, 0) / Vector3.Distance (posStart, posEnd);
+						vertices.Add (posStart - offset);
+						vertices.Add (posStart + offset);
+						vertices.Add (posEnd - offset);
+						vertices.Add (posEnd + offset);
+						triangles.Add (vertices.Count - 4);
+						triangles.Add (vertices.Count - 3);
+						triangles.Add (vertices.Count - 2);
+						triangles.Add (vertices.Count - 1);
+						triangles.Add (vertices.Count - 2);
+						triangles.Add (vertices.Count - 3);
 					}
 				}
 			}

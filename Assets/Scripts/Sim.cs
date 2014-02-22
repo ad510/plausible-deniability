@@ -71,7 +71,7 @@ public class Sim {
 	public List<int> movedPaths; // indices of paths that moved in the latest simulation event, invalidating later TileMoveEvts for that path
 	[ProtoMember(36)] public int nRootPaths; // number of paths that don't have a parent (because they were defined in scenario file); these are all at beginning of paths list
 	[ProtoMember(37)] public long maxSpeed; // speed of fastest unit (is max speed that players can gain or lose visibility)
-	[ProtoMember(42)] public Dictionary<long, List<Segment>> deletedUnits; // times and segments that units were removed from
+	[ProtoMember(42)] public List<MoveLine> deleteLines;
 	[ProtoMember(38)] public int checksum; // sent to other users during each UpdateEvt to check for multiplayer desyncs
 	[ProtoMember(39)] public bool synced; // whether all checksums between users matched so far
 	[ProtoMember(40)] public long timeSim; // current simulation time
@@ -122,7 +122,7 @@ public class Sim {
 			protoTiles[i].afterSimDeserialize ();
 			tiles[i / tileLen (), i % tileLen ()] = protoTiles[i];
 		}
-		if (deletedUnits == null) deletedUnits = new Dictionary<long, List<Segment>>();
+		if (deleteLines == null) deleteLines = new List<MoveLine>();
 		afterSerialize ();
 	}
 

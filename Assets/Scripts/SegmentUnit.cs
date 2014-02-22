@@ -87,10 +87,17 @@ public struct SegmentUnit {
 				g.events.add(new TileMoveEvt(g.timeSim, seg.path.id, Sim.OffMap, 0));
 			}
 		}
-		if (!g.deletedUnits.ContainsKey(Math.Min (segment.path.timeSimPast, g.timeSim))) {
-			g.deletedUnits[Math.Min (segment.path.timeSimPast, g.timeSim)] = new List<Segment>();
+		// add deleted unit lines
+		MoveLine deleteLine = new MoveLine {
+			time = Math.Min (segment.path.timeSimPast, g.timeSim), // TODO: tweak behavior if deleted before timeSimPast
+			player = unit.player,
+			vertices = new List<FP.Vector>()
+		};
+		foreach (Segment seg in removed.Keys) {
+			deleteLine.vertices.AddRange (seg.path.moveLines (seg.timeStart,
+				(seg.nextOnPath () == null || seg.nextOnPath ().timeStart > deleteLine.time) ? deleteLine.time : seg.nextOnPath ().timeStart));
 		}
-		g.deletedUnits[Math.Min (segment.path.timeSimPast, g.timeSim)].AddRange(removed.Keys); // TODO: tweak behavior if deleted before timeSimPast
+		g.deleteLines.Add (deleteLine);
 		return true;
 	}
 	
