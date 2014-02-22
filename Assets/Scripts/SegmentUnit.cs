@@ -81,10 +81,15 @@ public struct SegmentUnit {
 			unit.player.unitCombinations = oldUnitCombinations;
 			return false;
 		}
-		// remove paths that no longer contain units from visibility tiles
-		foreach (Segment seg in removed.Keys) {
-			if (seg.id == seg.path.segments.Count - 1 && seg.units.Count == 0 && seg.path.tileX != Sim.OffMap) {
-				g.events.add(new TileMoveEvt(g.timeSim, seg.path.id, Sim.OffMap, 0));
+		foreach (KeyValuePair<Segment, List<Unit>> item in removed) {
+			// remove paths that no longer contain units from visibility tiles
+			if (item.Key.id == item.Key.path.segments.Count - 1 && item.Key.units.Count == 0 && item.Key.path.tileX != Sim.OffMap) {
+				g.events.add(new TileMoveEvt(g.timeSim, item.Key.path.id, Sim.OffMap, 0));
+			}
+			// add deleted units to list
+			if (item.Key.timeStart < g.timeSim) {
+				if (item.Key.nextOnPath () == null) item.Key.path.insertSegment (g.timeSim);
+				item.Key.deletedUnits.AddRange (item.Value);
 			}
 		}
 		return true;
@@ -93,9 +98,6 @@ public struct SegmentUnit {
 	private bool deleteAfter(ref Dictionary<Segment, List<Unit>> removed, ref long timeEarliestChild) {
 		if (segment.units.Contains (unit)) {
 			if (!segment.unseen && segment.timeStart < g.timeSim) return false;
-			if (segment.timeStart < g.timeSim && segment.nextOnPath () == null) {
-				segment.path.insertSegment (g.timeSim);
-			}
 			// only remove units from next segments if this is their only previous segment
 			if (segment.nextOnPath () == null || new SegmentUnit(segment.nextOnPath (), unit).prev ().Count () == 1) {
 				// remove unit from next segments
@@ -113,7 +115,6 @@ public struct SegmentUnit {
 			}
 			// remove unit from this segment
 			segment.units.Remove (unit);
-			if (segment.timeStart < g.timeSim) segment.deletedUnits.Add (unit);
 			if (!removed.ContainsKey (segment)) removed.Add (segment, new List<Unit>());
 			removed[segment].Add (unit);
 		}
