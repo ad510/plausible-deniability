@@ -76,12 +76,13 @@ public class App : MonoBehaviour {
 	
 	const double SelBoxMin = 100;
 	const float FntSize = 1f / 40;
-	const float TileDepth = 6f;
-	const float BorderDepth = 5f;
-	const float PathLineDepth = 4f;
-	const float UnitDepth = 3f;
-	const float HealthBarDepth = 2f;
-	const float SelectBoxDepth = 1f;
+	const float TileDepth = 7;
+	const float BorderDepth = 6;
+	const float DeleteLineDepth = 5;
+	const float PathLineDepth = 4;
+	const float UnitDepth = 3;
+	const float HealthBarDepth = 2;
+	const float SelectBoxDepth = 1;
 	
 	public GameObject quadPrefab;
 	
@@ -91,6 +92,8 @@ public class App : MonoBehaviour {
 	Texture2D texTile;
 	GameObject sprTile;
 	LineBox border;
+	GameObject deleteLines;
+	Mesh deleteLinesMesh;
 	Texture[,] texUnits;
 	List<List<UnitSprite>> sprUnits;
 	GameObject sprMakeUnit;
@@ -139,6 +142,13 @@ public class App : MonoBehaviour {
 		sprTile = Instantiate (quadPrefab) as GameObject;
 		border = new LineBox();
 		border.line.SetWidth (2, 2); // ISSUE #16: make width customizable by mod
+		deleteLines = new GameObject();
+		deleteLines.AddComponent<MeshFilter>();
+		deleteLines.AddComponent<MeshRenderer>();
+		deleteLines.renderer.material.shader = Shader.Find ("VertexLit");
+		deleteLines.renderer.material.color = Color.red;
+		deleteLinesMesh = new Mesh();
+		deleteLines.GetComponent<MeshFilter>().mesh = deleteLinesMesh;
 		sprMakeUnit = Instantiate (quadPrefab) as GameObject;
 		// ISSUE #16: make color and width customizable by mod
 		selectBox = new LineBox();
@@ -205,6 +215,7 @@ public class App : MonoBehaviour {
 			unitT = new UnitType[0],
 			units = new List<Unit>(),
 			paths = new List<Path>(),
+			deletedUnits = new Dictionary<long, List<Segment>>(),
 		};
 		if (g.updateInterval > 0) g.events.add(new UpdateEvt(0));
 		g.camPos = jsonFPVector(json, "camPos", new FP.Vector(g.mapSize / 2, g.mapSize / 2));
@@ -657,6 +668,45 @@ public class App : MonoBehaviour {
 		sprTile.transform.localScale = simToDrawScl (new FP.Vector((g.tileLen () << FP.Precision) / 2, (g.tileLen () << FP.Precision) / 2));
 		// map border
 		border.setRect (simToDrawPos (new FP.Vector()), simToDrawPos(new FP.Vector(g.mapSize, g.mapSize)), BorderDepth);
+		// deleted unit lines
+		deleteLinesMesh.Clear ();
+		if (!replay || showDeletedUnits) {
+			List<Vector3> vertices = new List<Vector3>();
+			List<int> triangles = new List<int>();
+			// ISSUE #16: make width, fade interval, color customizable by mod
+			foreach (KeyValuePair<long, List<Segment>> deletedUnit in g.deletedUnits) {
+				if (timeGame - deletedUnit.Key >= 0 && timeGame - deletedUnit.Key < 500) {
+					foreach (Segment segment in deletedUnit.Value) {
+						if (segment.path.player == selPlayer) {
+							long timeEnd = (segment.nextOnPath () == null || segment.nextOnPath ().timeStart > deletedUnit.Key) ? deletedUnit.Key : segment.nextOnPath ().timeStart;
+							int moveStart = segment.path.activeMove (segment.timeStart);
+							int moveEnd = segment.path.activeMove (timeEnd);
+							for (int i = moveStart; i <= moveEnd; i++) {
+								Vector3 posStart = simToDrawPos (segment.path.calcPos ((i == moveStart) ? segment.timeStart : segment.path.moves[i].timeStart), DeleteLineDepth);
+								Vector3 posEnd = simToDrawPos (segment.path.calcPos ((i == moveEnd) ? timeEnd : segment.path.moves[i + 1].timeStart), DeleteLineDepth);
+								Vector3 offset = 2 * (1 - (timeGame - deletedUnit.Key) / 500f) * new Vector3(posStart.y - posEnd.y, posEnd.x - posStart.x, 0) / Vector3.Distance (posStart, posEnd);
+								vertices.Add (posStart - offset);
+								vertices.Add (posStart + offset);
+								vertices.Add (posEnd - offset);
+								vertices.Add (posEnd + offset);
+								triangles.Add (vertices.Count - 4);
+								triangles.Add (vertices.Count - 3);
+								triangles.Add (vertices.Count - 2);
+								triangles.Add (vertices.Count - 1);
+								triangles.Add (vertices.Count - 2);
+								triangles.Add (vertices.Count - 3);
+							}
+						}
+					}
+				}
+			}
+			if (vertices.Count > 0) {
+				deleteLinesMesh.vertices = vertices.ToArray ();
+				deleteLinesMesh.triangles = triangles.ToArray ();
+				deleteLinesMesh.uv = new Vector2[vertices.Count];
+				deleteLinesMesh.normals = new Vector3[vertices.Count];
+			}
+		}
 		// units
 		for (int i = 0; i < g.paths.Count; i++) {
 			Segment segment = g.paths[i].activeSegment (timeGame);

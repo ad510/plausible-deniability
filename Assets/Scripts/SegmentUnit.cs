@@ -87,6 +87,10 @@ public struct SegmentUnit {
 				g.events.add(new TileMoveEvt(g.timeSim, seg.path.id, Sim.OffMap, 0));
 			}
 		}
+		if (!g.deletedUnits.ContainsKey(Math.Min (segment.path.timeSimPast, g.timeSim))) {
+			g.deletedUnits[Math.Min (segment.path.timeSimPast, g.timeSim)] = new List<Segment>();
+		}
+		g.deletedUnits[Math.Min (segment.path.timeSimPast, g.timeSim)].AddRange(removed.Keys); // TODO: tweak behavior if deleted before timeSimPast
 		return true;
 	}
 	
