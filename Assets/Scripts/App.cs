@@ -679,6 +679,7 @@ public class App : MonoBehaviour {
 					for (int i = 0; i < deleteLine.vertices.Count; i += 2) {
 						Vector3 posStart = simToDrawPos (deleteLine.vertices[i], DeleteLineDepth);
 						Vector3 posEnd = simToDrawPos (deleteLine.vertices[i + 1], DeleteLineDepth);
+						if (posStart == posEnd) continue;
 						Vector3 offset = 2 * (1 - (timeGame - deleteLine.time) / 500f) * new Vector3(posStart.y - posEnd.y, posEnd.x - posStart.x, 0) / Vector3.Distance (posStart, posEnd);
 						vertices.Add (posStart - offset);
 						vertices.Add (posStart + offset);
