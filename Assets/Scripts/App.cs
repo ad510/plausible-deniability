@@ -20,7 +20,7 @@ public class App : MonoBehaviour {
 		
 		public LineBox() {
 			line = new GameObject().AddComponent<LineRenderer>();
-			line.material.shader = Shader.Find ("Diffuse");
+			line.material.shader = Shader.Find ("VertexLit");
 			line.SetVertexCount (8);
 		}
 		
@@ -60,7 +60,7 @@ public class App : MonoBehaviour {
 			healthBarBack = Instantiate(quadPrefab) as GameObject;
 			healthBarFore = Instantiate(quadPrefab) as GameObject;
 			pathLine = sprite.AddComponent<LineRenderer>();
-			pathLine.material.shader = Shader.Find ("Diffuse");
+			pathLine.material.shader = Shader.Find ("VertexLit");
 			pathLine.SetVertexCount (2);
 			type = null;
 			player = null;
@@ -133,7 +133,7 @@ public class App : MonoBehaviour {
 		RenderSettings.ambientLight = Color.white;
 		Camera.main.orthographicSize = Screen.height / 2;
 		Camera.main.transform.position = new Vector3(Screen.width / 2f, Screen.height / 2f, 0);
-		quadPrefab.renderer.material.shader = Shader.Find ("Transparent/Diffuse");
+		quadPrefab.renderer.material.shader = Shader.Find ("Transparent/VertexLit");
 		quadPrefab.renderer.material.color = Color.white;
 		quadPrefab.transform.rotation = new Quaternion(0, 1, 0, 0);
 		sprTile = Instantiate (quadPrefab) as GameObject;
