@@ -30,7 +30,7 @@ public struct SegmentUnit {
 	/// <summary>
 	/// removes unit from segment if doing so wouldn't affect anything that another player saw, returns whether successful
 	/// </summary>
-	public bool delete() {
+	public bool delete(bool addMoveLines = false) {
 		if (!segment.units.Contains (unit)) return true; // if this segment already doesn't contain this unit, return true
 		List<SegmentUnit> ancestors = new List<SegmentUnit> { this };
 		Dictionary<Segment, List<Unit>> removed = new Dictionary<Segment, List<Unit>>();
@@ -91,6 +91,16 @@ public struct SegmentUnit {
 				if (item.Key.nextOnPath () == null) item.Key.path.insertSegment (g.timeSim);
 				item.Key.deletedUnits.AddRange (item.Value);
 			}
+		}
+		if (addMoveLines) {
+			// add deleted unit lines
+			// TODO: tweak time if deleted before timeSimPast
+			MoveLine deleteLine = new MoveLine(Math.Min (segment.path.timeSimPast, g.timeSim), unit.player);
+			foreach (Segment seg in removed.Keys) {
+				deleteLine.vertices.AddRange (seg.path.moveLines (seg.timeStart,
+					(seg.nextOnPath () == null || seg.nextOnPath ().timeStart > deleteLine.time) ? deleteLine.time : seg.nextOnPath ().timeStart));
+			}
+			g.deleteLines.Add (deleteLine);
 		}
 		return true;
 	}

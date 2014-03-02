@@ -34,7 +34,7 @@ public class Sim {
 	[ProtoMember(9)] public float zoomSpeed;
 	[ProtoMember(10)] public float zoomMouseWheelSpeed;
 
-	// UI scaling variables
+	// UI properties
 	[ProtoMember(11)] public float uiBarHeight; // height of UI bar relative to screen height
 	[ProtoMember(12)] public Vector2 healthBarSize; // size of health bar relative to diagonal length of screen
 	[ProtoMember(13)] public float healthBarYOffset; // how high to draw center of health bar above top of selectable part of unit
@@ -71,6 +71,8 @@ public class Sim {
 	public List<int> movedPaths; // indices of paths that moved in the latest simulation event, invalidating later TileMoveEvts for that path
 	[ProtoMember(36)] public int nRootPaths; // number of paths that don't have a parent (because they were defined in scenario file); these are all at beginning of paths list
 	[ProtoMember(37)] public long maxSpeed; // speed of fastest unit (is max speed that players can gain or lose visibility)
+	[ProtoMember(42)] public List<MoveLine> deleteLines;
+	[ProtoMember(43)] public List<MoveLine> keepLines;
 	[ProtoMember(38)] public int checksum; // sent to other users during each UpdateEvt to check for multiplayer desyncs
 	[ProtoMember(39)] public bool synced; // whether all checksums between users matched so far
 	[ProtoMember(40)] public long timeSim; // current simulation time
@@ -121,6 +123,7 @@ public class Sim {
 			protoTiles[i].afterSimDeserialize ();
 			tiles[i / tileLen (), i % tileLen ()] = protoTiles[i];
 		}
+		if (deleteLines == null) deleteLines = new List<MoveLine>();
 		afterSerialize ();
 	}
 
@@ -168,10 +171,11 @@ public class Sim {
 	/// removes units from all other paths that, if seen, could cause specified units to be removed from specified segments;
 	/// returns whether successful
 	/// </summary>
-	public bool deleteOtherPaths(IEnumerable<SegmentUnit> segmentUnits) {
+	public bool deleteOtherPaths(IEnumerable<SegmentUnit> segmentUnits, bool addMoveLines = false) {
 		HashSet<SegmentUnit> ancestors = new HashSet<SegmentUnit>();
 		HashSet<SegmentUnit> prev = new HashSet<SegmentUnit>();
 		bool success = true;
+		bool deleted = false;
 		foreach (SegmentUnit segmentUnit in segmentUnits) {
 			addAncestors (segmentUnit, ancestors, prev);
 		}
@@ -179,8 +183,21 @@ public class Sim {
 			foreach (SegmentUnit segmentUnit in ancestor.next ()) {
 				if (!ancestors.Contains (segmentUnit)) {
 					success &= segmentUnit.delete ();
+					deleted = true;
 				}
 			}
+		}
+		if (addMoveLines && deleted) {
+			// add kept unit lines
+			// TODO: tweak time if deleted in past
+			MoveLine keepLine = new MoveLine(timeSim, segmentUnits.First ().unit.player);
+			foreach (SegmentUnit ancestor in ancestors) {
+				if (segmentUnits.Where (u => u.unit == ancestor.unit).Any ()) {
+					keepLine.vertices.AddRange (ancestor.segment.path.moveLines (ancestor.segment.timeStart,
+						(ancestor.segment.nextOnPath () == null) ? keepLine.time : ancestor.segment.nextOnPath().timeStart));
+				}
+			}
+			keepLines.Add (keepLine);
 		}
 		return success;
 	}
