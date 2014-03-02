@@ -11,7 +11,18 @@ using ProtoBuf;
 
 [ProtoContract]
 public class MoveLine {
-	[ProtoMember(1)] public long time;
-	[ProtoMember(2, AsReference = true)] public Player player;
-	[ProtoMember(3)] public List<FP.Vector> vertices;
+	[ProtoMember(1)] public readonly long time;
+	[ProtoMember(2, AsReference = true)] public readonly Player player;
+	[ProtoMember(3)] public readonly List<FP.Vector> vertices;
+	
+	/// <summary>
+	/// empty constructor for protobuf-net use only
+	/// </summary>
+	private MoveLine() { }
+	
+	public MoveLine(long timeVal, Player playerVal) {
+		time = timeVal;
+		player = playerVal;
+		vertices = new List<FP.Vector>();
+	}
 }

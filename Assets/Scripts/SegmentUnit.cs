@@ -88,11 +88,8 @@ public struct SegmentUnit {
 			}
 		}
 		// add deleted unit lines
-		MoveLine deleteLine = new MoveLine {
-			time = Math.Min (segment.path.timeSimPast, g.timeSim), // TODO: tweak behavior if deleted before timeSimPast
-			player = unit.player,
-			vertices = new List<FP.Vector>()
-		};
+		// TODO: tweak time if deleted before timeSimPast
+		MoveLine deleteLine = new MoveLine(Math.Min (segment.path.timeSimPast, g.timeSim), unit.player);
 		foreach (Segment seg in removed.Keys) {
 			deleteLine.vertices.AddRange (seg.path.moveLines (seg.timeStart,
 				(seg.nextOnPath () == null || seg.nextOnPath ().timeStart > deleteLine.time) ? deleteLine.time : seg.nextOnPath ().timeStart));

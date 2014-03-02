@@ -126,7 +126,7 @@ public class App : MonoBehaviour {
 	const float FntSize = 1f / 40;
 	const float TileDepth = 7;
 	const float BorderDepth = 6;
-	const float DeleteLineDepth = 5;
+	const float MoveLineDepth = 5;
 	const float PathLineDepth = 4;
 	const float UnitDepth = 3;
 	const float HealthBarDepth = 2;
@@ -141,6 +141,7 @@ public class App : MonoBehaviour {
 	GameObject sprTile;
 	LineBox border;
 	MoveLineRenderer deleteLines;
+	MoveLineRenderer keepLines;
 	Texture[,] texUnits;
 	List<List<UnitSprite>> sprUnits;
 	GameObject sprMakeUnit;
@@ -190,6 +191,7 @@ public class App : MonoBehaviour {
 		border = new LineBox();
 		border.line.SetWidth (2, 2); // ISSUE #16: make width customizable by mod
 		deleteLines = new MoveLineRenderer(Color.red);
+		keepLines = new MoveLineRenderer(Color.green);
 		sprMakeUnit = Instantiate (quadPrefab) as GameObject;
 		// ISSUE #16: make color and width customizable by mod
 		selectBox = new LineBox();
@@ -257,6 +259,7 @@ public class App : MonoBehaviour {
 			units = new List<Unit>(),
 			paths = new List<Path>(),
 			deleteLines = new List<MoveLine>(),
+			keepLines = new List<MoveLine>(),
 		};
 		if (g.updateInterval > 0) g.events.add(new UpdateEvt(0));
 		g.camPos = jsonFPVector(json, "camPos", new FP.Vector(g.mapSize / 2, g.mapSize / 2));
@@ -709,9 +712,13 @@ public class App : MonoBehaviour {
 		sprTile.transform.localScale = simToDrawScl (new FP.Vector((g.tileLen () << FP.Precision) / 2, (g.tileLen () << FP.Precision) / 2));
 		// map border
 		border.setRect (simToDrawPos (new FP.Vector()), simToDrawPos(new FP.Vector(g.mapSize, g.mapSize)), BorderDepth);
-		// deleted unit lines
+		// unit move lines
 		deleteLines.mesh.Clear ();
-		if (!replay || showDeletedUnits) deleteLines.draw (g.deleteLines, this, timeGame, DeleteLineDepth);
+		keepLines.mesh.Clear ();
+		if (!replay || showDeletedUnits) {
+			deleteLines.draw (g.deleteLines, this, timeGame, MoveLineDepth);
+			keepLines.draw (g.keepLines, this, timeGame, MoveLineDepth);
+		}
 		// units
 		for (int i = 0; i < g.paths.Count; i++) {
 			Segment segment = g.paths[i].activeSegment (timeGame);
