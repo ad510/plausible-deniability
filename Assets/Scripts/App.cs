@@ -45,6 +45,54 @@ public class App : MonoBehaviour {
 		}
 	}
 	
+	private class MoveLineRenderer {
+		public GameObject gameObject;
+		public Mesh mesh;
+		
+		public MoveLineRenderer(Color color) {
+			gameObject = new GameObject();
+			gameObject.AddComponent<MeshFilter>();
+			gameObject.AddComponent<MeshRenderer>();
+			gameObject.renderer.material.shader = Shader.Find ("VertexLit");
+			gameObject.renderer.material.color = color;
+			mesh = new Mesh();
+			gameObject.GetComponent<MeshFilter>().mesh = mesh;
+		}
+		
+		/// <remarks>call mesh.Clear() before calling this</remarks>
+		public void draw(List<MoveLine> moveLines, App app, long time, float depth) {
+			List<Vector3> vertices = new List<Vector3>();
+			List<int> triangles = new List<int>();
+			// ISSUE #16: make width, fade interval, color customizable by mod
+			foreach (MoveLine moveLine in moveLines) {
+				if (moveLine.player == app.selPlayer && time - moveLine.time >= 0 && time - moveLine.time < 500) {
+					for (int i = 0; i < moveLine.vertices.Count; i += 2) {
+						Vector3 posStart = app.simToDrawPos (moveLine.vertices[i], depth);
+						Vector3 posEnd = app.simToDrawPos (moveLine.vertices[i + 1], depth);
+						if (posStart == posEnd) continue;
+						Vector3 offset = 2 * (1 - (time - moveLine.time) / 500f) * new Vector3(posStart.y - posEnd.y, posEnd.x - posStart.x, 0) / Vector3.Distance (posStart, posEnd);
+						vertices.Add (posStart - offset);
+						vertices.Add (posStart + offset);
+						vertices.Add (posEnd - offset);
+						vertices.Add (posEnd + offset);
+						triangles.Add (vertices.Count - 4);
+						triangles.Add (vertices.Count - 3);
+						triangles.Add (vertices.Count - 2);
+						triangles.Add (vertices.Count - 1);
+						triangles.Add (vertices.Count - 2);
+						triangles.Add (vertices.Count - 3);
+					}
+				}
+			}
+			if (vertices.Count > 0) {
+				mesh.vertices = vertices.ToArray ();
+				mesh.triangles = triangles.ToArray ();
+				mesh.uv = new Vector2[vertices.Count];
+				mesh.normals = new Vector3[vertices.Count];
+			}
+		}
+	}
+	
 	private class UnitSprite {
 		public GameObject sprite;
 		public GameObject preview; // for showing unit at final position
@@ -92,8 +140,7 @@ public class App : MonoBehaviour {
 	Texture2D texTile;
 	GameObject sprTile;
 	LineBox border;
-	GameObject deleteLines;
-	Mesh deleteLinesMesh;
+	MoveLineRenderer deleteLines;
 	Texture[,] texUnits;
 	List<List<UnitSprite>> sprUnits;
 	GameObject sprMakeUnit;
@@ -142,13 +189,7 @@ public class App : MonoBehaviour {
 		sprTile = Instantiate (quadPrefab) as GameObject;
 		border = new LineBox();
 		border.line.SetWidth (2, 2); // ISSUE #16: make width customizable by mod
-		deleteLines = new GameObject();
-		deleteLines.AddComponent<MeshFilter>();
-		deleteLines.AddComponent<MeshRenderer>();
-		deleteLines.renderer.material.shader = Shader.Find ("VertexLit");
-		deleteLines.renderer.material.color = Color.red;
-		deleteLinesMesh = new Mesh();
-		deleteLines.GetComponent<MeshFilter>().mesh = deleteLinesMesh;
+		deleteLines = new MoveLineRenderer(Color.red);
 		sprMakeUnit = Instantiate (quadPrefab) as GameObject;
 		// ISSUE #16: make color and width customizable by mod
 		selectBox = new LineBox();
@@ -669,38 +710,8 @@ public class App : MonoBehaviour {
 		// map border
 		border.setRect (simToDrawPos (new FP.Vector()), simToDrawPos(new FP.Vector(g.mapSize, g.mapSize)), BorderDepth);
 		// deleted unit lines
-		deleteLinesMesh.Clear ();
-		if (!replay || showDeletedUnits) {
-			List<Vector3> vertices = new List<Vector3>();
-			List<int> triangles = new List<int>();
-			// ISSUE #16: make width, fade interval, color customizable by mod
-			foreach (MoveLine deleteLine in g.deleteLines) {
-				if (deleteLine.player == selPlayer && timeGame - deleteLine.time >= 0 && timeGame - deleteLine.time < 500) {
-					for (int i = 0; i < deleteLine.vertices.Count; i += 2) {
-						Vector3 posStart = simToDrawPos (deleteLine.vertices[i], DeleteLineDepth);
-						Vector3 posEnd = simToDrawPos (deleteLine.vertices[i + 1], DeleteLineDepth);
-						if (posStart == posEnd) continue;
-						Vector3 offset = 2 * (1 - (timeGame - deleteLine.time) / 500f) * new Vector3(posStart.y - posEnd.y, posEnd.x - posStart.x, 0) / Vector3.Distance (posStart, posEnd);
-						vertices.Add (posStart - offset);
-						vertices.Add (posStart + offset);
-						vertices.Add (posEnd - offset);
-						vertices.Add (posEnd + offset);
-						triangles.Add (vertices.Count - 4);
-						triangles.Add (vertices.Count - 3);
-						triangles.Add (vertices.Count - 2);
-						triangles.Add (vertices.Count - 1);
-						triangles.Add (vertices.Count - 2);
-						triangles.Add (vertices.Count - 3);
-					}
-				}
-			}
-			if (vertices.Count > 0) {
-				deleteLinesMesh.vertices = vertices.ToArray ();
-				deleteLinesMesh.triangles = triangles.ToArray ();
-				deleteLinesMesh.uv = new Vector2[vertices.Count];
-				deleteLinesMesh.normals = new Vector3[vertices.Count];
-			}
-		}
+		deleteLines.mesh.Clear ();
+		if (!replay || showDeletedUnits) deleteLines.draw (g.deleteLines, this, timeGame, DeleteLineDepth);
 		// units
 		for (int i = 0; i < g.paths.Count; i++) {
 			Segment segment = g.paths[i].activeSegment (timeGame);
