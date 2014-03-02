@@ -74,7 +74,7 @@ public class Path {
 		exclusiveIndex = g.tiles[tX, tY].exclusiveIndexWhen(player, (evt != null) ? evt.time - 1 : curTime);
 		if (!g.tiles[tX, tY].exclusiveWhen(player, (evt != null) ? evt.time - 1 : curTime)
 			|| g.tiles[tX, tY].exclusive[player.id][exclusiveIndex] > timeSimPast) {
-			segments.Last ().removeAllUnits();
+			segments.Last ().removeAllUnits(true);
 			return;
 		}
 		// delete path if path moves off exclusive area or tile that path moves to stops being exclusive
@@ -85,7 +85,7 @@ public class Path {
 				exclusiveIndex = g.tiles[tX, tY].exclusiveIndexWhen(player, evt.time);
 				if (!g.tiles[tX, tY].exclusiveWhen(player, evt.time)
 					|| (exclusiveIndex + 1 < g.tiles[tX, tY].exclusive[player.id].Count() && g.tiles[tX, tY].exclusive[player.id][exclusiveIndex + 1] <= Math.Min(g.events.peekTime(), timeSimPastNext))) {
-					segments.Last ().removeAllUnits();
+					segments.Last ().removeAllUnits(true);
 					return;
 				}
 			} while ((evt = (TileMoveEvt)pastEvents.pop()) != null);
@@ -141,7 +141,7 @@ public class Path {
 			new SegmentUnit(segment, unit).delete ();
 		}
 		nSeeUnits = int.MaxValue;
-		if (!g.deleteOtherPaths (segment.segmentUnits())) throw new SystemException("failed to delete other paths of seen path");
+		if (!g.deleteOtherPaths (segment.segmentUnits(), true)) throw new SystemException("failed to delete other paths of seen path");
 		segment.unseen = false;
 	}
 

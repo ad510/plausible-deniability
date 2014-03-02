@@ -50,9 +50,9 @@ public class Segment {
 	/// <summary>
 	/// removes all units if doing so wouldn't affect anything that another player saw
 	/// </summary>
-	public void removeAllUnits() {
+	public void removeAllUnits(bool addMoveLines = false) {
 		while (units.Count > 0) {
-			if (!new SegmentUnit(this, units.Last ()).delete ()) throw new SystemException("failed to remove a unit from segment");
+			if (!new SegmentUnit(this, units.Last ()).delete (addMoveLines)) throw new SystemException("failed to remove a unit from segment");
 		}
 	}
 	
