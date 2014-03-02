@@ -883,6 +883,7 @@ public class App : MonoBehaviour {
 			// command menu
 			GUILayout.BeginArea (new Rect(Screen.width / 4, Screen.height * (1 - g.uiBarHeight), Screen.width / 4, Screen.height * g.uiBarHeight), (GUIStyle)"box");
 			if (selPaths.Count > 0) {
+				string tooltip;
 				int inFormation = (Event.current.type == EventType.MouseUp) ? -1 : (int)selFormation;
 				int outFormation = GUILayout.Toolbar(inFormation, new string[] {"Tight", "Loose", "Ring"});
 				if (inFormation != outFormation) setFormation ((Formation)outFormation);
@@ -890,7 +891,15 @@ public class App : MonoBehaviour {
 				foreach (UnitType unitT in g.unitT) {
 					foreach (Path path in selPaths.Keys) {
 						if (timeGame >= path.moves[0].timeStart && path.canMakeUnitType (timeGame, unitT)) { // ISSUE #22: sometimes canMake check should use existing selected units in path
-							if (GUILayout.Button ("Make " + unitT.name)) makeUnit (unitT);
+							bool enoughRsc = true;
+							tooltip = "Costs ";
+							for (int i = 0; i < g.rscNames.Length; i++) {
+								tooltip += FP.toDouble (unitT.rscCost[i]) + " " + g.rscNames[i];
+								if (i != g.rscNames.Length - 1) tooltip += ", ";
+								enoughRsc &= selPlayer.resource(timeGame, i, false, true) >= unitT.rscCost[i]; // TODO: should sometimes pass in includeNonLiveChildren = false, see makePath(), maybe simpler way would be calling canMakePath()
+							}
+							if (!enoughRsc) tooltip += " ";
+							if (GUILayout.Button (new GUIContent("Make " + unitT.name, tooltip))) makeUnit (unitT);
 							break;
 						}
 					}
@@ -898,6 +907,8 @@ public class App : MonoBehaviour {
 				GUILayout.EndScrollView ();
 			}
 			GUILayout.EndArea ();
+			// command menu tooltip
+			GUI.Label (new Rect(Screen.width / 4, Screen.height - uiBarTop - lblStyle.fontSize, Screen.width / 4, lblStyle.fontSize), GUI.tooltip, GUI.tooltip.EndsWith (" ") ? lblErrStyle : lblStyle);
 			// unit selection bar
 			GUILayout.BeginArea (new Rect(Screen.width / 2, Screen.height * (1 - g.uiBarHeight), Screen.width / 2, Screen.height * g.uiBarHeight));
 			selUnitsScrollPos = GUILayout.BeginScrollView (selUnitsScrollPos, "box");
