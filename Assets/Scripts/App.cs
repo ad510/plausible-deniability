@@ -122,7 +122,7 @@ public class App : MonoBehaviour {
 		}
 	}
 	
-	const bool EnableStacking = true;
+	const bool EnableStacking = false;
 	const double SelBoxMin = 100;
 	const float FntSize = 1f / 40;
 	const float TileDepth = 7;
