@@ -468,8 +468,10 @@ public class App : MonoBehaviour {
 	/// </summary>
 	void Update () {
 		updateTime ();
-		selPlayer.updatePast (timeGame);
-		g.update (timeGame);
+		if (!replay) {
+			selPlayer.updatePast (timeGame);
+			g.update (timeGame);
+		}
 		updateInput ();
 		draw ();
 	}
