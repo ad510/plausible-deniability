@@ -862,6 +862,12 @@ public class App : MonoBehaviour {
 			// replay UI
 			GUILayout.BeginArea (new Rect(Screen.width * 0.3f, Screen.height * (1 - g.uiBarHeight), Screen.width * 0.4f, Screen.height * g.uiBarHeight));
 			showDeletedUnits = GUILayout.Toolbar (showDeletedUnits ? 1 : 0, new string[] {"They See", "You See"}) != 0;
+			if (showDeletedUnits) {
+				GUILayout.Label ("You see all paths that your units took.");
+			}
+			else {
+				GUILayout.Label ("Other players only see the final paths your units took.\nYou plausibly deny that you cheated.");
+			}
 			GUILayout.EndArea ();
 		}
 		else {
