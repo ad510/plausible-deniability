@@ -138,6 +138,7 @@ public class Sim {
 			tiles[i / tileLen (), i % tileLen ()] = protoTiles[i];
 		}
 		if (deleteLines == null) deleteLines = new List<MoveLine>();
+		if (keepLines == null) keepLines = new List<MoveLine>();
 		afterSerialize ();
 	}
 
