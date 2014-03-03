@@ -122,6 +122,7 @@ public class App : MonoBehaviour {
 		}
 	}
 	
+	const bool EnableStacking = true;
 	const double SelBoxMin = 100;
 	const float FntSize = 1f / 40;
 	const float TileDepth = 7;
@@ -558,7 +559,7 @@ public class App : MonoBehaviour {
 							break;
 						}
 					}
-					if (stackPath >= 0) {
+					if (EnableStacking && stackPath >= 0) {
 						// stack selected paths onto clicked path
 						g.cmdPending.add (new StackCmdEvt(g.timeSim, newCmdTime (), UnitCmdEvt.argFromPathDict (selPaths), stackPath));
 					}
@@ -629,7 +630,7 @@ public class App : MonoBehaviour {
 			// delete unselected paths of selected units (alternate shortcut)
 			deleteOtherPaths ();
 		}
-		if (Input.GetKeyDown (KeyCode.S) && !Input.GetKey (KeyCode.LeftShift)) {
+		if (EnableStacking && Input.GetKeyDown (KeyCode.S) && !Input.GetKey (KeyCode.LeftShift)) {
 			// share selected paths
 			sharePaths ();
 		}
@@ -875,7 +876,7 @@ public class App : MonoBehaviour {
 				if (GUILayout.Button ("New Path" + plural)) makePaths ();
 				if (GUILayout.Button ("Delete Path" + plural)) deletePaths ();
 				if (GUILayout.Button ("Delete Other Paths")) deleteOtherPaths ();
-				if (GUILayout.Button ("Share Paths")) sharePaths ();
+				if (EnableStacking && GUILayout.Button ("Share Paths")) sharePaths ();
 				GUI.color = Color.white;
 				GUILayout.EndScrollView ();
 				GUILayout.EndArea ();
@@ -1202,6 +1203,7 @@ public class App : MonoBehaviour {
 	/// shares selected paths
 	/// </summary>
 	private void sharePaths() {
+		if (!EnableStacking) throw new InvalidOperationException("may not share paths when stacking is disabled");
 		if (selPaths.Count > 0) g.cmdPending.add (new SharePathsCmdEvt(g.timeSim, newCmdTime (), UnitCmdEvt.argFromPathDict (selPaths)));
 	}
 	
