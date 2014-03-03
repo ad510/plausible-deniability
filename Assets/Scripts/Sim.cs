@@ -36,7 +36,7 @@ public class Sim {
 	[ProtoMember(9)] public float zoomSpeed;
 	[ProtoMember(10)] public float zoomMouseWheelSpeed;
 
-	// UI scaling variables
+	// UI properties
 	[ProtoMember(11)] public float uiBarHeight; // height of UI bar relative to screen height
 	[ProtoMember(12)] public Vector2 healthBarSize; // size of health bar relative to diagonal length of screen
 	[ProtoMember(13)] public float healthBarYOffset; // how high to draw center of health bar above top of selectable part of unit
@@ -66,12 +66,15 @@ public class Sim {
 	public NetworkView networkView; // to do RPCs in multiplayer (set to null in single player)
 	public Tile[,] tiles; // each tile is 1 fixed-point unit (2^FP.Precision raw integer units) wide, so bit shift by FP.Precision to convert between position and tile position
 	[ProtoMember(31)] private Tile[] protoTiles;
+	public FP.Vector lastUnseenTile;
 	[ProtoMember(32)] public SimEvtList events; // simulation events to be applied
 	[ProtoMember(33)] public SimEvtList cmdPending; // user commands to be sent to other users in the next update
 	[ProtoMember(34)] public SimEvtList cmdHistory; // user commands that have already been applied
 	public List<int> movedPaths; // indices of paths that moved in the latest simulation event, invalidating later TileMoveEvts for that path
 	[ProtoMember(36)] public int nRootPaths; // number of paths that don't have a parent (because they were defined in scenario file); these are all at beginning of paths list
 	[ProtoMember(37)] public long maxSpeed; // speed of fastest unit (is max speed that players can gain or lose visibility)
+	[ProtoMember(42)] public List<MoveLine> deleteLines;
+	[ProtoMember(43)] public List<MoveLine> keepLines;
 	[ProtoMember(38)] public int checksum; // sent to other users during each UpdateEvt to check for multiplayer desyncs
 	[ProtoMember(39)] public bool synced; // whether all checksums between users matched so far
 	[ProtoMember(40)] public long timeSim; // current simulation time
@@ -124,11 +127,17 @@ public class Sim {
 	
 	[ProtoAfterDeserialization]
 	private void afterDeserialize() {
+		if (rscNames == null) rscNames = new string[0];
+		if (players == null) players = new Player[0];
+		if (unitT == null) unitT = new UnitType[0];
+		if (units == null) units = new List<Unit>();
+		if (paths == null) paths = new List<Path>();
 		tiles = new Tile[tileLen (), tileLen ()];
 		for (int i = 0; i < protoTiles.Length; i++) {
 			protoTiles[i].afterSimDeserialize ();
 			tiles[i / tileLen (), i % tileLen ()] = protoTiles[i];
 		}
+		if (deleteLines == null) deleteLines = new List<MoveLine>();
 		afterSerialize ();
 	}
 
@@ -156,7 +165,7 @@ public class Sim {
 			// if event caused path(s) to move, delete and recalculate later events moving them between tiles
 			if (movedPaths.Count > 0) {
 				for (int i = 0; i < events.events.Count; i++) {
-					if (events.events[i] is TileMoveEvt && events.events[i].time > timeSim && movedPaths.Contains(((TileMoveEvt)events.events[i]).path)) {
+					if (events.events[i] is TileMoveEvt && events.events[i].time > timeSim && movedPaths.Contains((events.events[i] as TileMoveEvt).path)) {
 						events.events.RemoveAt(i);
 						i--;
 					}
@@ -176,10 +185,11 @@ public class Sim {
 	/// removes units from all other paths that, if seen, could cause specified units to be removed from specified segments;
 	/// returns whether successful
 	/// </summary>
-	public bool deleteOtherPaths(IEnumerable<SegmentUnit> segmentUnits) {
+	public bool deleteOtherPaths(IEnumerable<SegmentUnit> segmentUnits, bool addMoveLines = false) {
 		HashSet<SegmentUnit> ancestors = new HashSet<SegmentUnit>();
 		HashSet<SegmentUnit> prev = new HashSet<SegmentUnit>();
 		bool success = true;
+		bool deleted = false;
 		foreach (SegmentUnit segmentUnit in segmentUnits) {
 			addAncestors (segmentUnit, ancestors, prev);
 		}
@@ -187,8 +197,21 @@ public class Sim {
 			foreach (SegmentUnit segmentUnit in ancestor.next ()) {
 				if (!ancestors.Contains (segmentUnit)) {
 					success &= segmentUnit.delete ();
+					deleted = true;
 				}
 			}
+		}
+		if (addMoveLines && deleted) {
+			// add kept unit lines
+			// TODO: tweak time if deleted in past
+			MoveLine keepLine = new MoveLine(timeSim, segmentUnits.First ().unit.player);
+			foreach (SegmentUnit ancestor in ancestors) {
+				if (segmentUnits.Where (u => u.unit == ancestor.unit).Any ()) {
+					keepLine.vertices.AddRange (ancestor.segment.path.moveLines (ancestor.segment.timeStart,
+						(ancestor.segment.nextOnPath () == null) ? keepLine.time : ancestor.segment.nextOnPath().timeStart));
+				}
+			}
+			keepLines.Add (keepLine);
 		}
 		return success;
 	}
@@ -241,7 +264,7 @@ public class Sim {
 	/// </summary>
 	public bool inVis(long tX, long tY) {
 		//return Math.Max(Math.Abs(tX), Math.Abs(tY)) <= (int)(g.visRadius >> FP.Precision);
-		return new FP.Vector(tX << FP.Precision, tY << FP.Precision).lengthSq() <= visRadius * visRadius;
+		return (tX << FP.Precision) * (tX << FP.Precision) + (tY << FP.Precision) * (tY << FP.Precision) <= visRadius * visRadius;
 	}
 
 	public int tileVisRadius() {
@@ -252,7 +275,7 @@ public class Sim {
 		return tiles[pos.x >> FP.Precision, pos.y >> FP.Precision];
 	}
 
-	public int tileLen() { // TODO: use unitVis.GetUpperBound instead of this function
+	public int tileLen() { // when fixing ISSUE #31, use tiles.GetUpperBound instead of this function
 		return (int)((mapSize >> FP.Precision) + 1);
 	}
 

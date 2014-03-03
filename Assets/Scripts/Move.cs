@@ -17,8 +17,8 @@ using ProtoBuf;
 public class Move {
 	[ProtoMember(1)] public long timeStart; // time when starts moving
 	[ProtoMember(2)] public long timeEnd; // time when finishes moving
-	[ProtoMember(3)] public FP.Vector vecStart; // location at timeStart, (TODO: z indicates rotation)
-	[ProtoMember(4)] public FP.Vector vecEnd; // location at timeEnd, (TODO: z indicates rotation)
+	[ProtoMember(3)] public FP.Vector vecStart; // location at timeStart (if rotation is implemented, can store it in z value)
+	[ProtoMember(4)] public FP.Vector vecEnd; // location at timeEnd
 	
 	/// <summary>
 	/// empty constructor for protobuf-net use only
@@ -46,7 +46,7 @@ public class Move {
 	/// alternate method to create Move object that asks for speed (in position units per millisecond) instead of end time
 	/// </summary>
 	public static Move fromSpeed(long timeStartVal, long speed, FP.Vector vecStartVal, FP.Vector vecEndVal) {
-		return new Move(timeStartVal, timeStartVal + new FP.Vector(vecEndVal - vecStartVal).length() / speed, vecStartVal, vecEndVal);
+		return new Move(timeStartVal, timeStartVal + (vecEndVal - vecStartVal).length() / speed, vecStartVal, vecEndVal);
 	}
 
 	/// <summary>

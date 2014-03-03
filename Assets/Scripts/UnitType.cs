@@ -27,6 +27,7 @@ public class UnitType {
 	[ProtoMember(11)] public long reload; // time needed to reload
 	[ProtoMember(12)] public long range; // range of attack
 	[ProtoMember(13)] public long tightFormationSpacing;
+	[ProtoMember(23)] public int seePrecedence; // priority of being seen when sharing paths (lower values are higher priority)
 	[ProtoMember(14)] public long makeUnitMinDist; // minimum distance that new units of this unit type move away
 	[ProtoMember(15)] public long makeUnitMaxDist; // maximum distance that new units of this unit type move away
 	[ProtoMember(16)] public long makePathMinDist; // minimum distance that new paths of this unit type move away

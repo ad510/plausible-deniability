@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2013 Andrew Downing
+﻿// Copyright (c) 2013-2014 Andrew Downing
 // Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 // The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
@@ -24,6 +24,7 @@ public class Player {
 	[ProtoMember(9)] public bool hasNonLivePaths; // whether currently might have time traveling paths (ok to sometimes incorrectly be set to true)
 	[ProtoMember(10)] public long timeGoLiveFail; // latest time that player's time traveling paths failed to go live (resets to long.MinValue after success)
 	[ProtoMember(11)] public long timeNegRsc; // time that player could have negative resources if time traveling paths went live
+	public List<HashSet<SegmentUnit>> unitCombinations; // each combination of units that this player could have
 
 	/// <summary>
 	/// update player's non-live (time traveling) paths
@@ -48,12 +49,41 @@ public class Player {
 	/// </param>
 	public long resource(long time, int rscType, bool max, bool includeNonLiveChildren) {
 		long ret = startRsc[rscType];
-		for (int i = 0; i < g.nRootPaths; i++) {
-			if (this == g.paths[i].player) {
-				foreach (SegmentUnit segmentUnit in g.paths[i].segments[0].segmentUnits ()) {
-					// TODO: this will double-count units that are in multiple paths at beginning of scenario
-					ret += segmentUnit.rscCollected(time, rscType, max, includeNonLiveChildren);
+		bool firstCombination = true;
+		if (unitCombinations == null) {
+			unitCombinations = new List<HashSet<SegmentUnit>> { new HashSet<SegmentUnit>() };
+			for (int i = 0; i < g.nRootPaths; i++) {
+				if (this == g.paths[i].player) {
+					foreach (SegmentUnit segmentUnit in g.paths[i].segments[0].segmentUnits ()) {
+						// TODO: this will double-count units that are in multiple paths at beginning of scenario
+						List<HashSet<SegmentUnit>> newUnitCombinations = new List<HashSet<SegmentUnit>>();
+						foreach (HashSet<SegmentUnit> children in segmentUnit.allChildren ()) {
+							foreach (HashSet<SegmentUnit> combination in unitCombinations) {
+								HashSet<SegmentUnit> newCombination = new HashSet<SegmentUnit> { segmentUnit };
+								newCombination.UnionWith (children);
+								newCombination.UnionWith (combination);
+								if (newUnitCombinations.Find (x => x.SetEquals (newCombination)) == null) newUnitCombinations.Add (newCombination);
+							}
+						}
+						unitCombinations = newUnitCombinations;
+					}
 				}
+			}
+		}
+		foreach (HashSet<SegmentUnit> combination in unitCombinations) {
+			long sum = startRsc[rscType];
+			foreach (SegmentUnit segmentUnit in combination) {
+				if (includeNonLiveChildren || segmentUnit.segment.path.timeSimPast == long.MaxValue) {
+					long existsInterval = ((segmentUnit.unit.healthWhen (time) == 0) ? segmentUnit.unit.timeHealth[segmentUnit.unit.nTimeHealth - 1] : time) - segmentUnit.segment.timeStart;
+					if (existsInterval >= 0) {
+						sum += segmentUnit.unit.type.rscCollectRate[rscType] * existsInterval;
+						if (segmentUnit.segment.path.id >= g.nRootPaths) sum -= segmentUnit.unit.type.rscCost[rscType];
+					}
+				}
+			}
+			if (firstCombination || (max ^ (sum < ret))) {
+				ret = sum;
+				firstCombination = false;
 			}
 		}
 		return ret;

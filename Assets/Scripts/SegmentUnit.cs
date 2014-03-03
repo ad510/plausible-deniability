@@ -1,4 +1,4 @@
-// Copyright (c) 2013 Andrew Downing
+// Copyright (c) 2013-2014 Andrew Downing
 // Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 // The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
@@ -30,7 +30,7 @@ public struct SegmentUnit {
 	/// <summary>
 	/// removes unit from segment if doing so wouldn't affect anything that another player saw, returns whether successful
 	/// </summary>
-	public bool delete() {
+	public bool delete(bool addMoveLines = false) {
 		if (!segment.units.Contains (unit)) return true; // if this segment already doesn't contain this unit, return true
 		List<SegmentUnit> ancestors = new List<SegmentUnit> { this };
 		Dictionary<Segment, List<Unit>> removed = new Dictionary<Segment, List<Unit>>();
@@ -71,19 +71,38 @@ public struct SegmentUnit {
 		for (i = 0; i < ancestors.Count; i++) {
 			if (!ancestors[i].deleteAfter (ref removed, ref timeEarliestChild)) break;
 		}
-		// if a removeUnitAfter() call failed or removing unit might have led to player having negative resources,
+		// obsolesce player's list of unit combinations
+		List<HashSet<SegmentUnit>> oldUnitCombinations = unit.player.unitCombinations;
+		unit.player.unitCombinations = null;
+		// if a deleteAfter() call failed or removing unit might have led to player having negative resources,
 		// add units back to segments they were removed from
 		if (i < ancestors.Count || (timeEarliestChild != long.MaxValue && segment.path.player.checkNegRsc (timeEarliestChild, false) >= 0)) {
 			foreach (KeyValuePair<Segment, List<Unit>> item in removed) {
 				item.Key.units.AddRange (item.Value);
 			}
+			unit.player.unitCombinations = oldUnitCombinations;
 			return false;
 		}
-		// remove paths that no longer contain units from visibility tiles
-		foreach (Segment seg in removed.Keys) {
-			if (seg.id == seg.path.segments.Count - 1 && seg.units.Count == 0 && seg.path.tileX != Sim.OffMap) {
-				g.events.add(new TileMoveEvt(g.timeSim, seg.path.id, Sim.OffMap, 0));
+		foreach (KeyValuePair<Segment, List<Unit>> item in removed) {
+			// remove paths that no longer contain units from visibility tiles
+			if (item.Key.id == item.Key.path.segments.Count - 1 && item.Key.units.Count == 0 && item.Key.path.tileX != Sim.OffMap) {
+				g.events.add(new TileMoveEvt(g.timeSim, item.Key.path.id, Sim.OffMap, 0));
 			}
+			// add deleted units to list
+			if (item.Key.timeStart < g.timeSim) {
+				if (item.Key.nextOnPath () == null) item.Key.path.insertSegment (g.timeSim);
+				item.Key.deletedUnits.AddRange (item.Value);
+			}
+		}
+		if (addMoveLines) {
+			// add deleted unit lines
+			// TODO: tweak time if deleted before timeSimPast
+			MoveLine deleteLine = new MoveLine(Math.Min (segment.path.timeSimPast, g.timeSim), unit.player);
+			foreach (Segment seg in removed.Keys) {
+				deleteLine.vertices.AddRange (seg.path.moveLines (seg.timeStart,
+					(seg.nextOnPath () == null || seg.nextOnPath ().timeStart > deleteLine.time) ? deleteLine.time : seg.nextOnPath ().timeStart));
+			}
+			g.deleteLines.Add (deleteLine);
 		}
 		return true;
 	}
@@ -91,9 +110,6 @@ public struct SegmentUnit {
 	private bool deleteAfter(ref Dictionary<Segment, List<Unit>> removed, ref long timeEarliestChild) {
 		if (segment.units.Contains (unit)) {
 			if (!segment.unseen && segment.timeStart < g.timeSim) return false;
-			if (segment.timeStart < g.timeSim && segment.nextOnPath () == null) {
-				segment.path.insertSegment (g.timeSim);
-			}
 			// only remove units from next segments if this is their only previous segment
 			if (segment.nextOnPath () == null || new SegmentUnit(segment.nextOnPath (), unit).prev ().Count () == 1) {
 				// remove unit from next segments
@@ -113,7 +129,6 @@ public struct SegmentUnit {
 			}
 			// remove unit from this segment
 			segment.units.Remove (unit);
-			if (segment.timeStart < g.timeSim) segment.deletedUnits.Add (unit);
 			if (!removed.ContainsKey (segment)) removed.Add (segment, new List<Unit>());
 			removed[segment].Add (unit);
 		}
@@ -132,41 +147,41 @@ public struct SegmentUnit {
 	}
 
 	/// <summary>
-	/// returns resource amount gained by this unit and its children (subtracting cost to make children)
-	/// from this segment's start time to specified time
+	/// returns every combination of units that this unit could have made
 	/// </summary>
-	/// <param name="max">
-	/// since different paths can have collected different resource amounts,
-	/// determines whether to use paths that collected least or most resources in calculation
-	/// </param>
-	// TODO: this currently double-counts child paths/units if paths merge, fix this before enabling stacking
-	public long rscCollected(long time, int rscType, bool max, bool includeNonLiveChildren) {
-		// if this segment wasn't active yet, unit can't have collected anything
-		if (time < segment.timeStart) return 0;
-		// if next segment wasn't active yet, return resources collected from timeStart to time
-		if (segment.nextOnPath () == null || time < segment.nextOnPath ().timeStart) {
-			return unit.type.rscCollectRate[rscType] * (time - segment.timeStart);
+	public List<HashSet<SegmentUnit>> allChildren() {
+		List<HashSet<SegmentUnit>> ret = new List<HashSet<SegmentUnit>>();
+		// if this is last segment, return no children
+		if (segment.nextOnPath () == null) {
+			ret.Add (new HashSet<SegmentUnit>());
+			return ret;
 		}
-		long ret = 0;
-		bool foundNextSeg = false;
-		// add resources gained in next segment that collected either least or most resources (depending on max parameter)
+		// add children in each combination of next segments
 		foreach (SegmentUnit segmentUnit in next ()) {
-			if (includeNonLiveChildren || segmentUnit.segment.path.timeSimPast == long.MaxValue) {
-				long segCollected = segmentUnit.rscCollected (time, rscType, max, includeNonLiveChildren);
-				if (!foundNextSeg || (max ^ (segCollected < ret))) {
-					ret = segCollected;
-					foundNextSeg = true;
-				}
+			foreach (HashSet<SegmentUnit> nextCombination in segmentUnit.allChildren ()) {
+				if (ret.Find (x => x.SetEquals (nextCombination)) == null) ret.Add (nextCombination);
 			}
 		}
-		// add resources gained by children
+		// add children in this segment
 		foreach (SegmentUnit child in children ()) {
-			ret += child.rscCollected (time, rscType, max, includeNonLiveChildren);
-			// subtract cost to make child unit
-			ret -= child.unit.type.rscCost[rscType];
+			List<HashSet<SegmentUnit>> childChildren = child.allChildren ();
+			// add child to each combination so far
+			foreach (HashSet<SegmentUnit> combination in ret) {
+				combination.Add (child);
+			}
+			if (childChildren.Count != 1 || childChildren[0].Count != 0) {
+				// add each child unit combination to each combination so far
+				List<HashSet<SegmentUnit>> newRet = new List<HashSet<SegmentUnit>>();
+				foreach (HashSet<SegmentUnit> childCombination in childChildren) {
+					foreach (HashSet<SegmentUnit> combination in ret) {
+						HashSet<SegmentUnit> newCombination = new HashSet<SegmentUnit>(combination);
+						newCombination.UnionWith (childCombination);
+						if (newRet.Find (x => x.SetEquals (newCombination)) == null) newRet.Add (newCombination);
+					}
+				}
+				ret = newRet;
+			}
 		}
-		// add resources collected on this segment
-		ret += unit.type.rscCollectRate[rscType] * (segment.nextOnPath ().timeStart - segment.timeStart);
 		return ret;
 	}
 	

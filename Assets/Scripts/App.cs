@@ -1,4 +1,4 @@
-// Copyright (c) 2013 Andrew Downing
+// Copyright (c) 2013-2014 Andrew Downing
 // Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 // The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
@@ -20,7 +20,7 @@ public class App : MonoBehaviour {
 		
 		public LineBox() {
 			line = new GameObject().AddComponent<LineRenderer>();
-			line.material.shader = Shader.Find ("Diffuse");
+			line.material.shader = Shader.Find ("VertexLit");
 			line.SetVertexCount (8);
 		}
 		
@@ -45,6 +45,54 @@ public class App : MonoBehaviour {
 		}
 	}
 	
+	private class MoveLineRenderer {
+		public GameObject gameObject;
+		public Mesh mesh;
+		
+		public MoveLineRenderer(Color color) {
+			gameObject = new GameObject();
+			gameObject.AddComponent<MeshFilter>();
+			gameObject.AddComponent<MeshRenderer>();
+			gameObject.renderer.material.shader = Shader.Find ("VertexLit");
+			gameObject.renderer.material.color = color;
+			mesh = new Mesh();
+			gameObject.GetComponent<MeshFilter>().mesh = mesh;
+		}
+		
+		/// <remarks>call mesh.Clear() before calling this</remarks>
+		public void draw(List<MoveLine> moveLines, App app, long time, float depth) {
+			List<Vector3> vertices = new List<Vector3>();
+			List<int> triangles = new List<int>();
+			// ISSUE #16: make width, fade interval, color customizable by mod
+			foreach (MoveLine moveLine in moveLines) {
+				if (moveLine.player == app.selPlayer && time - moveLine.time >= 0 && time - moveLine.time < 500) {
+					for (int i = 0; i < moveLine.vertices.Count; i += 2) {
+						Vector3 posStart = app.simToDrawPos (moveLine.vertices[i], depth);
+						Vector3 posEnd = app.simToDrawPos (moveLine.vertices[i + 1], depth);
+						if (posStart == posEnd) continue;
+						Vector3 offset = 2 * (1 - (time - moveLine.time) / 500f) * new Vector3(posStart.y - posEnd.y, posEnd.x - posStart.x, 0) / Vector3.Distance (posStart, posEnd);
+						vertices.Add (posStart - offset);
+						vertices.Add (posStart + offset);
+						vertices.Add (posEnd - offset);
+						vertices.Add (posEnd + offset);
+						triangles.Add (vertices.Count - 4);
+						triangles.Add (vertices.Count - 3);
+						triangles.Add (vertices.Count - 2);
+						triangles.Add (vertices.Count - 1);
+						triangles.Add (vertices.Count - 2);
+						triangles.Add (vertices.Count - 3);
+					}
+				}
+			}
+			if (vertices.Count > 0) {
+				mesh.vertices = vertices.ToArray ();
+				mesh.triangles = triangles.ToArray ();
+				mesh.uv = new Vector2[vertices.Count];
+				mesh.normals = new Vector3[vertices.Count];
+			}
+		}
+	}
+	
 	private class UnitSprite {
 		public GameObject sprite;
 		public GameObject preview; // for showing unit at final position
@@ -60,7 +108,7 @@ public class App : MonoBehaviour {
 			healthBarBack = Instantiate(quadPrefab) as GameObject;
 			healthBarFore = Instantiate(quadPrefab) as GameObject;
 			pathLine = sprite.AddComponent<LineRenderer>();
-			pathLine.material.shader = Shader.Find ("Diffuse");
+			pathLine.material.shader = Shader.Find ("VertexLit");
 			pathLine.SetVertexCount (2);
 			type = null;
 			player = null;
@@ -74,15 +122,16 @@ public class App : MonoBehaviour {
 		}
 	}
 	
-	const bool EnableStacking = false;
+	const bool EnableStacking = true;
 	const double SelBoxMin = 100;
 	const float FntSize = 1f / 40;
-	const float TileDepth = 6f;
-	const float BorderDepth = 5f;
-	const float PathLineDepth = 4f;
-	const float UnitDepth = 3f;
-	const float HealthBarDepth = 2f;
-	const float SelectBoxDepth = 1f;
+	const float TileDepth = 7;
+	const float BorderDepth = 6;
+	const float MoveLineDepth = 5;
+	const float PathLineDepth = 4;
+	const float UnitDepth = 3;
+	const float HealthBarDepth = 2;
+	const float SelectBoxDepth = 1;
 	
 	public GameObject quadPrefab;
 	
@@ -95,20 +144,25 @@ public class App : MonoBehaviour {
 	Texture2D texTile;
 	GameObject sprTile;
 	LineBox border;
+	MoveLineRenderer deleteLines;
+	MoveLineRenderer keepLines;
 	Texture[,] texUnits;
 	List<List<UnitSprite>> sprUnits;
 	GameObject sprMakeUnit;
 	LineBox selectBox;
 	GUIStyle lblStyle;
+	GUIStyle lblErrStyle;
+	float uiBarTop;
 	Vector2 cmdsScrollPos;
 	Vector2 makeUnitScrollPos;
 	Vector2 selUnitsScrollPos;
 	Sim g;
 	Player selPlayer;
-	Dictionary<Path, List<Unit>> selPaths; // TODO: this should consider time that paths were selected
+	Dictionary<Path, List<Unit>> selPaths; // ISSUE #12: this should consider time that paths were selected
+	Formation selFormation;
 	UnitType makeUnitType;
 	long timeNow;
-	long timeLast;
+	long timeDelta;
 	long timeGame;
 	bool replay;
 	bool showDeletedUnits;
@@ -136,21 +190,25 @@ public class App : MonoBehaviour {
 		RenderSettings.ambientLight = Color.white;
 		Camera.main.orthographicSize = Screen.height / 2;
 		Camera.main.transform.position = new Vector3(Screen.width / 2f, Screen.height / 2f, 0);
-		quadPrefab.renderer.material.shader = Shader.Find ("Transparent/Diffuse");
+		quadPrefab.renderer.material.shader = Shader.Find ("Transparent/VertexLit");
 		quadPrefab.renderer.material.color = Color.white;
 		quadPrefab.transform.rotation = new Quaternion(0, 1, 0, 0);
 		sprTile = Instantiate (quadPrefab) as GameObject;
 		border = new LineBox();
-		border.line.SetWidth (2, 2); // TODO: make width customizable by mod
+		border.line.SetWidth (2, 2); // ISSUE #16: make width customizable by mod
+		deleteLines = new MoveLineRenderer(Color.red);
+		keepLines = new MoveLineRenderer(Color.green);
 		sprMakeUnit = Instantiate (quadPrefab) as GameObject;
-		// TODO: make color and width customizable by mod
+		// ISSUE #16: make color and width customizable by mod
 		selectBox = new LineBox();
 		selectBox.line.material.color = Color.white;
 		selectBox.line.SetWidth (2, 2);
-		// TODO: make font, size, and color customizable by mod
+		// ISSUE #16: make font, size, and color customizable by mod
 		lblStyle = GUIStyle.none;
 		lblStyle.fontSize = (int)(Screen.height * FntSize);
 		lblStyle.normal.textColor = Color.white;
+		lblErrStyle = new GUIStyle(lblStyle);
+		lblErrStyle.normal.textColor = Color.red;
 		if (!scnOpen (appPath + modPath + scnPath, 0, false)) {
 			Debug.LogError ("Scenario failed to load.");
 		}
@@ -163,9 +221,9 @@ public class App : MonoBehaviour {
 		Hashtable json;
 		ArrayList jsonA;
 		bool b = false;
-		// TODO: if this ever supports multiplayer games, host should load file & send data to other players, otherwise json double parsing may not match
-		if (!System.IO.File.Exists(path)) return false;
-		json = (Hashtable)Procurios.Public.JSON.JsonDecode(System.IO.File.ReadAllText(path), ref b);
+		// ISSUE #17: in multiplayer games, host should load file & send data to other players, otherwise json double parsing may not match
+		if (!File.Exists(path)) return false;
+		json = (Hashtable)Procurios.Public.JSON.JsonDecode(File.ReadAllText(path), ref b);
 		if (!b) return false;
 		// base scenario
 		g = new Sim {
@@ -206,8 +264,10 @@ public class App : MonoBehaviour {
 			unitT = new UnitType[0],
 			units = new List<Unit>(),
 			paths = new List<Path>(),
+			deleteLines = new List<MoveLine>(),
+			keepLines = new List<MoveLine>(),
 		};
-		g.events.add(new UpdateEvt(0));
+		if (g.updateInterval > 0) g.events.add(new UpdateEvt(0));
 		g.camPos = jsonFPVector(json, "camPos", new FP.Vector(g.mapSize / 2, g.mapSize / 2));
 		// resources
 		jsonA = jsonArray(json, "resources");
@@ -274,6 +334,7 @@ public class App : MonoBehaviour {
 					reload = (long)jsonDouble(jsonO, "reload"),
 					range = jsonFP(jsonO, "range"),
 					tightFormationSpacing = jsonFP(jsonO, "tightFormationSpacing"),
+					seePrecedence = (int)jsonDouble (jsonO, "seePrecedence"),
 					makeUnitMinDist = jsonFP(jsonO, "makeUnitMinDist"),
 					makeUnitMaxDist = jsonFP(jsonO, "makeUnitMaxDist"),
 					makePathMinDist = jsonFP(jsonO, "makePathMinDist"),
@@ -425,9 +486,11 @@ public class App : MonoBehaviour {
 		// miscellaneous
 		Camera.main.backgroundColor = g.backCol;
 		border.line.material.color = g.borderCol;
+		uiBarTop = Screen.height * g.uiBarHeight;
 		selPlayer = g.players[0];
 		while (selPlayer.user != g.selUser) selPlayer = g.players[(selPlayer.id + 1) % g.players.Length];
 		selPaths = new Dictionary<Path, List<Unit>>();
+		selFormation = Formation.Tight;
 		makeUnitType = null;
 		replay = false;
 		showDeletedUnits = false;
@@ -436,9 +499,9 @@ public class App : MonoBehaviour {
 	}
 	
 	private Texture2D loadTexture(string path) {
-		if (!System.IO.File.Exists (path)) return null;
+		if (!File.Exists (path)) return null;
 		Texture2D tex = new Texture2D(0, 0);
-		byte[] imgBytes = System.IO.File.ReadAllBytes (path);
+		byte[] imgBytes = File.ReadAllBytes (path);
 		tex.LoadImage (imgBytes);
 		return tex;
 	}
@@ -448,9 +511,11 @@ public class App : MonoBehaviour {
 	/// </summary>
 	void Update () {
 		updateTime ();
-		updateAI();
-		selPlayer.updatePast (timeGame);
-		g.update (timeGame);
+		if (!replay) {
+			updateAI();
+			selPlayer.updatePast (timeGame);
+			g.update (timeGame);
+		}
 		updateInput ();
 		draw ();
 	}
@@ -458,7 +523,7 @@ public class App : MonoBehaviour {
 	string message = "";
 
 	private void updateAI() {
-		if (timeGame <= g.timeSim || replay || g.aiState == AIState.Welcome) return;
+		if (timeGame <= g.timeSim || g.aiState == AIState.Welcome) return;
 		
 		// find our units
 		List<Segment> datacenters = g.activeSegments (g.timeSim).Where (s => s.path.player == g.playerNamed ("Red")).ToList ();
@@ -477,7 +542,7 @@ public class App : MonoBehaviour {
 				if (g.tourGuide != null && g.tourGuide.activeSegment (g.timeSim).units.Count > 0 && !g.tourGuide.activeSegment (g.timeSim).unseen) {
 					// tour guide is being watched
 					if (workers.Count == 0) {
-						g.guideSeenTime += timeNow - timeLast;
+						g.guideSeenTime += timeDelta;
 						if (g.guideSeenTime >= 25000) {
 							while (g.tourGuide.activeSegment (g.timeSim).units.Count > 0 && g.tourGuide.activeSegment (g.timeSim).units[0].healthLatest () > 0) {
 								g.tourGuide.activeSegment (g.timeSim).units[0].takeHealth (g.timeSim, g.tourGuide);
@@ -691,23 +756,19 @@ public class App : MonoBehaviour {
 	}
 	
 	private void updateTime() {
-		timeLast = timeNow;
-		timeNow = (long)(Time.time * 1000);
+		timeDelta = (long)(Time.time * 1000) - timeNow;
+		timeNow += timeDelta;
 		if (!paused) {
-			long timeGameDiff;
-			if (Input.GetKey (KeyCode.R)) {
-				// rewind
-				timeGameDiff = -(timeNow - timeLast);
-			}
-			else if (timeNow - timeLast > g.updateInterval && timeGame + timeNow - timeLast >= g.timeSim) {
+			long timeGameDelta;
+			if (timeDelta > g.updateInterval && timeGame + timeDelta >= g.timeSim) {
 				// cap time difference to a max amount
-				timeGameDiff = g.updateInterval;
+				timeGameDelta = g.updateInterval;
 			}
 			else {
 				// normal speed
-				timeGameDiff = timeNow - timeLast;
+				timeGameDelta = timeDelta;
 			}
-			timeGame += (long)(timeGameDiff * Math.Pow(2, speed)); // adjust game speed based on user setting
+			timeGame += (long)(timeGameDelta * Math.Pow(2, speed)); // adjust game speed based on user setting
 			if (replay && timeGame >= g.timeSim) timeGame = g.timeSim - 1;
 		}
 		// don't increment time past latest time that commands were synced across network
@@ -734,7 +795,7 @@ public class App : MonoBehaviour {
 		}
 		if (Input.GetMouseButtonUp (0)) { // left button up
 			mouseUpPos[0] = Input.mousePosition;
-			if (mouseDownPos[0].y > Screen.height * g.uiBarHeight) {
+			if (mouseDownPos[0].y > uiBarTop) {
 				if (makeUnitType != null) {
 					// make unit
 					FP.Vector pos = makeUnitPos();
@@ -750,7 +811,7 @@ public class App : MonoBehaviour {
 						if (selPlayer == path.player && timeGame >= path.moves[0].timeStart
 							&& FP.rectIntersects (drawToSimPos (mouseMinPos), drawToSimPos (mouseMaxPos),
 							path.selMinPos(timeGame), path.selMaxPos(timeGame))) {
-							// TODO: if not all units in path are selected, select remaining units instead of deselecting path
+							// ISSUE #18: if not all units in path are selected, select remaining units instead of deselecting path
 							if (selPaths.ContainsKey (path)) {
 								selPaths.Remove(path);
 							}
@@ -765,7 +826,7 @@ public class App : MonoBehaviour {
 		}
 		if (Input.GetMouseButtonUp (1)) { // right button up
 			mouseUpPos[1] = Input.mousePosition;
-			if (mouseDownPos[1].y > Screen.height * g.uiBarHeight) {
+			if (mouseDownPos[1].y > uiBarTop) {
 				if (makeUnitType != null) {
 					// cancel making unit
 					makeUnitType = null;
@@ -785,8 +846,7 @@ public class App : MonoBehaviour {
 					}
 					else {
 						// move selected paths
-						g.cmdPending.add(new MoveCmdEvt(g.timeSim, newCmdTime(), UnitCmdEvt.argFromPathDict (selPaths), drawToSimPos (Input.mousePosition),
-							Input.GetKey (KeyCode.LeftControl) ? Formation.Loose : Input.GetKey (KeyCode.LeftAlt) ? Formation.Ring : Formation.Tight));
+						g.cmdPending.add(new MoveCmdEvt(g.timeSim, newCmdTime(), UnitCmdEvt.argFromPathDict (selPaths), drawToSimPos (Input.mousePosition), selFormation));
 					}
 				}
 			}
@@ -821,6 +881,18 @@ public class App : MonoBehaviour {
 			speed--;
 			timeSpeedChg = Environment.TickCount;
 		}
+		if (Input.GetKeyDown (KeyCode.T)) {
+			// tight formation
+			setFormation (Formation.Tight);
+		}
+		if (Input.GetKeyDown (KeyCode.L)) {
+			// loose formation
+			setFormation (Formation.Loose);
+		}
+		if (Input.GetKeyDown (KeyCode.R) && !Input.GetKey (KeyCode.LeftShift)) {
+			// ring formation
+			setFormation (Formation.Ring);
+		}
 		if (Input.GetKeyDown (KeyCode.N)) {
 			// create new paths that selected units could take
 			makePaths ();
@@ -839,6 +911,18 @@ public class App : MonoBehaviour {
 			// delete unselected paths of selected units (alternate shortcut)
 			deleteOtherPaths ();
 		}
+		if (EnableStacking && Input.GetKeyDown (KeyCode.S) && !Input.GetKey (KeyCode.LeftShift)) {
+			// share selected paths
+			sharePaths ();
+		}
+		/*for (KeyCode keyCode = KeyCode.Alpha1; keyCode <= KeyCode.Alpha9; keyCode++) {
+			// set # units that other players may see on selected paths
+			if (Input.GetKeyDown (keyCode)) {
+				foreach (Path path in selPaths.Keys) {
+					path.nSeeUnits = keyCode - KeyCode.Alpha1 + 1; // this doesn't sync across multiplayer
+				}
+			}
+		}*/
 		if (Input.GetKeyDown (KeyCode.R) && Input.GetKey (KeyCode.LeftShift)) {
 			// instant replay
 			instantReplay ();
@@ -853,29 +937,29 @@ public class App : MonoBehaviour {
 		}
 		// move camera
 		if (Input.GetKey (KeyCode.LeftArrow) || (Input.mousePosition.x == 0 && Screen.fullScreen)) {
-			g.camPos.x -= g.camSpeed * (timeNow - timeLast);
+			g.camPos.x -= g.camSpeed * timeDelta;
 			if (g.camPos.x < 0) g.camPos.x = 0;
 		}
 		if (Input.GetKey (KeyCode.RightArrow) || (Input.mousePosition.x == Screen.width - 1 && Screen.fullScreen)) {
-			g.camPos.x += g.camSpeed * (timeNow - timeLast);
+			g.camPos.x += g.camSpeed * timeDelta;
 			if (g.camPos.x > g.mapSize) g.camPos.x = g.mapSize;
 		}
 		if (Input.GetKey (KeyCode.DownArrow) || (Input.mousePosition.y == 0 && Screen.fullScreen)) {
-			g.camPos.y -= g.camSpeed * (timeNow - timeLast);
+			g.camPos.y -= g.camSpeed * timeDelta;
 			if (g.camPos.y < 0) g.camPos.y = 0;
 		}
 		if (Input.GetKey (KeyCode.UpArrow) || (Input.mousePosition.y == Screen.height - 1 && Screen.fullScreen)) {
-			g.camPos.y += g.camSpeed * (timeNow - timeLast);
+			g.camPos.y += g.camSpeed * timeDelta;
 			if (g.camPos.y > g.mapSize) g.camPos.y = g.mapSize;
 		}
 		// zoom camera
 		if (Input.GetKey (KeyCode.PageUp)) {
-			g.zoom /= (float)Math.Exp (g.zoomSpeed * (timeNow - timeLast));
+			g.zoom /= (float)Math.Exp (g.zoomSpeed * timeDelta);
 		}
 		if (Input.GetKey (KeyCode.PageDown)) {
-			g.zoom *= (float)Math.Exp (g.zoomSpeed * (timeNow - timeLast));
+			g.zoom *= (float)Math.Exp (g.zoomSpeed * timeDelta);
 		}
-		if (Input.mousePosition.y > Screen.height * g.uiBarHeight && Input.GetAxis ("Mouse ScrollWheel") != 0) {
+		if (Input.mousePosition.y > uiBarTop && Input.GetAxis ("Mouse ScrollWheel") != 0) {
 			g.zoom *= (float)Math.Exp (g.zoomMouseWheelSpeed * Input.GetAxis ("Mouse ScrollWheel"));
 		}
 		if (g.zoom < g.zoomMin) g.zoom = g.zoomMin;
@@ -885,7 +969,7 @@ public class App : MonoBehaviour {
 	private void draw() {
 		Vector3 vec = new Vector3();
 		// visibility tiles
-		// TODO: don't draw tiles off map
+		// ISSUE #19: don't draw tiles off map
 		for (int tX = 0; tX < g.tileLen(); tX++) {
 			for (int tY = 0; tY < g.tileLen(); tY++) {
 				Color col = g.noVisCol;
@@ -904,6 +988,13 @@ public class App : MonoBehaviour {
 		sprTile.transform.localScale = simToDrawScl (new FP.Vector((g.tileLen () << FP.Precision) / 2, (g.tileLen () << FP.Precision) / 2));
 		// map border
 		border.setRect (simToDrawPos (new FP.Vector()), simToDrawPos(new FP.Vector(g.mapSize, g.mapSize)), BorderDepth);
+		// unit move lines
+		deleteLines.mesh.Clear ();
+		keepLines.mesh.Clear ();
+		if (!replay || showDeletedUnits) {
+			deleteLines.draw (g.deleteLines, this, timeGame, MoveLineDepth);
+			keepLines.draw (g.keepLines, this, timeGame, MoveLineDepth);
+		}
 		// units
 		for (int i = 0; i < g.paths.Count; i++) {
 			Segment segment = g.paths[i].activeSegment (timeGame);
@@ -934,7 +1025,7 @@ public class App : MonoBehaviour {
 						sprUnits[i][j].sprite.renderer.material.color = new Color(1, 1, 1, 1);
 					}
 					else {
-						sprUnits[i][j].sprite.renderer.material.color = new Color(1, 1, 1, 0.5f); // TODO: make transparency amount customizable
+						sprUnits[i][j].sprite.renderer.material.color = new Color(1, 1, 1, 0.5f); // ISSUE #16: make transparency amount customizable
 					}
 					sprUnits[i][j].sprite.transform.position = vec + simToDrawScl (unit.type.imgOffset);
 					sprUnits[i][j].sprite.transform.localScale = unitScale (unit.type, unit.player);
@@ -969,7 +1060,7 @@ public class App : MonoBehaviour {
 				sprMakeUnit.transform.position = simToDrawPos(pos + makeUnitType.imgOffset, UnitDepth);
 			}
 			else {
-				sprMakeUnit.renderer.material.color = new Color(1, 1, 1, 0.5f); // TODO: make transparency amount customizable
+				sprMakeUnit.renderer.material.color = new Color(1, 1, 1, 0.5f); // ISSUE #16: make transparency amount customizable
 				sprMakeUnit.transform.position = new Vector3(Input.mousePosition.x, Input.mousePosition.y, UnitDepth) + simToDrawScl (makeUnitType.imgOffset);
 			}
 			sprMakeUnit.transform.localScale = unitScale (makeUnitType, selPlayer);
@@ -1004,7 +1095,7 @@ public class App : MonoBehaviour {
 			}
 		}
 		// select box (if needed)
-		if (Input.GetMouseButton (0) && makeUnitType == null && SelBoxMin <= (Input.mousePosition - mouseDownPos[0]).sqrMagnitude && mouseDownPos[0].y > Screen.height * g.uiBarHeight) {
+		if (Input.GetMouseButton (0) && makeUnitType == null && SelBoxMin <= (Input.mousePosition - mouseDownPos[0]).sqrMagnitude && mouseDownPos[0].y > uiBarTop) {
 			selectBox.setRect (mouseDownPos[0], Input.mousePosition, SelectBoxDepth);
 			selectBox.line.enabled = true;
 		}
@@ -1061,66 +1152,87 @@ public class App : MonoBehaviour {
 		// text at top left
 		GUILayout.BeginArea (new Rect(0, 0, Screen.width, Screen.height * (1 - g.uiBarHeight)));
 		if (!g.synced) {
-			lblStyle.normal.textColor = Color.red;
-			GUILayout.Label ("OUT OF SYNC", lblStyle);
-			lblStyle.normal.textColor = Color.white;
+			GUILayout.Label ("OUT OF SYNC", lblErrStyle);
 		}
 		GUILayout.Label (replay ? "REPLAY" : (timeGame >= g.timeSim) ? "LIVE" : "TIME TRAVELING", lblStyle);
 		if (paused) GUILayout.Label ("PAUSED", lblStyle);
 		if (Environment.TickCount < timeSpeedChg) timeSpeedChg -= UInt32.MaxValue;
 		if (Environment.TickCount < timeSpeedChg + 1000) GUILayout.Label ("SPEED: " + Math.Pow(2, speed) + "x", lblStyle);
 		if (selPlayer.timeGoLiveFail != long.MinValue) {
-			lblStyle.normal.textColor = Color.red;
-			GUILayout.Label ("ERROR: Going live may cause you to have negative resources " + (timeGame - selPlayer.timeNegRsc) / 1000 + " second(s) ago.", lblStyle);
+			GUILayout.Label ("ERROR: Going live may cause you to have negative resources " + (timeGame - selPlayer.timeNegRsc) / 1000 + " second(s) ago.", lblErrStyle);
 		}
 		// text at bottom left
 		GUILayout.FlexibleSpace ();
 		for (int i = 0; i < g.rscNames.Length; i++) {
 			long rscMin = (long)Math.Floor(FP.toDouble(selPlayer.resource(timeGame, i, false, true)));
 			long rscMax = (long)Math.Floor(FP.toDouble(selPlayer.resource(timeGame, i, true, true)));
-			lblStyle.normal.textColor = (rscMin >= 0) ? Color.white : Color.red;
-			GUILayout.Label (g.rscNames[i] + ": " + rscMin + ((rscMax != rscMin) ? " to " + rscMax : ""), lblStyle);
+			GUILayout.Label (g.rscNames[i] + ": " + rscMin + ((rscMax != rscMin) ? " to " + rscMax : ""), (rscMin >= 0) ? lblStyle : lblErrStyle);
+		}
+		if (Sim.EnableNonLivePaths || replay) {
+			timeGame = (long)GUILayout.HorizontalSlider (timeGame, 0, g.timeSim);
+			uiBarTop = Screen.height - GUILayoutUtility.GetLastRect ().y;
 		}
 		GUILayout.EndArea ();
 		if (replay) {
 			// replay UI
 			GUILayout.BeginArea (new Rect(Screen.width * 0.3f, Screen.height * (1 - g.uiBarHeight), Screen.width * 0.4f, Screen.height * g.uiBarHeight));
 			showDeletedUnits = GUILayout.Toolbar (showDeletedUnits ? 1 : 0, new string[] {"They See", "You See"}) != 0;
-			timeGame = (long)GUILayout.HorizontalSlider (timeGame, 0, g.timeSim);
+			if (showDeletedUnits) {
+				GUILayout.Label ("You see all paths that your units took.");
+			}
+			else {
+				GUILayout.Label ("Other players only see the final paths your units took.\nYou plausibly deny that you cheated.");
+			}
 			GUILayout.EndArea ();
 		}
 		else {
-			// TODO: formation buttons
-			// TODO: timeline
-			// TODO: mini map
-			// command menu
-			// TODO: show text or hide button if can't do any of these actions
-			GUI.Box (new Rect(0, Screen.height * (1 - g.uiBarHeight), Screen.width / 2, Screen.height * g.uiBarHeight), new GUIContent());
-			GUILayout.BeginArea (new Rect(0, Screen.height * (1 - g.uiBarHeight), Screen.width / 4, Screen.height * g.uiBarHeight));
-			cmdsScrollPos = GUILayout.BeginScrollView (cmdsScrollPos);
+			// cheat menu
+			// ISSUE #21: show text or hide button if can't do any of these actions
 			if (selPaths.Count > 0 && (scnPath != "scn_welcome.json" || !tutorial || g.makeInterval == 0)) {
 				string plural = (selPaths.Count == 1) ? "" : "s";
+				GUILayout.BeginArea (new Rect(0, Screen.height * (1 - g.uiBarHeight), Screen.width / 4, Screen.height * g.uiBarHeight), (GUIStyle)"box");
+				GUI.color = Color.yellow;
+				GUILayout.Label ("Cheat Panel", lblStyle);
+				GUI.color = Color.white;
+				cmdsScrollPos = GUILayout.BeginScrollView (cmdsScrollPos);
+				GUI.color = Color.yellow;
 				if (GUILayout.Button ("New Path" + plural)) makePaths ();
 				if (GUILayout.Button ("Delete Path" + plural)) deletePaths ();
 				if (GUILayout.Button ("Delete Other Paths")) deleteOtherPaths ();
+				if (EnableStacking && GUILayout.Button ("Share Paths")) sharePaths ();
+				GUI.color = Color.white;
+				GUILayout.EndScrollView ();
+				GUILayout.EndArea ();
 			}
-			GUILayout.EndScrollView ();
-			GUILayout.EndArea ();
-			// make unit menu
-			GUILayout.BeginArea (new Rect(Screen.width / 4, Screen.height * (1 - g.uiBarHeight), Screen.width / 4, Screen.height * g.uiBarHeight));
-			makeUnitScrollPos = GUILayout.BeginScrollView (makeUnitScrollPos);
+			// command menu
+			GUILayout.BeginArea (new Rect(Screen.width / 4, Screen.height * (1 - g.uiBarHeight), Screen.width / 4, Screen.height * g.uiBarHeight), (GUIStyle)"box");
 			if (selPaths.Count > 0) {
+				string tooltip;
+				int inFormation = (Event.current.type == EventType.MouseUp) ? -1 : (int)selFormation;
+				int outFormation = GUILayout.Toolbar(inFormation, new string[] {"Tight", "Loose", "Ring"});
+				if (inFormation != outFormation) setFormation ((Formation)outFormation);
+				makeUnitScrollPos = GUILayout.BeginScrollView (makeUnitScrollPos);
 				foreach (UnitType unitT in g.unitT) {
 					foreach (Path path in selPaths.Keys) {
-						if (timeGame >= path.moves[0].timeStart && path.canMakeUnitType (timeGame, unitT)) { // TODO: sometimes canMake check should use existing selected units in path
-							if (GUILayout.Button ("Make " + unitT.name)) makeUnit (unitT);
+						if (timeGame >= path.moves[0].timeStart && path.canMakeUnitType (timeGame, unitT)) { // ISSUE #22: sometimes canMake check should use existing selected units in path
+							bool enoughRsc = true;
+							tooltip = "Costs ";
+							for (int i = 0; i < g.rscNames.Length; i++) {
+								tooltip += FP.toDouble (unitT.rscCost[i]) + " " + g.rscNames[i];
+								if (i != g.rscNames.Length - 1) tooltip += ", ";
+								enoughRsc &= selPlayer.resource(timeGame, i, false, true) >= unitT.rscCost[i]; // TODO: should sometimes pass in includeNonLiveChildren = false, see makePath(), maybe simpler way would be calling canMakePath()
+							}
+							if (!enoughRsc) tooltip += " ";
+							if (GUILayout.Button (new GUIContent("Make " + unitT.name, tooltip))) makeUnit (unitT);
 							break;
 						}
 					}
 				}
+				GUILayout.EndScrollView ();
 			}
-			GUILayout.EndScrollView ();
 			GUILayout.EndArea ();
+			// command menu tooltip
+			GUI.Label (new Rect(Screen.width / 4, Screen.height - uiBarTop - lblStyle.fontSize, Screen.width / 4, lblStyle.fontSize), GUI.tooltip, GUI.tooltip.EndsWith (" ") ? lblErrStyle : lblStyle);
 			// unit selection bar
 			GUILayout.BeginArea (new Rect(Screen.width / 2, Screen.height * (1 - g.uiBarHeight), Screen.width / 2, Screen.height * g.uiBarHeight));
 			selUnitsScrollPos = GUILayout.BeginScrollView (selUnitsScrollPos, "box");
@@ -1151,7 +1263,7 @@ public class App : MonoBehaviour {
 			GUILayout.EndArea ();
 		}
 		// multiplayer GUI
-		// TODO: implement main menu and move this there
+		// ISSUE #23: implement main menu and move this there
 		/*GUILayout.BeginArea (new Rect(0, Screen.height / 3, lblStyle.fontSize * 10, Screen.height));
 		if (Network.peerType == NetworkPeerType.Disconnected) {
 			serverAddr = GUILayout.TextField (serverAddr);
@@ -1220,38 +1332,15 @@ public class App : MonoBehaviour {
 		scnOpen (appPath + modPath + scnPath, user, true);
 	}
 	
-	// TODO: add NetworkMessageInfo as last parameter to authenticate user, according to http://forum.unity3d.com/threads/141156-Determine-sender-of-RPC
+	// ISSUE #24: add NetworkMessageInfo as last parameter to authenticate user, according to http://forum.unity3d.com/threads/141156-Determine-sender-of-RPC
 	[RPC]
-	void addCmd(int user, int cmdType, byte[] cmdData) {
-		System.IO.MemoryStream stream = new System.IO.MemoryStream(cmdData);
-		if (cmdType == (int)CmdEvtTag.move) {
-			g.users[user].cmdReceived.add (Serializer.Deserialize<MoveCmdEvt>(stream));
-		}
-		else if (cmdType == (int)CmdEvtTag.makeUnit) {
-			g.users[user].cmdReceived.add (Serializer.Deserialize<MakeUnitCmdEvt>(stream));
-		}
-		else if (cmdType == (int)CmdEvtTag.makePath) {
-			g.users[user].cmdReceived.add (Serializer.Deserialize<MakePathCmdEvt>(stream));
-		}
-		else if (cmdType == (int)CmdEvtTag.deletePath) {
-			g.users[user].cmdReceived.add (Serializer.Deserialize<DeletePathCmdEvt>(stream));
-		}
-		else if (cmdType == (int)CmdEvtTag.deleteOtherPaths) {
-			g.users[user].cmdReceived.add (Serializer.Deserialize<DeleteOtherPathsCmdEvt>(stream));
-		}
-		else if (cmdType == (int)CmdEvtTag.stack) {
-			g.users[user].cmdReceived.add (Serializer.Deserialize<StackCmdEvt>(stream));
-		}
-		else if (cmdType == (int)CmdEvtTag.goLive) {
-			g.users[user].cmdReceived.add (Serializer.Deserialize<GoLiveCmdEvt>(stream));
-		}
-		else {
-			throw new InvalidOperationException("received command of invalid type");
-		}
+	void nextTurnWithCmds(int user, byte[] cmdData, int checksum) {
+		g.users[user].cmdReceived.events.AddRange (Serializer.Deserialize<SimEvtList>(new MemoryStream(cmdData)).events);
+		nextTurn (user, checksum);
 	}
 	
 	[RPC]
-	void allCmdsSent(int user, int checksum) {
+	void nextTurn(int user, int checksum) {
 		g.users[user].timeSync += g.updateInterval;
 		g.users[user].checksums[g.users[user].timeSync] = checksum;
 	}
@@ -1366,7 +1455,7 @@ public class App : MonoBehaviour {
 		if (FP.rectContains (new FP.Vector(), new FP.Vector(g.mapSize, g.mapSize), drawToSimPos(Input.mousePosition))) {
 			if (makeUnitType.makeOnUnitT != null) {
 				// selected unit type must be made on top of another unit of correct type
-				// TODO: prevent putting multiple units on same unit (unless on different paths of same unit and maybe some other cases)
+				// ISSUE #25: prevent putting multiple units on same unit (unless on different paths of same unit and maybe some other cases)
 				foreach (Path path in g.paths) {
 					if (timeGame >= path.segments[0].timeStart) {
 						FP.Vector pos = path.calcPos(timeGame);
@@ -1419,6 +1508,26 @@ public class App : MonoBehaviour {
 	}
 	
 	/// <summary>
+	/// applies specified formation to selected paths
+	/// </summary>
+	private void setFormation(Formation formation) {
+		selFormation = formation;
+		if (selPaths.Count > 0) {
+			long minX = g.mapSize, maxX = 0, minY = g.mapSize, maxY = 0;
+			foreach (KeyValuePair<Path, List<Unit>> path in selPaths) {
+				if (path.Key.canMove (timeGame) && path.Key.activeSegment (timeGame).units.Intersect (path.Value).Any ()) {
+					FP.Vector pos = path.Key.calcPos(timeGame);
+					if (pos.x < minX) minX = pos.x;
+					if (pos.x > maxX) maxX = pos.x;
+					if (pos.y < minY) minY = pos.y;
+					if (pos.y > maxY) maxY = pos.y;
+				}
+			}
+			g.cmdPending.add(new MoveCmdEvt(g.timeSim, newCmdTime(), UnitCmdEvt.argFromPathDict (selPaths), new FP.Vector((minX + maxX) / 2, (minY + maxY) / 2), selFormation));
+		}
+	}
+	
+	/// <summary>
 	/// creates new paths that selected units could take
 	/// </summary>
 	private void makePaths() {
@@ -1446,16 +1555,24 @@ public class App : MonoBehaviour {
 	}
 	
 	/// <summary>
+	/// shares selected paths
+	/// </summary>
+	private void sharePaths() {
+		if (!EnableStacking) throw new InvalidOperationException("may not share paths when stacking is disabled");
+		if (selPaths.Count > 0) g.cmdPending.add (new SharePathsCmdEvt(g.timeSim, newCmdTime (), UnitCmdEvt.argFromPathDict (selPaths)));
+	}
+	
+	/// <summary>
 	/// makes a new unit using selected units
 	/// </summary>
 	private void makeUnit(UnitType type) {
-		// TODO: this should only iterate through existing paths (fix when selPaths considers selection time)
+		// related to ISSUE #12: this should only iterate through existing paths (fix when selPaths considers selection time)
 		foreach (KeyValuePair<Path, List<Unit>> path in selPaths) {
 			if (type.speed > 0 && type.makeOnUnitT == null && path.Key.canMakeUnitType (timeGame, type)) {
 				// make unit now
-				Dictionary<Path, List<Unit>> pathDict = new Dictionary<Path, List<Unit>>();
-				pathDict.Add (path.Key, path.Value);
-				g.cmdPending.add(new MakeUnitCmdEvt(g.timeSim, newCmdTime(), UnitCmdEvt.argFromPathDict (pathDict), type.id, makeUnitMovePos (timeGame, path.Key, type)));
+				g.cmdPending.add(new MakeUnitCmdEvt(g.timeSim, newCmdTime(),
+					UnitCmdEvt.argFromPathDict (new Dictionary<Path, List<Unit>> { { path.Key, path.Value } }),
+					type.id, makeUnitMovePos (timeGame, path.Key, type)));
 				break;
 			}
 			else if (g.unitsCanMake (path.Value, type)) {

@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2013 Andrew Downing
+﻿// Copyright (c) 2013-2014 Andrew Downing
 // Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 // The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
@@ -21,6 +21,7 @@ public class Path {
 	[ProtoMember(4, AsReference = true)] public readonly Player player;
 	[ProtoMember(5, AsReference = true)] public List<Segment> segments; // composition of the path over time, more recent segments are later in list
 	[ProtoMember(6, AsReference = true)] public List<Move> moves; // how path moved over time, more recent moves are later in list
+	[ProtoMember(10)] public int nSeeUnits; // max # units that should be on this path when it's seen by another player
 	[ProtoMember(7)] public int tileX; // current position on visibility tiles
 	[ProtoMember(8)] public int tileY;
 	[ProtoMember(9)] public long timeSimPast; // time traveling simulation time if made in the past, otherwise set to long.MaxValue
@@ -30,7 +31,7 @@ public class Path {
 	/// </summary>
 	private Path() { }
 
-	public Path(Sim simVal, int idVal, long speedVal, Player playerVal, List<Unit> units, long startTime, FP.Vector startPos, bool startUnseen) {
+	public Path(Sim simVal, int idVal, long speedVal, Player playerVal, List<Unit> units, long startTime, FP.Vector startPos, bool startUnseen, int nSeeUnitsVal) {
 		g = simVal;
 		id = idVal;
 		speed = speedVal;
@@ -42,6 +43,7 @@ public class Path {
 		moves = new List<Move> {
 			new Move(startTime, startPos)
 		};
+		nSeeUnits = nSeeUnitsVal;
 		tileX = Sim.OffMap + 1;
 		tileY = Sim.OffMap + 1;
 		timeSimPast = (startTime >= g.timeSim) ? long.MaxValue : startTime;
@@ -49,7 +51,7 @@ public class Path {
 	
 	public Path(Sim simVal, int idVal, List<Unit> units, long startTime, FP.Vector startPos)
 		: this(simVal, idVal, units[0].type.speed, units[0].player, units,
-		startTime, startPos, simVal.tileAt(startPos).exclusiveWhen(units[0].player, startTime)) {
+		startTime, startPos, simVal.tileAt(startPos).exclusiveWhen(units[0].player, startTime), int.MaxValue) {
 	}
 
 	/// <summary>
@@ -66,13 +68,13 @@ public class Path {
 		pos = calcPos(timeSimPast);
 		tX = (int)(pos.x >> FP.Precision);
 		tY = (int)(pos.y >> FP.Precision);
-		// TODO: without modifications, line below may cause syncing problems in multiplayer b/c addTileMoveEvts() sometimes adds events before timeSimPast
+		// ISSUE #26: without modifications, line below may cause syncing problems in multiplayer b/c addTileMoveEvts() sometimes adds events before timeSimPast
 		addTileMoveEvts(ref pastEvents, timeSimPast, timeSimPastNext);
 		evt = (TileMoveEvt)pastEvents.pop();
 		exclusiveIndex = g.tiles[tX, tY].exclusiveIndexWhen(player, (evt != null) ? evt.time - 1 : curTime);
 		if (!g.tiles[tX, tY].exclusiveWhen(player, (evt != null) ? evt.time - 1 : curTime)
 			|| g.tiles[tX, tY].exclusive[player.id][exclusiveIndex] > timeSimPast) {
-			segments.Last ().removeAllUnits();
+			segments.Last ().removeAllUnits(true);
 			return;
 		}
 		// delete path if path moves off exclusive area or tile that path moves to stops being exclusive
@@ -83,7 +85,7 @@ public class Path {
 				exclusiveIndex = g.tiles[tX, tY].exclusiveIndexWhen(player, evt.time);
 				if (!g.tiles[tX, tY].exclusiveWhen(player, evt.time)
 					|| (exclusiveIndex + 1 < g.tiles[tX, tY].exclusive[player.id].Count() && g.tiles[tX, tY].exclusive[player.id][exclusiveIndex + 1] <= Math.Min(g.events.peekTime(), timeSimPastNext))) {
-					segments.Last ().removeAllUnits();
+					segments.Last ().removeAllUnits(true);
 					return;
 				}
 			} while ((evt = (TileMoveEvt)pastEvents.pop()) != null);
@@ -134,18 +136,52 @@ public class Path {
 
 	public void beSeen(long time) {
 		Segment segment = insertSegment(time);
+		foreach (Unit unit in segment.units.OrderByDescending (u => u.type.seePrecedence)) {
+			if (segment.units.Count <= nSeeUnits) break;
+			new SegmentUnit(segment, unit).delete ();
+		}
+		nSeeUnits = int.MaxValue;
+		if (!g.deleteOtherPaths (segment.segmentUnits(), true)) throw new SystemException("failed to delete other paths of seen path");
 		segment.unseen = false;
-		if (!g.deleteOtherPaths (segment.segmentUnits())) throw new SystemException("failed to delete other paths of seen path");
 	}
 
 	/// <summary>
 	/// makes a new path containing specified units, returns whether successful
 	/// </summary>
-	public bool makePath(long time, List<Unit> units) {
-		if (canMakePath(time, units)) {
+	public bool makePath(long time, List<Unit> units, bool ignoreSeen = false) {
+		{ // check whether can make path
+			if (units.Count == 0) return false;
+			Segment segment = activeSegment(time);
+			if (segment == null) return false;
+			long[] rscCost = new long[g.rscNames.Length];
+			foreach (Unit unit in units) {
+				if (segment.units.Contains (unit)) {
+					// unit in path would be child path
+					SegmentUnit segmentUnit = new SegmentUnit(segment, unit);
+					// check parent made before (not at same time as) child, so it's unambiguous who is the parent
+					if (!segmentUnit.canBeUnambiguousParent (time)) return false;
+					// check parent unit won't be seen later
+					if (!ignoreSeen && !segmentUnit.unseenAfter ()) return false;
+				}
+				else {
+					if (!canMakeUnitType (time, unit.type)) return false;
+					// unit in path would be non-path child unit
+					for (int i = 0; i < g.rscNames.Length; i++) {
+						rscCost[i] += unit.type.rscCost[i];
+					}
+				}
+			}
+			bool newPathIsLive = (time >= g.timeSim && timeSimPast == long.MaxValue);
+			if (!newPathIsLive && !Sim.EnableNonLivePaths) return false;
+			for (int i = 0; i < g.rscNames.Length; i++) {
+				// TODO: may be more permissive by passing in max = true, but this really complicates SegmentUnit.delete() algorithm (see planning notes)
+				if (rscCost[i] > 0 && player.resource(time, i, false, !newPathIsLive) < rscCost[i]) return false;
+			}
+		}
+		{ // make path
 			Segment segment = insertSegment (time);
 			FP.Vector pos = calcPos (time);
-			g.paths.Add (new Path(g, g.paths.Count, units[0].type.speed, player, units, time, pos, segment.unseen));
+			g.paths.Add (new Path(g, g.paths.Count, units[0].type.speed, player, units, time, pos, segment.unseen, nSeeUnits));
 			connect (time, g.paths.Last ());
 			if (timeSimPast != long.MaxValue) g.paths.Last ().timeSimPast = time;
 			if (g.paths.Last ().timeSimPast == long.MaxValue) {
@@ -154,41 +190,7 @@ public class Path {
 			else {
 				player.hasNonLivePaths = true;
 			}
-			return true;
-		}
-		return false;
-	}
-
-	/// <summary>
-	/// returns whether this path can make a new path as specified
-	/// </summary>
-	public bool canMakePath(long time, List<Unit> units) {
-		if (units.Count == 0) return false;
-		Segment segment = activeSegment(time);
-		if (segment == null) return false;
-		long[] rscCost = new long[g.rscNames.Length];
-		foreach (Unit unit in units) {
-			if (segment.units.Contains (unit)) {
-				// unit in path would be child path
-				SegmentUnit segmentUnit = new SegmentUnit(segment, unit);
-				// check parent made before (not at same time as) child, so it's unambiguous who is the parent
-				if (!segmentUnit.canBeUnambiguousParent (time)) return false;
-				// check parent unit won't be seen later
-				if (!segmentUnit.unseenAfter ()) return false;
-			}
-			else {
-				if (!canMakeUnitType (time, unit.type)) return false;
-				// unit in path would be non-path child unit
-				for (int i = 0; i < g.rscNames.Length; i++) {
-					rscCost[i] += unit.type.rscCost[i];
-				}
-			}
-		}
-		bool newPathIsLive = (time >= g.timeSim && timeSimPast == long.MaxValue);
-		if (!newPathIsLive && !Sim.EnableNonLivePaths) return false;
-		for (int i = 0; i < g.rscNames.Length; i++) {
-			// TODO: may be more permissive by passing in max = true, but this really complicates removeUnit() algorithm (see planning notes)
-			if (player.resource(time, i, false, !newPathIsLive) < rscCost[i]) return false;
+			player.unitCombinations = null;
 		}
 		return true;
 	}
@@ -229,7 +231,7 @@ public class Path {
 		if (time < g.timeSim) {
 			// move non-live path if in past
 			// if this path already isn't live, a better approach is removing later segments and moves then moving this path, like pre-stacking versions
-			// TODO: this fails if moving non-live unit immediately when it's made (b/c parent is ambiguous), or moving non-live unit when resources are negative
+			// ISSUE #27: this fails if moving non-live unit immediately when it's made (b/c parent is ambiguous), or moving non-live unit when resources are negative
 			if (!makePath (time, units)) throw new SystemException("make non-live path failed when moving units");
 			path2 = g.paths.Last ();
 		}
@@ -237,7 +239,7 @@ public class Path {
 			foreach (Unit unit in activeSegment(time).units) {
 				if (!units.Contains (unit)) {
 					// some units in path aren't being moved, so make a new path
-					if (!makePath (time, units)) throw new SystemException("make new path failed when moving units");
+					if (!makePath (time, units, true)) throw new SystemException("make new path failed when moving units");
 					path2 = g.paths.Last ();
 					break;
 				}
@@ -274,7 +276,7 @@ public class Path {
 	/// returns whether allowed to move at specified time
 	/// </summary>
 	public bool canMove(long time) {
-		// TODO: maybe make overloaded version that also checks units
+		// ISSUE #32: moving unit is incorrectly disallowed when another unit on same segment is seen later (maybe make overloaded version that also checks units)
 		if (time < moves[0].timeStart || speed <= 0) return false;
 		if (time < g.timeSim) {
 			Segment segment = activeSegment (time);
@@ -284,6 +286,15 @@ public class Path {
 			}
 		}
 		return true;
+	}
+	
+	public IEnumerable<FP.Vector> moveLines(long timeStart, long timeEnd) {
+		yield return calcPos (timeStart);
+		for (int i = activeMove (timeStart) + 1; i <= activeMove (timeEnd); i++) {
+			yield return moves[i].vecStart;
+			yield return moves[i].vecStart;
+		}
+		yield return calcPos (timeEnd);
 	}
 	
 	/// <summary>
