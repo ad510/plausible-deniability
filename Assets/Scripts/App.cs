@@ -408,7 +408,7 @@ public class App : MonoBehaviour {
 					}
 					// find tour guide
 					if (units[0].type == g.unitTypeNamed ("Quantum Worker")) g.tourGuide = g.paths.Last ();
-					if (units[0].type == g.unitTypeNamed ("Datacenter")) g.pathTexts.Add (new PathText(0, g.paths.Last (), "Objective: Infiltrate [player]'s new base in Quantum Land.\n\nSUCCESS"));
+					if (units[0].type == g.unitTypeNamed ("Datacenter")) g.pathTexts.Add (new PathText(0, g.paths.Last (), "Objective: Infiltrate [player]'s new base in Entirely Plausible Land.\n\nSUCCESS"));
 					g.events.add(new TileMoveEvt(move.timeStart, g.paths.Count - 1, (int)(move.vecStart.x >> FP.Precision), (int)(move.vecStart.y >> FP.Precision)));
 				}
 			}
@@ -416,6 +416,7 @@ public class App : MonoBehaviour {
 		g.nRootPaths = g.paths.Count;
 		// start game
 		loadUI ();
+		if (scnPath == "scn_nsa.json") message = "Objective: Find the floating red building.";
 		if (g.aiState == AIState.Welcome) StartCoroutine ("welcomeAI");
 		timeGame = 0;
 		timeSpeedChg = (long)(Time.time * 1000) - 1000;
@@ -595,9 +596,8 @@ public class App : MonoBehaviour {
 				// we reached unit cap, be aggressive about keeping it
 				g.makeInterval = 0;
 				if (tutorial) {
-					message = "Subatomic particles can be in multiple places at once, but no one will ever see them doing this.\n\n"
-						+ "Quantum has developed technology that lets macroscopic beings be in multiple places at once, but no one will ever see them using it.\n\n"
-						+ "We've received reports that Quantum has a floating building hiding in the desert. Let's find it and see if it has anything to offer.";
+					message = "Everything in the universe is cheating, but no one will ever see it happening.\n\n"
+						+ "It's time you learned how.";
 				}
 			}
 			
@@ -700,7 +700,7 @@ public class App : MonoBehaviour {
 	}
 	
 	private IEnumerator welcomeAI() {
-		g.pathTexts.Add (new PathText(g.timeSim, g.tourGuide, "Welcome to Quantum Land!"));
+		g.pathTexts.Add (new PathText(g.timeSim, g.tourGuide, "Welcome to Entirely Plausible Land!"));
 		yield return new WaitForSeconds(3);
 		if (tutorial) {
 			g.pathTexts.Add (new PathText(g.timeSim, g.tourGuide, "Click your blue worker to select it."));
@@ -743,7 +743,7 @@ public class App : MonoBehaviour {
 	}
 	
 	private void allYourMatter() {
-		message = "All your matter are belong to us.\n\n--Quantum";
+		message = "All your base are belong to us.";
 	}
 	
 	private Dictionary<int, int[]> argFromSegment(Segment segment) {
@@ -1110,8 +1110,7 @@ public class App : MonoBehaviour {
 		// message
 		if (message != "") {
 			paused = true;
-			GUI.Box (new Rect(Screen.width / 3, Screen.height / 4, Screen.width / 3, Screen.height / 2), new GUIContent());
-			GUILayout.BeginArea(new Rect(Screen.width / 3, Screen.height / 4, Screen.width / 3, Screen.height / 2));
+			GUILayout.BeginArea(new Rect(Screen.width / 3, Screen.height * 0.4f, Screen.width / 3, Screen.height * 0.2f), (GUIStyle)"box");
 			lblStyle.wordWrap = true;
 			GUILayout.Label (message, lblStyle);
 			lblStyle.wordWrap = false;
