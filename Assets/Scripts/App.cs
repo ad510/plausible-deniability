@@ -743,7 +743,7 @@ public class App : MonoBehaviour {
 	}
 	
 	private void allYourMatter() {
-		message = "All your base are belong to us.";
+		message = "All your base are belong to us.\n\n--Entirely Plausible People";
 	}
 	
 	private Dictionary<int, int[]> argFromSegment(Segment segment) {
