@@ -508,7 +508,7 @@ public class App : MonoBehaviour {
 	private void updateInput() {
 		// update current unit selection
 		curSelPaths.Clear ();
-		foreach (SegmentUnit segmentUnit in SegmentUnit.current (selSegmentUnits (), timeGame)) {
+		foreach (SegmentUnit segmentUnit in g.activeSegmentUnits (selSegmentUnits (), timeGame)) {
 			if (!curSelPaths.ContainsKey (segmentUnit.segment.path)) curSelPaths[segmentUnit.segment.path] = new List<Unit>();
 			if (!curSelPaths[segmentUnit.segment.path].Contains (segmentUnit.unit)) curSelPaths[segmentUnit.segment.path].Add (segmentUnit.unit);
 		}

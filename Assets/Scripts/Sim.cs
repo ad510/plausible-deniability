@@ -237,6 +237,28 @@ public class Sim {
 	}
 	
 	/// <summary>
+	/// iterates over all SegmentUnits active at specified time that are
+	/// past, present, or future versions of specified SegmentUnits
+	/// </summary>
+	public IEnumerable<SegmentUnit> activeSegmentUnits(IEnumerable<SegmentUnit> segmentUnits, long time) {
+		foreach (SegmentUnit segmentUnit in segmentUnits) {
+			if (segmentUnit.segment.nextOnPath () != null && time >= segmentUnit.segment.nextOnPath ().timeStart) {
+				foreach (SegmentUnit segmentUnit2 in activeSegmentUnits(segmentUnit.next (), time)) {
+					yield return segmentUnit2;
+				}
+			}
+			else if (time < segmentUnit.segment.timeStart) {
+				foreach (SegmentUnit segmentUnit2 in activeSegmentUnits(segmentUnit.prev (), time)) {
+					yield return segmentUnit2;
+				}
+			}
+			else {
+				yield return segmentUnit;
+			}
+		}
+	}
+	
+	/// <summary>
 	/// iterates over all path segments that are active at specified time
 	/// </summary>
 	public IEnumerable<Segment> activeSegments(long time) {
