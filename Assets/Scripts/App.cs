@@ -155,7 +155,8 @@ public class App : MonoBehaviour {
 	Vector2 selUnitsScrollPos;
 	Sim g;
 	Player selPlayer;
-	Dictionary<Path, List<Unit>> selPaths; // ISSUE #12: this should consider time that paths were selected
+	List<UnitSelection> selPaths;
+	Dictionary<Path, List<Unit>> curSelPaths;
 	Formation selFormation;
 	UnitType makeUnitType;
 	long timeNow;
@@ -446,7 +447,8 @@ public class App : MonoBehaviour {
 		uiBarTop = Screen.height * g.uiBarHeight;
 		selPlayer = g.players[0];
 		while (selPlayer.user != g.selUser) selPlayer = g.players[(selPlayer.id + 1) % g.players.Length];
-		selPaths = new Dictionary<Path, List<Unit>>();
+		selPaths = new List<UnitSelection>();
+		curSelPaths = new Dictionary<Path, List<Unit>>();
 		selFormation = Formation.Tight;
 		makeUnitType = null;
 		replay = false;
@@ -504,6 +506,12 @@ public class App : MonoBehaviour {
 	}
 	
 	private void updateInput() {
+		// update current unit selection
+		curSelPaths.Clear ();
+		foreach (SegmentUnit segmentUnit in SegmentUnit.current (selSegmentUnits (), timeGame)) {
+			if (!curSelPaths.ContainsKey (segmentUnit.segment.path)) curSelPaths[segmentUnit.segment.path] = new List<Unit>();
+			if (!curSelPaths[segmentUnit.segment.path].Contains (segmentUnit.unit)) curSelPaths[segmentUnit.segment.path].Add (segmentUnit.unit);
+		}
 		// handle changed mouse buttons
 		if (Input.GetMouseButtonDown (0)) { // left button down
 			mouseDownPos[0] = Input.mousePosition;
@@ -520,26 +528,42 @@ public class App : MonoBehaviour {
 				if (makeUnitType != null) {
 					// make unit
 					FP.Vector pos = makeUnitPos();
-					if (pos.x != Sim.OffMap) g.cmdPending.add(new MakeUnitCmdEvt(g.timeSim, newCmdTime(), UnitCmdEvt.argFromPathDict (selPaths), makeUnitType.id, pos));
+					if (pos.x != Sim.OffMap) g.cmdPending.add(new MakeUnitCmdEvt(g.timeSim, newCmdTime(), UnitCmdEvt.argFromPathDict (curSelPaths), makeUnitType.id, pos));
 					makeUnitType = null;
 				}
 				else {
 					// select paths
 					Vector3 mouseMinPos = new Vector3(Math.Min (mouseDownPos[0].x, Input.mousePosition.x), Math.Min (mouseDownPos[0].y, Input.mousePosition.y), 0);
 					Vector3 mouseMaxPos = new Vector3(Math.Max (mouseDownPos[0].x, Input.mousePosition.x), Math.Max (mouseDownPos[0].y, Input.mousePosition.y), 0);
-					if (!Input.GetKey (KeyCode.LeftControl) && !Input.GetKey (KeyCode.LeftShift)) selPaths.Clear();
+					bool deselect = false;
+					if (!Input.GetKey (KeyCode.LeftControl) && !Input.GetKey (KeyCode.LeftShift)) {
+						selPaths.Clear();
+						curSelPaths.Clear();
+					}
 					foreach (Path path in g.paths) {
 						if (selPlayer == path.player && timeGame >= path.moves[0].timeStart
 							&& FP.rectIntersects (drawToSimPos (mouseMinPos), drawToSimPos (mouseMaxPos),
 							path.selMinPos(timeGame), path.selMaxPos(timeGame))) {
 							// ISSUE #18: if not all units in path are selected, select remaining units instead of deselecting path
-							if (selPaths.ContainsKey (path)) {
-								selPaths.Remove(path);
+							if (curSelPaths.ContainsKey (path)) {
+								curSelPaths.Remove(path);
+								deselect = true;
 							}
 							else {
-								selPaths.Add(path, new List<Unit>(path.activeSegment(timeGame).units));
+								curSelPaths[path] = new List<Unit>(path.activeSegment(timeGame).units);
+								foreach (Unit unit in curSelPaths[path]) {
+									selPaths.Add (new UnitSelection(path, unit, timeGame));
+								}
 							}
 							if (SelBoxMin > (Input.mousePosition - mouseDownPos[0]).sqrMagnitude) break;
+						}
+					}
+					if (deselect) {
+						selPaths.Clear ();
+						foreach (KeyValuePair<Path, List<Unit>> path in curSelPaths) {
+							foreach (Unit unit in path.Value) {
+								selPaths.Add (new UnitSelection(path.Key, unit, timeGame));
+							}
 						}
 					}
 				}
@@ -563,11 +587,11 @@ public class App : MonoBehaviour {
 					}
 					if (EnableStacking && stackPath >= 0) {
 						// stack selected paths onto clicked path
-						g.cmdPending.add (new StackCmdEvt(g.timeSim, newCmdTime (), UnitCmdEvt.argFromPathDict (selPaths), stackPath));
+						g.cmdPending.add (new StackCmdEvt(g.timeSim, newCmdTime (), UnitCmdEvt.argFromPathDict (curSelPaths), stackPath));
 					}
 					else {
 						// move selected paths
-						g.cmdPending.add(new MoveCmdEvt(g.timeSim, newCmdTime(), UnitCmdEvt.argFromPathDict (selPaths), drawToSimPos (Input.mousePosition), selFormation));
+						g.cmdPending.add(new MoveCmdEvt(g.timeSim, newCmdTime(), UnitCmdEvt.argFromPathDict (curSelPaths), drawToSimPos (Input.mousePosition), selFormation));
 					}
 				}
 			}
@@ -768,7 +792,7 @@ public class App : MonoBehaviour {
 							break;
 						}
 					}
-					if (Input.GetKey (KeyCode.LeftShift) && selPaths.ContainsKey(g.paths[i])) {
+					if (Input.GetKey (KeyCode.LeftShift) && curSelPaths.ContainsKey(g.paths[i])) {
 						// show final position if holding shift
 						sprUnits[i][j].preview.renderer.material.color = sprUnits[i][j].sprite.renderer.material.color;
 						sprUnits[i][j].preview.transform.position = simToDrawPos(g.paths[i].moves.Last ().vecEnd + unit.type.imgOffset, UnitDepth);
@@ -797,12 +821,12 @@ public class App : MonoBehaviour {
 			sprMakeUnit.renderer.enabled = false;
 		}
 		// health bars
-		foreach (Path path in selPaths.Keys) {
+		foreach (Path path in curSelPaths.Keys) {
 			if (pathDrawPos(path, ref vec)) {
 				Segment segment = path.activeSegment (timeGame);
 				for (int j = 0; j < segment.units.Count; j++) {
 					Unit unit = segment.units[j];
-					if (selPaths[path].Contains (unit)) {
+					if (curSelPaths[path].Contains (unit)) {
 						float f = ((float)unit.healthWhen(timeGame)) / unit.type.maxHealth;
 						float f2 = vec.y + simToDrawScl (unit.type.selMaxPos.y) + g.healthBarYOffset * winDiag;
 						// background
@@ -875,8 +899,8 @@ public class App : MonoBehaviour {
 		else {
 			// cheat menu
 			// ISSUE #21: show text or hide button if can't do any of these actions
-			if (selPaths.Count > 0) {
-				string plural = (selPaths.Count == 1) ? "" : "s";
+			if (curSelPaths.Count > 0) {
+				string plural = (curSelPaths.Count == 1) ? "" : "s";
 				GUILayout.BeginArea (new Rect(0, Screen.height * (1 - g.uiBarHeight), Screen.width / 4, Screen.height * g.uiBarHeight), (GUIStyle)"box");
 				GUI.color = Color.yellow;
 				GUILayout.Label ("Cheat Panel", lblStyle);
@@ -893,14 +917,14 @@ public class App : MonoBehaviour {
 			}
 			// command menu
 			GUILayout.BeginArea (new Rect(Screen.width / 4, Screen.height * (1 - g.uiBarHeight), Screen.width / 4, Screen.height * g.uiBarHeight), (GUIStyle)"box");
-			if (selPaths.Count > 0) {
+			if (curSelPaths.Count > 0) {
 				string tooltip;
 				int inFormation = (Event.current.type == EventType.MouseUp) ? -1 : (int)selFormation;
 				int outFormation = GUILayout.Toolbar(inFormation, new string[] {"Tight", "Loose", "Ring"});
 				if (inFormation != outFormation) setFormation ((Formation)outFormation);
 				makeUnitScrollPos = GUILayout.BeginScrollView (makeUnitScrollPos);
 				foreach (UnitType unitT in g.unitT) {
-					foreach (Path path in selPaths.Keys) {
+					foreach (Path path in curSelPaths.Keys) {
 						if (timeGame >= path.moves[0].timeStart && path.canMakeUnitType (timeGame, unitT)) { // ISSUE #22: sometimes canMake check should use existing selected units in path
 							bool enoughRsc = true;
 							tooltip = "Costs ";
@@ -927,21 +951,20 @@ public class App : MonoBehaviour {
 				if (GUILayout.Button (item.Key.type.name + (item.Value != 1 ? " (" + item.Value + " paths)" : ""))) {
 					if (Event.current.button == 0) { // left button
 						// select unit
-						foreach (Path path in selPaths.Keys.ToArray ()) {
-							for (int i = 0; i < selPaths[path].Count; i++) {
-								if (selPaths[path][i] != item.Key) {
-									selPaths[path].RemoveAt (i);
-									i--;
-								}
+						for (int i = 0; i < selPaths.Count; i++) {
+							if (selPaths[i].unit != item.Key) {
+								selPaths.RemoveAt (i);
+								i--;
 							}
-							if (selPaths[path].Count == 0) selPaths.Remove (path);
 						}
 					}
 					else if (Event.current.button == 1) { // right button
 						// deselect unit
-						foreach (Path path in selPaths.Keys.ToArray ()) {
-							selPaths[path].Remove (item.Key);
-							if (selPaths[path].Count == 0) selPaths.Remove (path);
+						for (int i = 0; i < selPaths.Count; i++) {
+							if (selPaths[i].unit == item.Key) {
+								selPaths.RemoveAt (i);
+								i--;
+							}
 						}
 					}
 				}
@@ -1089,7 +1112,7 @@ public class App : MonoBehaviour {
 	/// </summary>
 	private Dictionary<Unit, int> selUnits() {
 		Dictionary<Unit, int> ret = new Dictionary<Unit, int>();
-		foreach (KeyValuePair<Path, List<Unit>> paths in selPaths) {
+		foreach (KeyValuePair<Path, List<Unit>> paths in curSelPaths) {
 			Segment segment = paths.Key.activeSegment (timeGame);
 			if (segment != null) {
 				foreach (Unit unit in paths.Value) {
@@ -1101,6 +1124,13 @@ public class App : MonoBehaviour {
 			}
 		}
 		return ret;
+	}
+	
+	private IEnumerable<SegmentUnit> selSegmentUnits() {
+		foreach (UnitSelection selection in selPaths) {
+			Segment segment = selection.path.activeSegment (selection.time);
+			if (segment.units.Contains (selection.unit)) yield return new SegmentUnit(segment, selection.unit);
+		}
 	}
 
 	/// <summary>
@@ -1167,9 +1197,9 @@ public class App : MonoBehaviour {
 	/// </summary>
 	private void setFormation(Formation formation) {
 		selFormation = formation;
-		if (selPaths.Count > 0) {
+		if (curSelPaths.Count > 0) {
 			long minX = g.mapSize, maxX = 0, minY = g.mapSize, maxY = 0;
-			foreach (KeyValuePair<Path, List<Unit>> path in selPaths) {
+			foreach (KeyValuePair<Path, List<Unit>> path in curSelPaths) {
 				if (path.Key.canMove (timeGame) && path.Key.activeSegment (timeGame).units.Intersect (path.Value).Any ()) {
 					FP.Vector pos = path.Key.calcPos(timeGame);
 					if (pos.x < minX) minX = pos.x;
@@ -1178,7 +1208,7 @@ public class App : MonoBehaviour {
 					if (pos.y > maxY) maxY = pos.y;
 				}
 			}
-			g.cmdPending.add(new MoveCmdEvt(g.timeSim, newCmdTime(), UnitCmdEvt.argFromPathDict (selPaths), new FP.Vector((minX + maxX) / 2, (minY + maxY) / 2), selFormation));
+			g.cmdPending.add(new MoveCmdEvt(g.timeSim, newCmdTime(), UnitCmdEvt.argFromPathDict (curSelPaths), new FP.Vector((minX + maxX) / 2, (minY + maxY) / 2), selFormation));
 		}
 	}
 	
@@ -1186,12 +1216,12 @@ public class App : MonoBehaviour {
 	/// creates new paths that selected units could take
 	/// </summary>
 	private void makePaths() {
-		if (selPaths.Count > 0) {
+		if (curSelPaths.Count > 0) {
 			Dictionary<int, FP.Vector> pos = new Dictionary<int, FP.Vector>();
-			foreach (KeyValuePair<Path, List<Unit>> path in selPaths) {
+			foreach (KeyValuePair<Path, List<Unit>> path in curSelPaths) {
 				if (timeGame >= path.Key.segments[0].timeStart) pos[path.Key.id] = makePathMovePos(timeGame, path.Key, path.Value);
 			}
-			g.cmdPending.add(new MakePathCmdEvt(g.timeSim, newCmdTime(), UnitCmdEvt.argFromPathDict(selPaths), pos));
+			g.cmdPending.add(new MakePathCmdEvt(g.timeSim, newCmdTime(), UnitCmdEvt.argFromPathDict(curSelPaths), pos));
 		}
 	}
 	
@@ -1199,14 +1229,14 @@ public class App : MonoBehaviour {
 	/// deletes selected paths
 	/// </summary>
 	private void deletePaths() {
-		if (selPaths.Count > 0) g.cmdPending.add(new DeletePathCmdEvt(g.timeSim, newCmdTime(), UnitCmdEvt.argFromPathDict(selPaths)));
+		if (curSelPaths.Count > 0) g.cmdPending.add(new DeletePathCmdEvt(g.timeSim, newCmdTime(), UnitCmdEvt.argFromPathDict(curSelPaths)));
 	}
 	
 	/// <summary>
 	/// deletes unselected paths of selected units
 	/// </summary>
 	private void deleteOtherPaths() {
-		if (selPaths.Count > 0) g.cmdPending.add (new DeleteOtherPathsCmdEvt(g.timeSim, newCmdTime (), UnitCmdEvt.argFromPathDict (selPaths)));
+		if (curSelPaths.Count > 0) g.cmdPending.add (new DeleteOtherPathsCmdEvt(g.timeSim, newCmdTime (), UnitCmdEvt.argFromPathDict (curSelPaths)));
 	}
 	
 	/// <summary>
@@ -1214,15 +1244,14 @@ public class App : MonoBehaviour {
 	/// </summary>
 	private void sharePaths() {
 		if (!EnableStacking) throw new InvalidOperationException("may not share paths when stacking is disabled");
-		if (selPaths.Count > 0) g.cmdPending.add (new SharePathsCmdEvt(g.timeSim, newCmdTime (), UnitCmdEvt.argFromPathDict (selPaths)));
+		if (curSelPaths.Count > 0) g.cmdPending.add (new SharePathsCmdEvt(g.timeSim, newCmdTime (), UnitCmdEvt.argFromPathDict (curSelPaths)));
 	}
 	
 	/// <summary>
 	/// makes a new unit using selected units
 	/// </summary>
 	private void makeUnit(UnitType type) {
-		// related to ISSUE #12: this should only iterate through existing paths (fix when selPaths considers selection time)
-		foreach (KeyValuePair<Path, List<Unit>> path in selPaths) {
+		foreach (KeyValuePair<Path, List<Unit>> path in curSelPaths) {
 			if (type.speed > 0 && type.makeOnUnitT == null && path.Key.canMakeUnitType (timeGame, type)) {
 				// make unit now
 				g.cmdPending.add(new MakeUnitCmdEvt(g.timeSim, newCmdTime(),

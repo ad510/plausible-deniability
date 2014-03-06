@@ -234,4 +234,22 @@ public struct SegmentUnit {
 			if (seg.units.Contains (unit)) yield return new SegmentUnit(seg, unit);
 		}
 	}
+	
+	public static IEnumerable<SegmentUnit> current(IEnumerable<SegmentUnit> segmentUnits, long time) {
+		foreach (SegmentUnit segmentUnit in segmentUnits) {
+			if (segmentUnit.segment.nextOnPath () != null && time >= segmentUnit.segment.nextOnPath ().timeStart) {
+				foreach (SegmentUnit segmentUnit2 in current(segmentUnit.next (), time)) {
+					yield return segmentUnit2;
+				}
+			}
+			else if (time < segmentUnit.segment.timeStart) {
+				foreach (SegmentUnit segmentUnit2 in current(segmentUnit.prev (), time)) {
+					yield return segmentUnit2;
+				}
+			}
+			else {
+				yield return segmentUnit;
+			}
+		}
+	}
 }
