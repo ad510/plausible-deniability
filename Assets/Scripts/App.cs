@@ -1199,7 +1199,7 @@ public class App : MonoBehaviour {
 		if (curSelPaths.Count > 0) {
 			long minX = g.mapSize, maxX = 0, minY = g.mapSize, maxY = 0;
 			foreach (KeyValuePair<Path, List<Unit>> path in curSelPaths) {
-				if (path.Key.canMove (timeGame) && path.Key.activeSegment (timeGame).units.Intersect (path.Value).Any ()) {
+				if (path.Key.canMove (timeGame)) {
 					FP.Vector pos = path.Key.calcPos(timeGame);
 					if (pos.x < minX) minX = pos.x;
 					if (pos.x > maxX) maxX = pos.x;
