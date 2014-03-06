@@ -22,18 +22,18 @@ public class StackCmdEvt : UnitCmdEvt {
 	/// </summary>
 	private StackCmdEvt() { }
 	
-	public StackCmdEvt(long timeVal, long timeCmdVal, Dictionary<int, int[]> pathsVal, int stackPathVal, int nSeeUnitsVal = int.MaxValue)
+	public StackCmdEvt(long timeVal, long timeCmdVal, UnitIdSelection[] pathsVal, int stackPathVal, int nSeeUnitsVal = int.MaxValue)
 		: base(timeVal, timeCmdVal, pathsVal) {
 		stackPath = stackPathVal;
 		nSeeUnits = nSeeUnitsVal;
 	}
 	
 	public override void apply (Sim g) {
-		Dictionary<Path, List<Unit>> exPaths = existingPaths (g);
+		Dictionary<Path, List<Unit>> pathsDict = UnitIdSelection.pathsDict (g, paths, timeCmd);
 		List<int> movedPaths = new List<int> { stackPath };
 		// move paths to final location of stackPath
 		// related to ISSUE #20: if stackPathVal < 0 (pressing stack button will do that) then move all paths to their average location
-		foreach (KeyValuePair<Path, List<Unit>> path in exPaths) {
+		foreach (KeyValuePair<Path, List<Unit>> path in pathsDict) {
 			if (path.Key.speed == g.paths[stackPath].speed && path.Key.canMove (timeCmd) && !movedPaths.Contains (path.Key.id)) {
 				movedPaths.Add (path.Key.moveTo (timeCmd, new List<Unit>(path.Value), g.paths[stackPath].moves.Last ().vecEnd).id);
 			}

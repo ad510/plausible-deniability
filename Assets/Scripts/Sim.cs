@@ -204,6 +204,7 @@ public class Sim {
 	}
 	
 	private void addAncestors(SegmentUnit segmentUnit, HashSet<SegmentUnit> ancestors, HashSet<SegmentUnit> prev) {
+		if (ancestors.Contains (segmentUnit)) return;
 		ancestors.Add (segmentUnit);
 		foreach (SegmentUnit prevSegment in segmentUnit.prev ()) {
 			if (prevSegment.segment.path.timeSimPast == long.MaxValue || prevSegment.segment.path.timeSimPast != long.MaxValue) {
@@ -234,6 +235,37 @@ public class Sim {
 			}
 		}
 		return true;
+	}
+	
+	public static Dictionary<Path, List<Unit>> inactiveSegmentUnitsToActivePathsDict(IEnumerable<SegmentUnit> segmentUnits, long time) {
+		Dictionary<Path, List<Unit>> ret = new Dictionary<Path, List<Unit>>();
+		foreach (SegmentUnit segmentUnit in activeSegmentUnits (segmentUnits, time)) {
+			if (!ret.ContainsKey (segmentUnit.segment.path)) ret[segmentUnit.segment.path] = new List<Unit>();
+			if (!ret[segmentUnit.segment.path].Contains (segmentUnit.unit)) ret[segmentUnit.segment.path].Add (segmentUnit.unit);
+		}
+		return ret;
+	}
+	
+	/// <summary>
+	/// iterates over all SegmentUnits active at specified time that are
+	/// past, present, or future versions of specified SegmentUnits
+	/// </summary>
+	public static IEnumerable<SegmentUnit> activeSegmentUnits(IEnumerable<SegmentUnit> segmentUnits, long time) {
+		foreach (SegmentUnit segmentUnit in segmentUnits) {
+			if (segmentUnit.segment.nextOnPath () != null && time >= segmentUnit.segment.nextOnPath ().timeStart) {
+				foreach (SegmentUnit segmentUnit2 in activeSegmentUnits(segmentUnit.next (), time)) {
+					yield return segmentUnit2;
+				}
+			}
+			else if (time < segmentUnit.segment.timeStart) {
+				foreach (SegmentUnit segmentUnit2 in activeSegmentUnits(segmentUnit.prev (), time)) {
+					yield return segmentUnit2;
+				}
+			}
+			else {
+				yield return segmentUnit;
+			}
+		}
 	}
 	
 	/// <summary>

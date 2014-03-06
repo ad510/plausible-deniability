@@ -16,21 +16,21 @@ public class SharePathsCmdEvt : UnitCmdEvt {
 	/// </summary>
 	private SharePathsCmdEvt() { }
 	
-	public SharePathsCmdEvt(long timeVal, long timeCmdVal, Dictionary<int, int[]> pathsVal)
+	public SharePathsCmdEvt(long timeVal, long timeCmdVal, UnitIdSelection[] pathsVal)
 		: base(timeVal, timeCmdVal, pathsVal) { }
 	
 	public override void apply (Sim g) {
-		Dictionary<Path, List<Unit>> exPaths = existingPaths (g);
+		Dictionary<Path, List<Unit>> pathsDict = UnitIdSelection.pathsDict (g, paths, timeCmd);
 		Dictionary<Path, List<Unit>> sharedUnits = new Dictionary<Path, List<Unit>>();
 		int nSeeUnits = int.MaxValue;
-		foreach (Path path in exPaths.Keys) {
+		foreach (Path path in pathsDict.Keys) {
 			Segment segment = path.activeSegment (timeCmd);
 			if (segment.units.Count < nSeeUnits) nSeeUnits = segment.units.Count;
 			sharedUnits[path] = new List<Unit>(segment.units);
 		}
-		foreach (Path path in exPaths.Keys) {
+		foreach (Path path in pathsDict.Keys) {
 			Dictionary<Path, List<Unit>> movePaths = new Dictionary<Path, List<Unit>>();
-			foreach (KeyValuePair<Path, List<Unit>> path2 in exPaths) {
+			foreach (KeyValuePair<Path, List<Unit>> path2 in pathsDict) {
 				if (path2.Key.speed == path.speed && path2.Key.canMove (timeCmd)) {
 					List<Unit> moveUnits = path2.Value.FindAll (u => !sharedUnits[path].Contains (u));
 					if (path2.Key.makePath (timeCmd, moveUnits)) {
@@ -39,7 +39,7 @@ public class SharePathsCmdEvt : UnitCmdEvt {
 					}
 				}
 			}
-			new StackCmdEvt(time, timeCmd, argFromPathDict (movePaths), path.id, nSeeUnits).apply (g);
+			new StackCmdEvt(time, timeCmd, pathsArg (UnitSelection.fromPathsDict (movePaths, timeCmd)), path.id, nSeeUnits).apply (g);
 		}
 	}
 }

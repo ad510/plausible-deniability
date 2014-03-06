@@ -22,14 +22,14 @@ using ProtoBuf;
 [ProtoInclude(16, typeof(SharePathsCmdEvt))]
 public abstract class UnitCmdEvt : CmdEvt {
 	[ProtoMember(1)] public long timeCmd; // time is latest simulation time when command is given, timeCmd is when event takes place (may be in past)
-	[ProtoMember(2)] public Dictionary<int, int[]> paths; // key is path index, value is list of unit indices
+	[ProtoMember(2)] public UnitIdSelection[] paths;
 	
 	/// <summary>
 	/// empty constructor for protobuf-net use only
 	/// </summary>
 	protected UnitCmdEvt() { }
 
-	protected UnitCmdEvt(long timeVal, long timeCmdVal, Dictionary<int, int[]> pathsVal) {
+	protected UnitCmdEvt(long timeVal, long timeCmdVal, UnitIdSelection[] pathsVal) {
 		time = timeVal;
 		timeCmd = timeCmdVal;
 		paths = pathsVal;
@@ -37,39 +37,13 @@ public abstract class UnitCmdEvt : CmdEvt {
 	
 	[ProtoAfterDeserialization]
 	protected void afterDeserialize() {
-		if (paths == null) paths = new Dictionary<int, int[]>();
-		foreach (int path in paths.Keys) {
-			if (paths[path] == null) paths[path] = new int[0];
-		}
+		if (paths == null) paths = new UnitIdSelection[0];
 	}
 	
-	/// <summary>
-	/// returns commanded paths and units that exist at timeCmd
-	/// </summary>
-	protected Dictionary<Path, List<Unit>> existingPaths(Sim g) {
-		Dictionary<Path, List<Unit>> ret = new Dictionary<Path, List<Unit>>();
-		foreach (KeyValuePair<int, int[]> path in paths) {
-			Segment segment = g.paths[path.Key].activeSegment (timeCmd);
-			if (segment != null) {
-				List<Unit> existingUnits = new List<Unit>();
-				foreach (int unit in path.Value) {
-					if (segment.units.Contains (g.units[unit])) {
-						if (!existingUnits.Contains (g.units[unit])) existingUnits.Add (g.units[unit]);
-					}
-				}
-				if (existingUnits.Count > 0) ret.Add (g.paths[path.Key], existingUnits);
-			}
-		}
-		return ret;
-	}
-	
-	public static Dictionary<int, int[]> argFromPathDict(Dictionary<Path, List<Unit>> paths) {
-		Dictionary<int, int[]> ret = new Dictionary<int, int[]>();
-		foreach (KeyValuePair<Path, List<Unit>> path in paths) {
-			ret[path.Key.id] = new int[path.Value.Count];
-			for (int i = 0; i < path.Value.Count; i++) {
-				ret[path.Key.id][i] = path.Value[i].id;
-			}
+	public static UnitIdSelection[] pathsArg(List<UnitSelection> units) {
+		UnitIdSelection[] ret = new UnitIdSelection[units.Count];
+		for (int i = 0; i < units.Count; i++) {
+			ret[i] = new UnitIdSelection(units[i]);
 		}
 		return ret;
 	}

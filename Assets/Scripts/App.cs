@@ -507,11 +507,7 @@ public class App : MonoBehaviour {
 	
 	private void updateInput() {
 		// update current unit selection
-		curSelPaths.Clear ();
-		foreach (SegmentUnit segmentUnit in SegmentUnit.current (selSegmentUnits (), timeGame)) {
-			if (!curSelPaths.ContainsKey (segmentUnit.segment.path)) curSelPaths[segmentUnit.segment.path] = new List<Unit>();
-			if (!curSelPaths[segmentUnit.segment.path].Contains (segmentUnit.unit)) curSelPaths[segmentUnit.segment.path].Add (segmentUnit.unit);
-		}
+		curSelPaths = UnitSelection.pathsDict (selPaths, timeGame);
 		// handle changed mouse buttons
 		if (Input.GetMouseButtonDown (0)) { // left button down
 			mouseDownPos[0] = Input.mousePosition;
@@ -528,7 +524,7 @@ public class App : MonoBehaviour {
 				if (makeUnitType != null) {
 					// make unit
 					FP.Vector pos = makeUnitPos();
-					if (pos.x != Sim.OffMap) g.cmdPending.add(new MakeUnitCmdEvt(g.timeSim, newCmdTime(), UnitCmdEvt.argFromPathDict (curSelPaths), makeUnitType.id, pos));
+					if (pos.x != Sim.OffMap) g.cmdPending.add(new MakeUnitCmdEvt(g.timeSim, newCmdTime(), UnitCmdEvt.pathsArg(selPaths), makeUnitType.id, pos));
 					makeUnitType = null;
 				}
 				else {
@@ -558,14 +554,7 @@ public class App : MonoBehaviour {
 							if (SelBoxMin > (Input.mousePosition - mouseDownPos[0]).sqrMagnitude) break;
 						}
 					}
-					if (deselect) {
-						selPaths.Clear ();
-						foreach (KeyValuePair<Path, List<Unit>> path in curSelPaths) {
-							foreach (Unit unit in path.Value) {
-								selPaths.Add (new UnitSelection(path.Key, unit, timeGame));
-							}
-						}
-					}
+					if (deselect) selPaths = UnitSelection.fromPathsDict (curSelPaths, timeGame);
 				}
 			}
 		}
@@ -587,11 +576,11 @@ public class App : MonoBehaviour {
 					}
 					if (EnableStacking && stackPath >= 0) {
 						// stack selected paths onto clicked path
-						g.cmdPending.add (new StackCmdEvt(g.timeSim, newCmdTime (), UnitCmdEvt.argFromPathDict (curSelPaths), stackPath));
+						g.cmdPending.add (new StackCmdEvt(g.timeSim, newCmdTime (), UnitCmdEvt.pathsArg(selPaths), stackPath));
 					}
 					else {
 						// move selected paths
-						g.cmdPending.add(new MoveCmdEvt(g.timeSim, newCmdTime(), UnitCmdEvt.argFromPathDict (curSelPaths), drawToSimPos (Input.mousePosition), selFormation));
+						g.cmdPending.add(new MoveCmdEvt(g.timeSim, newCmdTime(), UnitCmdEvt.pathsArg(selPaths), drawToSimPos (Input.mousePosition), selFormation));
 					}
 				}
 			}
@@ -1120,13 +1109,6 @@ public class App : MonoBehaviour {
 		}
 		return ret;
 	}
-	
-	private IEnumerable<SegmentUnit> selSegmentUnits() {
-		foreach (UnitSelection selection in selPaths) {
-			Segment segment = selection.path.activeSegment (selection.time);
-			if (segment.units.Contains (selection.unit)) yield return new SegmentUnit(segment, selection.unit);
-		}
-	}
 
 	/// <summary>
 	/// returns where to make new unit, or (Sim.OffMap, 0) if mouse is at invalid position
@@ -1203,7 +1185,7 @@ public class App : MonoBehaviour {
 					if (pos.y > maxY) maxY = pos.y;
 				}
 			}
-			g.cmdPending.add(new MoveCmdEvt(g.timeSim, newCmdTime(), UnitCmdEvt.argFromPathDict (curSelPaths), new FP.Vector((minX + maxX) / 2, (minY + maxY) / 2), selFormation));
+			g.cmdPending.add(new MoveCmdEvt(g.timeSim, newCmdTime(), UnitCmdEvt.pathsArg(selPaths), new FP.Vector((minX + maxX) / 2, (minY + maxY) / 2), selFormation));
 		}
 	}
 	
@@ -1216,7 +1198,7 @@ public class App : MonoBehaviour {
 			foreach (KeyValuePair<Path, List<Unit>> path in curSelPaths) {
 				pos[path.Key.id] = makePathMovePos(timeGame, path.Key, path.Value);
 			}
-			g.cmdPending.add(new MakePathCmdEvt(g.timeSim, newCmdTime(), UnitCmdEvt.argFromPathDict(curSelPaths), pos));
+			g.cmdPending.add(new MakePathCmdEvt(g.timeSim, newCmdTime(), UnitCmdEvt.pathsArg(selPaths), pos));
 		}
 	}
 	
@@ -1224,14 +1206,14 @@ public class App : MonoBehaviour {
 	/// deletes selected paths
 	/// </summary>
 	private void deletePaths() {
-		if (curSelPaths.Count > 0) g.cmdPending.add(new DeletePathCmdEvt(g.timeSim, newCmdTime(), UnitCmdEvt.argFromPathDict(curSelPaths)));
+		if (curSelPaths.Count > 0) g.cmdPending.add(new DeletePathCmdEvt(g.timeSim, newCmdTime(), UnitCmdEvt.pathsArg(selPaths)));
 	}
 	
 	/// <summary>
 	/// deletes unselected paths of selected units
 	/// </summary>
 	private void deleteOtherPaths() {
-		if (curSelPaths.Count > 0) g.cmdPending.add (new DeleteOtherPathsCmdEvt(g.timeSim, newCmdTime (), UnitCmdEvt.argFromPathDict (curSelPaths)));
+		if (curSelPaths.Count > 0) g.cmdPending.add (new DeleteOtherPathsCmdEvt(g.timeSim, newCmdTime (), UnitCmdEvt.pathsArg(selPaths)));
 	}
 	
 	/// <summary>
@@ -1239,7 +1221,7 @@ public class App : MonoBehaviour {
 	/// </summary>
 	private void sharePaths() {
 		if (!EnableStacking) throw new InvalidOperationException("may not share paths when stacking is disabled");
-		if (curSelPaths.Count > 0) g.cmdPending.add (new SharePathsCmdEvt(g.timeSim, newCmdTime (), UnitCmdEvt.argFromPathDict (curSelPaths)));
+		if (curSelPaths.Count > 0) g.cmdPending.add (new SharePathsCmdEvt(g.timeSim, newCmdTime (), UnitCmdEvt.pathsArg(selPaths)));
 	}
 	
 	/// <summary>
@@ -1250,7 +1232,7 @@ public class App : MonoBehaviour {
 			if (type.speed > 0 && type.makeOnUnitT == null && path.Key.canMakeUnitType (timeGame, type)) {
 				// make unit now
 				g.cmdPending.add(new MakeUnitCmdEvt(g.timeSim, newCmdTime(),
-					UnitCmdEvt.argFromPathDict (new Dictionary<Path, List<Unit>> { { path.Key, path.Value } }),
+					UnitCmdEvt.pathsArg (UnitSelection.fromPathsDict (new Dictionary<Path, List<Unit>> { { path.Key, path.Value } }, newCmdTime ())),
 					type.id, makeUnitMovePos (timeGame, path.Key, type)));
 				break;
 			}

@@ -19,20 +19,10 @@ public class DeleteOtherPathsCmdEvt : UnitCmdEvt {
 	/// </summary>
 	private DeleteOtherPathsCmdEvt() { }
 	
-	public DeleteOtherPathsCmdEvt(long timeVal, long timeCmdVal, Dictionary<int, int[]> pathsVal)
+	public DeleteOtherPathsCmdEvt(long timeVal, long timeCmdVal, UnitIdSelection[] pathsVal)
 		: base(timeVal, timeCmdVal, pathsVal) { }
 	
 	public override void apply (Sim g) {
-		List<SegmentUnit> units = new List<SegmentUnit>();
-		// convert paths list into valid deleteOtherPaths() argument (this is a bit ugly)
-		foreach (KeyValuePair<int, int[]> path in paths) {
-			Segment segment = g.paths[path.Key].activeSegment (timeCmd);
-			if (segment != null) {
-				foreach (int unit in path.Value) {
-					units.Add (new SegmentUnit(segment, g.units[unit]));
-				}
-			}
-		}
-		g.deleteOtherPaths (units, true);
+		g.deleteOtherPaths (Sim.activeSegmentUnits (UnitIdSelection.inactiveSegmentUnits (g, paths), timeCmd), true);
 	}
 }

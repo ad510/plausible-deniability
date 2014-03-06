@@ -19,12 +19,12 @@ public class DeletePathCmdEvt : UnitCmdEvt {
 	/// </summary>
 	private DeletePathCmdEvt() { }
 
-	public DeletePathCmdEvt(long timeVal, long timeCmdVal, Dictionary<int, int[]> pathsVal)
+	public DeletePathCmdEvt(long timeVal, long timeCmdVal, UnitIdSelection[] pathsVal)
 		: base(timeVal, timeCmdVal, pathsVal) { }
 
 	public override void apply(Sim g) {
-		Dictionary<Path, List<Unit>> exPaths = existingPaths (g);
-		foreach (KeyValuePair<Path, List<Unit>> path in exPaths) {
+		Dictionary<Path, List<Unit>> pathsDict = UnitIdSelection.pathsDict (g, paths, timeCmd);
+		foreach (KeyValuePair<Path, List<Unit>> path in pathsDict) {
 			foreach (Unit unit in path.Value) {
 				new SegmentUnit(path.Key.activeSegment (timeCmd), unit).delete (true);
 			}

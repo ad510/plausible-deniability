@@ -18,4 +18,25 @@ public class UnitSelection {
 		unit = unitVal;
 		time = timeVal;
 	}
+	
+	public static List<UnitSelection> fromPathsDict(Dictionary<Path, List<Unit>> pathsDict, long time) {
+		List<UnitSelection> ret = new List<UnitSelection>();
+		foreach (KeyValuePair<Path, List<Unit>> path in pathsDict) {
+			foreach (Unit unit in path.Value) {
+				ret.Add (new UnitSelection(path.Key, unit, time));
+			}
+		}
+		return ret;
+	}
+	
+	public static Dictionary<Path, List<Unit>> pathsDict(IEnumerable<UnitSelection> units, long time) {
+		return Sim.inactiveSegmentUnitsToActivePathsDict (inactiveSegmentUnits (units), time);
+	}
+	
+	public static IEnumerable<SegmentUnit> inactiveSegmentUnits(IEnumerable<UnitSelection> units) {
+		foreach (UnitSelection selection in units) {
+			Segment segment = selection.path.activeSegment (selection.time);
+			if (segment.units.Contains (selection.unit)) yield return new SegmentUnit(segment, selection.unit);
+		}
+	}
 }

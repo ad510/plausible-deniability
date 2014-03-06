@@ -23,7 +23,7 @@ public class MakeUnitCmdEvt : UnitCmdEvt {
 	/// </summary>
 	private MakeUnitCmdEvt() { }
 
-	public MakeUnitCmdEvt(long timeVal, long timeCmdVal, Dictionary<int, int[]> pathsVal, int typeVal, FP.Vector posVal, bool autoRepeatVal = false)
+	public MakeUnitCmdEvt(long timeVal, long timeCmdVal, UnitIdSelection[] pathsVal, int typeVal, FP.Vector posVal, bool autoRepeatVal = false)
 		: base(timeVal, timeCmdVal, pathsVal) {
 		type = typeVal;
 		pos = posVal;
@@ -31,9 +31,9 @@ public class MakeUnitCmdEvt : UnitCmdEvt {
 	}
 
 	public override void apply(Sim g) {
-		Dictionary<Path, List<Unit>> exPaths = existingPaths (g);
+		Dictionary<Path, List<Unit>> pathsDict = UnitIdSelection.pathsDict (g, paths, timeCmd);
 		// make unit at requested position, if possible
-		foreach (Path path in exPaths.Keys) {
+		foreach (Path path in pathsDict.Keys) {
 			FP.Vector curPos = path.calcPos(timeCmd);
 			if ((pos.x == curPos.x && pos.y == curPos.y) || (g.unitT[type].speed > 0 && g.unitT[type].makeOnUnitT == null)) {
 				// TODO: take time to make units?
@@ -56,7 +56,7 @@ public class MakeUnitCmdEvt : UnitCmdEvt {
 			// if none of specified paths are at requested position,
 			// try moving one to the correct position then trying again to make the unit
 			Path movePath = null;
-			foreach (KeyValuePair<Path, List<Unit>> path in exPaths) {
+			foreach (KeyValuePair<Path, List<Unit>> path in pathsDict) {
 				if (g.unitsCanMake (path.Value, g.unitT[type]) && path.Key.canMove (timeCmd)
 					&& (movePath == null || (path.Key.calcPos(timeCmd) - pos).lengthSq() < (movePath.calcPos(timeCmd) - pos).lengthSq())) {
 					bool newPathIsLive = (time >= g.timeSim && path.Key.timeSimPast == long.MaxValue);
@@ -69,14 +69,19 @@ public class MakeUnitCmdEvt : UnitCmdEvt {
 				}
 			}
 			if (movePath != null) {
-				Dictionary<int, int[]> evtPaths = new Dictionary<int, int[]>(paths);
-				movePath = movePath.moveTo(timeCmd, new List<Unit>(exPaths[movePath]), pos);
-				if (!evtPaths.ContainsKey (movePath.id)) {
-					// replacement path is moving to make the unit
-					evtPaths[movePath.id] = new int[movePath.segments[0].units.Count];
+				UnitIdSelection[] evtPaths = new UnitIdSelection[paths.Length];
+				movePath = movePath.moveTo(timeCmd, new List<Unit>(pathsDict[movePath]), pos);
+				if (!pathsDict.ContainsKey (movePath)) {
+					// replacement path is moving to make the unit, and it might be selected before its parent was selected
+					evtPaths = new UnitIdSelection[paths.Length + movePath.segments[0].units.Count];
+					Array.Copy (paths, evtPaths, paths.Length);
 					for (int i = 0; i < movePath.segments[0].units.Count; i++) {
-						evtPaths[movePath.id][i] = movePath.segments[0].units[i].id;
+						evtPaths[paths.Length + i] = new UnitIdSelection(movePath.id, movePath.segments[0].units[i].id, movePath.segments[0].timeStart);
 					}
+				}
+				else {
+					evtPaths = new UnitIdSelection[paths.Length];
+					Array.Copy (paths, evtPaths, paths.Length);
 				}
 				g.events.add(new MakeUnitCmdEvt(movePath.moves.Last ().timeEnd, movePath.moves.Last ().timeEnd,
 					evtPaths, type, pos, true));

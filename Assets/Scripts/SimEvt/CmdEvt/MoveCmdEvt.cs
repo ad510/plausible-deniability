@@ -24,19 +24,19 @@ public class MoveCmdEvt : UnitCmdEvt {
 	/// </summary>
 	private MoveCmdEvt() { }
 
-	public MoveCmdEvt(long timeVal, long timeCmdVal, Dictionary<int, int[]> pathsVal, FP.Vector posVal, Formation formationVal)
+	public MoveCmdEvt(long timeVal, long timeCmdVal, UnitIdSelection[] pathsVal, FP.Vector posVal, Formation formationVal)
 		: base(timeVal, timeCmdVal, pathsVal) {
 		pos = posVal;
 		formation = formationVal;
 	}
 
 	public override void apply(Sim g) {
-		Dictionary<Path, List<Unit>> exPaths = existingPaths (g);
+		Dictionary<Path, List<Unit>> pathsDict = UnitIdSelection.pathsDict (g, paths, timeCmd);
 		FP.Vector goal, rows = new FP.Vector(), offset = new FP.Vector();
 		long spacing = 0;
 		int count = 0, i = 0;
 		// count number of units able to move
-		foreach (KeyValuePair<Path, List<Unit>> path in exPaths) {
+		foreach (KeyValuePair<Path, List<Unit>> path in pathsDict) {
 			if (path.Key.canMove(timeCmd)) {
 				count++;
 				if (formation == Formation.Tight) {
@@ -74,7 +74,7 @@ public class MoveCmdEvt : UnitCmdEvt {
 		if (pos.y < Math.Min(offset.y, g.mapSize / 2)) pos.y = Math.Min(offset.y, g.mapSize / 2);
 		if (pos.y > g.mapSize - Math.Min(offset.y, g.mapSize / 2)) pos.y = g.mapSize - Math.Min(offset.y, g.mapSize / 2);
 		// move units
-		foreach (KeyValuePair<Path, List<Unit>> path in exPaths) {
+		foreach (KeyValuePair<Path, List<Unit>> path in pathsDict) {
 			if (path.Key.canMove(timeCmd)) {
 				if (formation == Formation.Tight || formation == Formation.Loose) {
 					goal = pos + new FP.Vector((i % rows.x) * spacing - offset.x, i / rows.x * spacing - offset.y);
