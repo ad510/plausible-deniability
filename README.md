@@ -29,6 +29,7 @@ Controls
 - t = tight formation
 - l = loose formation
 - r = ring formation
+- u = unstack
 - n = create new paths that selected units could take
 - delete = delete selected paths
 - shift + delete/shift + d = delete unselected paths of selected units

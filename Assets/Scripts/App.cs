@@ -637,6 +637,10 @@ public class App : MonoBehaviour {
 			// ring formation
 			setFormation (Formation.Ring);
 		}
+		if (Input.GetKeyDown (KeyCode.U)) {
+			// unstack
+			unstack ();
+		}
 		if (Input.GetKeyDown (KeyCode.N)) {
 			// create new paths that selected units could take
 			makePaths ();
@@ -921,6 +925,7 @@ public class App : MonoBehaviour {
 				int inFormation = (Event.current.type == EventType.MouseUp) ? -1 : (int)selFormation;
 				int outFormation = GUILayout.Toolbar(inFormation, new string[] {"Tight", "Loose", "Ring"});
 				if (inFormation != outFormation) setFormation ((Formation)outFormation);
+				if (canUnstack () && GUILayout.Button ("Unstack")) unstack ();
 				makeUnitScrollPos = GUILayout.BeginScrollView (makeUnitScrollPos);
 				foreach (UnitType unitT in g.unitT) {
 					foreach (Path path in curSelPaths.Keys) {
@@ -1239,6 +1244,28 @@ public class App : MonoBehaviour {
 	private void sharePaths() {
 		if (!EnableStacking) throw new InvalidOperationException("may not share paths when stacking is disabled");
 		if (curSelPaths.Count > 0) g.cmdPending.add (new SharePathsCmdEvt(g.timeSim, newCmdTime (), UnitCmdEvt.argFromPathDict (curSelPaths)));
+	}
+	
+	/// <summary>
+	/// unstacks selected paths
+	/// </summary>
+	private void unstack() {
+		foreach (KeyValuePair<Path, List<Unit>> path in curSelPaths) {
+			if (path.Key.canMove (timeGame) && path.Key.activeSegment (timeGame).units.Count > 1) {
+				foreach (Unit unit in path.Value) {
+					g.cmdPending.add (new MoveCmdEvt(g.timeSim, newCmdTime (),
+						UnitCmdEvt.argFromPathDict (new Dictionary<Path, List<Unit>> { { path.Key, new List<Unit> { unit } } }),
+						makePathMovePos (timeGame, path.Key, new List<Unit> { unit }), Formation.Tight));
+				}
+			}
+		}
+	}
+	
+	private bool canUnstack() {
+		foreach (Path path in curSelPaths.Keys) {
+			if (path.canMove (timeGame) && path.activeSegment (timeGame).units.Count > 1) return true;
+		}
+		return false;
 	}
 	
 	/// <summary>
