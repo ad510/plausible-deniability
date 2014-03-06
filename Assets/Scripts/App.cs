@@ -544,8 +544,7 @@ public class App : MonoBehaviour {
 						if (selPlayer == path.player && timeGame >= path.moves[0].timeStart
 							&& FP.rectIntersects (drawToSimPos (mouseMinPos), drawToSimPos (mouseMaxPos),
 							path.selMinPos(timeGame), path.selMaxPos(timeGame))) {
-							// ISSUE #18: if not all units in path are selected, select remaining units instead of deselecting path
-							if (curSelPaths.ContainsKey (path)) {
+							if (curSelPaths.ContainsKey (path) && curSelPaths[path].Count == path.activeSegment (timeGame).units.Count) {
 								curSelPaths.Remove(path);
 								deselect = true;
 							}
