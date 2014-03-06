@@ -925,7 +925,7 @@ public class App : MonoBehaviour {
 				makeUnitScrollPos = GUILayout.BeginScrollView (makeUnitScrollPos);
 				foreach (UnitType unitT in g.unitT) {
 					foreach (Path path in curSelPaths.Keys) {
-						if (timeGame >= path.moves[0].timeStart && path.canMakeUnitType (timeGame, unitT)) { // ISSUE #22: sometimes canMake check should use existing selected units in path
+						if (path.canMakeUnitType (timeGame, unitT)) { // ISSUE #22: sometimes canMake check should use existing selected units in path
 							bool enoughRsc = true;
 							tooltip = "Costs ";
 							for (int i = 0; i < g.rscNames.Length; i++) {
@@ -1112,15 +1112,10 @@ public class App : MonoBehaviour {
 	/// </summary>
 	private Dictionary<Unit, int> selUnits() {
 		Dictionary<Unit, int> ret = new Dictionary<Unit, int>();
-		foreach (KeyValuePair<Path, List<Unit>> paths in curSelPaths) {
-			Segment segment = paths.Key.activeSegment (timeGame);
-			if (segment != null) {
-				foreach (Unit unit in paths.Value) {
-					if (segment.units.Contains (unit)) {
-						if (!ret.ContainsKey (unit)) ret.Add (unit, 0);
-						ret[unit]++;
-					}
-				}
+		foreach (List<Unit> units in curSelPaths.Values) {
+			foreach (Unit unit in units) {
+				if (!ret.ContainsKey (unit)) ret.Add (unit, 0);
+				ret[unit]++;
 			}
 		}
 		return ret;
@@ -1219,7 +1214,7 @@ public class App : MonoBehaviour {
 		if (curSelPaths.Count > 0) {
 			Dictionary<int, FP.Vector> pos = new Dictionary<int, FP.Vector>();
 			foreach (KeyValuePair<Path, List<Unit>> path in curSelPaths) {
-				if (timeGame >= path.Key.segments[0].timeStart) pos[path.Key.id] = makePathMovePos(timeGame, path.Key, path.Value);
+				pos[path.Key.id] = makePathMovePos(timeGame, path.Key, path.Value);
 			}
 			g.cmdPending.add(new MakePathCmdEvt(g.timeSim, newCmdTime(), UnitCmdEvt.argFromPathDict(curSelPaths), pos));
 		}
