@@ -32,13 +32,32 @@ public class MoveCmdEvt : UnitCmdEvt {
 
 	public override void apply(Sim g) {
 		Dictionary<Path, List<Unit>> exPaths = existingPaths (g);
+		List<List<Path>> formationOrder = new List<List<Path>>();
+		List<int> nSeeUnits = new List<int>();
 		FP.Vector goal, rows = new FP.Vector(), offset = new FP.Vector();
 		long spacing = 0;
-		int count = 0, i = 0;
-		// count number of units able to move
+		// order paths in formation
 		foreach (KeyValuePair<Path, List<Unit>> path in exPaths) {
 			if (path.Key.canMove(timeCmd)) {
-				count++;
+				int i;
+				for (i = 0; i < formationOrder.Count; i++) {
+					if (path.Key.moves.Last ().vecEnd.x == formationOrder[i][0].moves.Last ().vecEnd.x
+						&& path.Key.moves.Last ().vecEnd.y == formationOrder[i][0].moves.Last ().vecEnd.y) {
+						SimEvt evt = g.events.events.FindLast (e => e is StackEvt && (e as StackEvt).paths.Contains (path.Key.id)
+							&& formationOrder[i].Find (p => (e as StackEvt).paths.Contains (p.id)) != null);
+						if (evt != null) {
+							// path is trying to stack onto another commanded path
+							formationOrder[i].Add (path.Key);
+							nSeeUnits[i] = (evt as StackEvt).nSeeUnits;
+							break;
+						}
+					}
+				}
+				if (i == formationOrder.Count) {
+					// path isn't trying to stack onto another commanded path
+					formationOrder.Add (new List<Path> { path.Key });
+					nSeeUnits.Add (int.MaxValue);
+				}
 				if (formation == Formation.Tight) {
 					// calculate spacing for tight formation
 					foreach (Unit unit in path.Value) {
@@ -47,7 +66,7 @@ public class MoveCmdEvt : UnitCmdEvt {
 				}
 			}
 		}
-		if (count == 0) return;
+		if (formationOrder.Count == 0) return;
 		// calculate spacing
 		// (if tight formation, then spacing was already calculated above)
 		// ISSUE #28: loose formation should be triangular
@@ -58,12 +77,12 @@ public class MoveCmdEvt : UnitCmdEvt {
 			spacing = (g.visRadius * 2 >> FP.Precision) - 1 << FP.Precision;
 		}
 		if (formation == Formation.Tight || formation == Formation.Loose) {
-			rows.x = FP.sqrt(count);
-			rows.y = (count - 1) / rows.x + 1;
+			rows.x = FP.sqrt(formationOrder.Count);
+			rows.y = (formationOrder.Count - 1) / rows.x + 1;
 			offset = (rows - new FP.Vector(1, 1)) * spacing / 2;
 		}
 		else if (formation == Formation.Ring) {
-			offset.x = (count == 1) ? 0 : FP.div(spacing / 2, FP.sin(FP.Pi / count));
+			offset.x = (formationOrder.Count == 1) ? 0 : FP.div(spacing / 2, FP.sin(FP.Pi / formationOrder.Count));
 			offset.y = offset.x;
 		}
 		else {
@@ -74,20 +93,21 @@ public class MoveCmdEvt : UnitCmdEvt {
 		if (pos.y < Math.Min(offset.y, g.mapSize / 2)) pos.y = Math.Min(offset.y, g.mapSize / 2);
 		if (pos.y > g.mapSize - Math.Min(offset.y, g.mapSize / 2)) pos.y = g.mapSize - Math.Min(offset.y, g.mapSize / 2);
 		// move units
-		foreach (KeyValuePair<Path, List<Unit>> path in exPaths) {
-			if (path.Key.canMove(timeCmd)) {
+		for (int i = 0; i < formationOrder.Count; i++) {
+			List<int> movedPaths = new List<int>();
+			foreach (Path path in formationOrder[i]) {
 				if (formation == Formation.Tight || formation == Formation.Loose) {
 					goal = pos + new FP.Vector((i % rows.x) * spacing - offset.x, i / rows.x * spacing - offset.y);
 				}
 				else if (formation == Formation.Ring) {
-					goal = pos + offset.x * new FP.Vector(FP.cos(2 * FP.Pi * i / count), FP.sin(2 * FP.Pi * i / count));
+					goal = pos + offset.x * new FP.Vector(FP.cos(2 * FP.Pi * i / formationOrder.Count), FP.sin(2 * FP.Pi * i / formationOrder.Count));
 				}
 				else {
 					throw new NotImplementedException("requested formation is not implemented");
 				}
-				path.Key.moveTo(timeCmd, new List<Unit>(path.Value), goal);
-				i++;
+				movedPaths.Add (path.moveTo(timeCmd, new List<Unit>(exPaths[path]), goal).id);
 			}
+			g.addStackEvts (movedPaths, nSeeUnits[i]);
 		}
 	}
 }

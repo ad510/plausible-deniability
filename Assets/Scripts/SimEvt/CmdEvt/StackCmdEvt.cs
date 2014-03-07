@@ -39,12 +39,6 @@ public class StackCmdEvt : UnitCmdEvt {
 			}
 		}
 		// if able to move any of the paths, add events to stack them as they arrive
-		if (movedPaths.Count > 1) {
-			foreach (int path in movedPaths) {
-				// in most cases only 1 path will stack onto stackPath,
-				// but request to stack all moved paths anyway in case the path they're stacking onto moves away
-				g.events.add (new StackEvt(g.paths[path].moves.Last ().timeEnd, movedPaths.ToArray (), nSeeUnits));
-			}
-		}
+		g.addStackEvts (movedPaths, nSeeUnits);
 	}
 }
