@@ -43,10 +43,10 @@ public class Tile {
 		y = yVal;
 		pathVis = new Dictionary<int,List<long>>();
 		playerVis = new List<long>[g.players.Length];
-		exclusive = new List<long>[g.players.Length];
+		if (Sim.EnableNonLivePaths) exclusive = new List<long>[g.players.Length];
 		for (int i = 0; i < g.players.Length; i++) {
 			playerVis[i] = new List<long>();
-			exclusive[i] = new List<long>();
+			if (Sim.EnableNonLivePaths) exclusive[i] = new List<long>();
 		}
 	}
 	
@@ -57,10 +57,12 @@ public class Tile {
 			protoPlayerVis.Add (playerVis[i].Count);
 			protoPlayerVis.AddRange (playerVis[i]);
 		}
-		protoExclusive = new List<long>();
-		for (int i = 0; i < exclusive.Length; i++) {
-			protoExclusive.Add (exclusive[i].Count);
-			protoExclusive.AddRange (exclusive[i]);
+		if (Sim.EnableNonLivePaths) {
+			protoExclusive = new List<long>();
+			for (int i = 0; i < exclusive.Length; i++) {
+				protoExclusive.Add (exclusive[i].Count);
+				protoExclusive.AddRange (exclusive[i]);
+			}
 		}
 	}
 	
@@ -82,11 +84,13 @@ public class Tile {
 			player++;
 		}
 		protoPlayerVis = null;
-		exclusive = new List<long>[g.players.Length];
-		player = 0;
-		for (int i = 0; i < protoExclusive.Count; i += (int)protoExclusive[i] + 1) {
-			exclusive[player] = protoExclusive.GetRange (i + 1, (int)protoExclusive[i]);
-			player++;
+		if (Sim.EnableNonLivePaths) {
+			exclusive = new List<long>[g.players.Length];
+			player = 0;
+			for (int i = 0; i < protoExclusive.Count; i += (int)protoExclusive[i] + 1) {
+				exclusive[player] = protoExclusive.GetRange (i + 1, (int)protoExclusive[i]);
+				player++;
+			}
 		}
 		protoExclusive = null;
 	}
@@ -185,37 +189,6 @@ public class Tile {
 	}
 
 	/// <summary>
-	/// makes this tile exclusive to specified player starting at specified time,
-	/// including how that affects paths on this tile
-	/// </summary>
-	public void exclusiveAdd(Player player, long time) {
-		if (exclusiveLatest(player)) throw new InvalidOperationException("tile (" + x + ", " + y + ") is already exclusive");
-		exclusive[player.id].Add(time);
-		// this player's paths that are on this tile may time travel starting now
-		// TODO: actually safe to time travel at earlier times, as long as unit of same type is at same place when seen by another player
-		foreach (Path path in g.paths) {
-			if (player == path.player && x == path.tileX && y == path.tileY && !path.segments.Last ().unseen) {
-				path.beUnseen(time);
-			}
-		}
-	}
-
-	/// <summary>
-	/// makes this tile not exclusive to specified player starting at specified time,
-	/// including how that affects paths on this tile
-	/// </summary>
-	public void exclusiveRemove(Player player, long time) {
-		if (!exclusiveLatest(player)) throw new InvalidOperationException("tile (" + x + ", " + y + ") is already not exclusive");
-		exclusive[player.id].Add(time);
-		// this player's paths that are on this tile may not time travel starting now
-		foreach (Path path in g.paths) {
-			if (player == path.player && x == path.tileX && y == path.tileY && path.segments.Last ().unseen) {
-				path.beSeen(time);
-			}
-		}
-	}
-
-	/// <summary>
 	/// calculates from player visibility tiles if specified player can infer that no other player can see this tile at latest possible time
 	/// </summary>
 	/// <remarks>
@@ -225,16 +198,18 @@ public class Tile {
 	/// the player can infer that he/she is the only player that can see this tile.
 	/// </remarks>
 	public bool calcExclusive(Player player) {
-		// check that this player can see all nearby tiles
-		if (g.inVis(g.lastUnseenTile.x - x, g.lastUnseenTile.y - y) && !g.tiles[g.lastUnseenTile.x, g.lastUnseenTile.y].playerVisLatest(player)) return false;
-		int tXMin = Math.Max(0, x - g.tileVisRadius());
-		int tYMin = Math.Max(0, y - g.tileVisRadius());
-		for (int tX = Math.Min(g.tileLen() - 1, x + g.tileVisRadius()); tX >= tXMin; tX--) {
-			for (int tY = Math.Min(g.tileLen() - 1, y + g.tileVisRadius()); tY >= tYMin; tY--) {
-				if (g.inVis(tX - x, tY - y) && !g.tiles[tX, tY].playerVisLatest(player)) {
-					g.lastUnseenTile.x = tX;
-					g.lastUnseenTile.y = tY;
-					return false;
+		if (Sim.EnableNonLivePaths) {
+			// check that this player can see all nearby tiles
+			if (g.inVis(g.lastUnseenTile.x - x, g.lastUnseenTile.y - y) && !g.tiles[g.lastUnseenTile.x, g.lastUnseenTile.y].playerVisLatest(player)) return false;
+			int tXMin = Math.Max(0, x - g.tileVisRadius());
+			int tYMin = Math.Max(0, y - g.tileVisRadius());
+			for (int tX = Math.Min(g.tileLen() - 1, x + g.tileVisRadius()); tX >= tXMin; tX--) {
+				for (int tY = Math.Min(g.tileLen() - 1, y + g.tileVisRadius()); tY >= tYMin; tY--) {
+					if (g.inVis(tX - x, tY - y) && !g.tiles[tX, tY].playerVisLatest(player)) {
+						g.lastUnseenTile.x = tX;
+						g.lastUnseenTile.y = tY;
+						return false;
+					}
 				}
 			}
 		}
@@ -249,6 +224,7 @@ public class Tile {
 	/// returns if specified player can infer that no other player can see this tile at latest possible time
 	/// </summary>
 	public bool exclusiveLatest(Player player) {
+		if (!Sim.EnableNonLivePaths) return calcExclusive(player);
 		return visLatest(exclusive[player.id]);
 	}
 
@@ -263,6 +239,7 @@ public class Tile {
 	/// returns if specified player can infer that no other player can see this tile at specified time
 	/// </summary>
 	public bool exclusiveWhen(Player player, long time) {
+		if (!Sim.EnableNonLivePaths && time == g.timeSim) return calcExclusive (player);
 		return visWhen(exclusive[player.id], time);
 	}
 

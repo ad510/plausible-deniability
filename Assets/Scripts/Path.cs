@@ -130,21 +130,6 @@ public class Path {
 		if (!g.movedPaths.Contains(id)) g.movedPaths.Add(id); // indicate to delete and recalculate later TileMoveEvts for this path
 	}
 
-	public void beUnseen(long time) {
-		insertSegment(time).unseen = true;
-	}
-
-	public void beSeen(long time) {
-		Segment segment = insertSegment(time);
-		foreach (Unit unit in segment.units.OrderByDescending (u => u.type.seePrecedence)) {
-			if (segment.units.Count <= nSeeUnits) break;
-			new SegmentUnit(segment, unit).delete ();
-		}
-		nSeeUnits = int.MaxValue;
-		if (!g.deleteOtherPaths (segment.segmentUnits(), true)) throw new SystemException("failed to delete other paths of seen path");
-		segment.unseen = false;
-	}
-
 	/// <summary>
 	/// makes a new path containing specified units, returns whether successful
 	/// </summary>

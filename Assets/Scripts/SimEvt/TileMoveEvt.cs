@@ -55,14 +55,16 @@ public class TileMoveEvt : SimEvt {
 					g.tiles[tX, tY].pathVisToggle(path, time);
 					if (!g.tiles[tX, tY].playerVisLatest(g.paths[path].player)) {
 						g.tiles[tX, tY].playerVis[g.paths[path].player.id].Add(time);
-						if (tX < exclusiveMinX) exclusiveMinX = tX;
-						if (tX > exclusiveMaxX) exclusiveMaxX = tX;
-						if (tY < exclusiveMinY) exclusiveMinY = tY;
-						if (tY > exclusiveMaxY) exclusiveMaxY = tY;
-						// check if this tile stopped being exclusive to another player
-						foreach (Player player in g.players) {
-							if (player != g.paths[path].player && g.tiles[tX, tY].exclusiveLatest(player)) {
-								g.tiles[tX, tY].exclusiveRemove(player, time);
+						if (Sim.EnableNonLivePaths) {
+							if (tX < exclusiveMinX) exclusiveMinX = tX;
+							if (tX > exclusiveMaxX) exclusiveMaxX = tX;
+							if (tY < exclusiveMinY) exclusiveMinY = tY;
+							if (tY > exclusiveMaxY) exclusiveMaxY = tY;
+							// check if this tile stopped being exclusive to another player
+							foreach (Player player in g.players) {
+								if (player != g.paths[path].player && g.tiles[tX, tY].exclusiveLatest(player)) {
+									g.tiles[tX, tY].exclusive[player.id].Add(time);
+								}
 							}
 						}
 					}
@@ -115,7 +117,7 @@ public class TileMoveEvt : SimEvt {
 					}
 				}
 			}
-			// check if tiles became exclusive to this player (slow version for when non-live paths are enabled)
+			// check if tiles became exclusive to this player
 			exclusiveMinX = Math.Max(0, exclusiveMinX - g.tileVisRadius());
 			exclusiveMaxX = Math.Min(g.tileLen() - 1, exclusiveMaxX + g.tileVisRadius());
 			exclusiveMinY = Math.Max(0, exclusiveMinY - g.tileVisRadius());
@@ -123,28 +125,32 @@ public class TileMoveEvt : SimEvt {
 			for (int tX = exclusiveMinX; tX <= exclusiveMaxX; tX++) {
 				for (int tY = exclusiveMinY; tY <= exclusiveMaxY; tY++) {
 					if (!g.tiles[tX, tY].exclusiveLatest(g.paths[path].player) && g.tiles[tX, tY].calcExclusive(g.paths[path].player)) {
-						g.tiles[tX, tY].exclusiveAdd(g.paths[path].player, time);
+						g.tiles[tX, tY].exclusive[g.paths[path].player.id].Add(time);
 					}
 				}
 			}
 		}
+		// update which paths are known to be unseen
+		foreach (Path path2 in g.paths) {
+			if (path2.tileX >= 0 && path2.tileX < g.tileLen() && path2.tileY >= 0 && path2.tileY < g.tileLen()) {
+				if (!path2.segments.Last ().unseen && g.tiles[path2.tileX, path2.tileY].exclusiveLatest(path2.player)) {
+					// path is now unseen
+					path2.insertSegment(time).unseen = true;
+				}
+				else if (path2.segments.Last ().unseen && !g.tiles[path2.tileX, path2.tileY].exclusiveLatest(path2.player)) {
+					// path is now seen
+					Segment segment = path2.insertSegment(time);
+					foreach (Unit unit in segment.units.OrderByDescending (u => u.type.seePrecedence)) {
+						if (segment.units.Count <= path2.nSeeUnits) break;
+						new SegmentUnit(segment, unit).delete ();
+					}
+					path2.nSeeUnits = int.MaxValue;
+					if (!g.deleteOtherPaths (segment.segmentUnits(), true)) throw new SystemException("failed to delete other paths of seen path");
+					segment.unseen = false;
+				}
+			}
+		}
 		if (tileX >= 0 && tileX < g.tileLen() && tileY >= 0 && tileY < g.tileLen()) {
-			if (!Sim.EnableNonLivePaths) {
-				// check exclusivity of tile moved to (fast version for when non-live paths are disabled)
-				if (!g.tiles[tileX, tileY].exclusiveLatest(g.paths[path].player) && g.tiles[tileX, tileY].calcExclusive(g.paths[path].player)) {
-					g.tiles[tileX, tileY].exclusiveAdd(g.paths[path].player, time);
-				}
-				else if (g.tiles[tileX, tileY].exclusiveLatest(g.paths[path].player) && !g.tiles[tileX, tileY].calcExclusive(g.paths[path].player)) {
-					g.tiles[tileX, tileY].exclusiveRemove(g.paths[path].player, time);
-				}
-			}
-			// update whether this path is known to be unseen
-			if (!g.paths[path].segments.Last ().unseen && g.tiles[tileX, tileY].exclusiveLatest(g.paths[path].player)) {
-				g.paths[path].beUnseen(time);
-			}
-			else if (g.paths[path].segments.Last ().unseen && !g.tiles[tileX, tileY].exclusiveLatest(g.paths[path].player)) {
-				g.paths[path].beSeen(time);
-			}
 			// if this path moved out of another player's direct visibility, remove that player's visibility here
 			if (!g.paths[path].player.immutable && tXPrev >= 0 && tXPrev < g.tileLen() && tYPrev >= 0 && tYPrev < g.tileLen()) {
 				foreach (Player player in g.players) {
