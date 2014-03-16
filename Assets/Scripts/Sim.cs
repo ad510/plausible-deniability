@@ -206,7 +206,7 @@ public class Sim {
 	private void addAncestors(SegmentUnit segmentUnit, HashSet<SegmentUnit> ancestors, HashSet<SegmentUnit> prev) {
 		ancestors.Add (segmentUnit);
 		foreach (SegmentUnit prevSegment in segmentUnit.prev ()) {
-			if (prevSegment.segment.path.timeSimPast == long.MaxValue || prevSegment.segment.path.timeSimPast != long.MaxValue) {
+			if (segmentUnit.segment.path.timeSimPast == long.MaxValue || prevSegment.segment.path.timeSimPast != long.MaxValue) {
 				prev.Add (prevSegment);
 			}
 			addAncestors (prevSegment, ancestors, prev);
