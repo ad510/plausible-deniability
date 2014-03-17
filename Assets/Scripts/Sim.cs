@@ -67,7 +67,6 @@ public class Sim {
 	public FP.Vector lastUnseenTile;
 	[ProtoMember(32)] public SimEvtList events; // simulation events to be applied
 	[ProtoMember(33)] public SimEvtList cmdPending; // user commands to be sent to other users in the next update
-	[ProtoMember(34)] public SimEvtList cmdHistory; // user commands that have already been applied
 	public List<int> movedPaths; // indices of paths that moved in the latest simulation event, invalidating later TileMoveEvts for that path
 	[ProtoMember(36)] public int nRootPaths; // number of paths that don't have a parent (because they were defined in scenario file); these are all at beginning of paths list
 	[ProtoMember(37)] public long maxSpeed; // speed of fastest unit (is max speed that players can gain or lose visibility)
@@ -137,10 +136,8 @@ public class Sim {
 		long timeSimNext = Math.Max(curTime, timeSim);
 		if (networkView == null) {
 			// move pending user commands to event list (single player only)
-			// TODO: could command be applied after another event with same time, causing desyncs in replays?
 			while ((evt = cmdPending.pop ()) != null) {
 				events.add (evt);
-				cmdHistory.add (evt);
 			}
 		}
 		// apply simulation events

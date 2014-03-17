@@ -31,10 +31,7 @@ public class UpdateEvt : SimEvt {
 				if (g.users[i].timeSync < time) throw new InvalidOperationException("UpdateEvt is being applied before commands were received from user " + i);
 				if (time > 0 && g.users[i].checksums[time] != g.users[g.selUser].checksums[time]) g.synced = false;
 				while (g.users[i].cmdReceived.peekTime () == time) {
-					// TODO: could command be applied after another event with same time, causing desyncs in replays?
-					SimEvt evt = g.users[i].cmdReceived.pop ();
-					evt.apply (g);
-					g.cmdHistory.add (evt);
+					g.users[i].cmdReceived.pop ().apply (g);
 				}
 				// delete old checksums
 				foreach (long k in g.users[i].checksums.Keys.ToArray ()) {

@@ -227,7 +227,6 @@ public class App : MonoBehaviour {
 			networkView = multiplayer ? networkView : null,
 			events = new SimEvtList(),
 			cmdPending = new SimEvtList(),
-			cmdHistory = new SimEvtList(),
 			checksum = 0,
 			synced = true,
 			timeSim = 0,
