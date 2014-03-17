@@ -579,7 +579,8 @@ public class App : MonoBehaviour {
 					int stackPath = -1;
 					for (int i = 0; i < g.paths.Count; i++) {
 						if (selPlayer == g.paths[i].player && timeGame >= g.paths[i].moves[0].timeStart
-							&& FP.rectContains (g.paths[i].selMinPos(timeGame), g.paths[i].selMaxPos(timeGame), drawToSimPos (Input.mousePosition))) {
+							&& FP.rectContains (g.paths[i].selMinPos(timeGame), g.paths[i].selMaxPos(timeGame), drawToSimPos (Input.mousePosition))
+							&& curSelPaths.Keys.Where (p => p.id != i && p.speed == g.paths[i].speed).Any ()) {
 							stackPath = i;
 							break;
 						}
