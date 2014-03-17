@@ -147,17 +147,14 @@ public struct SegmentUnit {
 	/// </summary>
 	public List<HashSet<SegmentUnit>> allChildren() {
 		List<HashSet<SegmentUnit>> ret = new List<HashSet<SegmentUnit>>();
-		// if this is last segment, return no children
-		if (segment.nextOnPath () == null) {
-			ret.Add (new HashSet<SegmentUnit>());
-			return ret;
-		}
 		// add children in each combination of next segments
 		foreach (SegmentUnit segmentUnit in next ()) {
 			foreach (HashSet<SegmentUnit> nextCombination in segmentUnit.allChildren ()) {
 				if (ret.Find (x => x.SetEquals (nextCombination)) == null) ret.Add (nextCombination);
 			}
 		}
+		// if this is last segment, add empty set of children
+		if (ret.Count == 0) ret.Add (new HashSet<SegmentUnit>());
 		// add children in this segment
 		foreach (SegmentUnit child in children ()) {
 			List<HashSet<SegmentUnit>> childChildren = child.allChildren ();
