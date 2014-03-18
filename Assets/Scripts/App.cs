@@ -625,15 +625,15 @@ public class App : MonoBehaviour {
 			speed--;
 			timeSpeedChg = Environment.TickCount;
 		}
-		if (Input.GetKeyDown (KeyCode.T)) {
+		if (Input.GetKeyDown (KeyCode.Q)) {
 			// tight formation
 			setFormation (Formation.Tight);
 		}
-		if (Input.GetKeyDown (KeyCode.L)) {
+		if (Input.GetKeyDown (KeyCode.W)) {
 			// loose formation
 			setFormation (Formation.Loose);
 		}
-		if (Input.GetKeyDown (KeyCode.R) && !Input.GetKey (KeyCode.LeftShift)) {
+		if (Input.GetKeyDown (KeyCode.E)) {
 			// ring formation
 			setFormation (Formation.Ring);
 		}

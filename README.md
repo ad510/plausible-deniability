@@ -26,9 +26,9 @@ Controls
 - p = pause/resume
 - + = increase speed
 - - = decrease speed
-- t = tight formation
-- l = loose formation
-- r = ring formation
+- q = tight formation
+- w = loose formation
+- e = ring formation
 - u = unstack
 - n = create new paths that selected units could take
 - delete = delete selected paths
