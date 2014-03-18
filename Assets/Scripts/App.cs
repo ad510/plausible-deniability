@@ -538,6 +538,7 @@ public class App : MonoBehaviour {
 					if (!Input.GetKey (KeyCode.LeftControl) && !Input.GetKey (KeyCode.LeftShift)) {
 						selPaths.Clear();
 						curSelPaths.Clear();
+						selFormation = Formation.Tight;
 					}
 					foreach (Path path in g.paths) {
 						if (selPlayer == path.player && timeGame >= path.moves[0].timeStart
