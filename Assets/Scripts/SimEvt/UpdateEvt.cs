@@ -57,7 +57,7 @@ public class UpdateEvt : SimEvt {
 			g.users[g.selUser].checksums[time + g.updateInterval] = g.checksum;
 		}
 		// update units
-		foreach (Path path in g.paths) {
+		/*foreach (Path path in g.paths) {
 			Segment segment = path.activeSegment (time);
 			if (segment != null && path.timeSimPast == long.MaxValue) {
 				FP.Vector pos = path.calcPos (time);
@@ -94,7 +94,7 @@ public class UpdateEvt : SimEvt {
 					}
 				}
 			}
-		}
+		}*/
 		// add events to move paths between tiles
 		// this shouldn't be done in Sim.update() because addTileMoveEvts() sometimes adds events before timeSim
 		foreach (Path path in g.paths) {
