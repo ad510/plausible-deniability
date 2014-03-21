@@ -576,16 +576,27 @@ public class App : MonoBehaviour {
 					makeUnitType = null;
 				}
 				else {
-					int stackPath = -1;
+					int attackPath = -1, stackPath = -1;
 					for (int i = 0; i < g.paths.Count; i++) {
-						if (selPlayer == g.paths[i].player && timeGame >= g.paths[i].moves[0].timeStart
-							&& FP.rectContains (g.paths[i].selMinPos(timeGame), g.paths[i].selMaxPos(timeGame), drawToSimPos (Input.mousePosition))
-							&& curSelPaths.Keys.Where (p => p.id != i && p.speed == g.paths[i].speed).Any ()) {
-							stackPath = i;
-							break;
+						if (timeGame >= g.paths[i].segments[0].timeStart
+							&& FP.rectContains (g.paths[i].selMinPos(timeGame), g.paths[i].selMaxPos(timeGame), drawToSimPos (Input.mousePosition))) {
+							if (timeGame >= g.timeSim && g.tileAt (g.paths[i].calcPos (timeGame)).playerVisWhen (selPlayer, timeGame)
+								&& selPlayer.mayAttack[g.paths[i].player.id]
+								&& g.paths[i].activeSegment (timeGame).units.Where (u2 => curSelPaths.Values.Where (units => units.Where (u => u.type.damage[u2.type.id] > 0).Any ()).Any ()).Any ()) {
+								attackPath = i;
+								break;
+							}
+							if (selPlayer == g.paths[i].player && curSelPaths.Keys.Where (p => p.id != i && p.speed == g.paths[i].speed).Any ()) {
+								stackPath = i;
+								break;
+							}
 						}
 					}
-					if (EnableStacking && stackPath >= 0) {
+					if (attackPath >= 0) {
+						// attack clicked path
+						g.cmdPending.add (new AttackCmdEvt(g.timeSim, newCmdTime (), UnitCmdEvt.argFromPathDict (curSelPaths), attackPath));
+					}
+					else if (EnableStacking && stackPath >= 0) {
 						// stack selected paths onto clicked path
 						g.cmdPending.add (new StackCmdEvt(g.timeSim, newCmdTime (), UnitCmdEvt.argFromPathDict (curSelPaths), stackPath));
 					}

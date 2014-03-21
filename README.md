@@ -20,6 +20,7 @@ Controls
 - page up, page down, mouse wheel = zoom view
 - (ctrl/shift) left click/drag = select units
 - right click = move selected units
+- right click on opponent unit = attack clicked unit
 - right click on friendly unit = stack selected units onto clicked unit
 - shift = show final positions of selected units
 - spacebar = change selected player
