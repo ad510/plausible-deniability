@@ -934,9 +934,11 @@ public class App : MonoBehaviour {
 			GUILayout.BeginArea (new Rect(Screen.width / 4, Screen.height * (1 - g.uiBarHeight), Screen.width / 4, Screen.height * g.uiBarHeight), (GUIStyle)"box");
 			if (curSelPaths.Count > 0) {
 				string tooltip;
-				int inFormation = (Event.current.type == EventType.MouseUp) ? -1 : (int)selFormation;
-				int outFormation = GUILayout.Toolbar(inFormation, new string[] {"Tight", "Loose", "Ring"});
-				if (inFormation != outFormation) setFormation ((Formation)outFormation);
+				if (curSelPaths.Keys.Where (p => p.speed > 0).Any ()) {
+					int inFormation = (Event.current.type == EventType.MouseUp) ? -1 : (int)selFormation;
+					int outFormation = GUILayout.Toolbar(inFormation, new string[] {"Tight", "Loose", "Ring"});
+					if (inFormation != outFormation) setFormation ((Formation)outFormation);
+				}
 				if (canUnstack () && GUILayout.Button ("Unstack")) unstack ();
 				makeUnitScrollPos = GUILayout.BeginScrollView (makeUnitScrollPos);
 				foreach (UnitType unitT in g.unitT) {
