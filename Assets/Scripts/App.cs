@@ -586,7 +586,7 @@ public class App : MonoBehaviour {
 								attackPath = i;
 								break;
 							}
-							if (selPlayer == g.paths[i].player && curSelPaths.Keys.Where (p => p.id != i && p.speed == g.paths[i].speed).Any ()) {
+							if (selPlayer == g.paths[i].player && curSelPaths.Keys.Where (p => p.id != i && p.speed > 0 && p.speed == g.paths[i].speed).Any ()) {
 								stackPath = i;
 								break;
 							}
