@@ -123,10 +123,10 @@
       "selMinPos": {"x": -1, "y": 0},
       "selMaxPos": {"x": 1, "y": 3},
       "laserPos": {"x": 1, "y": 2},
-      "maxHealth": 50,
+      "maxHealth": 20,
       "speed": 0.004,
       "reload": 2000,
-      "range": 32,
+      "range": 48,
       "tightFormationSpacing": 2,
       "seePrecedence": 2,
       "makeUnitMinDist": 4,
@@ -135,15 +135,15 @@
       "makePathMaxDist": 4,
       "damage":
       {
-        "Worker": 20,
-        "Marine": 20,
-        "Sniper": 20,
-        "Building": 20,
-        "Mine": 20
+        "Worker": 50,
+        "Marine": 50,
+        "Sniper": 50,
+        "Building": 50,
+        "Mine": 50
       },
       "rscCost":
       {
-        "Minerals": 10
+        "Minerals": 20
       }
     },
     {
