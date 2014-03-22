@@ -35,25 +35,11 @@ public class AttackCmdEvt : UnitCmdEvt {
 		FP.Vector targetPos = g.paths[target].calcPos (timeCmd);
 		foreach (KeyValuePair<Path, List<Unit>> path in exPaths) {
 			if (path.Key.timeSimPast == long.MaxValue && path.Key.id != target && path.Key.player.mayAttack[g.paths[target].player.id]
-				&& g.tileAt (targetPos).playerVisWhen (path.Key.player, timeCmd)) {
-				FP.Vector pathPos = path.Key.calcPos(timeCmd);
-				long distSq = (targetPos - pathPos).lengthSq ();
+				&& g.tileAt (targetPos).playerVisLatest (path.Key.player)) {
+				long distSq = (targetPos - path.Key.calcPos(timeCmd)).lengthSq ();
 				foreach (Unit unit in path.Value) {
 					if (timeCmd >= unit.timeAttack + unit.type.reload && distSq <= unit.type.range * unit.type.range) {
-						// attack every applicable unit in target path
-						// take health with 1 ms delay so earlier units in array don't have unfair advantage
-						foreach (Unit targetUnit in targetSegment.units) {
-							for (int i = 0; i < unit.type.damage[targetUnit.type.id]; i++) targetUnit.takeHealth (timeCmd + 1, g.paths[target]);
-							unit.timeAttack = timeCmd;
-							g.deleteOtherPaths (from segment in g.activeSegments (timeCmd)
-								where segment.units.Contains (unit) && (targetPos - segment.path.calcPos (timeCmd)).lengthSq () <= unit.type.range * unit.type.range
-								select new SegmentUnit(segment, unit),
-								true);
-						}
-						MoveLine laser = new MoveLine(timeCmd, path.Key);
-						laser.vertices.Add (pathPos + unit.type.laserPos);
-						laser.vertices.Add ((g.paths[target].selMinPos (timeCmd) + g.paths[target].selMaxPos (timeCmd)) / (2 << FP.Precision));
-						g.lasers.Add (laser);
+						unit.attack (timeCmd, path.Key, targetSegment);
 					}
 				}
 			}
