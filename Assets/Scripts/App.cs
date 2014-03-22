@@ -60,12 +60,12 @@ public class App : MonoBehaviour {
 		}
 		
 		/// <remarks>call mesh.Clear() before calling this</remarks>
-		public void draw(List<MoveLine> moveLines, App app, long time, float depth) {
+		public void draw(List<MoveLine> moveLines, App app, long time, float depth, Func<MoveLine, bool> condition) {
 			List<Vector3> vertices = new List<Vector3>();
 			List<int> triangles = new List<int>();
 			// ISSUE #16: make width, fade interval, color customizable by mod
 			foreach (MoveLine moveLine in moveLines) {
-				if (moveLine.player == app.selPlayer && time - moveLine.time >= 0 && time - moveLine.time < 500) {
+				if (time - moveLine.time >= 0 && time - moveLine.time < 500 && condition(moveLine)) {
 					for (int i = 0; i < moveLine.vertices.Count; i += 2) {
 						Vector3 posStart = app.simToDrawPos (moveLine.vertices[i], depth);
 						Vector3 posEnd = app.simToDrawPos (moveLine.vertices[i + 1], depth);
@@ -125,11 +125,12 @@ public class App : MonoBehaviour {
 	const bool EnableStacking = true;
 	const double SelBoxMin = 100;
 	const float FntSize = 1f / 40;
-	const float TileDepth = 7;
-	const float BorderDepth = 6;
-	const float MoveLineDepth = 5;
-	const float PathLineDepth = 4;
-	const float UnitDepth = 3;
+	const float TileDepth = 8;
+	const float BorderDepth = 7;
+	const float MoveLineDepth = 6;
+	const float PathLineDepth = 5;
+	const float UnitDepth = 4;
+	const float LaserDepth = 3;
 	const float HealthBarDepth = 2;
 	const float SelectBoxDepth = 1;
 	
@@ -143,6 +144,7 @@ public class App : MonoBehaviour {
 	LineBox border;
 	MoveLineRenderer deleteLines;
 	MoveLineRenderer keepLines;
+	MoveLineRenderer lasers;
 	Texture[,] texUnits;
 	List<List<UnitSprite>> sprUnits;
 	GameObject sprMakeUnit;
@@ -194,6 +196,7 @@ public class App : MonoBehaviour {
 		border.line.SetWidth (2, 2); // ISSUE #16: make width customizable by mod
 		deleteLines = new MoveLineRenderer(Color.red);
 		keepLines = new MoveLineRenderer(Color.green);
+		lasers = new MoveLineRenderer(Color.yellow);
 		sprMakeUnit = Instantiate (quadPrefab) as GameObject;
 		// ISSUE #16: make color and width customizable by mod
 		selectBox = new LineBox();
@@ -261,6 +264,7 @@ public class App : MonoBehaviour {
 			paths = new List<Path>(),
 			deleteLines = new List<MoveLine>(),
 			keepLines = new List<MoveLine>(),
+			lasers = new List<MoveLine>(),
 		};
 		if (g.updateInterval > 0) g.events.add(new UpdateEvt(0));
 		g.camPos = jsonFPVector(json, "camPos", new FP.Vector(g.mapSize / 2, g.mapSize / 2));
@@ -339,6 +343,7 @@ public class App : MonoBehaviour {
 				};
 				unitT.selMinPos = jsonFPVector (jsonO, "selMinPos", new FP.Vector(unitT.imgOffset.x - unitT.imgHalfHeight, unitT.imgOffset.y - unitT.imgHalfHeight));
 				unitT.selMaxPos = jsonFPVector (jsonO, "selMaxPos", new FP.Vector(unitT.imgOffset.x + unitT.imgHalfHeight, unitT.imgOffset.y + unitT.imgHalfHeight));
+				unitT.laserPos = jsonFPVector (jsonO, "laserPos", unitT.imgOffset);
 				if (unitT.speed > g.maxSpeed) g.maxSpeed = unitT.speed;
 				for (int i = 0; i < g.rscNames.Length; i++) {
 					unitT.rscCost[i] = (jsonO2 != null) ? jsonFP(jsonO2, g.rscNames[i]) : 0;
@@ -758,8 +763,8 @@ public class App : MonoBehaviour {
 		deleteLines.mesh.Clear ();
 		keepLines.mesh.Clear ();
 		if (!replay || showDeletedUnits) {
-			deleteLines.draw (g.deleteLines, this, timeGame, MoveLineDepth);
-			keepLines.draw (g.keepLines, this, timeGame, MoveLineDepth);
+			deleteLines.draw (g.deleteLines, this, timeGame, MoveLineDepth, ml => ml.path.player == selPlayer);
+			keepLines.draw (g.keepLines, this, timeGame, MoveLineDepth, ml => ml.path.player == selPlayer);
 		}
 		// units
 		for (int i = 0; i < g.paths.Count; i++) {
@@ -835,6 +840,9 @@ public class App : MonoBehaviour {
 		else {
 			sprMakeUnit.renderer.enabled = false;
 		}
+		// lasers
+		lasers.mesh.Clear ();
+		lasers.draw (g.lasers, this, timeGame, LaserDepth, ml => g.tileAt (ml.path.calcPos (ml.time)).playerVisWhen (selPlayer, ml.time));
 		// health bars
 		foreach (Path path in curSelPaths.Keys) {
 			if (pathDrawPos(path, ref vec)) {

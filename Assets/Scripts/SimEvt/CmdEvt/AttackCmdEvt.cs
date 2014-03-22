@@ -36,7 +36,8 @@ public class AttackCmdEvt : UnitCmdEvt {
 		foreach (KeyValuePair<Path, List<Unit>> path in exPaths) {
 			if (path.Key.timeSimPast == long.MaxValue && path.Key.id != target && path.Key.player.mayAttack[g.paths[target].player.id]
 				&& g.tileAt (targetPos).playerVisWhen (path.Key.player, timeCmd)) {
-				long distSq = (targetPos - path.Key.calcPos(timeCmd)).lengthSq ();
+				FP.Vector pathPos = path.Key.calcPos(timeCmd);
+				long distSq = (targetPos - pathPos).lengthSq ();
 				foreach (Unit unit in path.Value) {
 					if (timeCmd >= unit.timeAttack + unit.type.reload && distSq <= unit.type.range * unit.type.range) {
 						// attack every applicable unit in target path
@@ -49,6 +50,10 @@ public class AttackCmdEvt : UnitCmdEvt {
 								select new SegmentUnit(segment, unit),
 								true);
 						}
+						MoveLine laser = new MoveLine(timeCmd, path.Key);
+						laser.vertices.Add (pathPos + unit.type.laserPos);
+						laser.vertices.Add ((g.paths[target].selMinPos (timeCmd) + g.paths[target].selMaxPos (timeCmd)) / (2 << FP.Precision));
+						g.lasers.Add (laser);
 					}
 				}
 			}

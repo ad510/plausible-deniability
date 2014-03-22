@@ -96,7 +96,7 @@ public struct SegmentUnit {
 		if (addMoveLines) {
 			// add deleted unit lines
 			// TODO: tweak time if deleted before timeSimPast
-			MoveLine deleteLine = new MoveLine(Math.Min (segment.path.timeSimPast, g.timeSim), unit.player);
+			MoveLine deleteLine = new MoveLine(Math.Min (segment.path.timeSimPast, g.timeSim), segment.path);
 			foreach (Segment seg in removed.Keys) {
 				deleteLine.vertices.AddRange (seg.path.moveLines (seg.timeStart,
 					(seg.nextOnPath () == null || seg.nextOnPath ().timeStart > deleteLine.time) ? deleteLine.time : seg.nextOnPath ().timeStart));

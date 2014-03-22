@@ -12,7 +12,7 @@ using ProtoBuf;
 [ProtoContract]
 public class MoveLine {
 	[ProtoMember(1)] public readonly long time;
-	[ProtoMember(2, AsReference = true)] public readonly Player player;
+	[ProtoMember(2, AsReference = true)] public readonly Path path;
 	[ProtoMember(3)] public readonly List<FP.Vector> vertices;
 	
 	/// <summary>
@@ -20,9 +20,9 @@ public class MoveLine {
 	/// </summary>
 	private MoveLine() { }
 	
-	public MoveLine(long timeVal, Player playerVal) {
+	public MoveLine(long timeVal, Path pathVal) {
 		time = timeVal;
-		player = playerVal;
+		path = pathVal;
 		vertices = new List<FP.Vector>();
 	}
 }

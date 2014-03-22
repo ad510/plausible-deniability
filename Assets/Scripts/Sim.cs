@@ -72,6 +72,7 @@ public class Sim {
 	[ProtoMember(37)] public long maxSpeed; // speed of fastest unit (is max speed that players can gain or lose visibility)
 	[ProtoMember(42)] public List<MoveLine> deleteLines;
 	[ProtoMember(43)] public List<MoveLine> keepLines;
+	[ProtoMember(44)] public List<MoveLine> lasers;
 	[ProtoMember(38)] public int checksum; // sent to other users during each UpdateEvt to check for multiplayer desyncs
 	[ProtoMember(39)] public bool synced; // whether all checksums between users matched so far
 	[ProtoMember(40)] public long timeSim; // current simulation time
@@ -188,7 +189,7 @@ public class Sim {
 		if (addMoveLines && deleted) {
 			// add kept unit lines
 			// TODO: tweak time if deleted in past
-			MoveLine keepLine = new MoveLine(timeSim, segmentUnits.First ().unit.player);
+			MoveLine keepLine = new MoveLine(timeSim, segmentUnits.First ().segment.path);
 			foreach (SegmentUnit ancestor in ancestors) {
 				if (segmentUnits.Where (u => u.unit == ancestor.unit).Any ()) {
 					keepLine.vertices.AddRange (ancestor.segment.path.moveLines (ancestor.segment.timeStart,
