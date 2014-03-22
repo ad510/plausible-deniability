@@ -33,6 +33,6 @@ public class DeleteOtherPathsCmdEvt : UnitCmdEvt {
 				}
 			}
 		}
-		g.deleteOtherPaths (units, true);
+		g.deleteOtherPaths (units, true, false);
 	}
 }

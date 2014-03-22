@@ -49,7 +49,7 @@ public class Unit {
 			g.deleteOtherPaths (from segment in g.activeSegments (time)
 				where segment.units.Contains (this) && (target.path.calcPos (time) - segment.path.calcPos (time)).lengthSq () <= type.range * type.range
 				select new SegmentUnit(segment, this),
-				true);
+				true, false);
 		}
 	}
 

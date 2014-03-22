@@ -1113,7 +1113,7 @@ public class App : MonoBehaviour {
 		selPaths.Clear ();
 		foreach (Path path in g.paths) {
 			foreach (Segment segment in path.segments) {
-				g.deleteOtherPaths (segment.segmentUnits ());
+				g.deleteOtherPaths (segment.segmentUnits (), false, false);
 			}
 		}
 		foreach (Tile tile in g.tiles) {

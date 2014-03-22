@@ -145,7 +145,7 @@ public class TileMoveEvt : SimEvt {
 						new SegmentUnit(segment, unit).delete ();
 					}
 					path2.nSeeUnits = int.MaxValue;
-					if (!g.deleteOtherPaths (segment.segmentUnits(), true)) throw new SystemException("failed to delete other paths of seen path");
+					if (!g.deleteOtherPaths (segment.segmentUnits(), false, true)) throw new SystemException("failed to delete other paths of seen path");
 					segment.unseen = false;
 				}
 			}

@@ -169,7 +169,7 @@ public class Sim {
 	/// removes units from all other paths that, if seen, could cause specified units to be removed from specified segments;
 	/// returns whether successful
 	/// </summary>
-	public bool deleteOtherPaths(IEnumerable<SegmentUnit> segmentUnits, bool addMoveLines = false) {
+	public bool deleteOtherPaths(IEnumerable<SegmentUnit> segmentUnits, bool addDeleteLines, bool addKeepLines) {
 		HashSet<SegmentUnit> ancestors = new HashSet<SegmentUnit>();
 		HashSet<SegmentUnit> prev = new HashSet<SegmentUnit>();
 		bool success = true;
@@ -180,12 +180,12 @@ public class Sim {
 		foreach (SegmentUnit ancestor in prev) {
 			foreach (SegmentUnit segmentUnit in ancestor.next ()) {
 				if (!ancestors.Contains (segmentUnit)) {
-					success &= segmentUnit.delete ();
+					success &= segmentUnit.delete (addDeleteLines);
 					deleted = true;
 				}
 			}
 		}
-		if (addMoveLines && deleted) {
+		if (addKeepLines && deleted) {
 			// add kept unit lines
 			// TODO: tweak time if deleted in past
 			MoveLine keepLine = new MoveLine(timeSim, segmentUnits.First ().unit.player);
