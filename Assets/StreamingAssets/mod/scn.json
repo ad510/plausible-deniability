@@ -75,6 +75,7 @@
       {
         "Worker": 2,
         "Marine": 2,
+        "Sniper": 2,
         "Building": 2,
         "Mine": 2
       },
@@ -103,6 +104,7 @@
       {
         "Worker": 10,
         "Marine": 10,
+        "Sniper": 10,
         "Building": 10,
         "Mine": 10
       },
@@ -112,12 +114,42 @@
       }
     },
     {
+      "name": "Sniper",
+      "imgPath": "sniper.png",
+      "imgOffset": {"y": 2},
+      "imgHalfHeight": 2,
+      "selMinPos": {"x": -1, "y": 0},
+      "selMaxPos": {"x": 1, "y": 3},
+      "maxHealth": 50,
+      "speed": 0.004,
+      "reload": 2000,
+      "range": 32,
+      "tightFormationSpacing": 2,
+      "seePrecedence": 2,
+      "makeUnitMinDist": 4,
+      "makeUnitMaxDist": 8,
+      "makePathMinDist": 2,
+      "makePathMaxDist": 4,
+      "damage":
+      {
+        "Worker": 20,
+        "Marine": 20,
+        "Sniper": 20,
+        "Building": 20,
+        "Mine": 20
+      },
+      "rscCost":
+      {
+        "Minerals": 10
+      }
+    },
+    {
       "name": "Building",
       "imgPath": "building.png",
       "imgHalfHeight": 2,
       "maxHealth": 500,
       "speed": 0,
-      "canMake": ["Worker", "Marine"],
+      "canMake": ["Worker", "Marine", "Sniper"],
       "rscCost":
       {
         "Minerals": 10

@@ -146,7 +146,7 @@ public class Path {
 					// check parent made before (not at same time as) child, so it's unambiguous who is the parent
 					if (!segmentUnit.canBeUnambiguousParent (time)) return false;
 					// check parent unit won't be seen later
-					if (!ignoreSeen && !segmentUnit.unseenAfter ()) return false;
+					if (!ignoreSeen && !segmentUnit.unseenAfter (time)) return false;
 				}
 				else {
 					if (!canMakeUnitType (time, unit.type)) return false;
@@ -185,7 +185,7 @@ public class Path {
 		if (segment != null) {
 			foreach (SegmentUnit segmentUnit in segment.segmentUnits ()) {
 				if (segmentUnit.unit.type.canMake[type.id] && segmentUnit.canBeUnambiguousParent (time)
-					&& (time >= g.timeSim || segmentUnit.unseenAfter ())) {
+					&& (time >= g.timeSim || segmentUnit.unseenAfter (time))) {
 					return true;
 				}
 			}
@@ -267,7 +267,7 @@ public class Path {
 			Segment segment = activeSegment (time);
 			if (segment == null || !Sim.EnableNonLivePaths) return false;
 			foreach (SegmentUnit segmentUnit in segment.segmentUnits ()) {
-				if (!segmentUnit.unseenAfter ()) return false;
+				if (!segmentUnit.unseenAfter (time)) return false;
 			}
 		}
 		return true;

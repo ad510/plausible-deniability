@@ -44,6 +44,10 @@ public class AttackCmdEvt : UnitCmdEvt {
 						foreach (Unit targetUnit in targetSegment.units) {
 							for (int i = 0; i < unit.type.damage[targetUnit.type.id]; i++) targetUnit.takeHealth (timeCmd + 1, g.paths[target]);
 							unit.timeAttack = timeCmd;
+							g.deleteOtherPaths (from segment in g.activeSegments (timeCmd)
+								where segment.units.Contains (unit) && (targetPos - segment.path.calcPos (timeCmd)).lengthSq () <= unit.type.range * unit.type.range
+								select new SegmentUnit(segment, unit),
+								true);
 						}
 					}
 				}

@@ -58,6 +58,7 @@ public struct SegmentUnit {
 			}
 			else if (ancestors[i].segment.prev ().Any ()) {
 				// unit has a parent but we're deleting its first segment, so may need to check resources starting at this time
+				if (ancestors[i].unit.timeAttack != long.MinValue) return false;
 				timeEarliestChild = Math.Min (timeEarliestChild, ancestors[i].segment.timeStart);
 			}
 			else {
@@ -118,8 +119,9 @@ public struct SegmentUnit {
 				foreach (SegmentUnit child in children ().ToArray ()) {
 					// TODO: if has alternate non-live parent, do we need to recursively make children non-live?
 					if (child.parents ().Count () == 1) {
-						if (!child.deleteAfter (ref removed, ref timeEarliestChild)) return false;
+						if (child.unit.timeAttack != long.MinValue) return false;
 						timeEarliestChild = Math.Min (timeEarliestChild, child.segment.timeStart);
+						if (!child.deleteAfter (ref removed, ref timeEarliestChild)) return false;
 					}
 				}
 			}
@@ -131,13 +133,13 @@ public struct SegmentUnit {
 		return true;
 	}
 	
-	public bool unseenAfter() {
-		if (!segment.unseen) return false;
+	public bool unseenAfter(long time) {
+		if (!segment.unseen || time < unit.timeAttack) return false;
 		foreach (SegmentUnit segmentUnit in next ()) {
-			if (!segmentUnit.unseenAfter ()) return false;
+			if (!segmentUnit.unseenAfter (time)) return false;
 		}
 		foreach (SegmentUnit child in children ()) {
-			if (!child.unseenAfter ()) return false;
+			if (!child.unseenAfter (time)) return false;
 		}
 		return true;
 	}
