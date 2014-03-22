@@ -37,6 +37,21 @@ public class Unit {
 		timeHealth = new long[type.maxHealth];
 		timeAttack = long.MinValue;
 	}
+	
+	/// <summary>
+	/// attack every applicable unit in target segment
+	/// </summary>
+	public void attack(long time, Segment target) {
+		foreach (Unit targetUnit in target.units) {
+			// take health with 1 ms delay so earlier units in array don't have unfair advantage
+			for (int i = 0; i < type.damage[targetUnit.type.id]; i++) targetUnit.takeHealth (time + 1, target.path);
+			timeAttack = time;
+			g.deleteOtherPaths (from segment in g.activeSegments (time)
+				where segment.units.Contains (this) && (target.path.calcPos (time) - segment.path.calcPos (time)).lengthSq () <= type.range * type.range
+				select new SegmentUnit(segment, this),
+				true);
+		}
+	}
 
 	/// <summary>
 	/// remove 1 health increment at specified time
