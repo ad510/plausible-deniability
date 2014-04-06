@@ -99,6 +99,7 @@ public class App : MonoBehaviour {
 		public GameObject healthBarBack;
 		public GameObject healthBarFore;
 		public LineRenderer pathLine;
+		public LineRenderer laser;
 		public UnitType type;
 		public Player player;
 		
@@ -107,9 +108,12 @@ public class App : MonoBehaviour {
 			preview = Instantiate(quadPrefab) as GameObject;
 			healthBarBack = Instantiate(quadPrefab) as GameObject;
 			healthBarFore = Instantiate(quadPrefab) as GameObject;
-			pathLine = sprite.AddComponent<LineRenderer>();
+			pathLine = new GameObject().AddComponent<LineRenderer>();
 			pathLine.material.shader = Shader.Find ("VertexLit");
 			pathLine.SetVertexCount (2);
+			laser = new GameObject().AddComponent<LineRenderer>();
+			laser.material.shader = Shader.Find("VertexLit");
+			laser.SetVertexCount(2);
 			type = null;
 			player = null;
 		}
@@ -119,17 +123,20 @@ public class App : MonoBehaviour {
 			Destroy (preview);
 			Destroy (healthBarBack);
 			Destroy (healthBarFore);
+			Destroy (pathLine.gameObject);
+			Destroy (laser.gameObject);
 		}
 	}
 	
 	const bool EnableStacking = true;
 	const double SelBoxMin = 100;
 	const float FntSize = 1f / 40;
-	const float TileDepth = 7;
-	const float BorderDepth = 6;
-	const float MoveLineDepth = 5;
-	const float PathLineDepth = 4;
-	const float UnitDepth = 3;
+	const float TileDepth = 8;
+	const float BorderDepth = 7;
+	const float MoveLineDepth = 6;
+	const float PathLineDepth = 5;
+	const float UnitDepth = 4;
+	const float LaserDepth = 3;
 	const float HealthBarDepth = 2;
 	const float SelectBoxDepth = 1;
 	
@@ -339,6 +346,7 @@ public class App : MonoBehaviour {
 				};
 				unitT.selMinPos = jsonFPVector (jsonO, "selMinPos", new FP.Vector(unitT.imgOffset.x - unitT.imgHalfHeight, unitT.imgOffset.y - unitT.imgHalfHeight));
 				unitT.selMaxPos = jsonFPVector (jsonO, "selMaxPos", new FP.Vector(unitT.imgOffset.x + unitT.imgHalfHeight, unitT.imgOffset.y + unitT.imgHalfHeight));
+				unitT.laserPos = jsonFPVector (jsonO, "laserPos", unitT.imgOffset);
 				if (unitT.speed > g.maxSpeed) g.maxSpeed = unitT.speed;
 				for (int i = 0; i < g.rscNames.Length; i++) {
 					unitT.rscCost[i] = (jsonO2 != null) ? jsonFP(jsonO2, g.rscNames[i]) : 0;
@@ -775,6 +783,7 @@ public class App : MonoBehaviour {
 				sprUnits[i][j].healthBarBack.renderer.enabled = false;
 				sprUnits[i][j].healthBarFore.renderer.enabled = false;
 				sprUnits[i][j].pathLine.enabled = false;
+				sprUnits[i][j].laser.enabled = false;
 			}
 			if (pathDrawPos(g.paths[i], ref vec)) {
 				for (int j = 0; j < segment.units.Count + (showPathDeletedUnits ? segment.deletedUnits.Count : 0); j++) {
@@ -784,6 +793,7 @@ public class App : MonoBehaviour {
 						sprUnits[i][j].sprite.renderer.material.mainTexture = texUnits[unit.type.id, unit.player.id];
 						sprUnits[i][j].preview.renderer.material.mainTexture = texUnits[unit.type.id, unit.player.id];
 						sprUnits[i][j].pathLine.material.color = g.pathCol;
+						sprUnits[i][j].laser.material.color = Color.yellow;
 						sprUnits[i][j].type = unit.type;
 						sprUnits[i][j].player = unit.player;
 					}
@@ -804,6 +814,19 @@ public class App : MonoBehaviour {
 							sprUnits[i][j].pathLine.SetPosition (0, new Vector3(vec.x, vec.y, PathLineDepth));
 							sprUnits[i][j].pathLine.SetPosition (1, simToDrawPos (g.paths[k].calcPos(timeGame), PathLineDepth));
 							sprUnits[i][j].pathLine.enabled = true;
+							break;
+						}
+					}
+					// lasers
+					// ISSUE #16: make width, fade interval, color customizable by mod
+					foreach (Attack attack in unit.attacks) {
+						if (timeGame - attack.time >= 0 && timeGame - attack.time < 500 && g.tileAt(attack.target.calcPos(timeGame)).playerVisWhen(selPlayer, timeGame)) {
+							Vector3 posEmit = vec + simToDrawScl (unit.type.laserPos);
+							posEmit.z = LaserDepth;
+							sprUnits[i][j].laser.SetWidth(4 * (1 - (timeGame - attack.time) / 500f), 4 * (1 - (timeGame - attack.time) / 500f));
+							sprUnits[i][j].laser.SetPosition(0, posEmit);
+							sprUnits[i][j].laser.SetPosition(1, simToDrawPos((attack.target.selMinPos (timeGame) + attack.target.selMaxPos (timeGame)) / (2 << FP.Precision), LaserDepth));
+							sprUnits[i][j].laser.enabled = true;
 							break;
 						}
 					}

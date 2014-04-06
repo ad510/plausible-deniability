@@ -38,7 +38,7 @@ public class AttackCmdEvt : UnitCmdEvt {
 				&& g.tileAt (targetPos).playerVisLatest (path.Key.player)) {
 				long distSq = (targetPos - path.Key.calcPos(timeCmd)).lengthSq ();
 				foreach (Unit unit in path.Value) {
-					if (timeCmd >= unit.timeAttack + unit.type.reload && distSq <= unit.type.range * unit.type.range) {
+					if ((unit.attacks.Count == 0 || timeCmd >= unit.attacks.Last().time + unit.type.reload) && distSq <= unit.type.range * unit.type.range) {
 						unit.attack (timeCmd, targetSegment);
 					}
 				}

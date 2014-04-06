@@ -62,7 +62,7 @@ public class UpdateEvt : SimEvt {
 			if (segment != null && path.timeSimPast == long.MaxValue) {
 				FP.Vector pos = path.calcPos (time);
 				foreach (Unit unit in segment.units) {
-					if (time >= unit.timeAttack + unit.type.reload) {
+					if (unit.attacks.Count == 0 || time >= unit.attacks.Last().time + unit.type.reload) {
 						// done reloading, look for closest target to potentially attack
 						Path target = null;
 						long targetDistSq = unit.type.range * unit.type.range + 1;
