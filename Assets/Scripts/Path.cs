@@ -128,6 +128,17 @@ public class Path {
 		FP.Vector pos = calcPos(g.timeSim);
 		g.events.add(new TileMoveEvt(g.timeSim, id, (int)(pos.x >> FP.Precision), (int)(pos.y >> FP.Precision)));
 		if (!g.movedPaths.Contains(id)) g.movedPaths.Add(id); // indicate to delete and recalculate later TileMoveEvts for this path
+		// make previous and parent paths go live
+		foreach (Segment segment in segments) {
+			foreach (SegmentUnit segmentUnit in segment.segmentUnits ()) {
+				foreach (SegmentUnit prev in segmentUnit.prev ()) {
+					if (prev.segment.path.timeSimPast != long.MaxValue) prev.segment.path.goLive ();
+				}
+				foreach (SegmentUnit parent in segmentUnit.parents ()) {
+					if (parent.segment.path.timeSimPast != long.MaxValue) parent.segment.path.goLive ();
+				}
+			}
+		}
 	}
 
 	/// <summary>
