@@ -162,6 +162,9 @@ public class Path {
 				// TODO: may be more permissive by passing in max = true, but this really complicates SegmentUnit.delete() algorithm (see planning notes)
 				if (rscCost[i] > 0 && player.resource(time, i, false, !newPathIsLive) < rscCost[i]) return false;
 			}
+			// if making child unit that costs resources, then delete other paths
+			// TODO: only need to delete other paths of units that made the new unit
+			if (rscCost.Where (r => r > 0).Any ()) g.deleteOtherPaths (segment.segmentUnits(), false, true);
 		}
 		{ // make path
 			Segment segment = insertSegment (time);
