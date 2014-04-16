@@ -165,7 +165,6 @@ public class Path {
 				if (rscCost[i] > 0 && player.resource(time, i, false, !newPathIsLive) < rscCost[i]) return false;
 			}
 			// if making child unit that costs resources, then delete other paths
-			// TODO: deleteOtherPaths() won't delete alternate non-live paths made at the same time as this one (bug?), so this doesn't work if 2 non-live paths of same unit made at same time each build a mine
 			// TODO: only need to delete other paths of units that made the new unit
 			if (rscCost.Where (r => r > 0).Any ()) g.deleteOtherPaths (segment.segmentUnits(), false, true);
 		}
