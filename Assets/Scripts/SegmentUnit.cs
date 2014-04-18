@@ -134,7 +134,7 @@ public struct SegmentUnit {
 					if (!segmentUnit.deleteDependenciesAfter (dependencies, ref timeEarliestChild)) return false;
 				}
 				// remove child units that only this unit could have made
-				foreach (SegmentUnit child in children ().ToArray ()) {
+				foreach (SegmentUnit child in children ()) {
 					// TODO: if has alternate non-live parent, do we need to recursively make children non-live?
 					if (child.parents ().Where(u => !dependencies.Contains(u)).Count () == 1) {
 						if (child.unit.attacks.Count > 0) return false;
