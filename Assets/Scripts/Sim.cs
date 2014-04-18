@@ -172,14 +172,23 @@ public class Sim {
 	public bool deleteOtherPaths(IEnumerable<SegmentUnit> segmentUnits, bool addDeleteLines, bool addKeepLines) {
 		HashSet<SegmentUnit> ancestors = new HashSet<SegmentUnit>();
 		HashSet<SegmentUnit> prev = new HashSet<SegmentUnit>();
+		HashSet<SegmentUnit> liveToNonLivePrev = new HashSet<SegmentUnit>(); // live prev segments whose next ancestor is not live
 		bool success = true;
 		bool deleted = false;
 		foreach (SegmentUnit segmentUnit in segmentUnits) {
-			addAncestors (segmentUnit, ancestors, prev);
+			addAncestors (segmentUnit, ancestors, prev, liveToNonLivePrev);
 		}
 		foreach (SegmentUnit ancestor in prev) {
 			foreach (SegmentUnit segmentUnit in ancestor.next ()) {
 				if (!ancestors.Contains (segmentUnit)) {
+					success &= segmentUnit.delete (addDeleteLines);
+					deleted = true;
+				}
+			}
+		}
+		foreach (SegmentUnit ancestor in liveToNonLivePrev) {
+			foreach (SegmentUnit segmentUnit in ancestor.next ()) {
+				if (segmentUnit.segment.path.timeSimPast != long.MaxValue && !ancestors.Contains (segmentUnit)) {
 					success &= segmentUnit.delete (addDeleteLines);
 					deleted = true;
 				}
@@ -200,16 +209,19 @@ public class Sim {
 		return success;
 	}
 	
-	private void addAncestors(SegmentUnit segmentUnit, HashSet<SegmentUnit> ancestors, HashSet<SegmentUnit> prev) {
+	private void addAncestors(SegmentUnit segmentUnit, HashSet<SegmentUnit> ancestors, HashSet<SegmentUnit> prev, HashSet<SegmentUnit> liveToNonLivePrev) {
 		ancestors.Add (segmentUnit);
 		foreach (SegmentUnit prevSegment in segmentUnit.prev ()) {
-			if (segmentUnit.segment.path.timeSimPast == long.MaxValue || prevSegment.segment.path.timeSimPast != long.MaxValue) {
+			if (segmentUnit.segment.path.timeSimPast != long.MaxValue && prevSegment.segment.path.timeSimPast == long.MaxValue) {
+				liveToNonLivePrev.Add(prevSegment);
+			}
+			else {
 				prev.Add (prevSegment);
 			}
-			addAncestors (prevSegment, ancestors, prev);
+			addAncestors (prevSegment, ancestors, prev, liveToNonLivePrev);
 		}
 		foreach (SegmentUnit parent in segmentUnit.parents ()) {
-			addAncestors (parent, ancestors, prev);
+			addAncestors (parent, ancestors, prev, liveToNonLivePrev);
 		}
 	}
 	

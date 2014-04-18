@@ -143,6 +143,14 @@ public struct SegmentUnit {
 		}
 		return true;
 	}
+	
+	public bool hasChildrenAfter() {
+		if (children ().Any ()) return false; // TODO: this should return true if other units could make the child
+		foreach (SegmentUnit segmentUnit in next ()) {
+			if (!segmentUnit.hasChildrenAfter ()) return false;
+		}
+		return true;
+	}
 
 	/// <summary>
 	/// returns every combination of units that this unit could have made
