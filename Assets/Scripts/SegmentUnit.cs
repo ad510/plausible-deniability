@@ -31,13 +31,62 @@ public struct SegmentUnit {
 	/// removes unit from segment if doing so wouldn't affect anything that another player saw, returns whether successful
 	/// </summary>
 	public bool delete(bool addMoveLines = false) {
-		if (!segment.units.Contains (unit)) return true; // if this segment already doesn't contain this unit, return true
-		List<SegmentUnit> ancestors = new List<SegmentUnit> { this };
+		HashSet<SegmentUnit> dependencies = new HashSet<SegmentUnit>();
 		Dictionary<Segment, List<Unit>> removed = new Dictionary<Segment, List<Unit>>();
 		long timeEarliestChild = long.MaxValue;
-		int i;
+		// find all SegmentUnits that need to be removed along with this one
+		if (!deleteDependencies(dependencies, ref timeEarliestChild)) return false;
+		// remove unit and its dependencies
+		foreach (SegmentUnit dependency in dependencies) {
+			dependency.segment.units.Remove(dependency.unit);
+			if (!removed.ContainsKey (dependency.segment)) removed.Add (dependency.segment, new List<Unit>());
+			removed[dependency.segment].Add (dependency.unit);
+		}
+		// obsolesce player's list of unit combinations
+		List<HashSet<SegmentUnit>> oldUnitCombinations = unit.player.unitCombinations;
+		unit.player.unitCombinations = null;
+		// if removing unit might have led to player having negative resources,
+		// add units back to segments they were removed from
+		if (timeEarliestChild != long.MaxValue && segment.path.player.checkNegRsc (timeEarliestChild, false) >= 0) {
+			foreach (KeyValuePair<Segment, List<Unit>> item in removed) {
+				item.Key.units.AddRange (item.Value);
+			}
+			unit.player.unitCombinations = oldUnitCombinations;
+			return false;
+		}
+		foreach (KeyValuePair<Segment, List<Unit>> item in removed) {
+			// remove paths that no longer contain units from visibility tiles
+			if (item.Key.id == item.Key.path.segments.Count - 1 && item.Key.units.Count == 0 && item.Key.path.tileX != Sim.OffMap) {
+				g.events.add(new TileMoveEvt(g.timeSim, item.Key.path.id, Sim.OffMap, 0));
+			}
+			// add deleted units to list
+			if (item.Key.timeStart < g.timeSim) {
+				if (item.Key.nextOnPath () == null) item.Key.path.insertSegment (g.timeSim);
+				item.Key.deletedUnits.AddRange (item.Value);
+			}
+		}
+		if (addMoveLines) {
+			// add deleted unit lines
+			// TODO: tweak time if deleted before timeSimPast
+			MoveLine deleteLine = new MoveLine(Math.Min (segment.path.timeSimPast, g.timeSim), unit.player);
+			foreach (Segment seg in removed.Keys) {
+				deleteLine.vertices.AddRange (seg.path.moveLines (seg.timeStart,
+					(seg.nextOnPath () == null || seg.nextOnPath ().timeStart > deleteLine.time) ? deleteLine.time : seg.nextOnPath ().timeStart));
+			}
+			g.deleteLines.Add (deleteLine);
+		}
+		return true;
+	}
+
+	/// <summary>
+	/// sets dependencies to all SegmentUnits that would need to be deleted in order to safely delete this SegmentUnit,
+	/// returns whether this is possible (does not check for possibility of negative resources)
+	/// </summary>
+	public bool deleteDependencies(HashSet<SegmentUnit> dependencies, ref long timeEarliestChild) {
+		if (!segment.units.Contains (unit)) return true; // if this segment already doesn't contain this unit, return true
+		List<SegmentUnit> ancestors = new List<SegmentUnit> { this };
 		// find all ancestor segments to start removal from
-		for (i = 0; i < ancestors.Count; i++) {
+		for (int i = 0; i < ancestors.Count; i++) {
 			if (ancestors[i].prev ().Any ()) {
 				// if this ancestor has a sibling segment that we're not currently planning to remove unit from,
 				// don't remove unit from previous segments shared by both
@@ -68,71 +117,36 @@ public struct SegmentUnit {
 				return false;
 			}
 		}
-		// remove unit recursively, starting at the ancestor segments we found
-		for (i = 0; i < ancestors.Count; i++) {
-			if (!ancestors[i].deleteAfter (ref removed, ref timeEarliestChild)) break;
-		}
-		// obsolesce player's list of unit combinations
-		List<HashSet<SegmentUnit>> oldUnitCombinations = unit.player.unitCombinations;
-		unit.player.unitCombinations = null;
-		// if a deleteAfter() call failed or removing unit might have led to player having negative resources,
-		// add units back to segments they were removed from
-		if (i < ancestors.Count || (timeEarliestChild != long.MaxValue && segment.path.player.checkNegRsc (timeEarliestChild, false) >= 0)) {
-			foreach (KeyValuePair<Segment, List<Unit>> item in removed) {
-				item.Key.units.AddRange (item.Value);
-			}
-			unit.player.unitCombinations = oldUnitCombinations;
-			return false;
-		}
-		foreach (KeyValuePair<Segment, List<Unit>> item in removed) {
-			// remove paths that no longer contain units from visibility tiles
-			if (item.Key.id == item.Key.path.segments.Count - 1 && item.Key.units.Count == 0 && item.Key.path.tileX != Sim.OffMap) {
-				g.events.add(new TileMoveEvt(g.timeSim, item.Key.path.id, Sim.OffMap, 0));
-			}
-			// add deleted units to list
-			if (item.Key.timeStart < g.timeSim) {
-				if (item.Key.nextOnPath () == null) item.Key.path.insertSegment (g.timeSim);
-				item.Key.deletedUnits.AddRange (item.Value);
-			}
-		}
-		if (addMoveLines) {
-			// add deleted unit lines
-			// TODO: tweak time if deleted before timeSimPast
-			MoveLine deleteLine = new MoveLine(Math.Min (segment.path.timeSimPast, g.timeSim), unit.player);
-			foreach (Segment seg in removed.Keys) {
-				deleteLine.vertices.AddRange (seg.path.moveLines (seg.timeStart,
-					(seg.nextOnPath () == null || seg.nextOnPath ().timeStart > deleteLine.time) ? deleteLine.time : seg.nextOnPath ().timeStart));
-			}
-			g.deleteLines.Add (deleteLine);
+		// find later dependencies recursively, starting at the ancestor segments we found
+		for (int i = 0; i < ancestors.Count; i++) {
+			if (!ancestors[i].deleteDependenciesAfter (dependencies, ref timeEarliestChild)) return false;
 		}
 		return true;
 	}
 	
-	private bool deleteAfter(ref Dictionary<Segment, List<Unit>> removed, ref long timeEarliestChild) {
-		if (segment.units.Contains (unit)) {
+	private bool deleteDependenciesAfter(HashSet<SegmentUnit> dependencies, ref long timeEarliestChild) {
+		if (segment.units.Contains (unit) && !dependencies.Contains(this)) {
 			if (!segment.unseen && segment.timeStart < g.timeSim) return false;
 			// only remove units from next segments if this is their only previous segment
-			if (segment.nextOnPath () == null || new SegmentUnit(segment.nextOnPath (), unit).prev ().Count () == 1) {
+			if (segment.nextOnPath () == null || new SegmentUnit(segment.nextOnPath (), unit).prev ().Where(u => !dependencies.Contains(u)).Count () == 1) {
 				// remove unit from next segments
 				foreach (SegmentUnit segmentUnit in next ()) {
-					if (!segmentUnit.deleteAfter (ref removed, ref timeEarliestChild)) return false;
+					if (!segmentUnit.deleteDependenciesAfter (dependencies, ref timeEarliestChild)) return false;
 				}
 				// remove child units that only this unit could have made
 				foreach (SegmentUnit child in children ().ToArray ()) {
 					// TODO: if has alternate non-live parent, do we need to recursively make children non-live?
-					if (child.parents ().Count () == 1) {
+					if (child.parents ().Where(u => !dependencies.Contains(u)).Count () == 1) {
 						if (child.unit.attacks.Count > 0) return false;
-						if (!child.deleteAfter (ref removed, ref timeEarliestChild)) return false;
+						if (!child.deleteDependenciesAfter (dependencies, ref timeEarliestChild)) return false;
 						if (child.segment.timeStart < timeEarliestChild && child.unit.type.rscCollectRate.Where (r => r > 0).Any ()) {
 							timeEarliestChild = child.segment.timeStart;
 						}
 					}
 				}
 			}
-			// remove unit from this segment
-			segment.units.Remove (unit);
-			if (!removed.ContainsKey (segment)) removed.Add (segment, new List<Unit>());
-			removed[segment].Add (unit);
+			// add this SegmentUnit to dependencies
+			dependencies.Add(this);
 		}
 		return true;
 	}
