@@ -124,21 +124,32 @@ public class Path {
 	/// let path be updated in the present (i.e., stop time traveling) starting at timeSim
 	/// </summary>
 	public void goLive() {
+		List<SegmentUnit> queue = new List<SegmentUnit>();
+		SegmentUnit nonLiveChild = new SegmentUnit();
 		timeSimPast = long.MaxValue;
+		foreach (Segment segment in segments) {
+			queue.AddRange (segment.segmentUnits ());
+		}
+		while (queue.Count > 0) {
+			foreach (SegmentUnit prev in queue[0].prev ()) {
+				if (prev.segment.path.timeSimPast != long.MaxValue) {
+					prev.segment.path.timeSimPast = long.MaxValue;
+					queue.Add (prev);
+				}
+			}
+			foreach (SegmentUnit parent in queue[0].parents ()) {
+				if (parent.segment.path.timeSimPast != long.MaxValue) {
+					parent.segment.path.timeSimPast = long.MaxValue;
+					queue.Add (parent);
+				}
+			}
+			if (nonLiveChild.g == null && queue[0].children().Any ()) nonLiveChild = queue[0];
+			queue.RemoveAt (0);
+		}
+		if (nonLiveChild.g != null) g.deleteOtherPaths (new SegmentUnit[] { nonLiveChild }, true, false);
 		FP.Vector pos = calcPos(g.timeSim);
 		g.events.add(new TileMoveEvt(g.timeSim, id, (int)(pos.x >> FP.Precision), (int)(pos.y >> FP.Precision)));
 		if (!g.movedPaths.Contains(id)) g.movedPaths.Add(id); // indicate to delete and recalculate later TileMoveEvts for this path
-		// make previous and parent paths go live
-		foreach (Segment segment in segments) {
-			foreach (SegmentUnit segmentUnit in segment.segmentUnits ()) {
-				foreach (SegmentUnit prev in segmentUnit.prev ()) {
-					if (prev.segment.path.timeSimPast != long.MaxValue) prev.segment.path.goLive ();
-				}
-				foreach (SegmentUnit parent in segmentUnit.parents ()) {
-					if (parent.segment.path.timeSimPast != long.MaxValue) parent.segment.path.goLive ();
-				}
-			}
-		}
 	}
 
 	/// <summary>
@@ -172,8 +183,7 @@ public class Path {
 			bool newPathIsLive = (time >= g.timeSim && timeSimPast == long.MaxValue);
 			if (!newPathIsLive && !Sim.EnableNonLivePaths) return false;
 			for (int i = 0; i < g.rscNames.Length; i++) {
-				// TODO: may be more permissive by passing in max = true, but this really complicates SegmentUnit.delete() algorithm (see planning notes)
-				if (rscCost[i] > 0 && player.resource(time, i, false, !newPathIsLive) < rscCost[i]) return false;
+				if (rscCost[i] > 0 && player.resource(time, i, !newPathIsLive) < rscCost[i]) return false;
 			}
 			// if making child unit that costs resources, then delete other paths
 			// TODO: only need to delete other paths of units that made the new unit
@@ -191,7 +201,6 @@ public class Path {
 			else {
 				player.hasNonLivePaths = true;
 			}
-			player.unitCombinations = null;
 		}
 		return true;
 	}

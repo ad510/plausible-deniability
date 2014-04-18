@@ -24,7 +24,6 @@ public class Player {
 	[ProtoMember(9)] public bool hasNonLivePaths; // whether currently might have time traveling paths (ok to sometimes incorrectly be set to true)
 	[ProtoMember(10)] public long timeGoLiveFail; // latest time that player's time traveling paths failed to go live (resets to long.MinValue after success)
 	[ProtoMember(11)] public long timeNegRsc; // time that player could have negative resources if time traveling paths went live
-	public List<HashSet<SegmentUnit>> unitCombinations; // each combination of units that this player could have
 
 	/// <summary>
 	/// update player's non-live (time traveling) paths
@@ -43,47 +42,20 @@ public class Player {
 	/// <summary>
 	/// returns amount of specified resource that player has at specified time
 	/// </summary>
-	/// <param name="max">
-	/// since different paths can have collected different resource amounts,
-	/// determines whether to use paths that collected least or most resources in calculation
-	/// </param>
-	public long resource(long time, int rscType, bool max, bool includeNonLiveChildren) {
+	public long resource(long time, int rscType, bool nonLive) {
 		long ret = startRsc[rscType];
-		bool firstCombination = true;
-		if (unitCombinations == null) {
-			unitCombinations = new List<HashSet<SegmentUnit>> { new HashSet<SegmentUnit>() };
-			for (int i = 0; i < g.nRootPaths; i++) {
-				if (this == g.paths[i].player) {
-					foreach (SegmentUnit segmentUnit in g.paths[i].segments[0].segmentUnits ()) {
-						// TODO: this will double-count units that are in multiple paths at beginning of scenario
-						List<HashSet<SegmentUnit>> newUnitCombinations = new List<HashSet<SegmentUnit>>();
-						foreach (HashSet<SegmentUnit> children in segmentUnit.allChildren ()) {
-							foreach (HashSet<SegmentUnit> combination in unitCombinations) {
-								HashSet<SegmentUnit> newCombination = new HashSet<SegmentUnit> { segmentUnit };
-								newCombination.UnionWith (children);
-								newCombination.UnionWith (combination);
-								if (newUnitCombinations.Find (x => x.SetEquals (newCombination)) == null) newUnitCombinations.Add (newCombination);
-							}
+		foreach (Path path in g.paths) {
+			if (this == path.player && (nonLive || path.timeSimPast == long.MaxValue)) {
+				// this assumes all new units are made on a single new path, which is currently a valid assumption
+				foreach (Unit unit in path.segments[0].units) {
+					if (!new SegmentUnit(path.segments[0], unit).prev ().Any ()) {
+						long existsInterval = ((unit.healthWhen (time) == 0) ? unit.timeHealth[unit.nTimeHealth - 1] : time) - path.segments[0].timeStart;
+						if (existsInterval >= 0) {
+							ret += unit.type.rscCollectRate[rscType] * existsInterval;
+							if (path.id >= g.nRootPaths) ret -= unit.type.rscCost[rscType];
 						}
-						unitCombinations = newUnitCombinations;
 					}
 				}
-			}
-		}
-		foreach (HashSet<SegmentUnit> combination in unitCombinations) {
-			long sum = startRsc[rscType];
-			foreach (SegmentUnit segmentUnit in combination) {
-				if (includeNonLiveChildren || segmentUnit.segment.path.timeSimPast == long.MaxValue) {
-					long existsInterval = ((segmentUnit.unit.healthWhen (time) == 0) ? segmentUnit.unit.timeHealth[segmentUnit.unit.nTimeHealth - 1] : time) - segmentUnit.segment.timeStart;
-					if (existsInterval >= 0) {
-						sum += segmentUnit.unit.type.rscCollectRate[rscType] * existsInterval;
-						if (segmentUnit.segment.path.id >= g.nRootPaths) sum -= segmentUnit.unit.type.rscCost[rscType];
-					}
-				}
-			}
-			if (firstCombination || (max ^ (sum < ret))) {
-				ret = sum;
-				firstCombination = false;
 			}
 		}
 		return ret;
@@ -93,12 +65,12 @@ public class Player {
 	/// checks whether player could have negative resources since timeMin in worst case scenario of which paths are seen
 	/// </summary>
 	/// <returns>a time that player could have negative resources, or -1 if no such time found</returns>
-	public long checkNegRsc(long timeMin, bool includeNonLiveChildren) {
+	public long checkNegRsc(long timeMin, bool nonLive) {
 		foreach (Path path in g.paths) {
 			// check all times since timeMin that a path of specified player was made
 			if (this == path.player && path.segments[0].timeStart >= timeMin) {
 				for (int i = 0; i < g.rscNames.Length; i++) {
-					if (resource(path.segments[0].timeStart, i, false, includeNonLiveChildren) < 0) {
+					if (resource(path.segments[0].timeStart, i, nonLive) < 0) {
 						return path.segments[0].timeStart;
 					}
 				}

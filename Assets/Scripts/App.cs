@@ -911,9 +911,9 @@ public class App : MonoBehaviour {
 		// text at bottom left
 		GUILayout.FlexibleSpace ();
 		for (int i = 0; i < g.rscNames.Length; i++) {
-			long rscMin = (long)Math.Floor(FP.toDouble(selPlayer.resource(timeGame, i, false, true)));
-			long rscMax = (long)Math.Floor(FP.toDouble(selPlayer.resource(timeGame, i, true, true)));
-			GUILayout.Label (g.rscNames[i] + ": " + rscMin + ((rscMax != rscMin) ? " to " + rscMax : ""), (rscMin >= 0) ? lblStyle : lblErrStyle);
+			double rscNonLive = Math.Floor(FP.toDouble(selPlayer.resource(timeGame, i, true)));
+			GUILayout.Label (g.rscNames[i] + ": " + rscNonLive + (selPlayer.hasNonLivePaths ? " (" + Math.Floor (FP.toDouble (selPlayer.resource (timeGame, i, false))) + " live)" : ""),
+				(rscNonLive >= 0) ? lblStyle : lblErrStyle);
 		}
 		if (Sim.EnableNonLivePaths || replay) {
 			timeGame = (long)GUILayout.HorizontalSlider (timeGame, 0, g.timeSim);
@@ -972,7 +972,7 @@ public class App : MonoBehaviour {
 							for (int i = 0; i < g.rscNames.Length; i++) {
 								tooltip += FP.toDouble (unitT.rscCost[i]) + " " + g.rscNames[i];
 								if (i != g.rscNames.Length - 1) tooltip += ", ";
-								enoughRsc &= selPlayer.resource(timeGame, i, false, true) >= unitT.rscCost[i]; // TODO: should sometimes pass in includeNonLiveChildren = false, see makePath(), maybe simpler way would be calling canMakePath()
+								enoughRsc &= selPlayer.resource(timeGame, i, false) >= unitT.rscCost[i]; // TODO: should sometimes pass in nonLive = false, see makePath(), maybe simpler way would be calling canMakePath()
 							}
 							if (!enoughRsc) tooltip += " ";
 							if (GUILayout.Button (new GUIContent("Make " + unitT.name, tooltip))) makeUnit (unitT);

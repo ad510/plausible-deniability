@@ -70,16 +70,12 @@ public struct SegmentUnit {
 		for (i = 0; i < ancestors.Count; i++) {
 			if (!ancestors[i].deleteAfter (ref removed, ref timeEarliestChild)) break;
 		}
-		// obsolesce player's list of unit combinations
-		List<HashSet<SegmentUnit>> oldUnitCombinations = unit.player.unitCombinations;
-		unit.player.unitCombinations = null;
 		// if a deleteAfter() call failed or removing unit might have led to player having negative resources,
 		// add units back to segments they were removed from
 		if (i < ancestors.Count || (timeEarliestChild != long.MaxValue && segment.path.player.checkNegRsc (timeEarliestChild, false) >= 0)) {
 			foreach (KeyValuePair<Segment, List<Unit>> item in removed) {
 				item.Key.units.AddRange (item.Value);
 			}
-			unit.player.unitCombinations = oldUnitCombinations;
 			return false;
 		}
 		foreach (KeyValuePair<Segment, List<Unit>> item in removed) {
@@ -150,42 +146,6 @@ public struct SegmentUnit {
 			if (!segmentUnit.hasChildrenAfter ()) return false;
 		}
 		return true;
-	}
-
-	/// <summary>
-	/// returns every combination of units that this unit could have made
-	/// </summary>
-	public List<HashSet<SegmentUnit>> allChildren() {
-		List<HashSet<SegmentUnit>> ret = new List<HashSet<SegmentUnit>>();
-		// add children in each combination of next segments
-		foreach (SegmentUnit segmentUnit in next ()) {
-			foreach (HashSet<SegmentUnit> nextCombination in segmentUnit.allChildren ()) {
-				if (ret.Find (x => x.SetEquals (nextCombination)) == null) ret.Add (nextCombination);
-			}
-		}
-		// if this is last segment, add empty set of children
-		if (ret.Count == 0) ret.Add (new HashSet<SegmentUnit>());
-		// add children in this segment
-		foreach (SegmentUnit child in children ()) {
-			List<HashSet<SegmentUnit>> childChildren = child.allChildren ();
-			// add child to each combination so far
-			foreach (HashSet<SegmentUnit> combination in ret) {
-				combination.Add (child);
-			}
-			if (childChildren.Count != 1 || childChildren[0].Count != 0) {
-				// add each child unit combination to each combination so far
-				List<HashSet<SegmentUnit>> newRet = new List<HashSet<SegmentUnit>>();
-				foreach (HashSet<SegmentUnit> childCombination in childChildren) {
-					foreach (HashSet<SegmentUnit> combination in ret) {
-						HashSet<SegmentUnit> newCombination = new HashSet<SegmentUnit>(combination);
-						newCombination.UnionWith (childCombination);
-						if (newRet.Find (x => x.SetEquals (newCombination)) == null) newRet.Add (newCombination);
-					}
-				}
-				ret = newRet;
-			}
-		}
-		return ret;
 	}
 	
 	/// <summary>
