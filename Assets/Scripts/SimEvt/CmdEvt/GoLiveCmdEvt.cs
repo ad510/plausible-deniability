@@ -37,7 +37,7 @@ public class GoLiveCmdEvt : CmdEvt {
 			}
 		}
 		if (timeTravelStart != long.MaxValue) { // skip if player has no time traveling paths
-			// check if going live might lead to player having negative resources
+			// check if going live would lead to player ever having negative resources
 			g.players[player].timeNegRsc = g.players[player].checkNegRsc(timeTravelStart, true);
 			if (g.players[player].timeNegRsc >= 0) {
 				// indicate failure to go live, then return

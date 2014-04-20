@@ -62,9 +62,9 @@ public class Player {
 	}
 
 	/// <summary>
-	/// checks whether player could have negative resources since timeMin in worst case scenario of which paths are seen
+	/// checks whether player had negative resources since timeMin
 	/// </summary>
-	/// <returns>a time that player could have negative resources, or -1 if no such time found</returns>
+	/// <returns>a time that player had negative resources, or -1 if no such time found</returns>
 	public long checkNegRsc(long timeMin, bool nonLive) {
 		foreach (Path path in g.paths) {
 			// check all times since timeMin that a path of specified player was made
