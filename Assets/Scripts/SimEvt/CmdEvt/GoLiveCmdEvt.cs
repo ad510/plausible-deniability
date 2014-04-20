@@ -38,10 +38,14 @@ public class GoLiveCmdEvt : CmdEvt {
 		}
 		if (timeTravelStart != long.MaxValue) { // skip if player has no time traveling paths
 			// check if going live would lead to player ever having negative resources
-			g.players[player].timeNegRsc = g.players[player].checkNegRsc(timeTravelStart, true);
-			if (g.players[player].timeNegRsc >= 0) {
+			g.players[player].timeGoLiveProblem = g.players[player].checkNegRsc(timeTravelStart, true);
+			if (g.players[player].timeGoLiveProblem < 0 && g.players[player].populationLimit >= 0) {
+				// check if going live would lead to player ever going over population limit
+				g.players[player].timeGoLiveProblem = g.players[player].checkPopulation(timeTravelStart);
+			}
+			if (g.players[player].timeGoLiveProblem >= 0) {
 				// indicate failure to go live, then return
-				g.players[player].timeGoLiveFail = time;
+				g.players[player].timeGoLiveFailedAttempt = time;
 				return;
 			}
 			// safe for paths to become live, so do so
@@ -51,6 +55,6 @@ public class GoLiveCmdEvt : CmdEvt {
 		}
 		// indicate success
 		g.players[player].hasNonLivePaths = false;
-		g.players[player].timeGoLiveFail = long.MinValue;
+		g.players[player].timeGoLiveFailedAttempt = long.MinValue;
 	}
 }

@@ -290,9 +290,10 @@ public class App : MonoBehaviour {
 					name = jsonString(jsonO, "name"),
 					isUser = jsonBool(jsonO, "isUser"),
 					user = (int)jsonDouble(jsonO, "user"),
+					populationLimit = (int)jsonDouble (jsonO, "populationLimit", -1),
 					startRsc = new long[g.rscNames.Length],
 					hasNonLivePaths = false,
-					timeGoLiveFail = long.MinValue,
+					timeGoLiveFailedAttempt = long.MinValue,
 				};
 				for (int i = 0; i < g.rscNames.Length; i++) {
 					player.startRsc[i] = (jsonO2 != null) ? jsonFP(jsonO2, g.rscNames[i]) : 0;
@@ -905,8 +906,8 @@ public class App : MonoBehaviour {
 		if (paused) GUILayout.Label ("PAUSED", lblStyle);
 		if (Environment.TickCount < timeSpeedChg) timeSpeedChg -= UInt32.MaxValue;
 		if (Environment.TickCount < timeSpeedChg + 1000) GUILayout.Label ("SPEED: " + Math.Pow(2, speed) + "x", lblStyle);
-		if (selPlayer.timeGoLiveFail != long.MinValue) {
-			GUILayout.Label ("ERROR: Going live will cause you to have negative resources " + (timeGame - selPlayer.timeNegRsc) / 1000 + " second(s) ago.", lblErrStyle);
+		if (selPlayer.timeGoLiveFailedAttempt != long.MinValue) {
+			GUILayout.Label ("ERROR: Going live will cause you to have negative resources or be over the population limit " + (timeGame - selPlayer.timeGoLiveProblem) / 1000 + " second(s) ago.", lblErrStyle);
 		}
 		// text at bottom left
 		GUILayout.FlexibleSpace ();
@@ -914,6 +915,10 @@ public class App : MonoBehaviour {
 			double rscNonLive = Math.Floor(FP.toDouble(selPlayer.resource(timeGame, i, true)));
 			GUILayout.Label (g.rscNames[i] + ": " + rscNonLive + (selPlayer.hasNonLivePaths ? " (" + Math.Floor (FP.toDouble (selPlayer.resource (timeGame, i, false))) + " live)" : ""),
 				(rscNonLive >= 0) ? lblStyle : lblErrStyle);
+		}
+		if (selPlayer.populationLimit >= 0) {
+			int population = selPlayer.population (timeGame);
+			GUILayout.Label ("Population: " + population + "/" + selPlayer.populationLimit, (population <= selPlayer.populationLimit) ? lblStyle : lblErrStyle);
 		}
 		if (Sim.EnableNonLivePaths || replay) {
 			timeGame = (long)GUILayout.HorizontalSlider (timeGame, 0, g.timeSim);
@@ -967,14 +972,19 @@ public class App : MonoBehaviour {
 				foreach (UnitType unitT in g.unitT) {
 					foreach (Path path in curSelPaths.Keys) {
 						if (path.canMakeUnitType (timeGame, unitT)) { // ISSUE #22: sometimes canMake check should use existing selected units in path
-							bool enoughRsc = true;
-							tooltip = "Costs ";
-							for (int i = 0; i < g.rscNames.Length; i++) {
-								tooltip += FP.toDouble (unitT.rscCost[i]) + " " + g.rscNames[i];
-								if (i != g.rscNames.Length - 1) tooltip += ", ";
-								enoughRsc &= selPlayer.resource(timeGame, i, false) >= unitT.rscCost[i]; // TODO: should sometimes pass in nonLive = false, see makePath(), maybe simpler way would be calling canMakePath()
+							if (selPlayer.population(timeGame) >= selPlayer.populationLimit) {
+								tooltip = "Reached population limit ";
 							}
-							if (!enoughRsc) tooltip += " ";
+							else {
+								bool enoughRsc = true;
+								tooltip = "Costs ";
+								for (int i = 0; i < g.rscNames.Length; i++) {
+									tooltip += FP.toDouble (unitT.rscCost[i]) + " " + g.rscNames[i];
+									if (i != g.rscNames.Length - 1) tooltip += ", ";
+									enoughRsc &= selPlayer.resource(timeGame, i, false) >= unitT.rscCost[i]; // TODO: should sometimes pass in nonLive = false, see makePath(), maybe simpler way would be calling canMakePath()
+								}
+								if (!enoughRsc) tooltip += " ";
+							}
 							if (GUILayout.Button (new GUIContent("Make " + unitT.name, tooltip))) makeUnit (unitT);
 							break;
 						}

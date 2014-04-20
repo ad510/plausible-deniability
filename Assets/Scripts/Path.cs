@@ -160,6 +160,7 @@ public class Path {
 			if (units.Count == 0) return false;
 			Segment segment = activeSegment(time);
 			if (segment == null) return false;
+			int newUnitCount = 0;
 			long[] rscCost = new long[g.rscNames.Length];
 			foreach (Unit unit in units) {
 				if (segment.units.Contains (unit)) {
@@ -173,8 +174,9 @@ public class Path {
 					if (!segmentUnit.hasChildrenAfter ()) return false;
 				}
 				else {
-					if (!canMakeUnitType (time, unit.type)) return false;
 					// unit in path would be non-path child unit
+					if (!canMakeUnitType (time, unit.type)) return false;
+					newUnitCount++;
 					for (int i = 0; i < g.rscNames.Length; i++) {
 						rscCost[i] += unit.type.rscCost[i];
 					}
@@ -182,6 +184,7 @@ public class Path {
 			}
 			bool newPathIsLive = (time >= g.timeSim && timeSimPast == long.MaxValue);
 			if (!newPathIsLive && !Sim.EnableNonLivePaths) return false;
+			if (player.populationLimit >= 0 && player.population (time) + newUnitCount > player.populationLimit) return false;
 			for (int i = 0; i < g.rscNames.Length; i++) {
 				if (rscCost[i] > 0 && player.resource(time, i, !newPathIsLive) < rscCost[i]) return false;
 			}
