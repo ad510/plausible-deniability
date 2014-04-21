@@ -176,7 +176,7 @@ public class Path {
 				else {
 					// unit in path would be non-path child unit
 					if (!canMakeUnitType (time, unit.type)) return false;
-					newUnitCount++;
+					if (unit.type.speed > 0) newUnitCount++;
 					for (int i = 0; i < g.rscNames.Length; i++) {
 						rscCost[i] += unit.type.rscCost[i];
 					}

@@ -972,7 +972,7 @@ public class App : MonoBehaviour {
 				foreach (UnitType unitT in g.unitT) {
 					foreach (Path path in curSelPaths.Keys) {
 						if (path.canMakeUnitType (timeGame, unitT)) { // ISSUE #22: sometimes canMake check should use existing selected units in path
-							if (selPlayer.population(timeGame) >= selPlayer.populationLimit) {
+							if (unitT.speed > 0 && selPlayer.population(timeGame) >= selPlayer.populationLimit) {
 								tooltip = "Reached population limit ";
 							}
 							else {

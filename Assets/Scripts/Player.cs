@@ -91,7 +91,7 @@ public class Player {
 	}
 	
 	public int population(long time) {
-		return newUnitSegments (true).Where(u => time >= u.segment.path.segments[0].timeStart && u.unit.healthWhen (time) > 0).Count();
+		return newUnitSegments (true).Where(u => time >= u.segment.path.segments[0].timeStart && u.unit.healthWhen (time) > 0 && u.unit.type.speed > 0).Count();
 	}
 	
 	/// <summary>
