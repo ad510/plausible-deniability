@@ -30,8 +30,10 @@ public class StackEvt : SimEvt {
 	
 	public override void apply (Sim g) {
 		bool[] pathsStacked = new bool[paths.Length];
+		// only stack paths that contain units at this time
 		for (int i = 0; i < pathsStacked.Length; i++) {
-			pathsStacked[i] = (time < g.paths[paths[i]].moves[0].timeStart);
+			Segment segment = g.paths[paths[i]].activeSegment (time);
+			pathsStacked[i] = (segment == null || segment.units.Count == 0);
 		}
 		// loop through each pair of unstacked paths
 		for (int i = 0; i < paths.Length; i++) {
