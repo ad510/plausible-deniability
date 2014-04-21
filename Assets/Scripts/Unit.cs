@@ -24,9 +24,11 @@ public class Unit {
 	[ProtoMember(7)] public List<Attack> attacks;
 	
 	/// <summary>
-	/// empty constructor for protobuf-net use only
+	/// parameterless constructor for protobuf-net use only
 	/// </summary>
-	private Unit() { }
+	private Unit() {
+		attacks = new List<Attack>();
+	}
 
 	public Unit(Sim simVal, int idVal, UnitType typeVal, Player playerVal) {
 		g = simVal;
