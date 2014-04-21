@@ -666,7 +666,7 @@ public class App : MonoBehaviour {
 			// create new paths that selected units could take
 			makePaths ();
 		}
-		if (Input.GetKeyDown (KeyCode.Delete)) {
+		if (Input.GetKeyDown (KeyCode.Delete) || Input.GetKeyDown (KeyCode.D)) {
 			if (Input.GetKey (KeyCode.LeftShift) || Input.GetKey (KeyCode.RightShift)) {
 				// delete unselected paths of selected units
 				deleteOtherPaths ();
@@ -675,10 +675,6 @@ public class App : MonoBehaviour {
 				// delete selected paths
 				deletePaths ();
 			}
-		}
-		if (Input.GetKeyDown (KeyCode.D) && Input.GetKey (KeyCode.LeftShift)) {
-			// delete unselected paths of selected units (alternate shortcut)
-			deleteOtherPaths ();
 		}
 		if (EnableStacking && Input.GetKeyDown (KeyCode.S) && !Input.GetKey (KeyCode.LeftShift)) {
 			// share selected paths
