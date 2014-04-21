@@ -29,6 +29,7 @@
       "name": "Blue",
       "isUser": true,
       "user": 0,
+      "populationLimit": 10,
       "startRsc":
       {
         "Minerals": 20
@@ -39,6 +40,7 @@
       "name": "Red",
       "isUser": true,
       "user": 1,
+      "populationLimit": 10,
       "startRsc":
       {
         "Minerals": 20
