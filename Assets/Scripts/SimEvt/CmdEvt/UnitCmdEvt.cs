@@ -20,6 +20,7 @@ using ProtoBuf;
 [ProtoInclude(14, typeof(DeleteOtherPathsCmdEvt))]
 [ProtoInclude(15, typeof(StackCmdEvt))]
 [ProtoInclude(16, typeof(SharePathsCmdEvt))]
+[ProtoInclude(17, typeof(AttackCmdEvt))]
 public abstract class UnitCmdEvt : CmdEvt {
 	[ProtoMember(1)] public long timeCmd; // time is latest simulation time when command is given, timeCmd is when event takes place (may be in past)
 	[ProtoMember(2)] public Dictionary<int, int[]> paths; // key is path index, value is list of unit indices

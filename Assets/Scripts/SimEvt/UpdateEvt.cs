@@ -31,10 +31,7 @@ public class UpdateEvt : SimEvt {
 				if (g.users[i].timeSync < time) throw new InvalidOperationException("UpdateEvt is being applied before commands were received from user " + i);
 				if (time > 0 && g.users[i].checksums[time] != g.users[g.selUser].checksums[time]) g.synced = false;
 				while (g.users[i].cmdReceived.peekTime () == time) {
-					// TODO: could command be applied after another event with same time, causing desyncs in replays?
-					SimEvt evt = g.users[i].cmdReceived.pop ();
-					evt.apply (g);
-					g.cmdHistory.add (evt);
+					g.users[i].cmdReceived.pop ().apply (g);
 				}
 				// delete old checksums
 				foreach (long k in g.users[i].checksums.Keys.ToArray ()) {
@@ -65,13 +62,13 @@ public class UpdateEvt : SimEvt {
 			if (segment != null && path.timeSimPast == long.MaxValue) {
 				FP.Vector pos = path.calcPos (time);
 				foreach (Unit unit in segment.units) {
-					if (time >= unit.timeAttack + unit.type.reload) {
+					if (unit.attacks.Count == 0 || time >= unit.attacks.Last().time + unit.type.reload) {
 						// done reloading, look for closest target to potentially attack
 						Path target = null;
 						long targetDistSq = unit.type.range * unit.type.range + 1;
 						foreach (Path path2 in g.paths) {
 							Segment segment2 = path2.activeSegment (time);
-							if (path != path2 && segment2 != null && path2.timeSimPast == long.MaxValue && path.player.mayAttack[path2.player.id]) {
+							if (path != path2 && segment2 != null && path2.timeSimPast == long.MaxValue && path.player.mayAttack[path2.player.id] && g.tileAt (pos).pathVisLatest (path2.id)) {
 								foreach (Unit unit2 in segment2.units) {
 									if (unit.type.damage[unit2.type.id] > 0) {
 										long distSq = (path2.calcPos (time) - pos).lengthSq ();
@@ -84,16 +81,7 @@ public class UpdateEvt : SimEvt {
 								}
 							}
 						}
-						if (target != null) {
-							// attack every applicable unit in target path
-							// take health with 1 ms delay so earlier units in array don't have unfair advantage
-							foreach (Unit unit2 in target.activeSegment(time).units) {
-								if (unit.type.damage[unit2.type.id] > 0) {
-									for (int j = 0; j < unit.type.damage[unit2.type.id]; j++) unit2.takeHealth(time + 1, target);
-									unit.timeAttack = time;
-								}
-							}
-						}
+						if (target != null) unit.attack (time, target.activeSegment (time));
 					}
 				}
 			}

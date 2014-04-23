@@ -124,25 +124,32 @@ public class Path {
 	/// let path be updated in the present (i.e., stop time traveling) starting at timeSim
 	/// </summary>
 	public void goLive() {
+		List<SegmentUnit> queue = new List<SegmentUnit>();
+		SegmentUnit nonLiveChild = new SegmentUnit();
 		timeSimPast = long.MaxValue;
+		foreach (Segment segment in segments) {
+			queue.AddRange (segment.segmentUnits ());
+		}
+		while (queue.Count > 0) {
+			foreach (SegmentUnit prev in queue[0].prev ()) {
+				if (prev.segment.path.timeSimPast != long.MaxValue) {
+					prev.segment.path.timeSimPast = long.MaxValue;
+					queue.Add (prev);
+				}
+			}
+			foreach (SegmentUnit parent in queue[0].parents ()) {
+				if (parent.segment.path.timeSimPast != long.MaxValue) {
+					parent.segment.path.timeSimPast = long.MaxValue;
+					queue.Add (parent);
+				}
+			}
+			if (nonLiveChild.g == null && queue[0].children().Any ()) nonLiveChild = queue[0];
+			queue.RemoveAt (0);
+		}
+		if (nonLiveChild.g != null) g.deleteOtherPaths (new SegmentUnit[] { nonLiveChild }, true, false);
 		FP.Vector pos = calcPos(g.timeSim);
 		g.events.add(new TileMoveEvt(g.timeSim, id, (int)(pos.x >> FP.Precision), (int)(pos.y >> FP.Precision)));
 		if (!g.movedPaths.Contains(id)) g.movedPaths.Add(id); // indicate to delete and recalculate later TileMoveEvts for this path
-	}
-
-	public void beUnseen(long time) {
-		insertSegment(time).unseen = true;
-	}
-
-	public void beSeen(long time) {
-		Segment segment = insertSegment(time);
-		foreach (Unit unit in segment.units.OrderByDescending (u => u.type.seePrecedence)) {
-			if (segment.units.Count <= nSeeUnits) break;
-			new SegmentUnit(segment, unit).delete ();
-		}
-		nSeeUnits = int.MaxValue;
-		if (!g.deleteOtherPaths (segment.segmentUnits(), true)) throw new SystemException("failed to delete other paths of seen path");
-		segment.unseen = false;
 	}
 
 	/// <summary>
@@ -153,6 +160,7 @@ public class Path {
 			if (units.Count == 0) return false;
 			Segment segment = activeSegment(time);
 			if (segment == null) return false;
+			int newUnitCount = 0;
 			long[] rscCost = new long[g.rscNames.Length];
 			foreach (Unit unit in units) {
 				if (segment.units.Contains (unit)) {
@@ -161,11 +169,14 @@ public class Path {
 					// check parent made before (not at same time as) child, so it's unambiguous who is the parent
 					if (!segmentUnit.canBeUnambiguousParent (time)) return false;
 					// check parent unit won't be seen later
-					if (!ignoreSeen && !segmentUnit.unseenAfter ()) return false;
+					if (!ignoreSeen && !segmentUnit.unseenAfter (time)) return false;
+					// check parent won't make a child unit later
+					if (!segmentUnit.hasChildrenAfter ()) return false;
 				}
 				else {
-					if (!canMakeUnitType (time, unit.type)) return false;
 					// unit in path would be non-path child unit
+					if (!canMakeUnitType (time, unit.type)) return false;
+					if (unit.type.speed > 0) newUnitCount++;
 					for (int i = 0; i < g.rscNames.Length; i++) {
 						rscCost[i] += unit.type.rscCost[i];
 					}
@@ -173,10 +184,13 @@ public class Path {
 			}
 			bool newPathIsLive = (time >= g.timeSim && timeSimPast == long.MaxValue);
 			if (!newPathIsLive && !Sim.EnableNonLivePaths) return false;
+			if (player.populationLimit >= 0 && player.population (time) + newUnitCount > player.populationLimit) return false;
 			for (int i = 0; i < g.rscNames.Length; i++) {
-				// TODO: may be more permissive by passing in max = true, but this really complicates SegmentUnit.delete() algorithm (see planning notes)
-				if (rscCost[i] > 0 && player.resource(time, i, false, !newPathIsLive) < rscCost[i]) return false;
+				if (rscCost[i] > 0 && player.resource(time, i, !newPathIsLive) < rscCost[i]) return false;
 			}
+			// if making child unit that costs resources, then delete other paths
+			// TODO: only need to delete other paths of units that made the new unit
+			if (rscCost.Where (r => r > 0).Any ()) g.deleteOtherPaths (segment.segmentUnits(), false, true);
 		}
 		{ // make path
 			Segment segment = insertSegment (time);
@@ -190,7 +204,6 @@ public class Path {
 			else {
 				player.hasNonLivePaths = true;
 			}
-			player.unitCombinations = null;
 		}
 		return true;
 	}
@@ -200,7 +213,7 @@ public class Path {
 		if (segment != null) {
 			foreach (SegmentUnit segmentUnit in segment.segmentUnits ()) {
 				if (segmentUnit.unit.type.canMake[type.id] && segmentUnit.canBeUnambiguousParent (time)
-					&& (time >= g.timeSim || segmentUnit.unseenAfter ())) {
+					&& (time >= g.timeSim || segmentUnit.unseenAfter (time))) {
 					return true;
 				}
 			}
@@ -282,7 +295,7 @@ public class Path {
 			Segment segment = activeSegment (time);
 			if (segment == null || !Sim.EnableNonLivePaths) return false;
 			foreach (SegmentUnit segmentUnit in segment.segmentUnits ()) {
-				if (!segmentUnit.unseenAfter ()) return false;
+				if (!segmentUnit.unseenAfter (time) || !segmentUnit.hasChildrenAfter ()) return false;
 			}
 		}
 		return true;

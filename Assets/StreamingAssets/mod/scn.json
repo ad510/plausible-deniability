@@ -29,6 +29,7 @@
       "name": "Blue",
       "isUser": true,
       "user": 0,
+      "populationLimit": 10,
       "startRsc":
       {
         "Minerals": 20
@@ -39,6 +40,7 @@
       "name": "Red",
       "isUser": true,
       "user": 1,
+      "populationLimit": 10,
       "startRsc":
       {
         "Minerals": 20
@@ -60,6 +62,7 @@
       "imgHalfHeight": 2,
       "selMinPos": {"x": -1, "y": 0},
       "selMaxPos": {"x": 1, "y": 3.5},
+      "laserPos": {"x": 1, "y": 2},
       "maxHealth": 20,
       "speed": 0.004,
       "reload": 2000,
@@ -75,6 +78,7 @@
       {
         "Worker": 2,
         "Marine": 2,
+        "Sniper": 2,
         "Building": 2,
         "Mine": 2
       },
@@ -90,6 +94,7 @@
       "imgHalfHeight": 2,
       "selMinPos": {"x": -1, "y": 0},
       "selMaxPos": {"x": 1, "y": 3},
+      "laserPos": {"x": 1, "y": 2},
       "maxHealth": 50,
       "speed": 0.004,
       "reload": 2000,
@@ -103,6 +108,7 @@
       {
         "Worker": 10,
         "Marine": 10,
+        "Sniper": 10,
         "Building": 10,
         "Mine": 10
       },
@@ -112,12 +118,43 @@
       }
     },
     {
+      "name": "Sniper",
+      "imgPath": "sniper.png",
+      "imgOffset": {"y": 2},
+      "imgHalfHeight": 2,
+      "selMinPos": {"x": -1, "y": 0},
+      "selMaxPos": {"x": 1, "y": 3},
+      "laserPos": {"x": 1, "y": 2},
+      "maxHealth": 20,
+      "speed": 0.004,
+      "reload": 2000,
+      "range": 48,
+      "tightFormationSpacing": 2,
+      "seePrecedence": 2,
+      "makeUnitMinDist": 4,
+      "makeUnitMaxDist": 8,
+      "makePathMinDist": 2,
+      "makePathMaxDist": 4,
+      "damage":
+      {
+        "Worker": 50,
+        "Marine": 50,
+        "Sniper": 50,
+        "Building": 50,
+        "Mine": 50
+      },
+      "rscCost":
+      {
+        "Minerals": 20
+      }
+    },
+    {
       "name": "Building",
       "imgPath": "building.png",
       "imgHalfHeight": 2,
       "maxHealth": 500,
       "speed": 0,
-      "canMake": ["Worker", "Marine"],
+      "canMake": ["Worker", "Marine", "Sniper"],
       "rscCost":
       {
         "Minerals": 10

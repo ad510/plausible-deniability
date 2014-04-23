@@ -59,11 +59,10 @@ public class MakeUnitCmdEvt : UnitCmdEvt {
 			foreach (KeyValuePair<Path, List<Unit>> path in exPaths) {
 				if (g.unitsCanMake (path.Value, g.unitT[type]) && path.Key.canMove (timeCmd)
 					&& (movePath == null || (path.Key.calcPos(timeCmd) - pos).lengthSq() < (movePath.calcPos(timeCmd) - pos).lengthSq())) {
-					bool newPathIsLive = (time >= g.timeSim && path.Key.timeSimPast == long.MaxValue);
+					bool newPathIsLive = (timeCmd >= g.timeSim && path.Key.timeSimPast == long.MaxValue);
 					int i;
 					for (i = 0; i < g.rscNames.Length; i++) {
-						// TODO: may be more permissive by passing in max = true, but this really complicates SegmentUnit.delete() algorithm (see planning notes)
-						if (path.Key.player.resource(time, i, false, !newPathIsLive) < g.unitT[type].rscCost[i]) break;
+						if (path.Key.player.resource(timeCmd, i, !newPathIsLive) < g.unitT[type].rscCost[i]) break;
 					}
 					if (i == g.rscNames.Length) movePath = path.Key;
 				}

@@ -69,7 +69,6 @@ public class Sim {
 	public FP.Vector lastUnseenTile;
 	[ProtoMember(32)] public SimEvtList events; // simulation events to be applied
 	[ProtoMember(33)] public SimEvtList cmdPending; // user commands to be sent to other users in the next update
-	[ProtoMember(34)] public SimEvtList cmdHistory; // user commands that have already been applied
 	public List<int> movedPaths; // indices of paths that moved in the latest simulation event, invalidating later TileMoveEvts for that path
 	[ProtoMember(36)] public int nRootPaths; // number of paths that don't have a parent (because they were defined in scenario file); these are all at beginning of paths list
 	[ProtoMember(37)] public long maxSpeed; // speed of fastest unit (is max speed that players can gain or lose visibility)
@@ -151,10 +150,8 @@ public class Sim {
 		long timeSimNext = Math.Max(curTime, timeSim);
 		if (networkView == null) {
 			// move pending user commands to event list (single player only)
-			// TODO: could command be applied after another event with same time, causing desyncs in replays?
 			while ((evt = cmdPending.pop ()) != null) {
 				events.add (evt);
-				cmdHistory.add (evt);
 			}
 		}
 		// apply simulation events
@@ -186,23 +183,32 @@ public class Sim {
 	/// removes units from all other paths that, if seen, could cause specified units to be removed from specified segments;
 	/// returns whether successful
 	/// </summary>
-	public bool deleteOtherPaths(IEnumerable<SegmentUnit> segmentUnits, bool addMoveLines = false) {
+	public bool deleteOtherPaths(IEnumerable<SegmentUnit> segmentUnits, bool addDeleteLines, bool addKeepLines) {
 		HashSet<SegmentUnit> ancestors = new HashSet<SegmentUnit>();
 		HashSet<SegmentUnit> prev = new HashSet<SegmentUnit>();
+		HashSet<SegmentUnit> liveToNonLivePrev = new HashSet<SegmentUnit>(); // live prev segments whose next ancestor is not live
 		bool success = true;
 		bool deleted = false;
 		foreach (SegmentUnit segmentUnit in segmentUnits) {
-			addAncestors (segmentUnit, ancestors, prev);
+			addAncestors (segmentUnit, ancestors, prev, liveToNonLivePrev);
 		}
 		foreach (SegmentUnit ancestor in prev) {
 			foreach (SegmentUnit segmentUnit in ancestor.next ()) {
 				if (!ancestors.Contains (segmentUnit)) {
-					success &= segmentUnit.delete ();
+					success &= segmentUnit.delete (addDeleteLines);
 					deleted = true;
 				}
 			}
 		}
-		if (addMoveLines && deleted) {
+		foreach (SegmentUnit ancestor in liveToNonLivePrev) {
+			foreach (SegmentUnit segmentUnit in ancestor.next ()) {
+				if (segmentUnit.segment.path.timeSimPast != long.MaxValue && !ancestors.Contains (segmentUnit)) {
+					success &= segmentUnit.delete (addDeleteLines);
+					deleted = true;
+				}
+			}
+		}
+		if (addKeepLines && deleted) {
 			// add kept unit lines
 			// TODO: tweak time if deleted in past
 			MoveLine keepLine = new MoveLine(timeSim, segmentUnits.First ().unit.player);
@@ -217,16 +223,32 @@ public class Sim {
 		return success;
 	}
 	
-	private void addAncestors(SegmentUnit segmentUnit, HashSet<SegmentUnit> ancestors, HashSet<SegmentUnit> prev) {
+	private void addAncestors(SegmentUnit segmentUnit, HashSet<SegmentUnit> ancestors, HashSet<SegmentUnit> prev, HashSet<SegmentUnit> liveToNonLivePrev) {
 		ancestors.Add (segmentUnit);
 		foreach (SegmentUnit prevSegment in segmentUnit.prev ()) {
-			if (prevSegment.segment.path.timeSimPast == long.MaxValue || prevSegment.segment.path.timeSimPast != long.MaxValue) {
+			if (segmentUnit.segment.path.timeSimPast != long.MaxValue && prevSegment.segment.path.timeSimPast == long.MaxValue) {
+				liveToNonLivePrev.Add(prevSegment);
+			}
+			else {
 				prev.Add (prevSegment);
 			}
-			addAncestors (prevSegment, ancestors, prev);
+			addAncestors (prevSegment, ancestors, prev, liveToNonLivePrev);
 		}
 		foreach (SegmentUnit parent in segmentUnit.parents ()) {
-			addAncestors (parent, ancestors, prev);
+			addAncestors (parent, ancestors, prev, liveToNonLivePrev);
+		}
+	}
+	
+	/// <summary>
+	/// adds events to stack specified paths as they arrive
+	/// </summary>
+	public void addStackEvts(List<int> movedPaths2, int nSeeUnits) {
+		if (movedPaths2.Count > 1) {
+			foreach (int path in movedPaths2) {
+				// in most cases only 1 path will stack onto stackPath,
+				// but request to stack all moved paths anyway in case the path they're stacking onto moves away
+				events.add (new StackEvt(paths[path].moves.Last ().timeEnd, movedPaths2.ToArray (), nSeeUnits));
+			}
 		}
 	}
 	
@@ -248,6 +270,28 @@ public class Sim {
 			}
 		}
 		return true;
+	}
+	
+	/// <summary>
+	/// iterates over all SegmentUnits active at specified time that are
+	/// past, present, or future versions of specified SegmentUnits
+	/// </summary>
+	public IEnumerable<SegmentUnit> activeSegmentUnits(IEnumerable<SegmentUnit> segmentUnits, long time) {
+		foreach (SegmentUnit segmentUnit in segmentUnits) {
+			if (segmentUnit.segment.nextOnPath () != null && time >= segmentUnit.segment.nextOnPath ().timeStart) {
+				foreach (SegmentUnit segmentUnit2 in activeSegmentUnits(segmentUnit.next (), time)) {
+					yield return segmentUnit2;
+				}
+			}
+			else if (time < segmentUnit.segment.timeStart) {
+				foreach (SegmentUnit segmentUnit2 in activeSegmentUnits(segmentUnit.prev (), time)) {
+					yield return segmentUnit2;
+				}
+			}
+			else {
+				yield return segmentUnit;
+			}
+		}
 	}
 	
 	/// <summary>

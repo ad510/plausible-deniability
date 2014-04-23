@@ -18,6 +18,7 @@ public class UnitType {
 	[ProtoMember(6)] public long imgHalfHeight; // how tall half of image height should be drawn
 	[ProtoMember(7)] public FP.Vector selMinPos; // minimum relative position where clicking would select the unit
 	[ProtoMember(8)] public FP.Vector selMaxPos; // maximum relative position where clicking would select the unit
+	[ProtoMember(24)] public FP.Vector laserPos; // relative position where laser is emitted from
 	/*public string sndSelect;
 	public string sndMove;
 	public string sndAttack;

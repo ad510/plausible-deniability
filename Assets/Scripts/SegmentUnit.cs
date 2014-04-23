@@ -58,6 +58,7 @@ public struct SegmentUnit {
 			}
 			else if (ancestors[i].segment.prev ().Any ()) {
 				// unit has a parent but we're deleting its first segment, so may need to check resources starting at this time
+				if (ancestors[i].unit.attacks.Count > 0) return false;
 				if (ancestors[i].segment.timeStart < timeEarliestChild && ancestors[i].unit.type.rscCollectRate.Where (r => r > 0).Any ()) {
 					timeEarliestChild = ancestors[i].segment.timeStart;
 				}
@@ -71,16 +72,12 @@ public struct SegmentUnit {
 		for (i = 0; i < ancestors.Count; i++) {
 			if (!ancestors[i].deleteAfter (ref removed, ref timeEarliestChild)) break;
 		}
-		// obsolesce player's list of unit combinations
-		List<HashSet<SegmentUnit>> oldUnitCombinations = unit.player.unitCombinations;
-		unit.player.unitCombinations = null;
-		// if a deleteAfter() call failed or removing unit might have led to player having negative resources,
+		// if a deleteAfter() call failed or removing unit led to player ever having negative resources,
 		// add units back to segments they were removed from
 		if (i < ancestors.Count || (timeEarliestChild != long.MaxValue && segment.path.player.checkNegRsc (timeEarliestChild, false) >= 0)) {
 			foreach (KeyValuePair<Segment, List<Unit>> item in removed) {
 				item.Key.units.AddRange (item.Value);
 			}
-			unit.player.unitCombinations = oldUnitCombinations;
 			return false;
 		}
 		foreach (KeyValuePair<Segment, List<Unit>> item in removed) {
@@ -120,6 +117,7 @@ public struct SegmentUnit {
 				foreach (SegmentUnit child in children ().ToArray ()) {
 					// TODO: if has alternate non-live parent, do we need to recursively make children non-live?
 					if (child.parents ().Count () == 1) {
+						if (child.unit.attacks.Count > 0) return false;
 						if (!child.deleteAfter (ref removed, ref timeEarliestChild)) return false;
 						if (child.segment.timeStart < timeEarliestChild && child.unit.type.rscCollectRate.Where (r => r > 0).Any ()) {
 							timeEarliestChild = child.segment.timeStart;
@@ -135,54 +133,23 @@ public struct SegmentUnit {
 		return true;
 	}
 	
-	public bool unseenAfter() {
-		if (!segment.unseen) return false;
+	public bool unseenAfter(long time) {
+		if (!segment.unseen || (unit.attacks.Count > 0 && time < unit.attacks.Last().time)) return false;
 		foreach (SegmentUnit segmentUnit in next ()) {
-			if (!segmentUnit.unseenAfter ()) return false;
+			if (!segmentUnit.unseenAfter (time)) return false;
 		}
 		foreach (SegmentUnit child in children ()) {
-			if (!child.unseenAfter ()) return false;
+			if (!child.unseenAfter (time)) return false;
 		}
 		return true;
 	}
-
-	/// <summary>
-	/// returns every combination of units that this unit could have made
-	/// </summary>
-	public List<HashSet<SegmentUnit>> allChildren() {
-		List<HashSet<SegmentUnit>> ret = new List<HashSet<SegmentUnit>>();
-		// if this is last segment, return no children
-		if (segment.nextOnPath () == null) {
-			ret.Add (new HashSet<SegmentUnit>());
-			return ret;
-		}
-		// add children in each combination of next segments
+	
+	public bool hasChildrenAfter() {
+		if (children ().Any ()) return false; // TODO: this should return true if other units could make the child
 		foreach (SegmentUnit segmentUnit in next ()) {
-			foreach (HashSet<SegmentUnit> nextCombination in segmentUnit.allChildren ()) {
-				if (ret.Find (x => x.SetEquals (nextCombination)) == null) ret.Add (nextCombination);
-			}
+			if (!segmentUnit.hasChildrenAfter ()) return false;
 		}
-		// add children in this segment
-		foreach (SegmentUnit child in children ()) {
-			List<HashSet<SegmentUnit>> childChildren = child.allChildren ();
-			// add child to each combination so far
-			foreach (HashSet<SegmentUnit> combination in ret) {
-				combination.Add (child);
-			}
-			if (childChildren.Count != 1 || childChildren[0].Count != 0) {
-				// add each child unit combination to each combination so far
-				List<HashSet<SegmentUnit>> newRet = new List<HashSet<SegmentUnit>>();
-				foreach (HashSet<SegmentUnit> childCombination in childChildren) {
-					foreach (HashSet<SegmentUnit> combination in ret) {
-						HashSet<SegmentUnit> newCombination = new HashSet<SegmentUnit>(combination);
-						newCombination.UnionWith (childCombination);
-						if (newRet.Find (x => x.SetEquals (newCombination)) == null) newRet.Add (newCombination);
-					}
-				}
-				ret = newRet;
-			}
-		}
-		return ret;
+		return true;
 	}
 	
 	/// <summary>
