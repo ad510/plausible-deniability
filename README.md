@@ -36,6 +36,7 @@ Controls
 - delete/d = delete selected paths
 - shift + delete/shift + d = delete unselected paths of selected units
 - s = share selected paths
+- f3 = toggle map hack
 - shift + r = instant replay
 - shift + o = load game
 - shift + s = save game

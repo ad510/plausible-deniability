@@ -292,6 +292,7 @@ public class App : MonoBehaviour {
 					user = (int)jsonDouble(jsonO, "user"),
 					populationLimit = (int)jsonDouble (jsonO, "populationLimit", -1),
 					startRsc = new long[g.rscNames.Length],
+					mapHack = jsonBool (jsonO, "mapHack"),
 					hasNonLivePaths = false,
 					timeGoLiveFailedAttempt = long.MinValue,
 					unseenTiles = g.tileLen () * g.tileLen (),
@@ -384,6 +385,12 @@ public class App : MonoBehaviour {
 		for (int i = 0; i < g.tileLen(); i++) {
 			for (int j = 0; j < g.tileLen(); j++) {
 				g.tiles[i, j] = new Tile(g, i, j);
+			}
+		}
+		foreach (Player player in g.players) {
+			if (player.mapHack) {
+				player.mapHack = false;
+				new MapHackCmdEvt(g.timeSim, player.id, true).apply (g);
 			}
 		}
 		// units
@@ -689,6 +696,10 @@ public class App : MonoBehaviour {
 				}
 			}
 		}*/
+		if (Input.GetKeyDown (KeyCode.F3)) {
+			// toggle map hack
+			g.cmdPending.add (new MapHackCmdEvt(g.timeSim, selPlayer.id, !selPlayer.mapHack));
+		}
 		if (Input.GetKeyDown (KeyCode.R) && Input.GetKey (KeyCode.LeftShift)) {
 			// instant replay
 			instantReplay ();
@@ -901,6 +912,11 @@ public class App : MonoBehaviour {
 		}
 		GUILayout.Label (replay ? "REPLAY" : (timeGame >= g.timeSim) ? "LIVE" : "TIME TRAVELING", lblStyle);
 		if (timeGame >= g.timeSim && selPlayer.unseenTiles == 0) GUILayout.Label ("YOU ARE SUPERUSER", lblStyle);
+		foreach (Player player in g.players) {
+			if (player.user >= 0 && player.mapHack) {
+				GUILayout.Label (player.name + " HAS MAP HACK", lblStyle);
+			}
+		}
 		if (paused) GUILayout.Label ("PAUSED", lblStyle);
 		if (Environment.TickCount < timeSpeedChg) timeSpeedChg -= UInt32.MaxValue;
 		if (Environment.TickCount < timeSpeedChg + 1000) GUILayout.Label ("SPEED: " + Math.Pow(2, speed) + "x", lblStyle);

@@ -20,6 +20,7 @@ public class Player {
 	[ProtoMember(12)] public int populationLimit;
 	[ProtoMember(6)] public long[] startRsc; // resources at beginning of game
 	[ProtoMember(7)] public bool[] mayAttack; // if this player's units may attack each other player's units
+	[ProtoMember(14)] public bool mapHack;
 	// not stored in scenario files
 	[ProtoMember(8)] public bool immutable; // whether player's units will never unpredictably move or change
 	[ProtoMember(9)] public bool hasNonLivePaths; // whether currently might have time traveling paths (ok to sometimes incorrectly be set to true)

@@ -198,7 +198,7 @@ public class Tile {
 	/// the player can infer that he/she is the only player that can see this tile.
 	/// </remarks>
 	public bool calcExclusive(Player player) {
-		if (Sim.EnableNonLivePaths) {
+		if (Sim.EnableNonLivePaths && player.unseenTiles != 0) {
 			// check that this player can see all nearby tiles
 			if (g.inVis(g.lastUnseenTile.x - x, g.lastUnseenTile.y - y) && !g.tiles[g.lastUnseenTile.x, g.lastUnseenTile.y].playerVisLatest(player)) return false;
 			int tXMin = Math.Max(0, x - g.tileVisRadius());
@@ -215,7 +215,7 @@ public class Tile {
 		}
 		// check that no other players can see this tile
 		foreach (Player player2 in g.players) {
-			if (player != player2 && !player2.immutable && playerVisLatest(player2)) return false;
+			if (player != player2 && !player2.immutable && playerDirectVisLatest(player2)) return false;
 		}
 		return true;
 	}

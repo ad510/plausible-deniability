@@ -61,11 +61,13 @@ public class TileMoveEvt : SimEvt {
 							if (tX > exclusiveMaxX) exclusiveMaxX = tX;
 							if (tY < exclusiveMinY) exclusiveMinY = tY;
 							if (tY > exclusiveMaxY) exclusiveMaxY = tY;
-							// check if this tile stopped being exclusive to another player
-							foreach (Player player in g.players) {
-								if (player != g.paths[path].player && g.tiles[tX, tY].exclusiveLatest(player)) {
-									g.tiles[tX, tY].exclusive[player.id].Add(time);
-								}
+						}
+					}
+					// check if this tile stopped being exclusive to another player
+					if (Sim.EnableNonLivePaths && !g.paths[path].player.immutable) {
+						foreach (Player player in g.players) {
+							if (player != g.paths[path].player && g.tiles[tX, tY].exclusiveLatest(player)) {
+								g.tiles[tX, tY].exclusive[player.id].Add(time);
 							}
 						}
 					}
@@ -100,6 +102,14 @@ public class TileMoveEvt : SimEvt {
 						if (timePlayerVis != long.MaxValue) {
 							timePlayerVis = Math.Max(time, timePlayerVis + (1 << FP.Precision) / g.maxSpeed); // ISSUE #29: lose visibility in a circle instead of a square
 							g.tiles[tX, tY].playerVisRemove(g.paths[path].player, timePlayerVis);
+						}
+					}
+					// check if this tile became exclusive to a player using map hack
+					if (Sim.EnableNonLivePaths && !g.paths[path].player.immutable) {
+						foreach (Player player in g.players) {
+							if (player != g.paths[path].player && player.mapHack && !g.tiles[tX, tY].exclusiveLatest (player) && g.tiles[tX, tY].calcExclusive (player)) {
+								g.tiles[tX, tY].exclusive[player.id].Add(time);
+							}
 						}
 					}
 				}
