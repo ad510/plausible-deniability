@@ -25,6 +25,7 @@ public class Player {
 	[ProtoMember(9)] public bool hasNonLivePaths; // whether currently might have time traveling paths (ok to sometimes incorrectly be set to true)
 	[ProtoMember(10)] public long timeGoLiveFailedAttempt; // latest time that player's time traveling paths failed to go live (resets to long.MinValue after success)
 	[ProtoMember(11)] public long timeGoLiveProblem; // time that player would be in invalid state if time traveling paths went live
+	[ProtoMember(13)] public int unseenTiles;
 
 	/// <summary>
 	/// update player's non-live (time traveling) paths

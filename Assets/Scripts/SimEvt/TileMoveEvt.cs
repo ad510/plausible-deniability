@@ -55,6 +55,7 @@ public class TileMoveEvt : SimEvt {
 					g.tiles[tX, tY].pathVisToggle(path, time);
 					if (!g.tiles[tX, tY].playerVisLatest(g.paths[path].player)) {
 						g.tiles[tX, tY].playerVis[g.paths[path].player.id].Add(time);
+						g.paths[path].player.unseenTiles--;
 						if (Sim.EnableNonLivePaths) {
 							if (tX < exclusiveMinX) exclusiveMinX = tX;
 							if (tX > exclusiveMaxX) exclusiveMaxX = tX;

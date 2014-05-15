@@ -33,6 +33,7 @@ public class PlayerVisRemoveEvt : SimEvt {
 		for (int i = 0; i < tiles.Count; i++) {
 			if (g.tiles[tiles[i].x, tiles[i].y].playerVisLatest(g.players[player]) && !g.tiles[tiles[i].x, tiles[i].y].playerDirectVisLatest(g.players[player])) {
 				g.tiles[tiles[i].x, tiles[i].y].playerVis[player].Add(time);
+				g.players[player].unseenTiles++;
 			}
 			else {
 				tiles[i] = new FP.Vector(Sim.OffMap, Sim.OffMap);

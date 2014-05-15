@@ -294,6 +294,7 @@ public class App : MonoBehaviour {
 					startRsc = new long[g.rscNames.Length],
 					hasNonLivePaths = false,
 					timeGoLiveFailedAttempt = long.MinValue,
+					unseenTiles = g.tileLen () * g.tileLen (),
 				};
 				for (int i = 0; i < g.rscNames.Length; i++) {
 					player.startRsc[i] = (jsonO2 != null) ? jsonFP(jsonO2, g.rscNames[i]) : 0;
@@ -899,6 +900,7 @@ public class App : MonoBehaviour {
 			GUILayout.Label ("OUT OF SYNC", lblErrStyle);
 		}
 		GUILayout.Label (replay ? "REPLAY" : (timeGame >= g.timeSim) ? "LIVE" : "TIME TRAVELING", lblStyle);
+		if (timeGame >= g.timeSim && selPlayer.unseenTiles == 0) GUILayout.Label ("YOU ARE SUPERUSER", lblStyle);
 		if (paused) GUILayout.Label ("PAUSED", lblStyle);
 		if (Environment.TickCount < timeSpeedChg) timeSpeedChg -= UInt32.MaxValue;
 		if (Environment.TickCount < timeSpeedChg + 1000) GUILayout.Label ("SPEED: " + Math.Pow(2, speed) + "x", lblStyle);
