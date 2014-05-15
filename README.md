@@ -24,7 +24,6 @@ Controls
 - right click on opponent unit = attack clicked unit
 - right click on friendly unit = stack selected units onto clicked unit
 - shift = show final positions of selected units
-- spacebar = change selected player
 - p = pause/resume
 - + = increase speed
 - - = decrease speed
@@ -36,6 +35,7 @@ Controls
 - delete/d = delete selected paths
 - shift + delete/shift + d = delete unselected paths of selected units
 - s = share selected paths
+- f2 = change selected player
 - f3 = toggle map hack
 - shift + r = instant replay
 - shift + o = load game

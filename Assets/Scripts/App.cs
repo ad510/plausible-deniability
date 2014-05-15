@@ -632,14 +632,6 @@ public class App : MonoBehaviour {
 			// exit
 			Application.Quit ();
 		}
-		if (Input.GetKeyDown (KeyCode.Space)) {
-			// change selected player
-			do {
-				selPlayer = g.players[(selPlayer.id + 1) % g.players.Length];
-			} while (selPlayer.user != g.selUser);
-			selPaths.Clear();
-			makeUnitType = null;
-		}
 		if (Input.GetKeyDown (KeyCode.P)) {
 			// pause/resume
 			paused = !paused;
@@ -696,6 +688,14 @@ public class App : MonoBehaviour {
 				}
 			}
 		}*/
+		if (Input.GetKeyDown (KeyCode.F2)) {
+			// change selected player
+			do {
+				selPlayer = g.players[(selPlayer.id + 1) % g.players.Length];
+			} while (selPlayer.user != g.selUser);
+			selPaths.Clear();
+			makeUnitType = null;
+		}
 		if (Input.GetKeyDown (KeyCode.F3)) {
 			// toggle map hack
 			g.cmdPending.add (new MapHackCmdEvt(g.timeSim, selPlayer.id, !selPlayer.mapHack));
