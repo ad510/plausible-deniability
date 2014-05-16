@@ -288,13 +288,14 @@ public class Path {
 	/// <summary>
 	/// returns whether allowed to move at specified time
 	/// </summary>
-	public bool canMove(long time) {
-		// ISSUE #32: moving unit is incorrectly disallowed when another unit on same segment is seen later (maybe make overloaded version that also checks units)
+	public bool canMove(long time, List<Unit> units = null) {
 		if (time < moves[0].timeStart || speed <= 0) return false;
 		if (time < g.timeSim) {
 			Segment segment = activeSegment (time);
 			if (segment == null || !Sim.EnableNonLivePaths) return false;
-			foreach (SegmentUnit segmentUnit in segment.segmentUnits ()) {
+			if (units == null) units = segment.units;
+			foreach (Unit unit in units) {
+				SegmentUnit segmentUnit = new SegmentUnit(segment, unit);
 				if (!segmentUnit.unseenAfter (time) || !segmentUnit.hasChildrenAfter ()) return false;
 			}
 		}

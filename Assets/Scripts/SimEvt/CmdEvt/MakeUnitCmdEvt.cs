@@ -57,7 +57,7 @@ public class MakeUnitCmdEvt : UnitCmdEvt {
 			// try moving one to the correct position then trying again to make the unit
 			Path movePath = null;
 			foreach (KeyValuePair<Path, List<Unit>> path in exPaths) {
-				if (g.unitsCanMake (path.Value, g.unitT[type]) && path.Key.canMove (timeCmd)
+				if (g.unitsCanMake (path.Value, g.unitT[type]) && path.Key.canMove (timeCmd, path.Value)
 					&& (movePath == null || (path.Key.calcPos(timeCmd) - pos).lengthSq() < (movePath.calcPos(timeCmd) - pos).lengthSq())) {
 					bool newPathIsLive = (timeCmd >= g.timeSim && path.Key.timeSimPast == long.MaxValue);
 					int i;
