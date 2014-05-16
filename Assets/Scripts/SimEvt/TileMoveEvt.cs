@@ -161,22 +161,22 @@ public class TileMoveEvt : SimEvt {
 				}
 			}
 		}
-		if (tileX >= 0 && tileX < g.tileLen() && tileY >= 0 && tileY < g.tileLen()) {
+		if (tXPrev >= 0 && tXPrev < g.tileLen() && tYPrev >= 0 && tYPrev < g.tileLen()) {
 			// if this path moved out of another player's direct visibility, remove that player's visibility here
-			if (!g.paths[path].player.immutable && tXPrev >= 0 && tXPrev < g.tileLen() && tYPrev >= 0 && tYPrev < g.tileLen()) {
-				foreach (Player player in g.players) {
-					if (player != g.paths[path].player && g.tiles[tXPrev, tYPrev].playerDirectVisLatest(player) && !g.tiles[tileX, tileY].playerDirectVisLatest(player)) {
-						for (int tX = Math.Max(0, tileX - 1); tX <= Math.Min(g.tileLen() - 1, tileX + 1); tX++) {
-							for (int tY = Math.Max(0, tileY - 1); tY <= Math.Min(g.tileLen() - 1, tileY + 1); tY++) {
-								// ISSUE #30: perhaps use more accurate time at tiles other than (tileX, tileY)
-								g.tiles[tX, tY].playerVisRemove(player, time);
+			if (tileX >= 0 && tileX < g.tileLen() && tileY >= 0 && tileY < g.tileLen()) {
+				if (!g.paths[path].player.immutable) {
+					foreach (Player player in g.players) {
+						if (player != g.paths[path].player && g.tiles[tXPrev, tYPrev].playerDirectVisLatest(player) && !g.tiles[tileX, tileY].playerDirectVisLatest(player)) {
+							for (int tX = Math.Max(0, tileX - 1); tX <= Math.Min(g.tileLen() - 1, tileX + 1); tX++) {
+								for (int tY = Math.Max(0, tileY - 1); tY <= Math.Min(g.tileLen() - 1, tileY + 1); tY++) {
+									// ISSUE #30: perhaps use more accurate time at tiles other than (tileX, tileY)
+									g.tiles[tX, tY].playerVisRemove(player, time);
+								}
 							}
 						}
 					}
 				}
 			}
-		}
-		if (tXPrev >= 0 && tXPrev < g.tileLen() && tYPrev >= 0 && tYPrev < g.tileLen()) {
 			// if this player can no longer directly see another player's path, remove this player's visibility there
 			foreach (int i in g.tiles[tXPrev, tYPrev].pathVis.Keys) {
 				if (g.paths[i].player != g.paths[path].player && !g.paths[i].player.immutable && g.paths[i].segments.Last ().units.Count > 0
