@@ -160,9 +160,6 @@ public class Path {
 		if (!canMakePath (time, units, out costsRsc, ignoreSeen)) return false;
 		Segment segment = insertSegment (time);
 		FP.Vector pos = calcPos (time);
-		// if making child unit that costs resources, then delete other paths
-		// TODO: only need to delete other paths of units that made the new unit
-		if (costsRsc) g.deleteOtherPaths (segment.segmentUnits(), false, true);
 		g.paths.Add (new Path(g, g.paths.Count, units[0].type.speed, player, units, time, pos, segment.unseen, nSeeUnits));
 		connect (time, g.paths.Last ());
 		if (timeSimPast != long.MaxValue) g.paths.Last ().timeSimPast = time;
@@ -172,6 +169,7 @@ public class Path {
 		else {
 			player.hasNonLivePaths = true;
 		}
+		if (costsRsc) g.deleteOtherPaths (g.paths.Last ().segments[0].segmentUnits (), false, true);
 		return true;
 	}
 	
