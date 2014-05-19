@@ -44,7 +44,7 @@ public class UpdateEvt : SimEvt {
 				timeSimPast = g.timeGame + g.updateInterval;
 				foreach (SimEvt evt in g.cmdPending.events) {
 					if (evt is UnitCmdEvt) {
-						UnitCmdEvt unitCmdEvt = (UnitCmdEvt)evt;
+						UnitCmdEvt unitCmdEvt = evt as UnitCmdEvt;
 						if (unitCmdEvt.timeCmd > timeSimPast) timeSimPast = unitCmdEvt.timeCmd;
 					}
 				}
