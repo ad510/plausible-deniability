@@ -1356,7 +1356,7 @@ public class App : MonoBehaviour {
 		FP.Vector simPos;
 		if (timeGame < path.moves[0].timeStart || (selPlayer != path.player && path.timeSimPast != long.MaxValue)) return false;
 		simPos = path.calcPos(timeGame);
-		if (selPlayer != path.player && !g.tileAt(simPos).playerVisWhen(selPlayer, timeGame)) return false;
+		if (selPlayer != path.player && (path.activeSegment (timeGame).unseen || !g.tileAt(simPos).playerVisWhen(selPlayer, timeGame))) return false;
 		pos = simToDrawPos(simPos, UnitDepth);
 		return true;
 	}
