@@ -88,22 +88,20 @@ public class Path {
 	public void goLive() {
 		List<SegmentUnit> queue = new List<SegmentUnit>();
 		SegmentUnit nonLiveChild = new SegmentUnit();
-		tileX = Sim.OffMap + 1;
-		tileY = Sim.OffMap + 1;
-		timeSimPast = long.MaxValue;
+		goLiveHelper ();
 		foreach (Segment segment in segments) {
 			queue.AddRange (segment.segmentUnits ());
 		}
 		while (queue.Count > 0) {
 			foreach (SegmentUnit prev in queue[0].prev ()) {
 				if (prev.segment.path.timeSimPast != long.MaxValue) {
-					prev.segment.path.timeSimPast = long.MaxValue;
+					prev.segment.path.goLiveHelper ();
 					queue.Add (prev);
 				}
 			}
 			foreach (SegmentUnit parent in queue[0].parents ()) {
 				if (parent.segment.path.timeSimPast != long.MaxValue) {
-					parent.segment.path.timeSimPast = long.MaxValue;
+					parent.segment.path.goLiveHelper ();
 					queue.Add (parent);
 				}
 			}
@@ -111,6 +109,12 @@ public class Path {
 			queue.RemoveAt (0);
 		}
 		if (nonLiveChild.g != null) g.deleteOtherPaths (new SegmentUnit[] { nonLiveChild }, true, false);
+	}
+	
+	private void goLiveHelper() {
+		tileX = Sim.OffMap + 1;
+		tileY = Sim.OffMap + 1;
+		timeSimPast = long.MaxValue;
 	}
 
 	/// <summary>
@@ -123,7 +127,7 @@ public class Path {
 		FP.Vector pos = calcPos (time);
 		g.paths.Add (new Path(g, g.paths.Count, units[0].type.speed, player, units, time, pos, segment.unseen, nSeeUnits));
 		connect (time, g.paths.Last ());
-		if (timeSimPast != long.MaxValue) g.paths.Last ().timeSimPast = time;
+		if (timeSimPast != long.MaxValue) g.paths.Last ().timeSimPast = time / g.tileInterval * g.tileInterval;
 		if (g.paths.Last ().timeSimPast != long.MaxValue) player.hasNonLivePaths = true;
 		if (costsRsc) g.deleteOtherPaths (g.paths.Last ().segments[0].segmentUnits (), false, true);
 		return true;
