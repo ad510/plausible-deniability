@@ -83,7 +83,8 @@ public class UpdateEvt : SimEvt {
 						// done reloading, look for closest target to potentially attack
 						Path target = null;
 						long targetDistSq = unit.type.range * unit.type.range + 1;
-						foreach (Path path2 in g.paths) {
+						foreach (int i in tile.pathVis.Keys) {
+							Path path2 = g.paths[i];
 							Segment segment2 = path2.activeSegment (time);
 							if (path != path2 && segment2 != null && path2.timeSimPast == long.MaxValue && path.player.mayAttack[path2.player.id] && tile.pathVisLatest (path2)) {
 								foreach (Unit unit2 in segment2.units) {
