@@ -11,4 +11,5 @@ using ProtoBuf;
 [ProtoContract]
 [ProtoInclude(10, typeof(UnitCmdEvt))]
 [ProtoInclude(11, typeof(GoLiveCmdEvt))]
+[ProtoInclude(12, typeof(MapHackCmdEvt))]
 public abstract class CmdEvt : SimEvt { }
