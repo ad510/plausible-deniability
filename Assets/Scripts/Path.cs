@@ -58,7 +58,7 @@ public class Path {
 	/// ensure that if path is moving in the past, it does not move off exclusively seen areas
 	/// </summary>
 	public void updatePast(long curTime) {
-		while (timeSimPast <= curTime - g.tileInterval && segments.Last ().units.Count > 0) {
+		while (timeSimPast <= Math.Min (curTime, g.timeSim) - g.tileInterval && segments.Last ().units.Count > 0) {
 			timeSimPast += g.tileInterval;
 			updateTilePos (timeSimPast);
 			if (!g.tiles[tileX, tileY].exclusiveWhen (player, timeSimPast)) {
@@ -86,32 +86,6 @@ public class Path {
 	/// let path be updated in the present (i.e., stop time traveling) starting at timeSim
 	/// </summary>
 	public void goLive() {
-		List<SegmentUnit> queue = new List<SegmentUnit>();
-		SegmentUnit nonLiveChild = new SegmentUnit();
-		goLiveHelper ();
-		foreach (Segment segment in segments) {
-			queue.AddRange (segment.segmentUnits ());
-		}
-		while (queue.Count > 0) {
-			foreach (SegmentUnit prev in queue[0].prev ()) {
-				if (prev.segment.path.timeSimPast != long.MaxValue) {
-					prev.segment.path.goLiveHelper ();
-					queue.Add (prev);
-				}
-			}
-			foreach (SegmentUnit parent in queue[0].parents ()) {
-				if (parent.segment.path.timeSimPast != long.MaxValue) {
-					parent.segment.path.goLiveHelper ();
-					queue.Add (parent);
-				}
-			}
-			if (nonLiveChild.g == null && queue[0].children().Any ()) nonLiveChild = queue[0];
-			queue.RemoveAt (0);
-		}
-		if (nonLiveChild.g != null) g.deleteOtherPaths (new SegmentUnit[] { nonLiveChild }, true, false);
-	}
-	
-	private void goLiveHelper() {
 		tileX = Sim.OffMap + 1;
 		tileY = Sim.OffMap + 1;
 		timeSimPast = long.MaxValue;
