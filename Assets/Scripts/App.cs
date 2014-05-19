@@ -1362,11 +1362,12 @@ public class App : MonoBehaviour {
 	/// sets pos to where base of path should be drawn at, and returns whether it should be drawn
 	/// </summary>
 	private bool pathDrawPos(Path path, ref Vector3 pos) {
-		FP.Vector simPos;
-		if (g.timeGame < path.moves[0].timeStart || (selPlayer != path.player && path.timeSimPast != long.MaxValue)) return false;
-		simPos = path.calcPos(g.timeGame);
-		if (selPlayer != path.player && (path.activeSegment (g.timeGame).unseen || !g.tileAt(simPos).playerVisWhen(selPlayer, g.timeGame))) return false;
-		pos = simToDrawPos(simPos, UnitDepth);
+		if (g.timeGame < path.moves[0].timeStart) return false;
+		if (selPlayer != path.player) {
+			if (path.timeSimPast != long.MaxValue) return false;
+			if (!g.tileAt(path.calcPos (Math.Max (path.moves[0].timeStart, g.timeGame / g.tileInterval * g.tileInterval))).playerVisWhen(selPlayer, g.timeGame / g.tileInterval * g.tileInterval)) return false;
+		}
+		pos = simToDrawPos(path.calcPos(g.timeGame), UnitDepth);
 		return true;
 	}
 	
