@@ -838,7 +838,7 @@ public class App : MonoBehaviour {
 					// lasers
 					// ISSUE #16: make width, fade interval, color customizable by mod
 					foreach (Attack attack in unit.attacks) {
-						if (g.timeGame - attack.time >= 0 && g.timeGame - attack.time < 500 && g.tileAt(attack.target.calcPos(g.timeGame)).playerVisWhen(selPlayer, g.timeGame)) {
+						if (g.timeGame - attack.time >= 0 && g.timeGame - attack.time < 500 && attack.target.activeTile(g.timeGame).playerVisWhen(selPlayer, g.timeGame)) {
 							Vector3 posEmit = vec + simToDrawScl (unit.type.laserPos);
 							posEmit.z = LaserDepth;
 							sprUnits[i][j].laser.SetWidth(4 * (1 - (g.timeGame - attack.time) / 500f), 4 * (1 - (g.timeGame - attack.time) / 500f));
@@ -1212,12 +1212,11 @@ public class App : MonoBehaviour {
 				// ISSUE #25: prevent putting multiple units on same unit (unless on different paths of same unit and maybe some other cases)
 				foreach (Path path in g.paths) {
 					if (g.timeGame >= path.segments[0].timeStart) {
-						FP.Vector pos = path.calcPos(g.timeGame);
-						if (g.tileAt (pos).playerVisWhen (selPlayer, g.timeGame)
+						if (path.activeTile (g.timeGame).playerVisWhen (selPlayer, g.timeGame)
 							&& FP.rectContains (path.selMinPos (g.timeGame), path.selMaxPos (g.timeGame), drawToSimPos (Input.mousePosition))) {
 							foreach (Unit unit in path.activeSegment (g.timeGame).units) {
 								if (unit.type == makeUnitType.makeOnUnitT) {
-									return pos;
+									return path.calcPos(g.timeGame);
 								}
 							}
 						}
@@ -1365,7 +1364,7 @@ public class App : MonoBehaviour {
 		if (g.timeGame < path.moves[0].timeStart) return false;
 		if (selPlayer != path.player) {
 			if (path.timeSimPast != long.MaxValue) return false;
-			if (!g.tileAt(path.calcPos (Math.Max (path.moves[0].timeStart, g.timeGame / g.tileInterval * g.tileInterval))).playerVisWhen(selPlayer, g.timeGame / g.tileInterval * g.tileInterval)) return false;
+			if (!path.activeTile (g.timeGame).playerVisWhen(selPlayer, g.timeGame)) return false;
 		}
 		pos = simToDrawPos(path.calcPos(g.timeGame), UnitDepth);
 		return true;

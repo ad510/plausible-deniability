@@ -270,6 +270,19 @@ public class Path {
 		}
 		return null;
 	}
+	
+	/// <summary>
+	/// returns tile that path is on at specified time
+	/// </summary>
+	public Tile activeTile(long time) {
+		if (time < moves[0].timeStart) return null;
+		long timeRounded = time / g.tileInterval * g.tileInterval;
+		if (timeRounded < moves[0].timeStart) {
+			// ideally would return tile that parent path was on at timeRounded, but this should be good enough
+			return g.tileAt(moves[0].vecStart);
+		}
+		return g.tileAt(calcPos(timeRounded));
+	}
 
 	/// <summary>
 	/// returns location at specified time
