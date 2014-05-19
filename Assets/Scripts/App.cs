@@ -606,7 +606,7 @@ public class App : MonoBehaviour {
 					for (int i = 0; i < g.paths.Count; i++) {
 						if (g.timeGame >= g.paths[i].segments[0].timeStart
 							&& FP.rectContains (g.paths[i].selMinPos(g.timeGame), g.paths[i].selMaxPos(g.timeGame), drawToSimPos (Input.mousePosition))) {
-							if (g.timeGame >= g.timeSim && g.tileAt (g.paths[i].calcPos (g.timeGame)).playerDirectVisWhen (selPlayer, g.timeGame)
+							if (g.timeGame >= g.timeSim && g.paths[i].activeTile (g.timeGame).playerDirectVisWhen (selPlayer, g.timeGame)
 								&& selPlayer.mayAttack[g.paths[i].player.id]
 								&& g.paths[i].activeSegment (g.timeGame).units.Where (u2 => curSelPaths.Values.Where (units => units.Where (u => u.type.damage[u2.type.id] > 0).Any ()).Any ()).Any ()) {
 								attackPath = i;
