@@ -76,6 +76,7 @@ public class Sim {
 	[ProtoMember(39)] public bool synced; // whether all checksums between users matched so far
 	[ProtoMember(40)] public long timeSim; // current simulation time
 	[ProtoMember(41)] public long timeUpdateEvt; // last time that an UpdateEvt was applied
+	[ProtoMember(45)] public long timeGame;
 	
 	[ProtoBeforeSerialization]
 	private void beforeSerialize() {

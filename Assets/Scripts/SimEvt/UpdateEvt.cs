@@ -28,7 +28,7 @@ public class UpdateEvt : SimEvt {
 		if (g.networkView != null) {
 			// apply received user commands (multiplayer only)
 			for (int i = 0; i < g.users.Length; i++) {
-				if (g.users[i].timeSync < time) throw new InvalidOperationException("UpdateEvt is being applied before commands were received from user " + i);
+				if (g.users[i].timeSync < time) throw new InvalidOperationException("UpdateEvt is being applied at time " + time + " when user " + i + "'s commands were last received for time " + g.users[i].timeSync);
 				if (time > 0 && g.users[i].checksums[time] != g.users[g.selUser].checksums[time]) g.synced = false;
 				while (g.users[i].cmdReceived.peekTime () == time) {
 					g.users[i].cmdReceived.pop ().apply (g);
@@ -36,6 +36,22 @@ public class UpdateEvt : SimEvt {
 				// delete old checksums
 				foreach (long k in g.users[i].checksums.Keys.ToArray ()) {
 					if (k < time) g.users[i].checksums.Remove (k);
+				}
+			}
+			// add command(s) to update non-live paths
+			long timeSimPast = long.MaxValue;
+			if (g.timeGame < g.timeSim) {
+				timeSimPast = g.timeGame + g.updateInterval;
+				foreach (SimEvt evt in g.cmdPending.events) {
+					if (evt is UnitCmdEvt) {
+						UnitCmdEvt unitCmdEvt = (UnitCmdEvt)evt;
+						if (unitCmdEvt.timeCmd > timeSimPast) timeSimPast = unitCmdEvt.timeCmd;
+					}
+				}
+			}
+			foreach (Player player in g.players) {
+				if (player.user == g.selUser && player.hasNonLivePaths) {
+					g.cmdPending.events.Insert (0, new UpdatePastCmdEvt(time, timeSimPast, player.id));
 				}
 			}
 			// send pending commands to other users
