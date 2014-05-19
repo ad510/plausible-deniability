@@ -58,31 +58,28 @@ public class Path {
 	/// ensure that if path is moving in the past, it does not move off exclusively seen areas
 	/// </summary>
 	public void updatePast(long curTime) {
-		if (tileX == Sim.OffMap) return;
-		while (timeSimPast <= curTime - g.tileInterval) {
+		while (timeSimPast <= curTime - g.tileInterval && segments.Last ().units.Count > 0) {
 			timeSimPast += g.tileInterval;
-			if (tileMoved (timeSimPast, ref tileX, ref tileY)) {
-				if (!g.tiles[tileX, tileY].exclusiveWhen (player, timeSimPast)) {
-					segments.Last ().removeAllUnits (true);
-					break;
-				}
+			updateTilePos (timeSimPast);
+			if (!g.tiles[tileX, tileY].exclusiveWhen (player, timeSimPast)) {
+				segments.Last ().removeAllUnits (true);
 			}
 		}
 	}
 	
-	public bool tileMoved(long time, ref int tX, ref int tY) { // TODO: update tileX/Y directly and rename to updateTilePos?
-		if (time < moves[0].timeStart) return false;
-		if (segments.Last ().units.Count == 0) {
-			// path no longer contains units, so remove it from visibility tiles
-			if (tX == Sim.OffMap) return false;
-			tX = Sim.OffMap;
-			return true;
+	public void updateTilePos(long time) {
+		if (time % g.tileInterval != 0) throw new ArgumentException("tile update time must be divisible by tileInterval");
+		if (time >= moves[0].timeStart) {
+			if (segments.Last ().units.Count == 0) {
+				// path no longer contains units, so remove it from visibility tiles
+				tileX = Sim.OffMap;
+			}
+			else {
+				FP.Vector pos = calcPos (time);
+				tileX = (int)(pos.x >> FP.Precision);
+				tileY = (int)(pos.y >> FP.Precision);
+			}
 		}
-		FP.Vector pos = calcPos (time);
-		if (pos.x >> FP.Precision == tileX && pos.y >> FP.Precision == tileY) return false;
-		tX = (int)(pos.x >> FP.Precision);
-		tY = (int)(pos.y >> FP.Precision);
-		return true;
 	}
 
 	/// <summary>
