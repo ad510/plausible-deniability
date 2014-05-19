@@ -21,12 +21,14 @@ public class TileUpdateEvt : SimEvt {
 	}
 	
 	public override void apply (Sim g) {
+		bool anyoneMoved = false;
 		foreach (Path path in g.paths) {
 			if (path.timeSimPast == long.MaxValue && path.tileX != Sim.OffMap) {
 				int tXPrev = path.tileX;
 				int tYPrev = path.tileY;
 				path.updateTilePos (time);
 				if (path.tileX != tXPrev || path.tileY != tYPrev) {
+					anyoneMoved = true;
 					int exclusiveMinX = g.tileLen() - 1;
 					int exclusiveMaxX = 0;
 					int exclusiveMinY = g.tileLen() - 1;
@@ -126,26 +128,6 @@ public class TileUpdateEvt : SimEvt {
 							}
 						}
 					}
-					// update which paths are known to be unseen
-					foreach (Path path2 in g.paths) {
-						if (path2.tileX >= 0 && path2.tileX < g.tileLen() && path2.tileY >= 0 && path2.tileY < g.tileLen()) {
-							if (!path2.segments.Last ().unseen && g.tiles[path2.tileX, path2.tileY].exclusiveLatest(path2.player)) {
-								// path is now unseen
-								path2.insertSegment(time).unseen = true;
-							}
-							else if (path2.segments.Last ().unseen && !g.tiles[path2.tileX, path2.tileY].exclusiveLatest(path2.player)) {
-								// path is now seen
-								Segment segment = path2.insertSegment(time);
-								foreach (Unit unit in segment.units.OrderByDescending (u => u.type.seePrecedence)) {
-									if (segment.units.Count <= path2.nSeeUnits) break;
-									new SegmentUnit(segment, unit).delete ();
-								}
-								path2.nSeeUnits = int.MaxValue;
-								if (!g.deleteOtherPaths (segment.segmentUnits(), false, true)) throw new SystemException("failed to delete other paths of seen path");
-								segment.unseen = false;
-							}
-						}
-					}
 					if (tXPrev >= 0 && tXPrev < g.tileLen() && tYPrev >= 0 && tYPrev < g.tileLen()) {
 						// if this path moved out of another player's direct visibility, remove that player's visibility here
 						if (path.tileX >= 0 && path.tileX < g.tileLen() && path.tileY >= 0 && path.tileY < g.tileLen()) {
@@ -174,6 +156,28 @@ public class TileUpdateEvt : SimEvt {
 								}
 							}
 						}
+					}
+				}
+			}
+		}
+		if (anyoneMoved) {
+			// update which paths are known to be unseen
+			foreach (Path path in g.paths) {
+				if (path.tileX >= 0 && path.tileX < g.tileLen() && path.tileY >= 0 && path.tileY < g.tileLen()) {
+					if (!path.segments.Last ().unseen && g.tiles[path.tileX, path.tileY].exclusiveLatest(path.player)) {
+						// path is now unseen
+						path.insertSegment(time).unseen = true;
+					}
+					else if (path.segments.Last ().unseen && !g.tiles[path.tileX, path.tileY].exclusiveLatest(path.player)) {
+						// path is now seen
+						Segment segment = path.insertSegment(time);
+						foreach (Unit unit in segment.units.OrderByDescending (u => u.type.seePrecedence)) {
+							if (segment.units.Count <= path.nSeeUnits) break;
+							new SegmentUnit(segment, unit).delete ();
+						}
+						path.nSeeUnits = int.MaxValue;
+						if (!g.deleteOtherPaths (segment.segmentUnits(), false, true)) throw new SystemException("failed to delete other paths of seen path");
+						segment.unseen = false;
 					}
 				}
 			}
