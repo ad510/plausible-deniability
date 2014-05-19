@@ -241,6 +241,7 @@ public class App : MonoBehaviour {
 			maxSpeed = 0,
 			mapSize = jsonFP(json, "mapSize"),
 			updateInterval = (long)jsonDouble(json, "updateInterval"),
+			tileInterval = (long)jsonDouble (json, "tileInterval"),
 			visRadius = jsonFP(json, "visRadius"),
 			camSpeed = jsonFP(json, "camSpeed"),
 			zoom = (float)jsonDouble(json, "zoom"),
@@ -270,6 +271,7 @@ public class App : MonoBehaviour {
 			keepLines = new List<MoveLine>(),
 		};
 		if (g.updateInterval > 0) g.events.add(new UpdateEvt(0));
+		if (g.tileInterval > 0) g.events.add (new TileUpdateEvt(0));
 		g.camPos = jsonFPVector(json, "camPos", new FP.Vector(g.mapSize / 2, g.mapSize / 2));
 		// resources
 		jsonA = jsonArray(json, "resources");
@@ -411,8 +413,6 @@ public class App : MonoBehaviour {
 					}
 					g.paths.Add (new Path(g, g.paths.Count, units, (long)jsonDouble(jsonO, "startTime"),
 						jsonFPVector(jsonO, "startPos", new FP.Vector((long)(UnityEngine.Random.value * g.mapSize), (long)(UnityEngine.Random.value * g.mapSize)))));
-					Move move = g.paths.Last ().moves[0];
-					g.events.add(new TileMoveEvt(move.timeStart, g.paths.Count - 1, (int)(move.vecStart.x >> FP.Precision), (int)(move.vecStart.y >> FP.Precision)));
 				}
 			}
 		}
@@ -487,8 +487,8 @@ public class App : MonoBehaviour {
 	void Update () {
 		updateTime ();
 		if (!replay) {
-			selPlayer.updatePast (timeGame);
 			g.update (timeGame);
+			selPlayer.updatePast (timeGame);
 		}
 		updateInput ();
 		draw ();

@@ -23,6 +23,7 @@ public class Sim {
 	// general simulation parameters
 	[ProtoMember(1)] public long mapSize;
 	[ProtoMember(2)] public long updateInterval;
+	[ProtoMember(44)] public long tileInterval;
 	[ProtoMember(3)] public long visRadius;
 
 	// camera properties
@@ -67,7 +68,6 @@ public class Sim {
 	public FP.Vector lastUnseenTile;
 	[ProtoMember(32)] public SimEvtList events; // simulation events to be applied
 	[ProtoMember(33)] public SimEvtList cmdPending; // user commands to be sent to other users in the next update
-	public List<int> movedPaths; // indices of paths that moved in the latest simulation event, invalidating later TileMoveEvts for that path
 	[ProtoMember(36)] public int nRootPaths; // number of paths that don't have a parent (because they were defined in scenario file); these are all at beginning of paths list
 	[ProtoMember(37)] public long maxSpeed; // speed of fastest unit (is max speed that players can gain or lose visibility)
 	[ProtoMember(42)] public List<MoveLine> deleteLines;
@@ -141,24 +141,10 @@ public class Sim {
 			}
 		}
 		// apply simulation events
-		movedPaths = new List<int>();
 		while (events.peekTime() <= timeSimNext) {
 			evt = events.pop();
 			timeSim = evt.time;
 			evt.apply(this);
-			// if event caused path(s) to move, delete and recalculate later events moving them between tiles
-			if (movedPaths.Count > 0) {
-				for (int i = 0; i < events.events.Count; i++) {
-					if (events.events[i] is TileMoveEvt && events.events[i].time > timeSim && movedPaths.Contains((events.events[i] as TileMoveEvt).path)) {
-						events.events.RemoveAt(i);
-						i--;
-					}
-				}
-				foreach (int path in movedPaths) {
-					if (paths[path].timeSimPast == long.MaxValue) paths[path].addTileMoveEvts(ref events, timeSim, timeUpdateEvt + updateInterval);
-				}
-				movedPaths.Clear();
-			}
 			checksum++;
 		}
 		// update simulation time

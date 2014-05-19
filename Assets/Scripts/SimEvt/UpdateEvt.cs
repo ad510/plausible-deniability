@@ -86,12 +86,6 @@ public class UpdateEvt : SimEvt {
 				}
 			}
 		}
-		// add events to move paths between tiles
-		// this shouldn't be done in Sim.update() because addTileMoveEvts() sometimes adds events before timeSim
-		foreach (Path path in g.paths) {
-			if (path.timeSimPast == long.MaxValue) path.addTileMoveEvts(ref g.events, time, time + g.updateInterval);
-		}
-		g.movedPaths.Clear();
 		// add next UpdateEvt
 		g.checksum = 0;
 		g.events.add(new UpdateEvt(time + g.updateInterval));

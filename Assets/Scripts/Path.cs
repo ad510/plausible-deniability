@@ -46,7 +46,7 @@ public class Path {
 		nSeeUnits = nSeeUnitsVal;
 		tileX = Sim.OffMap + 1;
 		tileY = Sim.OffMap + 1;
-		timeSimPast = (startTime >= g.timeSim) ? long.MaxValue : startTime;
+		timeSimPast = (startTime >= g.timeSim) ? long.MaxValue : startTime / g.tileInterval * g.tileInterval;
 	}
 	
 	public Path(Sim simVal, int idVal, List<Unit> units, long startTime, FP.Vector startPos)
@@ -58,66 +58,31 @@ public class Path {
 	/// ensure that if path is moving in the past, it does not move off exclusively seen areas
 	/// </summary>
 	public void updatePast(long curTime) {
-		if (curTime <= timeSimPast || segments.Last ().units.Count == 0) return;
-		long timeSimPastNext = Math.Min(curTime, g.timeSim);
-		SimEvtList pastEvents = new SimEvtList();
-		TileMoveEvt evt;
-		FP.Vector pos;
-		int tX, tY, exclusiveIndex;
-		// delete path if tile that path starts on stops being exclusive since timeSimPast
-		pos = calcPos(timeSimPast);
+		if (tileX == Sim.OffMap) return;
+		while (timeSimPast <= curTime - g.tileInterval) {
+			timeSimPast += g.tileInterval;
+			if (tileMoved (timeSimPast, ref tileX, ref tileY)) {
+				if (!g.tiles[tileX, tileY].exclusiveWhen (player, timeSimPast)) {
+					segments.Last ().removeAllUnits (true);
+					break;
+				}
+			}
+		}
+	}
+	
+	public bool tileMoved(long time, ref int tX, ref int tY) { // TODO: update tileX/Y directly and rename to updateTilePos?
+		if (time < moves[0].timeStart) return false;
+		if (segments.Last ().units.Count == 0) {
+			// path no longer contains units, so remove it from visibility tiles
+			if (tX == Sim.OffMap) return false;
+			tX = Sim.OffMap;
+			return true;
+		}
+		FP.Vector pos = calcPos (time);
+		if (pos.x >> FP.Precision == tileX && pos.y >> FP.Precision == tileY) return false;
 		tX = (int)(pos.x >> FP.Precision);
 		tY = (int)(pos.y >> FP.Precision);
-		// ISSUE #26: without modifications, line below may cause syncing problems in multiplayer b/c addTileMoveEvts() sometimes adds events before timeSimPast
-		addTileMoveEvts(ref pastEvents, timeSimPast, timeSimPastNext);
-		evt = (TileMoveEvt)pastEvents.pop();
-		exclusiveIndex = g.tiles[tX, tY].exclusiveIndexWhen(player, (evt != null) ? evt.time - 1 : curTime);
-		if (!g.tiles[tX, tY].exclusiveWhen(player, (evt != null) ? evt.time - 1 : curTime)
-			|| g.tiles[tX, tY].exclusive[player.id][exclusiveIndex] > timeSimPast) {
-			segments.Last ().removeAllUnits(true);
-			return;
-		}
-		// delete path if path moves off exclusive area or tile that path moves to stops being exclusive
-		if (evt != null) {
-			do {
-				if (evt.tileX != int.MinValue) tX = evt.tileX;
-				if (evt.tileY != int.MinValue) tY = evt.tileY;
-				exclusiveIndex = g.tiles[tX, tY].exclusiveIndexWhen(player, evt.time);
-				if (!g.tiles[tX, tY].exclusiveWhen(player, evt.time)
-					|| (exclusiveIndex + 1 < g.tiles[tX, tY].exclusive[player.id].Count() && g.tiles[tX, tY].exclusive[player.id][exclusiveIndex + 1] <= Math.Min(g.events.peekTime(), timeSimPastNext))) {
-					segments.Last ().removeAllUnits(true);
-					return;
-				}
-			} while ((evt = (TileMoveEvt)pastEvents.pop()) != null);
-		}
-		// update past simulation time
-		timeSimPast = timeSimPastNext;
-	}
-
-	/// <summary>
-	/// inserts TileMoveEvt events for this path into events for the time interval from timeMin to timeMax
-	/// </summary>
-	/// <remarks>due to fixed point imprecision in lineCalcX() and lineCalcY(), this sometimes adds events outside the requested time interval</remarks>
-	public void addTileMoveEvts(ref SimEvtList events, long timeMin, long timeMax) {
-		if (timeMax < moves[0].timeStart) return;
-		int moveLast = Math.Max (0, activeMove(timeMin));
-		int move = activeMove(timeMax);
-		FP.Vector pos, posLast;
-		int dir;
-		for (int i = moveLast; i <= move; i++) {
-			posLast = (i == moveLast) ? moves[i].calcPos(Math.Max(timeMin, moves[0].timeStart)) : moves[i].vecStart;
-			pos = (i == move) ? moves[i].calcPos(timeMax) : moves[i + 1].vecStart;
-			// moving between columns (x)
-			dir = (pos.x >= posLast.x) ? 0 : -1;
-			for (int tX = (int)(Math.Min(pos.x, posLast.x) >> FP.Precision) + 1; tX <= (int)(Math.Max(pos.x, posLast.x) >> FP.Precision); tX++) {
-				events.add(new TileMoveEvt(moves[i].timeAtX(tX << FP.Precision), id, tX + dir, int.MinValue));
-			}
-			// moving between rows (y)
-			dir = (pos.y >= posLast.y) ? 0 : -1;
-			for (int tY = (int)(Math.Min(pos.y, posLast.y) >> FP.Precision) + 1; tY <= (int)(Math.Max(pos.y, posLast.y) >> FP.Precision); tY++) {
-				events.add(new TileMoveEvt(moves[i].timeAtY(tY << FP.Precision), id, int.MinValue, tY + dir));
-			}
-		}
+		return true;
 	}
 
 	/// <summary>
@@ -126,6 +91,8 @@ public class Path {
 	public void goLive() {
 		List<SegmentUnit> queue = new List<SegmentUnit>();
 		SegmentUnit nonLiveChild = new SegmentUnit();
+		tileX = Sim.OffMap + 1;
+		tileY = Sim.OffMap + 1;
 		timeSimPast = long.MaxValue;
 		foreach (Segment segment in segments) {
 			queue.AddRange (segment.segmentUnits ());
@@ -147,9 +114,6 @@ public class Path {
 			queue.RemoveAt (0);
 		}
 		if (nonLiveChild.g != null) g.deleteOtherPaths (new SegmentUnit[] { nonLiveChild }, true, false);
-		FP.Vector pos = calcPos(g.timeSim);
-		g.events.add(new TileMoveEvt(g.timeSim, id, (int)(pos.x >> FP.Precision), (int)(pos.y >> FP.Precision)));
-		if (!g.movedPaths.Contains(id)) g.movedPaths.Add(id); // indicate to delete and recalculate later TileMoveEvts for this path
 	}
 
 	/// <summary>
@@ -163,12 +127,7 @@ public class Path {
 		g.paths.Add (new Path(g, g.paths.Count, units[0].type.speed, player, units, time, pos, segment.unseen, nSeeUnits));
 		connect (time, g.paths.Last ());
 		if (timeSimPast != long.MaxValue) g.paths.Last ().timeSimPast = time;
-		if (g.paths.Last ().timeSimPast == long.MaxValue) {
-			g.events.add(new TileMoveEvt(time, g.paths.Count - 1, (int)(pos.x >> FP.Precision), (int)(pos.y >> FP.Precision)));
-		}
-		else {
-			player.hasNonLivePaths = true;
-		}
+		if (g.paths.Last ().timeSimPast != long.MaxValue) player.hasNonLivePaths = true;
 		if (costsRsc) g.deleteOtherPaths (g.paths.Last ().segments[0].segmentUnits (), false, true);
 		return true;
 	}
@@ -283,7 +242,6 @@ public class Path {
 		if (goalPos.y > g.mapSize) goalPos.y = g.mapSize;
 		// add move
 		moves.Add (Move.fromSpeed(time, speed, curPos, goalPos));
-		if (!g.movedPaths.Contains(id)) g.movedPaths.Add(id); // indicate to delete and recalculate later TileMoveEvts for this path
 	}
 
 	/// <summary>

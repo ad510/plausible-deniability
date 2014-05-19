@@ -34,7 +34,7 @@ public class Player {
 	public void updatePast(long curTime) {
 		if (hasNonLivePaths) {
 			foreach (Path path in g.paths) {
-				if (this == path.player) path.updatePast(curTime);
+				if (this == path.player) path.updatePast(curTime); // TODO: make sure this doesn't get ahead of player's earliest UnitCmdEvt (UnitCmdEvts should throw error if it does)
 			}
 			if (curTime >= g.timeSim && g.timeSim >= timeGoLiveFailedAttempt + g.updateInterval) {
 				g.cmdPending.add(new GoLiveCmdEvt(g.timeSim, id));
