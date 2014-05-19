@@ -35,7 +35,7 @@ public class AttackCmdEvt : UnitCmdEvt {
 		FP.Vector targetPos = g.paths[target].calcPos (timeCmd);
 		foreach (KeyValuePair<Path, List<Unit>> path in exPaths) {
 			if (path.Key.timeSimPast == long.MaxValue && path.Key.id != target && path.Key.player.mayAttack[g.paths[target].player.id]
-				&& g.tileAt (targetPos).playerVisLatest (path.Key.player)) {
+				&& g.tileAt (targetPos).playerDirectVisLatest (path.Key.player)) {
 				long distSq = (targetPos - path.Key.calcPos(timeCmd)).lengthSq ();
 				foreach (Unit unit in path.Value) {
 					if ((unit.attacks.Count == 0 || timeCmd >= unit.attacks.Last().time + unit.type.reload) && distSq <= unit.type.range * unit.type.range) {
