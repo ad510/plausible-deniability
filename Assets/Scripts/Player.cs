@@ -37,7 +37,36 @@ public class Player {
 				if (this == path.player) path.updatePast(curTime); // TODO: make sure this doesn't get ahead of player's earliest UnitCmdEvt (UnitCmdEvts should throw error if it does)
 			}
 			if (curTime >= g.timeSim && g.timeSim >= timeGoLiveFailedAttempt + g.updateInterval) {
-				g.cmdPending.add(new GoLiveCmdEvt(g.timeSim, id));
+				// make player's time traveling paths go live
+				long timeTravelStart = long.MaxValue;
+				foreach (Path path in g.paths) {
+					if (this == path.player && path.segments.Last ().units.Count > 0 && path.timeSimPast != long.MaxValue) {
+						// ensure that time traveling paths don't move off exclusive areas
+						path.updatePast(g.timeSim);
+						// find earliest time that player's paths started time traveling
+						if (path.segments[0].timeStart < timeTravelStart) timeTravelStart = path.segments[0].timeStart;
+					}
+				}
+				if (timeTravelStart != long.MaxValue) { // skip if player has no time traveling paths
+					// check if going live would lead to player ever having negative resources
+					timeGoLiveProblem = checkNegRsc(timeTravelStart, true);
+					if (timeGoLiveProblem < 0 && populationLimit >= 0) {
+						// check if going live would lead to player ever going over population limit
+						timeGoLiveProblem = checkPopulation(timeTravelStart);
+					}
+					if (timeGoLiveProblem >= 0) {
+						// indicate failure to go live, then return
+						timeGoLiveFailedAttempt = g.timeSim;
+						return;
+					}
+					// safe for paths to become live, so do so
+					foreach (Path path in g.paths) {
+						if (this == path.player && path.segments.Last ().units.Count > 0 && path.timeSimPast != long.MaxValue) path.goLive();
+					}
+				}
+				// indicate success
+				hasNonLivePaths = false;
+				timeGoLiveFailedAttempt = long.MinValue;
 			}
 		}
 	}

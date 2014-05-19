@@ -10,5 +10,4 @@ using ProtoBuf;
 /// </summary>
 [ProtoContract]
 [ProtoInclude(10, typeof(UnitCmdEvt))]
-[ProtoInclude(11, typeof(GoLiveCmdEvt))]
 public abstract class CmdEvt : SimEvt { }
