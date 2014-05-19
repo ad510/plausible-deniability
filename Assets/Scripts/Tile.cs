@@ -97,25 +97,25 @@ public class Tile {
 
 	/// <summary>
 	/// toggles the visibility of this tile for specified path at specified time, without affecting player visibility
-	/// (should only be called by TileMoveEvt.apply())
+	/// (should only be called by TileUpdateEvt.apply())
 	/// </summary>
-	public void pathVisToggle(int path, long time) {
-		if (!pathVis.ContainsKey(path)) pathVis.Add(path, new List<long>());
-		pathVis[path].Add(time);
+	public void pathVisToggle(Path path, long time) {
+		if (!pathVis.ContainsKey(path.id)) pathVis.Add(path.id, new List<long>());
+		pathVis[path.id].Add(time);
 	}
 
 	/// <summary>
 	/// returns if specified path can see this tile at latest possible time
 	/// </summary>
-	public bool pathVisLatest(int path) {
-		return pathVis.ContainsKey(path) && visLatest(pathVis[path]);
+	public bool pathVisLatest(Path path) {
+		return pathVis.ContainsKey(path.id) && visLatest(pathVis[path.id]);
 	}
 
 	/// <summary>
 	/// returns if specified path can see this tile at specified time
 	/// </summary>
-	public bool pathVisWhen(int path, long time) {
-		return pathVis.ContainsKey(path) && visWhen(pathVis[path], time);
+	public bool pathVisWhen(Path path, long time) {
+		return pathVis.ContainsKey(path.id) && visWhen(pathVis[path.id], time);
 	}
 
 	/// <summary>

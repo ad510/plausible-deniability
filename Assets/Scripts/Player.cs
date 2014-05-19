@@ -37,7 +37,58 @@ public class Player {
 				if (this == path.player) path.updatePast(curTime);
 			}
 			if (curTime >= g.timeSim && g.timeSim >= timeGoLiveFailedAttempt + g.updateInterval) {
-				g.cmdPending.add(new GoLiveCmdEvt(g.timeSim, id));
+				// make player's time traveling paths go live
+				long timeTravelStart = long.MaxValue;
+				// find earliest time that player's paths started time traveling
+				foreach (Path path in g.paths) {
+					if (this == path.player && path.timeSimPast != long.MaxValue && path.segments[0].timeStart < timeTravelStart) {
+						timeTravelStart = path.segments[0].timeStart;
+					}
+				}
+				if (timeTravelStart != long.MaxValue) { // skip if player has no time traveling paths
+					// check if going live would lead to player ever having negative resources
+					timeGoLiveProblem = checkNegRsc(timeTravelStart, true);
+					if (timeGoLiveProblem < 0 && populationLimit >= 0) {
+						// check if going live would lead to player ever going over population limit
+						timeGoLiveProblem = checkPopulation(timeTravelStart);
+					}
+					if (timeGoLiveProblem >= 0) {
+						// indicate failure to go live, then return
+						timeGoLiveFailedAttempt = g.timeSim;
+						return;
+					}
+					// safe for paths to become live, so do so
+					foreach (Path path in g.paths) {
+						if (this == path.player && path.timeSimPast != long.MaxValue) {
+							List<SegmentUnit> queue = new List<SegmentUnit>();
+							SegmentUnit nonLiveChild = new SegmentUnit();
+							path.goLive ();
+							foreach (Segment segment in path.segments) {
+								queue.AddRange (segment.segmentUnits ());
+							}
+							while (queue.Count > 0) {
+								foreach (SegmentUnit prev in queue[0].prev ()) {
+									if (prev.segment.path.timeSimPast != long.MaxValue) {
+										prev.segment.path.goLive ();
+										queue.Add (prev);
+									}
+								}
+								foreach (SegmentUnit parent in queue[0].parents ()) {
+									if (parent.segment.path.timeSimPast != long.MaxValue) {
+										parent.segment.path.goLive ();
+										queue.Add (parent);
+									}
+								}
+								if (nonLiveChild.g == null && queue[0].children().Any ()) nonLiveChild = queue[0];
+								queue.RemoveAt (0);
+							}
+							if (nonLiveChild.g != null) g.deleteOtherPaths (new SegmentUnit[] { nonLiveChild }, true, false);
+						}
+					}
+				}
+				// indicate success
+				hasNonLivePaths = false;
+				timeGoLiveFailedAttempt = long.MinValue;
 			}
 		}
 	}

@@ -81,10 +81,6 @@ public struct SegmentUnit {
 			return false;
 		}
 		foreach (KeyValuePair<Segment, List<Unit>> item in removed) {
-			// remove paths that no longer contain units from visibility tiles
-			if (item.Key.id == item.Key.path.segments.Count - 1 && item.Key.units.Count == 0 && item.Key.path.tileX != Sim.OffMap) {
-				g.events.add(new TileMoveEvt(g.timeSim, item.Key.path.id, Sim.OffMap, 0));
-			}
 			// add deleted units to list
 			if (item.Key.timeStart < g.timeSim) {
 				if (item.Key.nextOnPath () == null) item.Key.path.insertSegment (g.timeSim);
