@@ -146,10 +146,11 @@ public class TileUpdateEvt : SimEvt {
 						}
 						// if this player can no longer directly see another player's path, remove this player's visibility there
 						foreach (int i in g.tiles[tXPrev, tYPrev].pathVis.Keys) {
+							Tile iTile = g.paths[i].activeTile (time);
 							if (g.paths[i].player != path.player && !g.paths[i].player.immutable && g.paths[i].segments.Last ().units.Count > 0
-								&& g.inVis(g.paths[i].tileX - tXPrev, g.paths[i].tileY - tYPrev) && !g.tiles[g.paths[i].tileX, g.paths[i].tileY].playerDirectVisLatest(path.player)) {
-								for (int tX = Math.Max(0, g.paths[i].tileX - 1); tX <= Math.Min(g.tileLen() - 1, g.paths[i].tileX + 1); tX++) {
-									for (int tY = Math.Max(0, g.paths[i].tileY - 1); tY <= Math.Min(g.tileLen() - 1, g.paths[i].tileY + 1); tY++) {
+								&& g.inVis(iTile.x - tXPrev, iTile.y - tYPrev) && !iTile.playerDirectVisLatest(path.player)) {
+								for (int tX = Math.Max(0, iTile.x - 1); tX <= Math.Min(g.tileLen() - 1, iTile.x + 1); tX++) {
+									for (int tY = Math.Max(0, iTile.y - 1); tY <= Math.Min(g.tileLen() - 1, iTile.y + 1); tY++) {
 										// ISSUE #30: perhaps use more accurate time at tiles other than (paths[i].tileX, paths[i].tileY)
 										g.tiles[tX, tY].playerVisRemove(path.player, time);
 									}
