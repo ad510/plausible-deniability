@@ -41,7 +41,7 @@ public class StackEvt : SimEvt {
 				FP.Vector iPos = g.paths[paths[i]].calcPos (time);
 				Segment iSegment = g.paths[paths[i]].activeSegment (time);
 				for (int j = i + 1; j < paths.Length; j++) {
-					if (!pathsStacked[j]) {
+					if (!pathsStacked[j] && (g.paths[paths[i]].timeSimPast == long.MaxValue) == (g.paths[paths[j]].timeSimPast == long.MaxValue)) {
 						FP.Vector jPos = g.paths[paths[j]].calcPos (time);
 						Segment jSegment = g.paths[paths[j]].activeSegment (time);
 						// check that paths are at same position
