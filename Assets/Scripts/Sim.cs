@@ -144,7 +144,7 @@ public class Sim {
 		// apply simulation events
 		while (events.peekTime() <= timeSimNext) {
 			evt = events.pop();
-			timeSim = evt.time;
+			timeSim = Math.Max (evt.time, timeSim);
 			evt.apply(this);
 			checksum++;
 		}
