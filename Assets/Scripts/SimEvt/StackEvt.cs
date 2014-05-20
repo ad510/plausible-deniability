@@ -34,7 +34,7 @@ public class StackEvt : SimEvt {
 		for (int i = 0; i < paths.Length; i++) {
 			g.paths[paths[i]].updatePast (time);
 			Segment segment = g.paths[paths[i]].segments.Last ();
-			pathsStacked[i] = (time < segment.timeStart || segment.units.Count == 0);
+			pathsStacked[i] = (time < segment.timeStart || segment.units.Count == 0 || (time < g.timeSim && !segment.unseen));
 		}
 		// loop through each pair of unstacked paths
 		for (int i = 0; i < paths.Length; i++) {
@@ -62,6 +62,14 @@ public class StackEvt : SimEvt {
 						}
 					}
 				}
+			}
+		}
+		// if in past, try again to stack paths that failed to stack after going live
+		if (time < g.timeSim && pathsStacked.Where (b => !b).Any ()) {
+			var goLiveStackPaths = g.paths[paths[0]].player.goLiveStackPaths;
+			if (!goLiveStackPaths.ContainsKey (nSeeUnits)) goLiveStackPaths[nSeeUnits] = new HashSet<int>();
+			foreach (int path in paths) {
+				goLiveStackPaths[nSeeUnits].Add (path);
 			}
 		}
 	}

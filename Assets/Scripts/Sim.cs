@@ -215,12 +215,12 @@ public class Sim {
 	/// <summary>
 	/// adds events to stack specified paths as they arrive
 	/// </summary>
-	public void addStackEvts(List<int> movedPaths2, int nSeeUnits) {
-		if (movedPaths2.Count > 1) {
-			foreach (int path in movedPaths2) {
-				// in most cases only 1 path will stack onto stackPath,
-				// but request to stack all moved paths anyway in case the path they're stacking onto moves away
-				events.add (new StackEvt(paths[path].moves.Last ().timeEnd, movedPaths2.ToArray (), nSeeUnits));
+	public void addStackEvts(IEnumerable<int> stackPaths, int nSeeUnits) {
+		if (stackPaths.Count() > 1) {
+			foreach (int path in stackPaths) {
+				// in most cases only 2 paths will stack at a time,
+				// but request to stack all paths anyway in case the path they're stacking onto moves away
+				events.add (new StackEvt(paths[path].moves.Last ().timeEnd, stackPaths.ToArray (), nSeeUnits));
 			}
 		}
 	}
