@@ -31,7 +31,8 @@ public class StackEvt : SimEvt {
 	public override void apply (Sim g) {
 		bool[] pathsStacked = new bool[paths.Length];
 		// only stack paths that contain units at this time
-		for (int i = 0; i < pathsStacked.Length; i++) {
+		for (int i = 0; i < paths.Length; i++) {
+			g.paths[paths[i]].updatePast (time);
 			Segment segment = g.paths[paths[i]].segments.Last ();
 			pathsStacked[i] = (time < segment.timeStart || segment.units.Count == 0);
 		}
