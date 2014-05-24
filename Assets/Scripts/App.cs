@@ -257,6 +257,7 @@ public class App : MonoBehaviour {
 			playerVisCol = jsonColor(json, "playerVisCol"),
 			unitVisCol = jsonColor(json, "unitVisCol"),
 			exclusiveCol = jsonColor(json, "exclusiveCol"),
+			waypointCol = jsonColor (json, "waypointCol"),
 			pathCol = jsonColor(json, "pathCol"),
 			healthBarBackCol = jsonColor(json, "healthBarBackCol"),
 			healthBarFullCol = jsonColor(json, "healthBarFullCol"),
@@ -769,7 +770,16 @@ public class App : MonoBehaviour {
 				if (g.tiles[tX, tY].playerVisWhen(selPlayer, g.timeGame)) {
 					col += g.playerVisCol;
 					if (g.tiles[tX, tY].playerDirectVisWhen(selPlayer, g.timeGame, !showDeletedUnits)) col += g.unitVisCol;
-					if (Sim.EnableNonLivePaths && (!replay || showDeletedUnits) && g.tiles[tX, tY].exclusiveWhen(selPlayer, g.timeGame)) col += g.exclusiveCol;
+					if (Sim.EnableNonLivePaths && (!replay || showDeletedUnits) && g.tiles[tX, tY].exclusiveWhen(selPlayer, g.timeGame)) {
+						col += g.exclusiveCol;
+						foreach (Path path in curSelPaths.Keys) {
+							Waypoint waypoint = g.tiles[tX, tY].waypointWhen (path, g.timeGame);
+							if (waypoint != null && waypoint.prev != null) {
+								col += g.waypointCol;
+								break;
+							}
+						}
+					}
 				}
 				texTile.SetPixel (tX, tY, col);
 			}

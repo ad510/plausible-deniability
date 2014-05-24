@@ -31,6 +31,11 @@ public class Tile {
 	/// </summary>
 	public List<long>[] exclusive;
 	[ProtoMember(6)] private List<long> protoExclusive;
+	/// <summary>
+	/// stores where each path can come from to get to this tile at any given time,
+	/// in format waypoints[path][waypoint index]
+	/// </summary>
+	[ProtoMember(7)] public Dictionary<int, List<Waypoint>> waypoints;
 	
 	/// <summary>
 	/// empty constructor for protobuf-net use only
@@ -43,7 +48,10 @@ public class Tile {
 		y = yVal;
 		pathVis = new Dictionary<int,List<long>>();
 		playerVis = new List<long>[g.players.Length];
-		if (Sim.EnableNonLivePaths) exclusive = new List<long>[g.players.Length];
+		if (Sim.EnableNonLivePaths) {
+			exclusive = new List<long>[g.players.Length];
+			waypoints = new Dictionary<int, List<Waypoint>>();
+		}
 		for (int i = 0; i < g.players.Length; i++) {
 			playerVis[i] = new List<long>();
 			if (Sim.EnableNonLivePaths) exclusive[i] = new List<long>();
@@ -241,6 +249,26 @@ public class Tile {
 	public bool exclusiveWhen(Player player, long time) {
 		if (!Sim.EnableNonLivePaths && time == g.timeSim) return calcExclusive (player);
 		return visWhen(exclusive[player.id], time);
+	}
+	
+	public Waypoint waypointAdd(Path path, long time, Waypoint prev) {
+		if (!waypoints.ContainsKey (path.id)) waypoints[path.id] = new List<Waypoint>();
+		Waypoint waypoint = new Waypoint(time, this, prev);
+		waypoints[path.id].Add (waypoint);
+		return waypoint;
+	}
+	
+	public Waypoint waypointLatest(Path path) {
+		return waypoints.ContainsKey (path.id) ? waypoints[path.id].LastOrDefault () : null;
+	}
+	
+	public Waypoint waypointWhen(Path path, long time) {
+		if (waypoints.ContainsKey (path.id)) {
+			for (int i = waypoints[path.id].Count - 1; i >= 0; i--) {
+				if (time >= waypoints[path.id][i].time) return waypoints[path.id][i];
+			}
+		}
+		return null;
 	}
 
 	/// <summary>

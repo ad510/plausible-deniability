@@ -47,6 +47,7 @@ public class Sim {
 	[ProtoMember(17)] public Color playerVisCol;
 	[ProtoMember(18)] public Color unitVisCol;
 	[ProtoMember(19)] public Color exclusiveCol;
+	[ProtoMember(46)] public Color waypointCol;
 	[ProtoMember(20)] public Color pathCol;
 	[ProtoMember(21)] public Color healthBarBackCol;
 	[ProtoMember(22)] public Color healthBarFullCol;

@@ -90,6 +90,20 @@ public class Path {
 		tileY = Sim.OffMap + 1;
 		timeSimPast = long.MaxValue;
 	}
+	
+	public void resetWaypoints(long time) {
+		foreach (Tile tile in g.tiles) {
+			if (tile.waypointLatest (this) != null && tile.waypointLatest (this).prev != null) {
+				tile.waypointAdd (this, time, null);
+			}
+		}
+	}
+	
+	public void setWaypoint (long time) {
+		Tile tile = activeTile (time);
+		g.events.add (new WaypointAddEvt(time + (new FP.Vector((tile.x << FP.Precision) + (1 << FP.Precision) / 2, (tile.y << FP.Precision) + (1 << FP.Precision) / 2) - calcPos(time)).length () / speed,
+			this, tile, Waypoint.Start));
+	}
 
 	/// <summary>
 	/// makes a new path containing specified units, returns whether successful
