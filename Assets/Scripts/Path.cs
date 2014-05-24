@@ -106,8 +106,8 @@ public class Path {
 		if (units.Find (u => !segment.units.Contains (u)) != null) {
 			foreach (Unit unit in segment.units) {
 				// TODO: only have to do this for units that made a new unit
-				unit.resetWaypoints (time);
-				unit.setWaypoint (time, this);
+				unit.clearWaypoints (time);
+				unit.addWaypoint (time, this);
 			}
 		}
 		if (costsRsc) g.deleteOtherPaths (g.paths.Last ().segments[0].segmentUnits (), false, true);

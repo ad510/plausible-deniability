@@ -90,13 +90,13 @@ public class Unit {
 		return type.maxHealth - i;
 	}
 	
-	public void resetWaypoints(long time) {
+	public void clearWaypoints(long time) {
 		foreach (Tile tile in g.tiles) {
 			tile.waypoints.Remove (id);
 		}
 	}
 	
-	public void setWaypoint (long time, Path path) {
+	public void addWaypoint (long time, Path path) {
 		if (type.speed > 0) {
 			Tile tile = path.activeTile (time);
 			if (!Waypoint.active (tile.waypointLatest (this))) {

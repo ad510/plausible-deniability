@@ -129,7 +129,7 @@ public class TileUpdateEvt : SimEvt {
 						}
 						// add waypoints for units
 						foreach (Unit unit in path.activeSegment (time).units) {
-							unit.setWaypoint (time, path);
+							unit.addWaypoint (time, path);
 						}
 					}
 					if (tXPrev >= 0 && tXPrev < g.tileLen() && tYPrev >= 0 && tYPrev < g.tileLen()) {
@@ -174,7 +174,7 @@ public class TileUpdateEvt : SimEvt {
 						Segment segment = path.insertSegment(time);
 						segment.unseen = true;
 						foreach (Unit unit in segment.units) {
-							unit.setWaypoint (time, path);
+							unit.addWaypoint (time, path);
 						}
 					}
 					else if (path.segments.Last ().unseen && !g.tiles[path.tileX, path.tileY].exclusiveLatest(path.player)) {
@@ -188,7 +188,7 @@ public class TileUpdateEvt : SimEvt {
 						if (!g.deleteOtherPaths (segment.segmentUnits(), false, true)) throw new SystemException("failed to delete other paths of seen path");
 						segment.unseen = false;
 						foreach (Unit unit in segment.units) {
-							unit.resetWaypoints (time);
+							unit.clearWaypoints (time);
 						}
 					}
 				}
