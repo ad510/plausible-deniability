@@ -772,8 +772,8 @@ public class App : MonoBehaviour {
 					if (g.tiles[tX, tY].playerDirectVisWhen(selPlayer, g.timeGame, !showDeletedUnits)) col += g.unitVisCol;
 					if (Sim.EnableNonLivePaths && (!replay || showDeletedUnits) && g.tiles[tX, tY].exclusiveWhen(selPlayer, g.timeGame)) {
 						col += g.exclusiveCol;
-						foreach (Path path in curSelPaths.Keys) {
-							Waypoint waypoint = g.tiles[tX, tY].waypointWhen (path, g.timeGame);
+						foreach (UnitSelection selection in selPaths) {
+							Waypoint waypoint = g.tiles[tX, tY].waypointWhen (selection.unit, g.timeGame);
 							if (waypoint != null && waypoint.prev != null) {
 								col += g.waypointCol;
 								break;

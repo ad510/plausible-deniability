@@ -32,8 +32,8 @@ public class Tile {
 	public List<long>[] exclusive;
 	[ProtoMember(6)] private List<long> protoExclusive;
 	/// <summary>
-	/// stores where each path can come from to get to this tile at any given time,
-	/// in format waypoints[path][waypoint index]
+	/// stores where each unit can come from to get to this tile at any given time,
+	/// in format waypoints[unit][waypoint index]
 	/// </summary>
 	[ProtoMember(7)] public Dictionary<int, List<Waypoint>> waypoints;
 	
@@ -251,21 +251,21 @@ public class Tile {
 		return visWhen(exclusive[player.id], time);
 	}
 	
-	public Waypoint waypointAdd(Path path, long time, Waypoint prev) {
-		if (!waypoints.ContainsKey (path.id)) waypoints[path.id] = new List<Waypoint>();
+	public Waypoint waypointAdd(Unit unit, long time, Waypoint prev) {
+		if (!waypoints.ContainsKey (unit.id)) waypoints[unit.id] = new List<Waypoint>();
 		Waypoint waypoint = new Waypoint(time, this, prev);
-		waypoints[path.id].Add (waypoint);
+		waypoints[unit.id].Add (waypoint);
 		return waypoint;
 	}
 	
-	public Waypoint waypointLatest(Path path) {
-		return waypoints.ContainsKey (path.id) ? waypoints[path.id].LastOrDefault () : null;
+	public Waypoint waypointLatest(Unit unit) {
+		return waypoints.ContainsKey (unit.id) ? waypoints[unit.id].LastOrDefault () : null;
 	}
 	
-	public Waypoint waypointWhen(Path path, long time) {
-		if (waypoints.ContainsKey (path.id)) {
-			for (int i = waypoints[path.id].Count - 1; i >= 0; i--) {
-				if (time >= waypoints[path.id][i].time) return waypoints[path.id][i];
+	public Waypoint waypointWhen(Unit unit, long time) {
+		if (waypoints.ContainsKey (unit.id)) {
+			for (int i = waypoints[unit.id].Count - 1; i >= 0; i--) {
+				if (time >= waypoints[unit.id][i].time) return waypoints[unit.id][i];
 			}
 		}
 		return null;

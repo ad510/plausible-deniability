@@ -11,7 +11,7 @@ using ProtoBuf;
 
 [ProtoContract]
 public class WaypointAddEvt : SimEvt {
-	[ProtoMember(1, AsReference = true)] public Path path;
+	[ProtoMember(1, AsReference = true)] public Unit unit;
 	[ProtoMember(2, AsReference = true)] public Tile tile;
 	[ProtoMember(3, AsReference = true)] public Waypoint prev;
 	
@@ -20,22 +20,22 @@ public class WaypointAddEvt : SimEvt {
 	/// </summary>
 	private WaypointAddEvt() { }
 	
-	public WaypointAddEvt(long timeVal, Path pathVal, Tile tileVal, Waypoint prevVal) {
+	public WaypointAddEvt(long timeVal, Unit unitVal, Tile tileVal, Waypoint prevVal) {
 		time = timeVal;
-		path = pathVal;
+		unit = unitVal;
 		tile = tileVal;
 		prev = prevVal;
 	}
 	
 	public override void apply (Sim g) {
-		if (tile.exclusiveLatest (path.player) && (prev == Waypoint.Start || prev == prev.tile.waypointLatest (path))
-			&& (tile.waypointLatest (path) == null || tile.waypointLatest (path).prev == null)) {
-			Waypoint waypoint = tile.waypointAdd (path, time, prev);
+		if (tile.exclusiveLatest (unit.player) && (prev == Waypoint.Start || prev == prev.tile.waypointLatest (unit))
+			&& (tile.waypointLatest (unit) == null || tile.waypointLatest (unit).prev == null)) {
+			Waypoint waypoint = tile.waypointAdd (unit, time, prev);
 			for (int tX = Math.Max (0, tile.x - 1); tX <= Math.Min (g.tileLen () - 1, tile.x + 1); tX++) {
 				for (int tY = Math.Max (0, tile.y - 1); tY <= Math.Min (g.tileLen () - 1, tile.y + 1); tY++) {
 					if (tX != tile.x || tY != tile.y) {
-						g.events.add (new WaypointAddEvt(time + new FP.Vector(tX - tile.x << FP.Precision, tY - tile.y << FP.Precision).length() / path.speed,
-							path, g.tiles[tX, tY], waypoint));
+						g.events.add (new WaypointAddEvt(time + new FP.Vector(tX - tile.x << FP.Precision, tY - tile.y << FP.Precision).length() / unit.type.speed,
+							unit, g.tiles[tX, tY], waypoint));
 					}
 				}
 			}

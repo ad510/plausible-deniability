@@ -89,4 +89,18 @@ public class Unit {
 		while (i > 0 && time < timeHealth[i - 1]) i--;
 		return type.maxHealth - i;
 	}
+	
+	public void resetWaypoints(long time) {
+		foreach (Tile tile in g.tiles) {
+			if (tile.waypointLatest (this) != null && tile.waypointLatest (this).prev != null) {
+				tile.waypointAdd (this, time, null);
+			}
+		}
+	}
+	
+	public void setWaypoint (long time, Path path) {
+		Tile tile = path.activeTile (time);
+		g.events.add (new WaypointAddEvt(time + (new FP.Vector((tile.x << FP.Precision) + (1 << FP.Precision) / 2, (tile.y << FP.Precision) + (1 << FP.Precision) / 2) - path.calcPos(time)).length () / type.speed,
+			this, tile, Waypoint.Start));
+	}
 }
