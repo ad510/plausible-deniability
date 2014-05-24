@@ -179,10 +179,48 @@ public class Path {
 	}
 	
 	/// <summary>
-	/// move towards specified location starting at specified time,
+	/// move towards specified location starting at specified time or earlier,
 	/// return moved path (in case moving a subset of units in path)
 	/// </summary>
 	public Path moveTo(long time, List<Unit> units, FP.Vector pos) {
+		if (units.Count == 1) { // TODO: support this with stacked units (must return list of moved paths)
+			FP.Vector goalPos = pos;
+			// don't move off map edge
+			if (goalPos.x < 0) goalPos.x = 0;
+			if (goalPos.x > g.mapSize) goalPos.x = g.mapSize;
+			if (goalPos.y < 0) goalPos.y = 0;
+			if (goalPos.y > g.mapSize) goalPos.y = g.mapSize;
+			Unit unit = units[0];
+			Waypoint waypoint = g.tileAt (goalPos).waypointWhen (unit, time);
+			if (Waypoint.active (waypoint)) {
+				// try moving unit with automatic time travel
+				List<Move> waypointMoves = new List<Move>() {
+					Move.fromSpeed (waypoint.time, speed, waypoint.tile.centerPos (), goalPos)
+				};
+				while (waypoint.prev != null) {
+					waypointMoves.Insert (0, new Move(waypoint.time - (waypointMoves[0].vecStart - waypoint.prev.tile.centerPos()).length () / speed,
+						waypoint.time, waypoint.prev.tile.centerPos (), waypointMoves[0].vecStart));
+					waypoint = waypoint.prev;
+				}
+				Segment parent = waypoint.start.path.activeSegment (waypoint.start.time).branches.Find (seg => seg.units.Contains (unit));
+				if (parent != null) { // TODO: if this fails, add unit back to paths it was deleted from by using list of UnitSelections leading back to unit's first path
+					waypointMoves.Insert (0, new Move(waypoint.start.time, waypoint.time, waypoint.start.path.calcPos (waypoint.start.time), waypointMoves[0].vecStart));
+					if (!parent.path.makePath (waypointMoves[0].timeStart, new List<Unit> { unit })) throw new SystemException("make auto time travel path failed when moving units");
+					g.paths.Last ().moves = waypointMoves;
+					g.paths.Last ().timeSimPast = waypointMoves.Last ().timeStart / g.tileInterval * g.tileInterval;
+					player.updatePast (time);
+					if (g.paths.Last ().timeSimPast == long.MaxValue || timeSimPast != long.MaxValue) {
+						// try to remove moved unit from this path
+						new SegmentUnit(activeSegment (time), unit).delete ();
+					}
+					// add kept unit line
+					MoveLine keepLine = new MoveLine(time, player);
+					keepLine.vertices.AddRange (g.paths.Last ().moveLines (waypointMoves[0].timeStart, time));
+					g.keepLines.Add (keepLine);
+					return g.paths.Last ();
+				}
+			}
+		}
 		Path path2 = this; // move this path by default
 		if (time < g.timeSim) {
 			// move non-live path if in past

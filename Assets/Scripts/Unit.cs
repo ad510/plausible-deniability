@@ -100,7 +100,7 @@ public class Unit {
 		if (type.speed > 0) {
 			Tile tile = path.activeTile (time);
 			if (!Waypoint.active (tile.waypointLatest (this))) {
-				g.events.add (new WaypointAddEvt(time + (new FP.Vector((tile.x << FP.Precision) + (1 << FP.Precision) / 2, (tile.y << FP.Precision) + (1 << FP.Precision) / 2) - path.calcPos(time)).length () / type.speed,
+				g.events.add (new WaypointAddEvt(time + (tile.centerPos() - path.calcPos(time)).length () / type.speed,
 					this, tile, null, new UnitSelection(path, this, time)));
 			}
 		}

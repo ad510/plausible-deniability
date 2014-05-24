@@ -298,6 +298,10 @@ public class Tile {
 		}
 		return null;
 	}
+	
+	public FP.Vector centerPos() {
+		return new FP.Vector((x << FP.Precision) + (1 << FP.Precision) / 2, (y << FP.Precision) + (1 << FP.Precision) / 2);
+	}
 
 	/// <summary>
 	/// returns whether specified list indicates that the tile is visible at the latest possible time
