@@ -33,6 +33,14 @@ public class TileUpdateEvt : SimEvt {
 					int exclusiveMaxX = 0;
 					int exclusiveMinY = g.tileLen() - 1;
 					int exclusiveMaxY = 0;
+					if (Sim.EnableNonLivePaths && tXPrev < 0) {
+						// path is being put on visibility tiles for the first time, so add waypoints for any new units
+						foreach (SegmentUnit segmentUnit in path.segments[0].segmentUnits ()) {
+							if (!segmentUnit.prev ().Any ()) {
+								segmentUnit.unit.setWaypoint (time, path);
+							}
+						}
+					}
 					// add path to visibility tiles
 					for (int tX = Math.Max (0, path.tileX - g.tileVisRadius()); tX <= Math.Min (g.tileLen () - 1, path.tileX + g.tileVisRadius()); tX++) {
 						for (int tY = Math.Max (0, path.tileY - g.tileVisRadius()); tY <= Math.Min (g.tileLen () - 1, path.tileY + g.tileVisRadius()); tY++) {
@@ -54,7 +62,7 @@ public class TileUpdateEvt : SimEvt {
 								if (Sim.EnableNonLivePaths && !path.player.immutable) {
 									foreach (Player player in g.players) {
 										if (player != path.player && g.tiles[tX, tY].exclusiveLatest(player)) {
-											g.tiles[tX, tY].exclusive[player.id].Add(time);
+											g.tiles[tX, tY].exclusiveRemove(player, time);
 										}
 									}
 								}
@@ -95,7 +103,7 @@ public class TileUpdateEvt : SimEvt {
 								if (Sim.EnableNonLivePaths && !path.player.immutable) {
 									foreach (Player player in g.players) {
 										if (player != path.player && player.mapHack && !g.tiles[tX, tY].exclusiveLatest (player) && g.tiles[tX, tY].calcExclusive (player)) {
-											g.tiles[tX, tY].exclusive[player.id].Add(time);
+											g.tiles[tX, tY].exclusiveAdd(player, time);
 										}
 									}
 								}
@@ -123,7 +131,7 @@ public class TileUpdateEvt : SimEvt {
 						for (int tX = exclusiveMinX; tX <= exclusiveMaxX; tX++) {
 							for (int tY = exclusiveMinY; tY <= exclusiveMaxY; tY++) {
 								if (!g.tiles[tX, tY].exclusiveLatest(path.player) && g.tiles[tX, tY].calcExclusive(path.player)) {
-									g.tiles[tX, tY].exclusive[path.player.id].Add(time);
+									g.tiles[tX, tY].exclusiveAdd(path.player, time);
 								}
 							}
 						}
@@ -167,7 +175,11 @@ public class TileUpdateEvt : SimEvt {
 				if (path.tileX >= 0 && path.tileX < g.tileLen() && path.tileY >= 0 && path.tileY < g.tileLen()) {
 					if (!path.segments.Last ().unseen && g.tiles[path.tileX, path.tileY].exclusiveLatest(path.player)) {
 						// path is now unseen
-						path.insertSegment(time).unseen = true;
+						Segment segment = path.insertSegment(time);
+						segment.unseen = true;
+						foreach (Unit unit in segment.units) {
+							unit.setWaypoint (time, path);
+						}
 					}
 					else if (path.segments.Last ().unseen && !g.tiles[path.tileX, path.tileY].exclusiveLatest(path.player)) {
 						// path is now seen
@@ -179,6 +191,9 @@ public class TileUpdateEvt : SimEvt {
 						path.nSeeUnits = int.MaxValue;
 						if (!g.deleteOtherPaths (segment.segmentUnits(), false, true)) throw new SystemException("failed to delete other paths of seen path");
 						segment.unseen = false;
+						foreach (Unit unit in segment.units) {
+							unit.resetWaypoints (time);
+						}
 					}
 				}
 			}

@@ -37,8 +37,13 @@ public class MapHackCmdEvt : CmdEvt {
 			g.players[player].unseenTiles = 0;
 			for (int tX = 0; tX < g.tileLen (); tX++) {
 				for (int tY = 0; tY < g.tileLen (); tY++) {
-					if (g.tiles[tX, tY].calcExclusive (g.players[player]) != g.tiles[tX, tY].exclusiveLatest (g.players[player])) {
-						g.tiles[tX, tY].exclusive[player].Add(time);
+					bool exclusiveOld = g.tiles[tX, tY].exclusiveLatest (g.players[player]);
+					bool exclusiveNew = g.tiles[tX, tY].calcExclusive (g.players[player]);
+					if (!exclusiveOld && exclusiveNew) {
+						g.tiles[tX, tY].exclusiveAdd(g.players[player], time);
+					}
+					else if (exclusiveOld && !exclusiveNew) {
+						g.tiles[tX, tY].exclusiveRemove(g.players[player], time);
 					}
 				}
 			}

@@ -195,6 +195,33 @@ public class Tile {
 	public bool playerVisWhen(Player player, long time) {
 		return visWhen(playerVis[player.id], time);
 	}
+	
+	public void exclusiveAdd(Player player, long time) {
+		if (exclusiveLatest (player)) throw new InvalidOperationException("tile is already exclusive");
+		exclusive[player.id].Add (time);
+		for (int tX = Math.Max (0, x - 1); tX <= Math.Min (g.tileLen () - 1, x + 1); tX++) {
+			for (int tY = Math.Max (0, y - 1); tY <= Math.Min (g.tileLen () - 1, y + 1); tY++) {
+				if (tX != x || tY != y) {
+					foreach (var waypoint in g.tiles[tX, tY].waypoints) {
+						if (player == g.units[waypoint.Key].player && waypoint.Value.Last ().prev != null
+							&& time >= waypoint.Value.Last ().time + new FP.Vector(tX - x << FP.Precision, tY - y << FP.Precision).length() / g.units[waypoint.Key].type.speed) {
+							g.events.add (new WaypointAddEvt(time, g.units[waypoint.Key], this, waypoint.Value.Last ()));
+						}
+					}
+				}
+			}
+		}
+	}
+	
+	public void exclusiveRemove(Player player, long time) {
+		if (!exclusiveLatest(player)) throw new InvalidOperationException("tile is already not exclusive");
+		exclusive[player.id].Add (time);
+		foreach (var waypoint in waypoints) {
+			if (player == g.units[waypoint.Key].player && waypoint.Value.Last ().prev != null) {
+				waypointAdd (g.units[waypoint.Key], time, null);
+			}
+		}
+	}
 
 	/// <summary>
 	/// calculates from player visibility tiles if specified player can infer that no other player can see this tile at latest possible time

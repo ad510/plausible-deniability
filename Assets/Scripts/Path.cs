@@ -103,6 +103,13 @@ public class Path {
 		connect (time, g.paths.Last ());
 		if (timeSimPast != long.MaxValue) g.paths.Last ().timeSimPast = time / g.tileInterval * g.tileInterval;
 		if (g.paths.Last ().timeSimPast != long.MaxValue) player.hasNonLivePaths = true;
+		if (units.Find (u => !segment.units.Contains (u)) != null) {
+			foreach (Unit unit in segment.units) {
+				// TODO: only have to do this for units that made a new unit
+				unit.resetWaypoints (time);
+				unit.setWaypoint (time, this);
+			}
+		}
 		if (costsRsc) g.deleteOtherPaths (g.paths.Last ().segments[0].segmentUnits (), false, true);
 		return true;
 	}
