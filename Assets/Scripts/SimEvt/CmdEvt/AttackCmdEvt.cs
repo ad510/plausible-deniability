@@ -31,7 +31,7 @@ public class AttackCmdEvt : UnitCmdEvt {
 		if (time != timeCmd) throw new InvalidOperationException("AttackCmdEvt must take place in the present (time == timeCmd)");
 		Dictionary<Path, List<Unit>> exPaths = existingPaths(g);
 		Segment targetSegment = g.paths[target].activeSegment (timeCmd);
-		if (targetSegment == null || g.paths[target].timeSimPast != long.MaxValue) return;
+		if (targetSegment == null || targetSegment.unseen || g.paths[target].timeSimPast != long.MaxValue) return;
 		Tile targetTile = g.paths[target].activeTile (timeCmd);
 		FP.Vector targetPos = g.paths[target].calcPos (timeCmd);
 		foreach (KeyValuePair<Path, List<Unit>> path in exPaths) {
