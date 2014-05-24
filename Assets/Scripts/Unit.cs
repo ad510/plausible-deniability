@@ -92,9 +92,7 @@ public class Unit {
 	
 	public void resetWaypoints(long time) {
 		foreach (Tile tile in g.tiles) {
-			if (tile.waypointLatest (this) != null && tile.waypointLatest (this).prev != null) {
-				tile.waypointAdd (this, time, null);
-			}
+			tile.waypoints.Remove (id);
 		}
 	}
 	
