@@ -203,9 +203,10 @@ public class Tile {
 			for (int tY = Math.Max (0, y - 1); tY <= Math.Min (g.tileLen () - 1, y + 1); tY++) {
 				if (tX != x || tY != y) {
 					foreach (var waypoint in g.tiles[tX, tY].waypoints) {
+						long halfMoveInterval = new FP.Vector(tX - x << FP.Precision, tY - y << FP.Precision).length() / g.units[waypoint.Key].type.speed / 2;
 						if (player == g.units[waypoint.Key].player && Waypoint.active (waypoint.Value.Last ())
-							&& time >= waypoint.Value.Last ().time + new FP.Vector(tX - x << FP.Precision, tY - y << FP.Precision).length() / g.units[waypoint.Key].type.speed) {
-							g.events.add (new WaypointAddEvt(time, g.units[waypoint.Key], this, waypoint.Value.Last (), null));
+							&& time >= waypoint.Value.Last ().time + halfMoveInterval) {
+							g.events.add (new WaypointAddEvt(time + halfMoveInterval, g.units[waypoint.Key], this, waypoint.Value.Last (), null));
 						}
 					}
 				}
