@@ -11,20 +11,24 @@ using ProtoBuf;
 
 [ProtoContract]
 public class Waypoint {
-	public static readonly Waypoint Start = new Waypoint(0, null, null);
-	
 	[ProtoMember(1)] public readonly long time;
 	[ProtoMember(2, AsReference = true)] public readonly Tile tile;
 	[ProtoMember(3, AsReference = true)] public readonly Waypoint prev;
+	[ProtoMember(4)] public readonly UnitSelection start;
 	
 	/// <summary>
 	/// empty constructor for protobuf-net use only
 	/// </summary>
 	private Waypoint() { }
 	
-	public Waypoint(long timeVal, Tile tileVal, Waypoint prevVal) {
+	public Waypoint(long timeVal, Tile tileVal, Waypoint prevVal, UnitSelection startVal) {
 		time = timeVal;
 		tile = tileVal;
 		prev = prevVal;
+		start = startVal;
+	}
+	
+	public static bool active(Waypoint waypoint) {
+		return waypoint != null && (waypoint.prev != null || waypoint.start != null);
 	}
 }

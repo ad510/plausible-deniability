@@ -203,9 +203,9 @@ public class Tile {
 			for (int tY = Math.Max (0, y - 1); tY <= Math.Min (g.tileLen () - 1, y + 1); tY++) {
 				if (tX != x || tY != y) {
 					foreach (var waypoint in g.tiles[tX, tY].waypoints) {
-						if (player == g.units[waypoint.Key].player && waypoint.Value.Last ().prev != null
+						if (player == g.units[waypoint.Key].player && Waypoint.active (waypoint.Value.Last ())
 							&& time >= waypoint.Value.Last ().time + new FP.Vector(tX - x << FP.Precision, tY - y << FP.Precision).length() / g.units[waypoint.Key].type.speed) {
-							g.events.add (new WaypointAddEvt(time, g.units[waypoint.Key], this, waypoint.Value.Last ()));
+							g.events.add (new WaypointAddEvt(time, g.units[waypoint.Key], this, waypoint.Value.Last (), null));
 						}
 					}
 				}
@@ -217,8 +217,8 @@ public class Tile {
 		if (!exclusiveLatest(player)) throw new InvalidOperationException("tile is already not exclusive");
 		exclusive[player.id].Add (time);
 		foreach (var waypoint in waypoints) {
-			if (player == g.units[waypoint.Key].player && waypoint.Value.Last ().prev != null) {
-				waypointAdd (g.units[waypoint.Key], time, null);
+			if (player == g.units[waypoint.Key].player && Waypoint.active (waypoint.Value.Last ())) {
+				waypointAdd (g.units[waypoint.Key], time, null, null);
 			}
 		}
 	}
@@ -278,9 +278,9 @@ public class Tile {
 		return visWhen(exclusive[player.id], time);
 	}
 	
-	public Waypoint waypointAdd(Unit unit, long time, Waypoint prev) {
+	public Waypoint waypointAdd(Unit unit, long time, Waypoint prev, UnitSelection start) {
 		if (!waypoints.ContainsKey (unit.id)) waypoints[unit.id] = new List<Waypoint>();
-		Waypoint waypoint = new Waypoint(time, this, prev);
+		Waypoint waypoint = new Waypoint(time, this, prev, start);
 		waypoints[unit.id].Add (waypoint);
 		return waypoint;
 	}

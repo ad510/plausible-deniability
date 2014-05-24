@@ -7,11 +7,18 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using ProtoBuf;
 
+[ProtoContract]
 public class UnitSelection {
-	public readonly Path path;
-	public readonly Unit unit;
-	public readonly long time;
+	[ProtoMember(1, AsReference = true)] public readonly Path path;
+	[ProtoMember(2, AsReference = true)] public readonly Unit unit;
+	[ProtoMember(3)] public readonly long time;
+	
+	/// <summary>
+	/// empty constructor for protobuf-net use only
+	/// </summary>
+	private UnitSelection() { }
 	
 	public UnitSelection(Path pathVal, Unit unitVal, long timeVal) {
 		path = pathVal;
