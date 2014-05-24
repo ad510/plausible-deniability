@@ -30,7 +30,7 @@ public class MakePathCmdEvt : UnitCmdEvt {
 		Dictionary<Path, List<Unit>> exPaths = existingPaths (g);
 		foreach (KeyValuePair<Path, List<Unit>> path in exPaths) {
 			if (path.Key.canMove(timeCmd) && path.Key.makePath (timeCmd, new List<Unit>(path.Value))) {
-				g.paths.Last ().moveTo(timeCmd, pos[path.Key.id]); // move new path out of the way
+				g.paths.Last ().moveToDirect(timeCmd, pos[path.Key.id]); // move new path out of the way
 			}
 		}
 	}

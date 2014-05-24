@@ -245,14 +245,14 @@ public class Path {
 				new SegmentUnit(segment, unit).delete ();
 			}
 		}
-		path2.moveTo (time, pos);
+		path2.moveToDirect (time, pos);
 		return path2;
 	}
 
 	/// <summary>
 	/// move towards specified location starting at specified time
 	/// </summary>
-	public void moveTo(long time, FP.Vector pos) {
+	public void moveToDirect(long time, FP.Vector pos) {
 		FP.Vector curPos = calcPos(time);
 		FP.Vector goalPos = pos;
 		// don't move off map edge

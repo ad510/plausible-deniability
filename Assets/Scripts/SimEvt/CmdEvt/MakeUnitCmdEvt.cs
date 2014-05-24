@@ -43,7 +43,7 @@ public class MakeUnitCmdEvt : UnitCmdEvt {
 				unitList.Add (unit);
 				if (path.makePath (timeCmd, unitList)) {
 					if (g.paths.Last ().canMove (timeCmd + 1)) { // move at timeCmd + 1 to avoid failing canBeAmbiguousParent() for non-live paths
-						g.paths.Last ().moveTo (timeCmd + 1, pos); // move new unit out of the way
+						g.paths.Last ().moveToDirect (timeCmd + 1, pos); // move new unit out of the way
 					}
 				}
 				else {
