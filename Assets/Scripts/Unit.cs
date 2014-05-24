@@ -99,8 +99,10 @@ public class Unit {
 	public void setWaypoint (long time, Path path) {
 		if (type.speed > 0) {
 			Tile tile = path.activeTile (time);
-			g.events.add (new WaypointAddEvt(time + (new FP.Vector((tile.x << FP.Precision) + (1 << FP.Precision) / 2, (tile.y << FP.Precision) + (1 << FP.Precision) / 2) - path.calcPos(time)).length () / type.speed,
-				this, tile, null, new UnitSelection(path, this, time)));
+			if (!Waypoint.active (tile.waypointLatest (this))) {
+				g.events.add (new WaypointAddEvt(time + (new FP.Vector((tile.x << FP.Precision) + (1 << FP.Precision) / 2, (tile.y << FP.Precision) + (1 << FP.Precision) / 2) - path.calcPos(time)).length () / type.speed,
+					this, tile, null, new UnitSelection(path, this, time)));
+			}
 		}
 	}
 }

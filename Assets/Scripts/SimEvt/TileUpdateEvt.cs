@@ -33,14 +33,6 @@ public class TileUpdateEvt : SimEvt {
 					int exclusiveMaxX = 0;
 					int exclusiveMinY = g.tileLen() - 1;
 					int exclusiveMaxY = 0;
-					if (Sim.EnableNonLivePaths && tXPrev < 0) {
-						// path is being put on visibility tiles for the first time, so add waypoints for any new units
-						foreach (SegmentUnit segmentUnit in path.segments[0].segmentUnits ()) {
-							if (!segmentUnit.prev ().Any ()) {
-								segmentUnit.unit.setWaypoint (time, path);
-							}
-						}
-					}
 					// add path to visibility tiles
 					for (int tX = Math.Max (0, path.tileX - g.tileVisRadius()); tX <= Math.Min (g.tileLen () - 1, path.tileX + g.tileVisRadius()); tX++) {
 						for (int tY = Math.Max (0, path.tileY - g.tileVisRadius()); tY <= Math.Min (g.tileLen () - 1, path.tileY + g.tileVisRadius()); tY++) {
@@ -134,6 +126,10 @@ public class TileUpdateEvt : SimEvt {
 									g.tiles[tX, tY].exclusiveAdd(path.player, time);
 								}
 							}
+						}
+						// add waypoints for units
+						foreach (Unit unit in path.activeSegment (time).units) {
+							unit.setWaypoint (time, path);
 						}
 					}
 					if (tXPrev >= 0 && tXPrev < g.tileLen() && tYPrev >= 0 && tYPrev < g.tileLen()) {
