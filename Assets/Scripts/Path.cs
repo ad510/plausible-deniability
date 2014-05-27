@@ -202,7 +202,7 @@ public class Path {
 						waypoint.time, waypoint.prev.tile.centerPos (), waypointMoves[0].vecStart));
 					waypoint = waypoint.prev;
 				}
-				Segment parent = waypoint.start.path.activeSegment (waypoint.start.time).branches.Find (seg => seg.units.Contains (unit));
+				Segment parent = waypoint.start.path.insertSegment (waypoint.start.time).branches.Find (seg => seg.units.Contains (unit));
 				if (parent != null) { // TODO: if this fails, add unit back to paths it was deleted from by using list of UnitSelections leading back to unit's first path
 					waypointMoves.Insert (0, new Move(waypoint.start.time, waypoint.time, waypoint.start.path.calcPos (waypoint.start.time), waypointMoves[0].vecStart));
 					if (!parent.path.makePath (waypointMoves[0].timeStart, new List<Unit> { unit })) throw new SystemException("make auto time travel path failed when moving units");
