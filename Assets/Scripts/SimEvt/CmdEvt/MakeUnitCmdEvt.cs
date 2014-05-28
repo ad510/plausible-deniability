@@ -77,8 +77,8 @@ public class MakeUnitCmdEvt : UnitCmdEvt {
 						evtPaths[movePath.id][i] = movePath.segments[0].units[i].id;
 					}
 				}
-				g.events.add(new MakeUnitCmdEvt(movePath.moves.Last ().timeEnd, movePath.moves.Last ().timeEnd,
-					evtPaths, type, pos, true));
+				long evtTime = Math.Max (timeCmd, movePath.moves.Last ().timeEnd);
+				g.events.add(new MakeUnitCmdEvt(evtTime, evtTime, evtPaths, type, pos, true));
 			}
 		}
 	}
