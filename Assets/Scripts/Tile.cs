@@ -279,7 +279,7 @@ public class Tile {
 		return visWhen(exclusive[player.id], time);
 	}
 	
-	public Waypoint waypointAdd(Unit unit, long time, Waypoint prev, UnitSelection start) {
+	public Waypoint waypointAdd(Unit unit, long time, Waypoint prev, List<UnitSelection> start) {
 		if (!waypoints.ContainsKey (unit.id)) waypoints[unit.id] = new List<Waypoint>();
 		Waypoint waypoint = new Waypoint(time, this, prev, start);
 		waypoints[unit.id].Add (waypoint);

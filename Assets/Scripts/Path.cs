@@ -125,6 +125,7 @@ public class Path {
 			if (segment.units.Contains (unit)) {
 				// unit in path would be child path
 				SegmentUnit segmentUnit = new SegmentUnit(segment, unit);
+				if (!segment.units.Contains (unit)) segmentUnit = segmentUnit.prev ().First ();
 				// check parent made before (not at same time as) child, so it's unambiguous who is the parent
 				if (!segmentUnit.canBeUnambiguousParent (time)) return false;
 				// check parent unit won't be seen later
@@ -132,7 +133,7 @@ public class Path {
 				// check parent won't make a child unit later
 				if (!segmentUnit.hasChildrenAfter ()) return false;
 			}
-			else {
+			else if (!(time == segment.timeStart && new SegmentUnit(segment, unit).prev ().Any ())) {
 				// unit in path would be non-path child unit
 				if (!canMakeUnitType (time, unit.type)) return false;
 				if (unit.type.speed > 0) newUnitCount++;
@@ -194,6 +195,7 @@ public class Path {
 			Waypoint waypoint = g.tileAt (goalPos).waypointWhen (unit, time);
 			if (Waypoint.active (waypoint)) {
 				// try moving unit with automatic time travel
+				// make moves list using waypoints
 				List<Move> waypointMoves = new List<Move>() {
 					Move.fromSpeed (waypoint.time, speed, waypoint.tile.centerPos (), goalPos)
 				};
@@ -202,23 +204,36 @@ public class Path {
 						waypoint.time, waypoint.prev.tile.centerPos (), waypointMoves[0].vecStart));
 					waypoint = waypoint.prev;
 				}
-				Segment parent = waypoint.start.path.insertSegment (waypoint.start.time).branches.Find (seg => seg.units.Contains (unit));
-				if (parent != null) { // TODO: if this fails, add unit back to paths it was deleted from by using list of UnitSelections leading back to unit's first path
-					waypointMoves.Insert (0, new Move(waypoint.start.time, waypoint.time, waypoint.start.path.calcPos (waypoint.start.time), waypointMoves[0].vecStart));
-					if (!parent.path.makePath (waypointMoves[0].timeStart, new List<Unit> { unit })) throw new SystemException("make auto time travel path failed when moving units");
-					g.paths.Last ().moves = waypointMoves;
-					g.paths.Last ().timeSimPast = waypointMoves.Last ().timeStart / g.tileInterval * g.tileInterval;
-					player.updatePast (time);
-					if (g.paths.Last ().timeSimPast == long.MaxValue || timeSimPast != long.MaxValue) {
-						// try to remove moved unit from this path
-						new SegmentUnit(activeSegment (time), unit).delete ();
+				// if unit not found on start waypoint, add it back to past segments
+				for (int i = 0; i < waypoint.start.Count - 1; i++) {
+					Segment segment = waypoint.start[i + 1].path.insertSegment (waypoint.start[i].time);
+					while (segment.timeStart != waypoint.start[i + 1].time) {
+						segment = segment.prevOnPath ();
+						if (segment.units.Contains (unit)) {
+							i = waypoint.start.Count;
+							break;
+						}
+						segment.units.Add (unit);
 					}
-					// add kept unit line
-					MoveLine keepLine = new MoveLine(time, player);
-					keepLine.vertices.AddRange (g.paths.Last ().moveLines (waypointMoves[0].timeStart, time));
-					g.keepLines.Add (keepLine);
-					return g.paths.Last ();
 				}
+				// make non-live path moving along waypoints
+				waypointMoves.Insert (0, new Move(waypoint.start[0].time, waypoint.time, waypoint.start[0].path.calcPos (waypoint.start[0].time), waypointMoves[0].vecStart));
+				if (!waypoint.start[0].path.activeSegment (waypoint.start[0].time).path.makePath (waypointMoves[0].timeStart, new List<Unit> { unit })) {
+					throw new SystemException("make auto time travel path failed when moving units");
+				}
+				g.paths.Last ().moves = waypointMoves;
+				g.paths.Last ().timeSimPast = waypointMoves.Last ().timeStart / g.tileInterval * g.tileInterval;
+				// make non-live path up to date
+				player.updatePast (time);
+				if (g.paths.Last ().timeSimPast == long.MaxValue || timeSimPast != long.MaxValue) {
+					// try to remove moved unit from current path
+					new SegmentUnit(activeSegment (time), unit).delete ();
+				}
+				// add kept unit line
+				MoveLine keepLine = new MoveLine(time, player);
+				keepLine.vertices.AddRange (g.paths.Last ().moveLines (waypointMoves[0].timeStart, time));
+				g.keepLines.Add (keepLine);
+				return g.paths.Last ();
 			}
 		}
 		Path path2 = this; // move this path by default

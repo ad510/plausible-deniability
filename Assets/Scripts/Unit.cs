@@ -100,8 +100,17 @@ public class Unit {
 		if (type.speed > 0) {
 			Tile tile = path.activeTile (time);
 			if (!Waypoint.active (tile.waypointLatest (this))) {
+				List<UnitSelection> start = new List<UnitSelection> { new UnitSelection(path, this, time) };
+				SegmentUnit prev = new SegmentUnit(path.activeSegment (time), this);
+				do {
+					SegmentUnit cur = prev;
+					prev = cur.prev ().FirstOrDefault ();
+					if (prev.g == null || prev.segment.path != cur.segment.path || !prev.segment.unseen) {
+						start.Add (new UnitSelection(cur.segment.path, this, cur.segment.timeStart));
+					}
+				} while (prev.g != null && prev.segment.unseen);
 				g.events.add (new WaypointAddEvt(time + (tile.centerPos() - path.calcPos(time)).length () / type.speed,
-					this, tile, null, new UnitSelection(path, this, time)));
+					this, tile, null, start));
 			}
 		}
 	}

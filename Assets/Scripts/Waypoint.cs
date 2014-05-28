@@ -14,14 +14,14 @@ public class Waypoint {
 	[ProtoMember(1)] public readonly long time;
 	[ProtoMember(2, AsReference = true)] public readonly Tile tile;
 	[ProtoMember(3, AsReference = true)] public readonly Waypoint prev;
-	[ProtoMember(4)] public readonly UnitSelection start;
+	[ProtoMember(4)] public readonly List<UnitSelection> start; // in reverse time order
 	
 	/// <summary>
 	/// empty constructor for protobuf-net use only
 	/// </summary>
 	private Waypoint() { }
 	
-	public Waypoint(long timeVal, Tile tileVal, Waypoint prevVal, UnitSelection startVal) {
+	public Waypoint(long timeVal, Tile tileVal, Waypoint prevVal, List<UnitSelection> startVal) {
 		time = timeVal;
 		tile = tileVal;
 		prev = prevVal;
