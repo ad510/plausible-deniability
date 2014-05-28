@@ -39,7 +39,7 @@ public class SharePathsCmdEvt : UnitCmdEvt {
 					}
 				}
 			}
-			new StackCmdEvt(time, timeCmd + 1, argFromPathDict (movePaths), path.id, nSeeUnits).apply (g);
+			new StackCmdEvt(time, timeCmd, argFromPathDict (movePaths), path.id, nSeeUnits).apply (g);
 		}
 	}
 }
