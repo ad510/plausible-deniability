@@ -184,17 +184,23 @@ public class Path {
 	/// return moved path (in case moving a subset of units in path)
 	/// </summary>
 	public Path moveTo(long time, List<Unit> units, FP.Vector pos) {
-		if (units.Count == 1) { // TODO: support this with stacked units (must return list of moved paths)
-			FP.Vector goalPos = pos;
-			// don't move off map edge
-			if (goalPos.x < 0) goalPos.x = 0;
-			if (goalPos.x > g.mapSize) goalPos.x = g.mapSize;
-			if (goalPos.y < 0) goalPos.y = 0;
-			if (goalPos.y > g.mapSize) goalPos.y = g.mapSize;
-			Unit unit = units[0];
-			Waypoint waypoint = g.tileAt (goalPos).waypointWhen (unit, time);
-			if (Waypoint.active (waypoint)) {
-				// try moving unit with automatic time travel
+		Path movedPath;
+		List<Waypoint> waypoints = new List<Waypoint>();
+		FP.Vector goalPos = pos;
+		// don't move off map edge
+		if (goalPos.x < 0) goalPos.x = 0;
+		if (goalPos.x > g.mapSize) goalPos.x = g.mapSize;
+		if (goalPos.y < 0) goalPos.y = 0;
+		if (goalPos.y > g.mapSize) goalPos.y = g.mapSize;
+		if (units.Find (u => {
+			Waypoint waypoint = g.tileAt (goalPos).waypointWhen (u, time);
+			return !Waypoint.active (waypoint) || Move.fromSpeed (waypoint.time, speed, waypoint.tile.centerPos (), goalPos).timeEnd > time;
+		}) == null) {
+			// move units with automatic time travel
+			List<int> movedPaths = new List<int>();
+			long stackTime = long.MinValue;
+			foreach (Unit unit in units) {
+				Waypoint waypoint = g.tileAt (goalPos).waypointWhen (unit, time);
 				// make moves list using waypoints
 				List<Move> waypointMoves = new List<Move>() {
 					Move.fromSpeed (waypoint.time, speed, waypoint.tile.centerPos (), goalPos)
@@ -223,45 +229,46 @@ public class Path {
 				}
 				g.paths.Last ().moves = waypointMoves;
 				g.paths.Last ().timeSimPast = waypointMoves.Last ().timeStart / g.tileInterval * g.tileInterval;
-				// make non-live path up to date
-				player.updatePast (time);
-				if (g.paths.Last ().timeSimPast == long.MaxValue || timeSimPast != long.MaxValue) {
-					// try to remove moved unit from current path
-					new SegmentUnit(activeSegment (time), unit).delete ();
-				}
 				// add kept unit line
 				MoveLine keepLine = new MoveLine(time, player);
 				keepLine.vertices.AddRange (g.paths.Last ().moveLines (waypointMoves[0].timeStart, time));
 				g.keepLines.Add (keepLine);
-				return g.paths.Last ();
+				movedPaths.Add (g.paths.Count - 1);
+				stackTime = Math.Max (stackTime, waypointMoves.Last ().timeEnd);
 			}
-		}
-		Path path2 = this; // move this path by default
-		if (time < g.timeSim) {
-			// move non-live path if in past
-			// if this path already isn't live, a better approach might be removing later segments and moves then moving this path, like pre-stacking versions (see ISSUE #27)
-			if (!makePath (time, units)) throw new SystemException("make non-live path failed when moving units");
-			path2 = g.paths.Last ();
+			player.updatePast (time);
+			if (units.Count > 1) new StackEvt(stackTime, movedPaths.ToArray (), nSeeUnits).apply (g);
+			movedPath = g.paths[movedPaths.Find (p => g.paths[p].segments.Last ().units.Count > 0)];
 		}
 		else {
-			foreach (Unit unit in activeSegment(time).units) {
-				if (!units.Contains (unit)) {
-					// some units in path aren't being moved, so make a new path
-					if (!makePath (time, units, true)) throw new SystemException("make new path failed when moving units");
-					path2 = g.paths.Last ();
-					break;
+			// move units normally (without automatic time travel)
+			movedPath = this; // move this path by default
+			if (time < g.timeSim) {
+				// move non-live path if in past
+				// if this path already isn't live, a better approach might be removing later segments and moves then moving this path, like pre-stacking versions (see ISSUE #27)
+				if (!makePath (time, units)) throw new SystemException("make non-live path failed when moving units");
+				movedPath = g.paths.Last ();
+			}
+			else {
+				foreach (Unit unit in activeSegment(time).units) {
+					if (!units.Contains (unit)) {
+						// some units in path aren't being moved, so make a new path
+						if (!makePath (time, units, true)) throw new SystemException("make new path failed when moving units");
+						movedPath = g.paths.Last ();
+						break;
+					}
 				}
 			}
+			movedPath.moveToDirect (time, pos);
 		}
-		if (path2 != this && (path2.timeSimPast == long.MaxValue || timeSimPast != long.MaxValue)) {
-			// new path will be moved, so try to remove units that will move from this path
+		if (movedPath != this && (movedPath.timeSimPast == long.MaxValue || timeSimPast != long.MaxValue)) {
+			// new path was moved, so try to remove units that moved from current path
 			Segment segment = activeSegment (time);
 			foreach (Unit unit in units) {
 				new SegmentUnit(segment, unit).delete ();
 			}
 		}
-		path2.moveToDirect (time, pos);
-		return path2;
+		return movedPath;
 	}
 
 	/// <summary>
