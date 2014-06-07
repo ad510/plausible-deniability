@@ -185,7 +185,6 @@ public class Path {
 	/// </summary>
 	public Path moveTo(long time, List<Unit> units, FP.Vector pos, bool autoTimeTravel) {
 		Path movedPath;
-		List<Waypoint> waypoints = new List<Waypoint>();
 		FP.Vector goalPos = pos;
 		// don't move off map edge
 		if (goalPos.x < 0) goalPos.x = 0;
