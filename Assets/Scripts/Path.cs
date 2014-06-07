@@ -123,7 +123,7 @@ public class Path {
 		long[] rscCost = new long[g.rscNames.Length];
 		foreach (Unit unit in units) {
 			if (segment.units.Contains (unit)) {
-				// unit in path would be child path
+				// unit in path already exists
 				SegmentUnit segmentUnit = new SegmentUnit(segment, unit);
 				if (!segment.units.Contains (unit)) segmentUnit = segmentUnit.prev ().First ();
 				// check parent made before (not at same time as) child, so it's unambiguous who is the parent
@@ -134,7 +134,7 @@ public class Path {
 				if (!segmentUnit.hasChildrenAfter ()) return false;
 			}
 			else if (!(time == segment.timeStart && new SegmentUnit(segment, unit).prev ().Any ())) {
-				// unit in path would be non-path child unit
+				// unit in path would be new unit
 				if (!canMakeUnitType (time, unit.type)) return false;
 				if (unit.type.speed > 0) newUnitCount++;
 				for (int i = 0; i < g.rscNames.Length; i++) {
