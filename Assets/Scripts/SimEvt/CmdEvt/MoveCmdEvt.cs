@@ -18,16 +18,18 @@ public enum Formation : byte { Tight, Loose, Ring };
 public class MoveCmdEvt : UnitCmdEvt {
 	[ProtoMember(1)] public FP.Vector pos; // where to move to
 	[ProtoMember(2)] public Formation formation;
+	[ProtoMember(3)] public bool autoTimeTravel;
 	
 	/// <summary>
 	/// empty constructor for protobuf-net use only
 	/// </summary>
 	private MoveCmdEvt() { }
 
-	public MoveCmdEvt(long timeVal, long timeCmdVal, Dictionary<int, int[]> pathsVal, FP.Vector posVal, Formation formationVal)
+	public MoveCmdEvt(long timeVal, long timeCmdVal, Dictionary<int, int[]> pathsVal, FP.Vector posVal, Formation formationVal, bool autoTimeTravelVal)
 		: base(timeVal, timeCmdVal, pathsVal) {
 		pos = posVal;
 		formation = formationVal;
+		autoTimeTravel = autoTimeTravelVal;
 	}
 
 	public override void apply(Sim g) {
@@ -105,7 +107,7 @@ public class MoveCmdEvt : UnitCmdEvt {
 				else {
 					throw new NotImplementedException("requested formation is not implemented");
 				}
-				movedPaths.Add (path.moveTo(timeCmd, new List<Unit>(exPaths[path]), goal).id);
+				movedPaths.Add (path.moveTo(timeCmd, new List<Unit>(exPaths[path]), goal, autoTimeTravel).id);
 			}
 			g.addStackEvts (movedPaths, nSeeUnits[i]);
 		}

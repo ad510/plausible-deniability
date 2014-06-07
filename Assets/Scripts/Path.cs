@@ -183,7 +183,7 @@ public class Path {
 	/// move towards specified location starting at specified time or earlier,
 	/// return moved path (in case moving a subset of units in path)
 	/// </summary>
-	public Path moveTo(long time, List<Unit> units, FP.Vector pos) {
+	public Path moveTo(long time, List<Unit> units, FP.Vector pos, bool autoTimeTravel) {
 		Path movedPath;
 		List<Waypoint> waypoints = new List<Waypoint>();
 		FP.Vector goalPos = pos;
@@ -192,7 +192,7 @@ public class Path {
 		if (goalPos.x > g.mapSize) goalPos.x = g.mapSize;
 		if (goalPos.y < 0) goalPos.y = 0;
 		if (goalPos.y > g.mapSize) goalPos.y = g.mapSize;
-		if (units.Find (u => {
+		if (autoTimeTravel && units.Find (u => {
 			Waypoint waypoint = g.tileAt (goalPos).waypointWhen (u, time);
 			return !Waypoint.active (waypoint) || Move.fromSpeed (waypoint.time, speed, waypoint.tile.centerPos (), goalPos).timeEnd > time;
 		}) == null) {

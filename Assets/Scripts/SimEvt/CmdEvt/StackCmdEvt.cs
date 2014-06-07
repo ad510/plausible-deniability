@@ -15,16 +15,18 @@ using ProtoBuf;
 [ProtoContract]
 public class StackCmdEvt : UnitCmdEvt {
 	[ProtoMember(1)] public int stackPath; // path that paths will be stacked onto
-	[ProtoMember(2)] public int nSeeUnits;
+	[ProtoMember(2)] public bool autoTimeTravel;
+	[ProtoMember(3)] public int nSeeUnits;
 	
 	/// <summary>
 	/// empty constructor for protobuf-net use only
 	/// </summary>
 	private StackCmdEvt() { }
 	
-	public StackCmdEvt(long timeVal, long timeCmdVal, Dictionary<int, int[]> pathsVal, int stackPathVal, int nSeeUnitsVal = int.MaxValue)
+	public StackCmdEvt(long timeVal, long timeCmdVal, Dictionary<int, int[]> pathsVal, int stackPathVal, bool autoTimeTravelVal, int nSeeUnitsVal = int.MaxValue)
 		: base(timeVal, timeCmdVal, pathsVal) {
 		stackPath = stackPathVal;
+		autoTimeTravel = autoTimeTravelVal;
 		nSeeUnits = nSeeUnitsVal;
 	}
 	
@@ -35,7 +37,7 @@ public class StackCmdEvt : UnitCmdEvt {
 		// related to ISSUE #20: if stackPathVal < 0 (pressing stack button will do that) then move all paths to their average location
 		foreach (KeyValuePair<Path, List<Unit>> path in exPaths) {
 			if (path.Key.speed == g.paths[stackPath].speed && path.Key.canMove (timeCmd, path.Value) && !movedPaths.Contains (path.Key.id)) {
-				movedPaths.Add (path.Key.moveTo (timeCmd, new List<Unit>(path.Value), g.paths[stackPath].moves.Last ().vecEnd).id);
+				movedPaths.Add (path.Key.moveTo (timeCmd, new List<Unit>(path.Value), g.paths[stackPath].moves.Last ().vecEnd, autoTimeTravel).id);
 			}
 		}
 		// if able to move any of the paths, add events to stack them as they arrive

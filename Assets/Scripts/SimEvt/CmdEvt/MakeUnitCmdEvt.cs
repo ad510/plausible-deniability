@@ -16,17 +16,19 @@ using ProtoBuf;
 public class MakeUnitCmdEvt : UnitCmdEvt {
 	[ProtoMember(1)] public int type;
 	[ProtoMember(2)] public FP.Vector pos;
-	[ProtoMember(3)] bool autoRepeat;
+	[ProtoMember(3)] bool autoTimeTravel;
+	[ProtoMember(4)] bool autoRepeat;
 	
 	/// <summary>
 	/// empty constructor for protobuf-net use only
 	/// </summary>
 	private MakeUnitCmdEvt() { }
 
-	public MakeUnitCmdEvt(long timeVal, long timeCmdVal, Dictionary<int, int[]> pathsVal, int typeVal, FP.Vector posVal, bool autoRepeatVal = false)
+	public MakeUnitCmdEvt(long timeVal, long timeCmdVal, Dictionary<int, int[]> pathsVal, int typeVal, FP.Vector posVal, bool autoTimeTravelVal, bool autoRepeatVal = false)
 		: base(timeVal, timeCmdVal, pathsVal) {
 		type = typeVal;
 		pos = posVal;
+		autoTimeTravel = autoTimeTravelVal;
 		autoRepeat = autoRepeatVal;
 	}
 
@@ -69,7 +71,7 @@ public class MakeUnitCmdEvt : UnitCmdEvt {
 			}
 			if (movePath != null) {
 				Dictionary<int, int[]> evtPaths = new Dictionary<int, int[]>(paths);
-				movePath = movePath.moveTo(timeCmd, new List<Unit>(exPaths[movePath]), pos);
+				movePath = movePath.moveTo(timeCmd, new List<Unit>(exPaths[movePath]), pos, autoTimeTravel);
 				if (!evtPaths.ContainsKey (movePath.id)) {
 					// replacement path is moving to make the unit
 					evtPaths[movePath.id] = new int[movePath.segments[0].units.Count];
@@ -78,7 +80,7 @@ public class MakeUnitCmdEvt : UnitCmdEvt {
 					}
 				}
 				long evtTime = Math.Max (timeCmd, movePath.moves.Last ().timeEnd);
-				g.events.add(new MakeUnitCmdEvt(evtTime, evtTime, evtPaths, type, pos, true));
+				g.events.add(new MakeUnitCmdEvt(evtTime, evtTime, evtPaths, type, pos, autoTimeTravel, true));
 			}
 		}
 	}

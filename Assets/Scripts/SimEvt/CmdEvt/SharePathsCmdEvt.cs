@@ -11,13 +11,17 @@ using ProtoBuf;
 
 [ProtoContract]
 public class SharePathsCmdEvt : UnitCmdEvt {
+	[ProtoMember(1)] bool autoTimeTravel;
+	
 	/// <summary>
 	/// empty constructor for protobuf-net use only
 	/// </summary>
 	private SharePathsCmdEvt() { }
 	
-	public SharePathsCmdEvt(long timeVal, long timeCmdVal, Dictionary<int, int[]> pathsVal)
-		: base(timeVal, timeCmdVal, pathsVal) { }
+	public SharePathsCmdEvt(long timeVal, long timeCmdVal, Dictionary<int, int[]> pathsVal, bool autoTimeTravelVal)
+		: base(timeVal, timeCmdVal, pathsVal) {
+		autoTimeTravel = autoTimeTravelVal;
+	}
 	
 	public override void apply (Sim g) {
 		Dictionary<Path, List<Unit>> exPaths = existingPaths (g);
@@ -39,7 +43,7 @@ public class SharePathsCmdEvt : UnitCmdEvt {
 					}
 				}
 			}
-			new StackCmdEvt(time, timeCmd, argFromPathDict (movePaths), path.id, nSeeUnits).apply (g);
+			new StackCmdEvt(time, timeCmd, argFromPathDict (movePaths), path.id, autoTimeTravel, nSeeUnits).apply (g);
 		}
 	}
 }
