@@ -73,6 +73,7 @@ public class Sim {
 	[ProtoMember(37)] public long maxSpeed; // speed of fastest unit (is max speed that players can gain or lose visibility)
 	[ProtoMember(42)] public List<MoveLine> deleteLines;
 	[ProtoMember(43)] public List<MoveLine> keepLines;
+	public List<Path> alternatePaths; // newly made alternate paths of existing units; these should be selected
 	[ProtoMember(38)] public int checksum; // sent to other users during each UpdateEvt to check for multiplayer desyncs
 	[ProtoMember(39)] public bool synced; // whether all checksums between users matched so far
 	[ProtoMember(40)] public long timeSim; // current simulation time
@@ -126,6 +127,7 @@ public class Sim {
 		}
 		if (deleteLines == null) deleteLines = new List<MoveLine>();
 		if (keepLines == null) keepLines = new List<MoveLine>();
+		alternatePaths = new List<Path>();
 		afterSerialize ();
 	}
 

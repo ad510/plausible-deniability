@@ -229,6 +229,7 @@ public class App : MonoBehaviour {
 		if (!b) return false;
 		// base scenario
 		g = new Sim {
+			// not stored in scenario file
 			selUser = user,
 			networkView = multiplayer ? networkView : null,
 			events = new SimEvtList(),
@@ -238,6 +239,10 @@ public class App : MonoBehaviour {
 			timeSim = 0,
 			timeUpdateEvt = long.MinValue,
 			maxSpeed = 0,
+			deleteLines = new List<MoveLine>(),
+			keepLines = new List<MoveLine>(),
+			alternatePaths = new List<Path>(),
+			// stored in scenario file
 			mapSize = jsonFP(json, "mapSize"),
 			updateInterval = (long)jsonDouble(json, "updateInterval"),
 			tileInterval = (long)jsonDouble (json, "tileInterval"),
@@ -267,8 +272,6 @@ public class App : MonoBehaviour {
 			unitT = new UnitType[0],
 			units = new List<Unit>(),
 			paths = new List<Path>(),
-			deleteLines = new List<MoveLine>(),
-			keepLines = new List<MoveLine>(),
 		};
 		if (g.updateInterval > 0) g.events.add(new UpdateEvt(0));
 		if (g.tileInterval > 0) g.events.add (new TileUpdateEvt(0));
@@ -533,6 +536,15 @@ public class App : MonoBehaviour {
 	}
 	
 	private void updateInput() {
+		// select newly made alternate paths of selected units
+		foreach (Path path in g.alternatePaths) {
+			if (path.player == selPlayer) {
+				foreach (Unit unit in path.segments[0].units) {
+					selPaths.Add (new UnitSelection(path, unit, path.segments[0].timeStart));
+				}
+			}
+		}
+		g.alternatePaths.Clear ();
 		// update current unit selection
 		curSelPaths.Clear ();
 		foreach (SegmentUnit segmentUnit in g.activeSegmentUnits (selSegmentUnits (), g.timeGame)) {

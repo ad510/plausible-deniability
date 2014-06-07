@@ -233,6 +233,7 @@ public class Path {
 				MoveLine keepLine = new MoveLine(time, player);
 				keepLine.vertices.AddRange (g.paths.Last ().moveLines (waypointMoves[0].timeStart, time));
 				g.keepLines.Add (keepLine);
+				g.alternatePaths.Add (g.paths.Last ());
 				movedPaths.Add (g.paths.Count - 1);
 				stackTime = Math.Max (stackTime, waypointMoves.Last ().timeEnd);
 			}
@@ -260,6 +261,7 @@ public class Path {
 				}
 			}
 			movedPath.moveToDirect (time, pos);
+			g.alternatePaths.Add (movedPath);
 		}
 		if (movedPath != this && (movedPath.timeSimPast == long.MaxValue || timeSimPast != long.MaxValue)) {
 			// new path was moved, so try to remove units that moved from current path

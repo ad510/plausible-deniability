@@ -31,6 +31,7 @@ public class MakePathCmdEvt : UnitCmdEvt {
 		foreach (KeyValuePair<Path, List<Unit>> path in exPaths) {
 			if (path.Key.canMove(timeCmd) && path.Key.makePath (timeCmd, new List<Unit>(path.Value))) {
 				g.paths.Last ().moveToDirect(timeCmd, pos[path.Key.id]); // move new path out of the way
+				g.alternatePaths.Add (g.paths.Last ());
 			}
 		}
 	}
