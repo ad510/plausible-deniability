@@ -1224,8 +1224,8 @@ public class App : MonoBehaviour {
 	
 	private IEnumerable<SegmentUnit> selSegmentUnits() {
 		foreach (UnitSelection selection in selPaths) {
-			Segment segment = selection.path.activeSegment (selection.time);
-			if (segment.units.Contains (selection.unit)) yield return new SegmentUnit(segment, selection.unit);
+			SegmentUnit segmentUnit = selection.segmentUnit ();
+			if (segmentUnit.segment.units.Contains (selection.unit)) yield return segmentUnit;
 		}
 	}
 

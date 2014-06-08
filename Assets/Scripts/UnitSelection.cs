@@ -25,4 +25,8 @@ public class UnitSelection {
 		unit = unitVal;
 		time = timeVal;
 	}
+	
+	public SegmentUnit segmentUnit() {
+		return new SegmentUnit(path.activeSegment (time), unit);
+	}
 }
