@@ -260,7 +260,7 @@ public class Path {
 				}
 			}
 			movedPath.moveToDirect (time, pos);
-			g.alternatePaths.Add (movedPath);
+			if (movedPath != this) g.alternatePaths.Add (movedPath);
 		}
 		if (movedPath != this && (movedPath.timeSimPast == long.MaxValue || timeSimPast != long.MaxValue)) {
 			// new path was moved, so try to remove units that moved from current path
