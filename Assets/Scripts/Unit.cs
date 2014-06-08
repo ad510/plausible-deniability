@@ -56,6 +56,11 @@ public class Unit {
 				where segment.units.Contains (this) && (target.path.calcPos (time) - segment.path.calcPos (time)).lengthSq () <= type.range * type.range
 				select new SegmentUnit(segment, this),
 				true, false);
+			// TODO: ideally would just remove all waypoints that are out of range, but non-live path validation is currently too dumb to handle that
+			clearWaypoints(time);
+			foreach (Segment segment in g.activeSegments (time)) {
+				if (segment.units.Contains (this)) addWaypoint(time, segment.path);
+			}
 		}
 	}
 
