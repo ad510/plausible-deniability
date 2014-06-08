@@ -9,7 +9,7 @@ using System.Linq;
 using System.Text;
 using ProtoBuf;
 
-[ProtoContract]
+[ProtoContract(AsReferenceDefault = true)] // AsReferenceDefault needed for the way this is stored in Tile
 public class Waypoint {
 	[ProtoMember(1)] public readonly long time;
 	[ProtoMember(2, AsReference = true)] public readonly Tile tile;

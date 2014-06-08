@@ -14,6 +14,7 @@ using ProtoBuf;
 [ProtoInclude(12, typeof(TileUpdateEvt))]
 [ProtoInclude(13, typeof(StackEvt))]
 [ProtoInclude(14, typeof(PlayerVisRemoveEvt))]
+[ProtoInclude(15, typeof(WaypointAddEvt))]
 public abstract class SimEvt {
 	[ProtoMember(1)] public long time;
 
