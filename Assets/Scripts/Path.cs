@@ -125,7 +125,6 @@ public class Path {
 			if (segment.units.Contains (unit)) {
 				// unit in path already exists
 				SegmentUnit segmentUnit = new SegmentUnit(segment, unit); // get parent SegmentUnit
-				if (!segment.units.Contains (unit)) segmentUnit = segmentUnit.prev ().First ();
 				if (!segmentUnit.canBeUnambiguousParent (time)) return false;
 				if (!ignoreSeen && !segmentUnit.unseenAfter (time)) return false;
 				if (!segmentUnit.hasChildrenAfter ()) return false;
