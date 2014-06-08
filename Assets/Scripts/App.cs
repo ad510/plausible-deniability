@@ -301,7 +301,7 @@ public class App : MonoBehaviour {
 					mapHack = jsonBool (jsonO, "mapHack"),
 					hasNonLivePaths = false,
 					timeGoLiveFailedAttempt = long.MinValue,
-					goLiveStackPaths = new Dictionary<int, HashSet<int>>(),
+					goLiveStackPaths = new Dictionary<int, HashSet<Path>>(),
 					unseenTiles = g.tileLen () * g.tileLen (),
 				};
 				for (int i = 0; i < g.rscNames.Length; i++) {

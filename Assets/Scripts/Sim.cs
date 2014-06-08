@@ -218,14 +218,14 @@ public class Sim {
 	/// <summary>
 	/// adds events to stack specified paths as they arrive
 	/// </summary>
-	public void addStackEvts(IEnumerable<int> stackPaths, int nSeeUnits) {
+	public void addStackEvts(List<Path> stackPaths, int nSeeUnits) {
 		if (stackPaths.Count() > 1) {
 			// TODO: line below is currently needed to correctly share paths with auto time travel, but wouldn't be needed if StackEvt could stack units on past segments
-			events.add (new StackEvt(timeSim, stackPaths.ToArray (), nSeeUnits));
-			foreach (int path in stackPaths) {
+			events.add (new StackEvt(timeSim, stackPaths, nSeeUnits));
+			foreach (Path path in stackPaths) {
 				// in most cases only 2 paths will stack at a time,
 				// but request to stack all paths anyway in case the path they're stacking onto moves away
-				events.add (new StackEvt(paths[path].moves.Last ().timeEnd, stackPaths.ToArray (), nSeeUnits));
+				events.add (new StackEvt(path.moves.Last ().timeEnd, stackPaths, nSeeUnits));
 			}
 		}
 	}

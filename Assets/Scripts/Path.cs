@@ -13,7 +13,7 @@ using ProtoBuf;
 /// path that unit(s) of the same speed and player move along
 /// (units that are on the same path stack on top of each other)
 /// </summary>
-[ProtoContract]
+[ProtoContract(AsReferenceDefault = true)] // AsReferenceDefault needed for the way this is stored in Player.goLiveStackPaths
 public class Path {
 	[ProtoMember(1, AsReference = true)] public readonly Sim g;
 	[ProtoMember(2)] public readonly int id; // index in path list
@@ -192,7 +192,7 @@ public class Path {
 			return !Waypoint.active (waypoint) || Move.fromSpeed (waypoint.time, speed, waypoint.tile.centerPos (), goalPos).timeEnd > time;
 		}) == null) {
 			// move units with automatic time travel
-			List<int> movedPaths = new List<int>();
+			List<Path> movedPaths = new List<Path>();
 			long stackTime = long.MinValue;
 			foreach (Unit unit in units) {
 				Waypoint waypoint = g.tileAt (goalPos).waypointWhen (unit, time);
@@ -229,12 +229,12 @@ public class Path {
 				keepLine.vertices.AddRange (g.paths.Last ().moveLines (waypointMoves[0].timeStart, time));
 				g.keepLines.Add (keepLine);
 				g.alternatePaths.Add (g.paths.Last ());
-				movedPaths.Add (g.paths.Count - 1);
+				movedPaths.Add (g.paths.Last ());
 				stackTime = Math.Max (stackTime, waypointMoves.Last ().timeEnd);
 			}
 			player.updatePast (time);
-			if (units.Count > 1) new StackEvt(stackTime, movedPaths.ToArray (), nSeeUnits).apply (g);
-			movedPath = g.paths[movedPaths.Find (p => g.paths[p].segments.Last ().units.Count > 0)];
+			if (units.Count > 1) new StackEvt(stackTime, movedPaths, nSeeUnits).apply (g);
+			movedPath = movedPaths.Find (p => p.segments.Last ().units.Count > 0);
 		}
 		else {
 			// move units normally (without automatic time travel)

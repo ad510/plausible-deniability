@@ -45,8 +45,8 @@ public class MoveCmdEvt : UnitCmdEvt {
 				for (i = 0; i < formationOrder.Count; i++) {
 					if (path.Key.moves.Last ().vecEnd.x == formationOrder[i][0].moves.Last ().vecEnd.x
 						&& path.Key.moves.Last ().vecEnd.y == formationOrder[i][0].moves.Last ().vecEnd.y) {
-						SimEvt evt = g.events.events.FindLast (e => e is StackEvt && (e as StackEvt).paths.Contains (path.Key.id)
-							&& formationOrder[i].Find (p => (e as StackEvt).paths.Contains (p.id)) != null);
+						SimEvt evt = g.events.events.FindLast (e => e is StackEvt && (e as StackEvt).paths.Contains (path.Key)
+							&& formationOrder[i].Find (p => (e as StackEvt).paths.Contains (p)) != null);
 						if (evt != null) {
 							// path is trying to stack onto another commanded path
 							formationOrder[i].Add (path.Key);
@@ -96,7 +96,7 @@ public class MoveCmdEvt : UnitCmdEvt {
 		if (pos.y > g.mapSize - Math.Min(offset.y, g.mapSize / 2)) pos.y = g.mapSize - Math.Min(offset.y, g.mapSize / 2);
 		// move units
 		for (int i = 0; i < formationOrder.Count; i++) {
-			List<int> movedPaths = new List<int>();
+			List<Path> movedPaths = new List<Path>();
 			foreach (Path path in formationOrder[i]) {
 				if (formation == Formation.Tight || formation == Formation.Loose) {
 					goal = pos + new FP.Vector((i % rows.x) * spacing - offset.x, i / rows.x * spacing - offset.y);
@@ -107,7 +107,7 @@ public class MoveCmdEvt : UnitCmdEvt {
 				else {
 					throw new NotImplementedException("requested formation is not implemented");
 				}
-				movedPaths.Add (path.moveTo(timeCmd, new List<Unit>(exPaths[path]), goal, autoTimeTravel).id);
+				movedPaths.Add (path.moveTo(timeCmd, new List<Unit>(exPaths[path]), goal, autoTimeTravel));
 			}
 			g.addStackEvts (movedPaths, nSeeUnits[i]);
 		}
