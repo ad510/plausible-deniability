@@ -133,19 +133,19 @@ public class Tile {
 		foreach (SimEvt evt in g.events.events) {
 			if (evt is PlayerVisRemoveEvt) {
 				PlayerVisRemoveEvt visEvt = evt as PlayerVisRemoveEvt;
-				if (player.id == visEvt.player && time == visEvt.time) {
+				if (player == visEvt.player && time == visEvt.time) {
 					// check that tile pos isn't a duplicate (recently added tiles are more likely to be duplicates)
 					for (int i = visEvt.tiles.Count - 1; i >= Math.Max(0, visEvt.tiles.Count - 20); i--) {
-						if (x == visEvt.tiles[i].x && y == visEvt.tiles[i].y) return;
+						if (visEvt.tiles[i] == this) return;
 					}
 					// ok to add tile to existing event
-					visEvt.tiles.Add (new FP.Vector(x, y));
+					visEvt.tiles.Add (this);
 					return;
 				}
 			}
 		}
 		// if no such PlayerVisRemoveEvt exists, add a new one
-		g.events.add(new PlayerVisRemoveEvt(time, player.id, x, y));
+		g.events.add(new PlayerVisRemoveEvt(time, player, this));
 	}
 
 	/// <summary>

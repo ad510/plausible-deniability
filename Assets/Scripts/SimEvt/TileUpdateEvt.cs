@@ -109,7 +109,7 @@ public class TileUpdateEvt : SimEvt {
 							if (evt.time > time) break;
 							if (evt is PlayerVisRemoveEvt) {
 								PlayerVisRemoveEvt visEvt = evt as PlayerVisRemoveEvt;
-								if (visEvt.player == path.player.id) {
+								if (visEvt.player == path.player) {
 									visEvt.apply (g);
 									g.events.events.Remove (evt);
 									break;
