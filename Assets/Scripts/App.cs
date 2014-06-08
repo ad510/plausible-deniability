@@ -1004,7 +1004,7 @@ public class App : MonoBehaviour {
 				if (GUILayout.Button ("Delete Other Paths")) deleteOtherPaths ();
 				if (EnableStacking && GUILayout.Button ("Share Paths")) sharePaths ();
 			}
-			enableAutoTimeTravel = GUILayout.Toggle (enableAutoTimeTravel, "Automatic Time Travel");
+			if (Sim.EnableNonLivePaths) enableAutoTimeTravel = GUILayout.Toggle (enableAutoTimeTravel, "Automatic Time Travel");
 			GUI.color = Color.white;
 			GUILayout.EndScrollView ();
 			GUILayout.EndArea ();

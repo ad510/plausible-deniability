@@ -48,10 +48,8 @@ public class Tile {
 		y = yVal;
 		pathVis = new Dictionary<int,List<long>>();
 		playerVis = new List<long>[g.players.Length];
-		if (Sim.EnableNonLivePaths) {
-			exclusive = new List<long>[g.players.Length];
-			waypoints = new Dictionary<int, List<Waypoint>>();
-		}
+		if (Sim.EnableNonLivePaths) exclusive = new List<long>[g.players.Length];
+		waypoints = new Dictionary<int, List<Waypoint>>();
 		for (int i = 0; i < g.players.Length; i++) {
 			playerVis[i] = new List<long>();
 			if (Sim.EnableNonLivePaths) exclusive[i] = new List<long>();
@@ -85,6 +83,7 @@ public class Tile {
 	/// </summary>
 	public void afterSimDeserialize() {
 		if (pathVis == null) pathVis = new Dictionary<int, List<long>>();
+		if (waypoints == null) waypoints = new Dictionary<int, List<Waypoint>>();
 		playerVis = new List<long>[g.players.Length];
 		int player = 0;
 		for (int i = 0; i < protoPlayerVis.Count; i += (int)protoPlayerVis[i] + 1) {
