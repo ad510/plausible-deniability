@@ -198,6 +198,7 @@ public class Tile {
 	public void exclusiveAdd(Player player, long time) {
 		if (exclusiveLatest (player)) throw new InvalidOperationException("tile is already exclusive");
 		exclusive[player.id].Add (time);
+		// add waypoints to let units that can move to adjacent tile (using automatic time travel) move to this tile
 		for (int tX = Math.Max (0, x - 1); tX <= Math.Min (g.tileLen () - 1, x + 1); tX++) {
 			for (int tY = Math.Max (0, y - 1); tY <= Math.Min (g.tileLen () - 1, y + 1); tY++) {
 				if (tX != x || tY != y) {
@@ -216,6 +217,7 @@ public class Tile {
 	public void exclusiveRemove(Player player, long time) {
 		if (!exclusiveLatest(player)) throw new InvalidOperationException("tile is already not exclusive");
 		exclusive[player.id].Add (time);
+		// clear waypoints on this tile
 		foreach (var waypoint in waypoints) {
 			if (player == g.units[waypoint.Key].player && Waypoint.active (waypoint.Value.Last ())) {
 				waypointAdd (g.units[waypoint.Key], time, null, null);

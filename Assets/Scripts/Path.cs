@@ -124,13 +124,10 @@ public class Path {
 		foreach (Unit unit in units) {
 			if (segment.units.Contains (unit)) {
 				// unit in path already exists
-				SegmentUnit segmentUnit = new SegmentUnit(segment, unit);
+				SegmentUnit segmentUnit = new SegmentUnit(segment, unit); // get parent SegmentUnit
 				if (!segment.units.Contains (unit)) segmentUnit = segmentUnit.prev ().First ();
-				// check parent made before (not at same time as) child, so it's unambiguous who is the parent
 				if (!segmentUnit.canBeUnambiguousParent (time)) return false;
-				// check parent unit won't be seen later
 				if (!ignoreSeen && !segmentUnit.unseenAfter (time)) return false;
-				// check parent won't make a child unit later
 				if (!segmentUnit.hasChildrenAfter ()) return false;
 			}
 			else if (!(time == segment.timeStart && new SegmentUnit(segment, unit).prev ().Any ())) {

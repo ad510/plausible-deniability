@@ -103,6 +103,7 @@ public class Unit {
 				List<UnitSelection> start = new List<UnitSelection> { new UnitSelection(path, this, time) };
 				SegmentUnit prev = new SegmentUnit(path.activeSegment (time), this);
 				do {
+					// remember segments that unit was previously on in case unit is later removed from them
 					SegmentUnit cur = prev;
 					prev = cur.prev ().FirstOrDefault ();
 					if (prev.g == null || prev.segment.path != cur.segment.path || !prev.segment.unseen) {

@@ -32,7 +32,9 @@ public class WaypointAddEvt : SimEvt {
 	public override void apply (Sim g) {
 		if (tile.exclusiveLatest (unit.player) && (start != null || prev == prev.tile.waypointLatest (unit))
 			&& !Waypoint.active (tile.waypointLatest (unit))) {
+			// add waypoint to specified tile
 			Waypoint waypoint = tile.waypointAdd (unit, time, prev, start);
+			// add events to add waypoints to surrounding tiles
 			for (int tX = Math.Max (0, tile.x - 1); tX <= Math.Min (g.tileLen () - 1, tile.x + 1); tX++) {
 				for (int tY = Math.Max (0, tile.y - 1); tY <= Math.Min (g.tileLen () - 1, tile.y + 1); tY++) {
 					if (tX != tile.x || tY != tile.y) {

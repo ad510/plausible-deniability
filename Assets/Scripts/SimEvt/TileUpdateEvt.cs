@@ -41,6 +41,7 @@ public class TileUpdateEvt : SimEvt {
 								// add path to path visibility tile
 								g.tiles[tX, tY].pathVisToggle(path, time);
 								if (!g.tiles[tX, tY].playerVisLatest(path.player)) {
+									// make tile visible to this player
 									g.tiles[tX, tY].playerVis[path.player.id].Add(time);
 									path.player.unseenTiles--;
 									if (Sim.EnableNonLivePaths) {
