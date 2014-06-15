@@ -181,13 +181,6 @@ public class Tile {
 	}
 
 	/// <summary>
-	/// returns playerVis gain/lose visibility index associated with specified time for specified player
-	/// </summary>
-	public int playerVisIndexWhen(Player player, long time) {
-		return visIndexWhen(playerVis[player.id], time);
-	}
-
-	/// <summary>
 	/// returns if this tile is either in the direct line of sight for specified player at specified time,
 	/// or if player can infer that other players' units aren't in specified tile at specified time
 	/// </summary>
@@ -263,13 +256,6 @@ public class Tile {
 	public bool exclusiveLatest(Player player) {
 		if (!Sim.EnableNonLivePaths) return calcExclusive(player);
 		return visLatest(exclusive[player.id]);
-	}
-
-	/// <summary>
-	/// returns gain/lose exclusivity index associated with specified time for specified player
-	/// </summary>
-	public int exclusiveIndexWhen(Player player, long time) {
-		return visIndexWhen(exclusive[player.id], time);
 	}
 
 	/// <summary>
