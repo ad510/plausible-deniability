@@ -74,10 +74,10 @@ public class UpdateEvt : SimEvt {
 		}
 		// update units
 		foreach (Path path in g.paths) {
-			Segment segment = path.activeSegment (time);
+			Segment segment = path.segmentWhen (time);
 			if (segment != null && path.timeSimPast == long.MaxValue) {
-				Tile tile = path.activeTile (time);
-				FP.Vector pos = path.calcPos (time);
+				Tile tile = path.tileWhen (time);
+				FP.Vector pos = path.posWhen (time);
 				foreach (Unit unit in segment.units) {
 					if (unit.attacks.Count == 0 || time >= unit.attacks.Last().time + unit.type.reload) {
 						// done reloading, look for closest target to potentially attack
@@ -85,11 +85,11 @@ public class UpdateEvt : SimEvt {
 						long targetDistSq = unit.type.range * unit.type.range + 1;
 						foreach (int i in tile.pathVis.Keys) {
 							Path path2 = g.paths[i];
-							Segment segment2 = path2.activeSegment (time);
+							Segment segment2 = path2.segmentWhen (time);
 							if (path != path2 && segment2 != null && !segment2.unseen && path2.timeSimPast == long.MaxValue && path.player.mayAttack[path2.player.id] && tile.pathVisLatest (path2)) {
 								foreach (Unit unit2 in segment2.units) {
 									if (unit.type.damage[unit2.type.id] > 0) {
-										long distSq = (path2.calcPos (time) - pos).lengthSq ();
+										long distSq = (path2.posWhen (time) - pos).lengthSq ();
 										if (distSq < targetDistSq) {
 											target = path2;
 											targetDistSq = distSq;
@@ -99,7 +99,7 @@ public class UpdateEvt : SimEvt {
 								}
 							}
 						}
-						if (target != null) unit.attack (time, target.activeSegment (time));
+						if (target != null) unit.attack (time, target.segmentWhen (time));
 					}
 				}
 			}

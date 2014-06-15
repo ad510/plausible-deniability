@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2013-2014 Andrew Downing
+// Copyright (c) 2013-2014 Andrew Downing
 // Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 // The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
@@ -254,15 +254,15 @@ public class Sim {
 	/// iterates over all SegmentUnits active at specified time that are
 	/// past, present, or future versions of specified SegmentUnits
 	/// </summary>
-	public IEnumerable<SegmentUnit> activeSegmentUnits(IEnumerable<SegmentUnit> segmentUnits, long time) {
+	public IEnumerable<SegmentUnit> segmentUnitsWhen(IEnumerable<SegmentUnit> segmentUnits, long time) {
 		foreach (SegmentUnit segmentUnit in segmentUnits) {
 			if (segmentUnit.segment.nextOnPath () != null && time >= segmentUnit.segment.nextOnPath ().timeStart) {
-				foreach (SegmentUnit segmentUnit2 in activeSegmentUnits(segmentUnit.next (), time)) {
+				foreach (SegmentUnit segmentUnit2 in segmentUnitsWhen(segmentUnit.next (), time)) {
 					yield return segmentUnit2;
 				}
 			}
 			else if (time < segmentUnit.segment.timeStart) {
-				foreach (SegmentUnit segmentUnit2 in activeSegmentUnits(segmentUnit.prev (), time)) {
+				foreach (SegmentUnit segmentUnit2 in segmentUnitsWhen(segmentUnit.prev (), time)) {
 					yield return segmentUnit2;
 				}
 			}
@@ -275,9 +275,9 @@ public class Sim {
 	/// <summary>
 	/// iterates over all path segments that are active at specified time
 	/// </summary>
-	public IEnumerable<Segment> activeSegments(long time) {
+	public IEnumerable<Segment> segmentsWhen(long time) {
 		foreach (Path path in paths) {
-			Segment segment = path.activeSegment (time);
+			Segment segment = path.segmentWhen (time);
 			if (segment != null && segment.units.Count > 0) yield return segment;
 		}
 	}

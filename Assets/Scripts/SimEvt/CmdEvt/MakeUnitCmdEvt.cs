@@ -36,7 +36,7 @@ public class MakeUnitCmdEvt : UnitCmdEvt {
 		Dictionary<Path, List<Unit>> exPaths = existingPaths (g);
 		// make unit at requested position, if possible
 		foreach (Path path in exPaths.Keys) {
-			FP.Vector curPos = path.calcPos(timeCmd);
+			FP.Vector curPos = path.posWhen(timeCmd);
 			if ((pos.x == curPos.x && pos.y == curPos.y) || (g.unitT[type].speed > 0 && g.unitT[type].makeOnUnitT == null)) {
 				// TODO: take time to make units?
 				List<Unit> unitList = new List<Unit>();
@@ -60,7 +60,7 @@ public class MakeUnitCmdEvt : UnitCmdEvt {
 			Path movePath = null;
 			foreach (KeyValuePair<Path, List<Unit>> path in exPaths) {
 				if (g.unitsCanMake (path.Value, g.unitT[type]) && path.Key.canMove (timeCmd, path.Value)
-					&& (movePath == null || (path.Key.calcPos(timeCmd) - pos).lengthSq() < (movePath.calcPos(timeCmd) - pos).lengthSq())) {
+					&& (movePath == null || (path.Key.posWhen(timeCmd) - pos).lengthSq() < (movePath.posWhen(timeCmd) - pos).lengthSq())) {
 					bool newPathIsLive = (timeCmd >= g.timeSim && path.Key.timeSimPast == long.MaxValue);
 					int i;
 					for (i = 0; i < g.rscNames.Length; i++) {

@@ -52,7 +52,7 @@ public class Move {
 	/// <summary>
 	/// returns location at specified time
 	/// </summary>
-	public FP.Vector calcPos(long time) {
+	public FP.Vector posWhen(long time) {
 		if (time >= timeEnd) return vecEnd;
 		return vecStart + (vecEnd - vecStart) * FP.div(time - timeStart, timeEnd - timeStart);
 	}

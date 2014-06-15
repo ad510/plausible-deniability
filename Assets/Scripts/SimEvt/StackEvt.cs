@@ -39,11 +39,11 @@ public class StackEvt : SimEvt {
 		// loop through each pair of unstacked paths
 		for (int i = 0; i < paths.Count; i++) {
 			if (!pathsStacked[i]) {
-				FP.Vector iPos = paths[i].calcPos (time);
+				FP.Vector iPos = paths[i].posWhen (time);
 				Segment iSegment = paths[i].segments.Last ();
 				for (int j = i + 1; j < paths.Count; j++) {
 					if (!pathsStacked[j] && (paths[i].timeSimPast == long.MaxValue) == (paths[j].timeSimPast == long.MaxValue)) {
-						FP.Vector jPos = paths[j].calcPos (time);
+						FP.Vector jPos = paths[j].posWhen (time);
 						Segment jSegment = paths[j].segments.Last ();
 						// check that paths are at same position
 						if (iPos.x == jPos.x && iPos.y == jPos.y) {
@@ -52,7 +52,7 @@ public class StackEvt : SimEvt {
 							if (g.stackAllowed (stackUnits, paths[i].speed, paths[i].player)) {
 								// merge the paths onto path i
 								iSegment = paths[i].connect (time, paths[j]);
-								jSegment = paths[j].activeSegment (time);
+								jSegment = paths[j].segmentWhen (time);
 								iSegment.units = stackUnits;
 								jSegment.removeAllUnits ();
 								paths[i].nSeeUnits = nSeeUnits;

@@ -548,7 +548,7 @@ public class App : MonoBehaviour {
 		g.alternatePaths.Clear ();
 		// update current unit selection
 		curSelPaths.Clear ();
-		foreach (SegmentUnit segmentUnit in g.activeSegmentUnits (selSegmentUnits (), g.timeGame)) {
+		foreach (SegmentUnit segmentUnit in g.segmentUnitsWhen (selSegmentUnits (), g.timeGame)) {
 			if (!curSelPaths.ContainsKey (segmentUnit.segment.path)) curSelPaths[segmentUnit.segment.path] = new List<Unit>();
 			if (!curSelPaths[segmentUnit.segment.path].Contains (segmentUnit.unit)) curSelPaths[segmentUnit.segment.path].Add (segmentUnit.unit);
 		}
@@ -585,12 +585,12 @@ public class App : MonoBehaviour {
 						if (selPlayer == path.player && g.timeGame >= path.moves[0].timeStart
 							&& FP.rectIntersects (drawToSimPos (mouseMinPos), drawToSimPos (mouseMaxPos),
 							path.selMinPos(g.timeGame), path.selMaxPos(g.timeGame))) {
-							if (curSelPaths.ContainsKey (path) && curSelPaths[path].Count == path.activeSegment (g.timeGame).units.Count) {
+							if (curSelPaths.ContainsKey (path) && curSelPaths[path].Count == path.segmentWhen (g.timeGame).units.Count) {
 								curSelPaths.Remove(path);
 								deselect = true;
 							}
 							else {
-								curSelPaths[path] = new List<Unit>(path.activeSegment(g.timeGame).units);
+								curSelPaths[path] = new List<Unit>(path.segmentWhen(g.timeGame).units);
 								foreach (Unit unit in curSelPaths[path]) {
 									selPaths.Add (new UnitSelection(path, unit, g.timeGame));
 								}
@@ -621,9 +621,9 @@ public class App : MonoBehaviour {
 					for (int i = 0; i < g.paths.Count; i++) {
 						if (g.timeGame >= g.paths[i].segments[0].timeStart
 							&& FP.rectContains (g.paths[i].selMinPos(g.timeGame), g.paths[i].selMaxPos(g.timeGame), drawToSimPos (Input.mousePosition))) {
-							if (g.timeGame >= g.timeSim && g.paths[i].activeTile (g.timeGame).playerDirectVisWhen (selPlayer, g.timeGame)
+							if (g.timeGame >= g.timeSim && g.paths[i].tileWhen (g.timeGame).playerDirectVisWhen (selPlayer, g.timeGame)
 								&& selPlayer.mayAttack[g.paths[i].player.id]
-								&& g.paths[i].activeSegment (g.timeGame).units.Where (u2 => curSelPaths.Values.Where (units => units.Where (u => u.type.damage[u2.type.id] > 0).Any ()).Any ()).Any ()) {
+								&& g.paths[i].segmentWhen (g.timeGame).units.Where (u2 => curSelPaths.Values.Where (units => units.Where (u => u.type.damage[u2.type.id] > 0).Any ()).Any ()).Any ()) {
 								attackPath = i;
 								break;
 							}
@@ -814,7 +814,7 @@ public class App : MonoBehaviour {
 		}
 		// units
 		for (int i = 0; i < g.paths.Count; i++) {
-			Segment segment = g.paths[i].activeSegment (g.timeGame);
+			Segment segment = g.paths[i].segmentWhen (g.timeGame);
 			bool showPathDeletedUnits = showDeletedUnits && selPlayer == g.paths[i].player;
 			if (i == sprUnits.Count) sprUnits.Add (new List<UnitSprite>());
 			if (segment != null) {
@@ -850,12 +850,12 @@ public class App : MonoBehaviour {
 					sprUnits[i][j].sprite.transform.localScale = unitScale (unit.type, unit.player);
 					sprUnits[i][j].sprite.renderer.enabled = true;
 					for (int k = i + 1; k < g.paths.Count; k++) {
-						Segment segment2 = g.paths[k].activeSegment (g.timeGame);
+						Segment segment2 = g.paths[k].segmentWhen (g.timeGame);
 						if (segment2 != null && g.paths[i].speed == g.paths[k].speed && g.paths[i].player == g.paths[k].player
 							&& (segment2.units.Contains (unit) || (showPathDeletedUnits && segment2.deletedUnits.Contains (unit)))) {
 							// unit path line
 							sprUnits[i][j].pathLine.SetPosition (0, new Vector3(vec.x, vec.y, PathLineDepth));
-							sprUnits[i][j].pathLine.SetPosition (1, simToDrawPos (g.paths[k].calcPos(g.timeGame), PathLineDepth));
+							sprUnits[i][j].pathLine.SetPosition (1, simToDrawPos (g.paths[k].posWhen(g.timeGame), PathLineDepth));
 							sprUnits[i][j].pathLine.enabled = true;
 							break;
 						}
@@ -863,7 +863,7 @@ public class App : MonoBehaviour {
 					// lasers
 					// ISSUE #16: make width, fade interval, color customizable by mod
 					foreach (Attack attack in unit.attacks) {
-						if (g.timeGame - attack.time >= 0 && g.timeGame - attack.time < 500 && attack.target.activeTile(g.timeGame).playerVisWhen(selPlayer, g.timeGame)) {
+						if (g.timeGame - attack.time >= 0 && g.timeGame - attack.time < 500 && attack.target.tileWhen(g.timeGame).playerVisWhen(selPlayer, g.timeGame)) {
 							Vector3 posEmit = vec + simToDrawScl (unit.type.laserPos);
 							posEmit.z = LaserDepth;
 							sprUnits[i][j].laser.SetWidth(4 * (1 - (g.timeGame - attack.time) / 500f), 4 * (1 - (g.timeGame - attack.time) / 500f));
@@ -904,7 +904,7 @@ public class App : MonoBehaviour {
 		// health bars
 		foreach (Path path in curSelPaths.Keys) {
 			if (pathDrawPos(path, ref vec)) {
-				Segment segment = path.activeSegment (g.timeGame);
+				Segment segment = path.segmentWhen (g.timeGame);
 				for (int j = 0; j < segment.units.Count; j++) {
 					Unit unit = segment.units[j];
 					if (curSelPaths[path].Contains (unit)) {
@@ -1239,11 +1239,11 @@ public class App : MonoBehaviour {
 				// ISSUE #25: prevent putting multiple units on same unit (unless on different paths of same unit and maybe some other cases)
 				foreach (Path path in g.paths) {
 					if (g.timeGame >= path.segments[0].timeStart) {
-						if (path.activeTile (g.timeGame).playerVisWhen (selPlayer, g.timeGame)
+						if (path.tileWhen (g.timeGame).playerVisWhen (selPlayer, g.timeGame)
 							&& FP.rectContains (path.selMinPos (g.timeGame), path.selMaxPos (g.timeGame), drawToSimPos (Input.mousePosition))) {
-							foreach (Unit unit in path.activeSegment (g.timeGame).units) {
+							foreach (Unit unit in path.segmentWhen (g.timeGame).units) {
 								if (unit.type == makeUnitType.makeOnUnitT) {
-									return path.calcPos(g.timeGame);
+									return path.posWhen(g.timeGame);
 								}
 							}
 						}
@@ -1268,7 +1268,7 @@ public class App : MonoBehaviour {
 				(long)((UnityEngine.Random.value - 0.5) * type.makeUnitMaxDist * 2));
 		} while (ret.lengthSq() < type.makeUnitMinDist * type.makeUnitMinDist
 			|| ret.lengthSq() > type.makeUnitMaxDist * type.makeUnitMaxDist);
-		return ret + path.calcPos(time);
+		return ret + path.posWhen(time);
 	}
 
 	/// <summary>
@@ -1284,7 +1284,7 @@ public class App : MonoBehaviour {
 				(long)((UnityEngine.Random.value - 0.5) * makePathMaxDist * 2));
 		} while (ret.lengthSq() < makePathMinDist * makePathMinDist
 			|| ret.lengthSq() > makePathMaxDist * makePathMaxDist);
-		return ret + path.calcPos(time);
+		return ret + path.posWhen(time);
 	}
 	
 	/// <summary>
@@ -1296,7 +1296,7 @@ public class App : MonoBehaviour {
 			long minX = g.mapSize, maxX = 0, minY = g.mapSize, maxY = 0;
 			foreach (KeyValuePair<Path, List<Unit>> path in curSelPaths) {
 				if (path.Key.canMove (g.timeGame)) {
-					FP.Vector pos = path.Key.calcPos(g.timeGame);
+					FP.Vector pos = path.Key.posWhen(g.timeGame);
 					if (pos.x < minX) minX = pos.x;
 					if (pos.x > maxX) maxX = pos.x;
 					if (pos.y < minY) minY = pos.y;
@@ -1347,7 +1347,7 @@ public class App : MonoBehaviour {
 	/// </summary>
 	private void unstack() {
 		foreach (KeyValuePair<Path, List<Unit>> path in curSelPaths) {
-			if (path.Key.canMove (g.timeGame) && path.Key.activeSegment (g.timeGame).units.Count > 1) {
+			if (path.Key.canMove (g.timeGame) && path.Key.segmentWhen (g.timeGame).units.Count > 1) {
 				foreach (Unit unit in path.Value) {
 					g.cmdPending.add (new MoveCmdEvt(g.timeSim, newCmdTime (),
 						UnitCmdEvt.argFromPathDict (new Dictionary<Path, List<Unit>> { { path.Key, new List<Unit> { unit } } }),
@@ -1359,7 +1359,7 @@ public class App : MonoBehaviour {
 	
 	private bool canUnstack() {
 		foreach (Path path in curSelPaths.Keys) {
-			if (path.canMove (g.timeGame) && path.activeSegment (g.timeGame).units.Count > 1) return true;
+			if (path.canMove (g.timeGame) && path.segmentWhen (g.timeGame).units.Count > 1) return true;
 		}
 		return false;
 	}
@@ -1391,9 +1391,9 @@ public class App : MonoBehaviour {
 		if (g.timeGame < path.moves[0].timeStart) return false;
 		if (selPlayer != path.player) {
 			if (path.timeSimPast != long.MaxValue) return false;
-			if (!path.activeTile (g.timeGame).playerVisWhen(selPlayer, g.timeGame)) return false;
+			if (!path.tileWhen (g.timeGame).playerVisWhen(selPlayer, g.timeGame)) return false;
 		}
-		pos = simToDrawPos(path.calcPos(g.timeGame), UnitDepth);
+		pos = simToDrawPos(path.posWhen(g.timeGame), UnitDepth);
 		return true;
 	}
 	

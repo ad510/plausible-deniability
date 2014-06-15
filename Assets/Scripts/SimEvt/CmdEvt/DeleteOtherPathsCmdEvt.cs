@@ -26,7 +26,7 @@ public class DeleteOtherPathsCmdEvt : UnitCmdEvt {
 		List<SegmentUnit> units = new List<SegmentUnit>();
 		// convert paths list into valid deleteOtherPaths() argument (this is a bit ugly)
 		foreach (KeyValuePair<int, int[]> path in paths) {
-			Segment segment = g.paths[path.Key].activeSegment (timeCmd);
+			Segment segment = g.paths[path.Key].segmentWhen (timeCmd);
 			if (segment != null) {
 				foreach (int unit in path.Value) {
 					units.Add (new SegmentUnit(segment, g.units[unit]));

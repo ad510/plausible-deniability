@@ -165,7 +165,7 @@ public class Tile {
 		foreach (int i in pathVis.Keys) {
 			if (player == g.paths[i].player && visWhen(pathVis[i], time)) {
 				if (!checkUnits) return true;
-				Segment segment = g.paths[i].activeSegment (time);
+				Segment segment = g.paths[i].segmentWhen (time);
 				if (segment != null && segment.units.Count > 0) return true;
 			}
 		}

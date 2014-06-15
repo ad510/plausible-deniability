@@ -75,7 +75,7 @@ public class Path {
 				tileX = Sim.OffMap;
 			}
 			else {
-				FP.Vector pos = calcPos (time);
+				FP.Vector pos = posWhen (time);
 				tileX = (int)(pos.x >> FP.Precision);
 				tileY = (int)(pos.y >> FP.Precision);
 			}
@@ -98,7 +98,7 @@ public class Path {
 		bool costsRsc;
 		if (!canMakePath (time, units, out costsRsc, ignoreSeen)) return false;
 		Segment segment = insertSegment (time);
-		FP.Vector pos = calcPos (time);
+		FP.Vector pos = posWhen (time);
 		g.paths.Add (new Path(g, g.paths.Count, units[0].type.speed, player, units, time, pos, segment.unseen, nSeeUnits));
 		connect (time, g.paths.Last ());
 		if (timeSimPast != long.MaxValue) g.paths.Last ().timeSimPast = time / g.tileInterval * g.tileInterval;
@@ -117,7 +117,7 @@ public class Path {
 	private bool canMakePath(long time, List<Unit> units, out bool costsRsc, bool ignoreSeen = false) {
 		costsRsc = false;
 		if (units.Count == 0) return false;
-		Segment segment = activeSegment(time);
+		Segment segment = segmentWhen(time);
 		if (segment == null) return false;
 		int newUnitCount = 0;
 		long[] rscCost = new long[g.rscNames.Length];
@@ -149,7 +149,7 @@ public class Path {
 	}
 	
 	public bool canMakeUnitType(long time, UnitType type) {
-		Segment segment = activeSegment (time);
+		Segment segment = segmentWhen (time);
 		if (segment != null) {
 			foreach (SegmentUnit segmentUnit in segment.segmentUnits ()) {
 				if (segmentUnit.unit.type.canMake[type.id] && segmentUnit.canBeUnambiguousParent (time)
@@ -218,8 +218,8 @@ public class Path {
 					}
 				}
 				// make non-live path moving along waypoints
-				waypointMoves.Insert (0, new Move(waypoint.start[0].time, waypoint.time, waypoint.start[0].path.calcPos (waypoint.start[0].time), waypointMoves[0].vecStart));
-				if (!waypoint.start[0].path.activeSegment (waypoint.start[0].time).path.makePath (waypointMoves[0].timeStart, new List<Unit> { unit })) {
+				waypointMoves.Insert (0, new Move(waypoint.start[0].time, waypoint.time, waypoint.start[0].path.posWhen (waypoint.start[0].time), waypointMoves[0].vecStart));
+				if (!waypoint.start[0].path.segmentWhen (waypoint.start[0].time).path.makePath (waypointMoves[0].timeStart, new List<Unit> { unit })) {
 					throw new SystemException("make auto time travel path failed when moving units");
 				}
 				g.paths.Last ().moves = waypointMoves;
@@ -246,7 +246,7 @@ public class Path {
 				movedPath = g.paths.Last ();
 			}
 			else {
-				foreach (Unit unit in activeSegment(time).units) {
+				foreach (Unit unit in segmentWhen(time).units) {
 					if (!units.Contains (unit)) {
 						// some units in path aren't being moved, so make a new path
 						if (!makePath (time, units, true)) throw new SystemException("make new path failed when moving units");
@@ -260,7 +260,7 @@ public class Path {
 		}
 		if (movedPath != this && (movedPath.timeSimPast == long.MaxValue || timeSimPast != long.MaxValue)) {
 			// new path was moved, so try to remove units that moved from current path
-			Segment segment = activeSegment (time);
+			Segment segment = segmentWhen (time);
 			foreach (Unit unit in units) {
 				new SegmentUnit(segment, unit).delete ();
 			}
@@ -272,7 +272,7 @@ public class Path {
 	/// move towards specified location starting at specified time
 	/// </summary>
 	public void moveToDirect(long time, FP.Vector pos) {
-		FP.Vector curPos = calcPos(time);
+		FP.Vector curPos = posWhen(time);
 		FP.Vector goalPos = pos;
 		// don't move off map edge
 		if (goalPos.x < 0) goalPos.x = 0;
@@ -291,7 +291,7 @@ public class Path {
 		if (time < g.timeSim) {
 			if (!Sim.EnableNonLivePaths) return false;
 			if (units == null) {
-				Segment segment = activeSegment (time);
+				Segment segment = segmentWhen (time);
 				if (segment == null) return false;
 				units = segment.units;
 			}
@@ -302,12 +302,12 @@ public class Path {
 	}
 	
 	public IEnumerable<FP.Vector> moveLines(long timeStart, long timeEnd) {
-		yield return calcPos (timeStart);
-		for (int i = activeMove (timeStart) + 1; i <= activeMove (timeEnd); i++) {
+		yield return posWhen (timeStart);
+		for (int i = moveIndexWhen (timeStart) + 1; i <= moveIndexWhen (timeEnd); i++) {
 			yield return moves[i].vecStart;
 			yield return moves[i].vecStart;
 		}
-		yield return calcPos (timeEnd);
+		yield return posWhen (timeEnd);
 	}
 	
 	/// <summary>
@@ -315,7 +315,7 @@ public class Path {
 	/// returns that segment
 	/// </summary>
 	public Segment insertSegment(long time) {
-		Segment segment = activeSegment (time);
+		Segment segment = segmentWhen (time);
 		if (segment != null && segment.timeStart == time) return segment;
 		segments.Insert (segment.id + 1, new Segment(this, segment.id + 1, time, new List<Unit>(segment.units), segment.unseen));
 		segments[segment.id + 1].deletedUnits = new List<Unit>(segment.deletedUnits);
@@ -328,7 +328,7 @@ public class Path {
 	/// <summary>
 	/// returns segment that is active at specified time
 	/// </summary>
-	public Segment activeSegment(long time) {
+	public Segment segmentWhen(long time) {
 		for (int i = segments.Count - 1; i >= 0; i--) {
 			if (time >= segments[i].timeStart) return segments[i];
 		}
@@ -338,27 +338,27 @@ public class Path {
 	/// <summary>
 	/// returns tile that path is on at specified time
 	/// </summary>
-	public Tile activeTile(long time) {
+	public Tile tileWhen(long time) {
 		if (time < moves[0].timeStart) return null;
 		long timeRounded = time / g.tileInterval * g.tileInterval;
 		if (timeRounded < moves[0].timeStart) {
 			// ideally would return tile that parent path was on at timeRounded, but this should be good enough
 			return g.tileAt(moves[0].vecStart);
 		}
-		return g.tileAt(calcPos(timeRounded));
+		return g.tileAt(posWhen(timeRounded));
 	}
 
 	/// <summary>
 	/// returns location at specified time
 	/// </summary>
-	public FP.Vector calcPos(long time) {
-		return moves[activeMove(time)].calcPos(time);
+	public FP.Vector posWhen(long time) {
+		return moves[moveIndexWhen(time)].posWhen(time);
 	}
 
 	/// <summary>
 	/// returns index of move that is occurring at specified time
 	/// </summary>
-	public int activeMove(long time) {
+	public int moveIndexWhen(long time) {
 		int ret = moves.Count - 1;
 		while (ret >= 0 && time < moves[ret].timeStart) ret--;
 		return ret;
@@ -369,11 +369,11 @@ public class Path {
 	/// </summary>
 	public FP.Vector selMinPos(long time) {
 		FP.Vector ret = new FP.Vector(int.MaxValue, int.MaxValue);
-		foreach (Unit unit in activeSegment(time).units) {
+		foreach (Unit unit in segmentWhen(time).units) {
 			ret.x = Math.Min (ret.x, unit.type.selMinPos.x);
 			ret.y = Math.Min (ret.y, unit.type.selMinPos.y);
 		}
-		return ret + calcPos(time);
+		return ret + posWhen(time);
 	}
 	
 	/// <summary>
@@ -381,11 +381,11 @@ public class Path {
 	/// </summary>
 	public FP.Vector selMaxPos(long time) {
 		FP.Vector ret = new FP.Vector(int.MinValue, int.MinValue);
-		foreach (Unit unit in activeSegment(time).units) {
+		foreach (Unit unit in segmentWhen(time).units) {
 			ret.x = Math.Max (ret.x, unit.type.selMaxPos.x);
 			ret.y = Math.Max (ret.y, unit.type.selMaxPos.y);
 		}
-		return ret + calcPos(time);
+		return ret + posWhen(time);
 	}
 	
 	/// <summary>
@@ -393,7 +393,7 @@ public class Path {
 	/// </summary>
 	public long makePathMinDist(long time, List<Unit> units) {
 		long ret = 0;
-		foreach (Unit unit in activeSegment (time).units) {
+		foreach (Unit unit in segmentWhen (time).units) {
 			if (units.Contains (unit) && unit.type.makePathMinDist > ret) {
 				ret = unit.type.makePathMinDist;
 			}
@@ -406,7 +406,7 @@ public class Path {
 	/// </summary>
 	public long makePathMaxDist(long time, List<Unit> units) {
 		long ret = 0;
-		foreach (Unit unit in activeSegment (time).units) {
+		foreach (Unit unit in segmentWhen (time).units) {
 			if (units.Contains (unit) && unit.type.makePathMaxDist > ret) {
 				ret = unit.type.makePathMaxDist;
 			}
