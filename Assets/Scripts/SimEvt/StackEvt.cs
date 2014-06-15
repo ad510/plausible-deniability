@@ -49,7 +49,7 @@ public class StackEvt : SimEvt {
 						if (iPos.x == jPos.x && iPos.y == jPos.y) {
 							// check whether allowed to stack the paths' units together
 							List<Unit> stackUnits = iSegment.units.Union (jSegment.units).ToList ();
-							if (g.stackAllowed (stackUnits, paths[i].speed, paths[i].player)) {
+							if (stackUnits.Find (u => u.type.speed != paths[i].speed || u.player != paths[i].player) == null) {
 								// merge the paths onto path i
 								iSegment = paths[i].connect (time, paths[j]);
 								jSegment = paths[j].segmentWhen (time);

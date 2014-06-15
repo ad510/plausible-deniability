@@ -36,7 +36,6 @@ public class Path {
 		id = idVal;
 		speed = speedVal;
 		player = playerVal;
-		if (!g.stackAllowed (units, speed, player)) throw new ArgumentException("specified units may not be on the same path");
 		segments = new List<Segment> {
 			new Segment(this, 0, startTime, units, startUnseen)
 		};

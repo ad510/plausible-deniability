@@ -238,19 +238,6 @@ public class Sim {
 	}
 	
 	/// <summary>
-	/// returns whether the specified units are allowed to be on the same path
-	/// </summary>
-	public bool stackAllowed(List<Unit> stackUnits, long speed, Player player) {
-		if (stackUnits.Count == 0) return true;
-		foreach (Unit unit in stackUnits) {
-			if (unit.type.speed != speed || unit.player != player) {
-				return false;
-			}
-		}
-		return true;
-	}
-	
-	/// <summary>
 	/// iterates over all SegmentUnits active at specified time that are
 	/// past, present, or future versions of specified SegmentUnits
 	/// </summary>
