@@ -14,10 +14,7 @@ public class Attack {
 	[ProtoMember(1)] public readonly long time;
 	[ProtoMember(2, AsReference = true)] public readonly Path target;
 	
-	/// <summary>
-	/// empty constructor for protobuf-net use only
-	/// </summary>
-	private Attack() { }
+	private Attack() { } // for protobuf-net use only
 	
 	public Attack(long timeVal, Path targetVal) {
 		time = timeVal;

@@ -17,10 +17,7 @@ public class StackEvt : SimEvt {
 	[ProtoMember(1, AsReference = true)] public List<Path> paths;
 	[ProtoMember(2)] public int nSeeUnits;
 	
-	/// <summary>
-	/// empty constructor for protobuf-net use only
-	/// </summary>
-	private StackEvt() { }
+	private StackEvt() { } // for protobuf-net use only
 	
 	public StackEvt(long timeVal, List<Path> pathsVal, int nSeeUnitsVal) {
 		time = timeVal;
@@ -42,12 +39,11 @@ public class StackEvt : SimEvt {
 				FP.Vector iPos = paths[i].posWhen (time);
 				Segment iSegment = paths[i].segments.Last ();
 				for (int j = i + 1; j < paths.Count; j++) {
+					// check whether allowed to stack these paths
 					if (!pathsStacked[j] && (paths[i].timeSimPast == long.MaxValue) == (paths[j].timeSimPast == long.MaxValue)) {
 						FP.Vector jPos = paths[j].posWhen (time);
 						Segment jSegment = paths[j].segments.Last ();
-						// check that paths are at same position
 						if (iPos.x == jPos.x && iPos.y == jPos.y) {
-							// check whether allowed to stack the paths' units together
 							List<Unit> stackUnits = iSegment.units.Union (jSegment.units).ToList ();
 							if (stackUnits.Find (u => u.type.speed != paths[i].speed || u.player != paths[i].player) == null) {
 								// merge the paths onto path i

@@ -23,9 +23,7 @@ public class Unit {
 	[ProtoMember(6)] public long[] timeHealth; // times at which each health increment is removed
 	[ProtoMember(7)] public List<Attack> attacks;
 	
-	/// <summary>
-	/// parameterless constructor for protobuf-net use only
-	/// </summary>
+	// for protobuf-net use only
 	private Unit() {
 		attacks = new List<Attack>();
 	}
@@ -79,16 +77,10 @@ public class Unit {
 		}
 	}
 
-	/// <summary>
-	/// returns health of this unit at latest possible time
-	/// </summary>
 	public int healthLatest() {
 		return type.maxHealth - nTimeHealth;
 	}
 
-	/// <summary>
-	/// returns health of this unit at specified time
-	/// </summary>
 	public int healthWhen(long time) {
 		int i = nTimeHealth;
 		while (i > 0 && time < timeHealth[i - 1]) i--;

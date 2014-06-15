@@ -18,10 +18,7 @@ public class StackCmdEvt : UnitCmdEvt {
 	[ProtoMember(2)] public bool autoTimeTravel;
 	[ProtoMember(3)] public int nSeeUnits;
 	
-	/// <summary>
-	/// empty constructor for protobuf-net use only
-	/// </summary>
-	private StackCmdEvt() { }
+	private StackCmdEvt() { } // for protobuf-net use only
 	
 	public StackCmdEvt(long timeVal, long timeCmdVal, Dictionary<int, int[]> pathsVal, int stackPathVal, bool autoTimeTravelVal, int nSeeUnitsVal = int.MaxValue)
 		: base(timeVal, timeCmdVal, pathsVal) {

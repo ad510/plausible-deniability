@@ -14,10 +14,7 @@ public class MapHackCmdEvt : CmdEvt {
 	[ProtoMember(1)] public int player;
 	[ProtoMember(2)] public bool mapHack;
 
-	/// <summary>
-	/// empty constructor for protobuf-net use only
-	/// </summary>
-	private MapHackCmdEvt() { }
+	private MapHackCmdEvt() { } // for protobuf-net use only
 
 	public MapHackCmdEvt(long timeVal, int playerVal, bool mapHackVal) {
 		time = timeVal;

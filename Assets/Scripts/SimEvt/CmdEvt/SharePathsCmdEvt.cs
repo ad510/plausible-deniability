@@ -13,10 +13,7 @@ using ProtoBuf;
 public class SharePathsCmdEvt : UnitCmdEvt {
 	[ProtoMember(1)] bool autoTimeTravel;
 	
-	/// <summary>
-	/// empty constructor for protobuf-net use only
-	/// </summary>
-	private SharePathsCmdEvt() { }
+	private SharePathsCmdEvt() { } // for protobuf-net use only
 	
 	public SharePathsCmdEvt(long timeVal, long timeCmdVal, Dictionary<int, int[]> pathsVal, bool autoTimeTravelVal)
 		: base(timeVal, timeCmdVal, pathsVal) {

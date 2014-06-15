@@ -15,10 +15,7 @@ public class MoveLine {
 	[ProtoMember(2, AsReference = true)] public readonly Player player;
 	[ProtoMember(3)] public readonly List<FP.Vector> vertices;
 	
-	/// <summary>
-	/// empty constructor for protobuf-net use only
-	/// </summary>
-	private MoveLine() { }
+	private MoveLine() { } // for protobuf-net use only
 	
 	public MoveLine(long timeVal, Player playerVal) {
 		time = timeVal;

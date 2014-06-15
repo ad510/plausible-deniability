@@ -15,10 +15,7 @@ public class UnitSelection {
 	[ProtoMember(2, AsReference = true)] public readonly Unit unit;
 	[ProtoMember(3)] public readonly long time;
 	
-	/// <summary>
-	/// empty constructor for protobuf-net use only
-	/// </summary>
-	private UnitSelection() { }
+	private UnitSelection() { } // for protobuf-net use only
 	
 	public UnitSelection(Path pathVal, Unit unitVal, long timeVal) {
 		path = pathVal;

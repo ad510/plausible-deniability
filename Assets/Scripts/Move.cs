@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2013 Andrew Downing
+﻿// Copyright (c) 2013-2014 Andrew Downing
 // Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 // The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
@@ -20,14 +20,8 @@ public class Move {
 	[ProtoMember(3)] public FP.Vector vecStart; // location at timeStart (if rotation is implemented, can store it in z value)
 	[ProtoMember(4)] public FP.Vector vecEnd; // location at timeEnd
 	
-	/// <summary>
-	/// empty constructor for protobuf-net use only
-	/// </summary>
-	private Move() { }
+	private Move() { } // for protobuf-net use only
 
-	/// <summary>
-	/// constructor that directly sets all instance variables
-	/// </summary>
 	public Move(long timeStartVal, long timeEndVal, FP.Vector vecStartVal, FP.Vector vecEndVal) {
 		timeStart = timeStartVal;
 		timeEnd = timeEndVal;
@@ -35,9 +29,6 @@ public class Move {
 		vecEnd = vecEndVal;
 	}
 
-	/// <summary>
-	/// constructor for nonmoving trajectory
-	/// </summary>
 	public Move(long timeVal, FP.Vector vecVal)
 		: this(timeVal, timeVal + 1, vecVal, vecVal) {
 	}
@@ -49,9 +40,6 @@ public class Move {
 		return new Move(timeStartVal, timeStartVal + (vecEndVal - vecStartVal).length() / speed, vecStartVal, vecEndVal);
 	}
 
-	/// <summary>
-	/// returns location at specified time
-	/// </summary>
 	public FP.Vector posWhen(long time) {
 		if (time >= timeEnd) return vecEnd;
 		return vecStart + (vecEnd - vecStart) * FP.div(time - timeStart, timeEnd - timeStart);
