@@ -33,11 +33,9 @@ public class MakeUnitCmdEvt : UnitCmdEvt {
 			FP.Vector curPos = path.posWhen(timeCmd);
 			if ((pos.x == curPos.x && pos.y == curPos.y) || (g.unitT[type].speed > 0 && g.unitT[type].makeOnUnitT == null)) {
 				// TODO: take time to make units?
-				List<Unit> unitList = new List<Unit>();
 				Unit unit = new Unit(g, g.units.Count, g.unitT[type], path.player);
 				g.units.Add (unit);
-				unitList.Add (unit);
-				if (path.makePath (timeCmd, unitList)) {
+				if (path.makePath (timeCmd, new List<Unit> { unit })) {
 					if (g.paths.Last ().canMove (timeCmd + 1)) { // move at timeCmd + 1 to avoid failing canBeAmbiguousParent() for non-live paths
 						g.paths.Last ().moveToDirect (timeCmd + 1, pos); // move new unit out of the way
 					}
