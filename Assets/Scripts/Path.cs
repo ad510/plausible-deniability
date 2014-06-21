@@ -199,6 +199,7 @@ public class Path {
 							break;
 						}
 						segment.units.Add (unit);
+						segment.deletedUnits.Remove(unit);
 					}
 				}
 				// make non-live path moving along waypoints
