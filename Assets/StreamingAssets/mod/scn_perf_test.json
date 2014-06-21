@@ -30,13 +30,13 @@
       "name": "blue",
       "isUser": true,
       "user": 0,
-      "mayAttack": ["red"]
+      "canAttack": ["red"]
     },
     {
       "name": "red",
       "isUser": true,
       "user": 0,
-      "mayAttack": ["blue"]
+      "canAttack": ["blue"]
     }
   ],
   "unitTypes":

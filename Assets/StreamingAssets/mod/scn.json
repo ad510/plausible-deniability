@@ -36,7 +36,7 @@
       {
         "Minerals": 20
       },
-      "mayAttack": ["Red"]
+      "canAttack": ["Red"]
     },
     {
       "name": "Red",
@@ -47,7 +47,7 @@
       {
         "Minerals": 20
       },
-      "mayAttack": ["Blue"]
+      "canAttack": ["Blue"]
     },
     {
       "name": "Resources",

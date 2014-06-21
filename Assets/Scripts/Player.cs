@@ -19,7 +19,7 @@ public class Player {
 	[ProtoMember(5)] public int user; // -2 = nobody, -1 = computer, 0+ = human
 	[ProtoMember(12)] public int populationLimit;
 	[ProtoMember(6)] public long[] startRsc; // resources at beginning of game
-	[ProtoMember(7)] public bool[] mayAttack; // if this player's units may attack each other player's units
+	[ProtoMember(7)] public bool[] canAttack; // if this player's units may attack each other player's units
 	[ProtoMember(14)] public bool mapHack;
 	// not stored in scenario files
 	[ProtoMember(8)] public bool immutable; // whether player's units will never unpredictably move or change
@@ -176,7 +176,7 @@ public class Player {
 		if (isUser || user >= Sim.compUser) return false;
 		// check that no one can attack this player
 		foreach (Player player2 in g.players) {
-			if (player2.mayAttack[id]) return false;
+			if (player2.canAttack[id]) return false;
 		}
 		return true;
 	}

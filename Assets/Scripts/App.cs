@@ -311,16 +311,16 @@ public class App : MonoBehaviour {
 				g.players[g.players.Length - 1] = player;
 			}
 			foreach (Hashtable jsonO in jsonA) {
-				ArrayList jsonA2 = jsonArray(jsonO, "mayAttack");
+				ArrayList jsonA2 = jsonArray(jsonO, "canAttack");
 				Player player = g.playerNamed(jsonString(jsonO, "name"));
-				player.mayAttack = new bool[g.players.Length];
+				player.canAttack = new bool[g.players.Length];
 				for (int i = 0; i < g.players.Length; i++) {
-					player.mayAttack[i] = false;
+					player.canAttack[i] = false;
 				}
 				if (jsonA2 != null) {
 					foreach (string s in jsonA2) {
 						if (g.playerNamed(s) != null) {
-							player.mayAttack[g.playerNamed(s).id] = true;
+							player.canAttack[g.playerNamed(s).id] = true;
 						}
 					}
 				}
@@ -622,7 +622,7 @@ public class App : MonoBehaviour {
 						if (g.timeGame >= g.paths[i].segments[0].timeStart
 							&& FP.rectContains (g.paths[i].selMinPos(g.timeGame), g.paths[i].selMaxPos(g.timeGame), drawToSimPos (Input.mousePosition))) {
 							if (g.timeGame >= g.timeSim && g.paths[i].tileWhen (g.timeGame).playerDirectVisWhen (selPlayer, g.timeGame)
-								&& selPlayer.mayAttack[g.paths[i].player.id]
+								&& selPlayer.canAttack[g.paths[i].player.id]
 								&& g.paths[i].segmentWhen (g.timeGame).units.Where (u2 => curSelPaths.Values.Where (units => units.Where (u => u.type.damage[u2.type.id] > 0).Any ()).Any ()).Any ()) {
 								attackPath = i;
 								break;

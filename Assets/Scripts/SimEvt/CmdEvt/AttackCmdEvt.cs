@@ -29,7 +29,7 @@ public class AttackCmdEvt : UnitCmdEvt {
 		Tile targetTile = g.paths[target].tileWhen (timeCmd);
 		FP.Vector targetPos = g.paths[target].posWhen (timeCmd);
 		foreach (KeyValuePair<Path, List<Unit>> path in exPaths) {
-			if (path.Key.timeSimPast == long.MaxValue && path.Key.id != target && path.Key.player.mayAttack[g.paths[target].player.id]
+			if (path.Key.timeSimPast == long.MaxValue && path.Key.id != target && path.Key.player.canAttack[g.paths[target].player.id]
 				&& targetTile.playerDirectVisLatest (path.Key.player)) {
 				long distSq = (targetPos - path.Key.posWhen(timeCmd)).lengthSq ();
 				foreach (Unit unit in path.Value) {
