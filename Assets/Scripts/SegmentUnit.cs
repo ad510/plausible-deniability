@@ -35,17 +35,11 @@ public struct SegmentUnit {
 		// *****************
 		// BEGIN DANGER ZONE
 		// *****************
-		// It is VERY easy to accidentally break something in this function.
-		// There are many non-trivial cases it needs to handle, so only modify it if you know what you are doing.
-		// Even if you think you know what you're doing, you will likely break a corner case anyway but not notice until a week or two later.
+		// There are many non-trivial cases this function needs to handle, so only modify it if you know what you are doing.
+		// Even then, you will likely break a corner case anyway but not notice until a week or two later.
 		//
 		// If what you want to do is actually some sort of postprocessing using the deleted SegmentUnits,
 		// it's best to do it at the end of the function (after the "danger zone") by iterating over the "removed" variable.
-		//
-		// If you do need to modify something in the "danger zone",
-		// the basic algorithm is to start at this SegmentUnit, traverse over ancestor SegmentUnits until reaching ones with alternate next segments,
-		// then call deleteAfter() to remove units from descendent SegmentUnits until reaching ones with alternate previous segments.
-		// However, there are many game-specific gotchas to be aware of...
 		if (!segment.units.Contains (unit)) return true; // if this segment already doesn't contain this unit, return true
 		List<SegmentUnit> ancestors = new List<SegmentUnit> { this };
 		Dictionary<Segment, List<Unit>> removed = new Dictionary<Segment, List<Unit>>();
