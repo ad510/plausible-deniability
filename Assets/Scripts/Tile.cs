@@ -45,11 +45,11 @@ public class Tile {
 		y = yVal;
 		pathVis = new Dictionary<int,List<long>>();
 		playerVis = new List<long>[g.players.Length];
-		if (Sim.EnableNonLivePaths) exclusive = new List<long>[g.players.Length];
+		if (Sim.enableNonLivePaths) exclusive = new List<long>[g.players.Length];
 		waypoints = new Dictionary<int, List<Waypoint>>();
 		for (int i = 0; i < g.players.Length; i++) {
 			playerVis[i] = new List<long>();
-			if (Sim.EnableNonLivePaths) exclusive[i] = new List<long>();
+			if (Sim.enableNonLivePaths) exclusive[i] = new List<long>();
 		}
 	}
 	
@@ -60,7 +60,7 @@ public class Tile {
 			protoPlayerVis.Add (playerVis[i].Count);
 			protoPlayerVis.AddRange (playerVis[i]);
 		}
-		if (Sim.EnableNonLivePaths) {
+		if (Sim.enableNonLivePaths) {
 			protoExclusive = new List<long>();
 			for (int i = 0; i < exclusive.Length; i++) {
 				protoExclusive.Add (exclusive[i].Count);
@@ -88,7 +88,7 @@ public class Tile {
 			player++;
 		}
 		protoPlayerVis = null;
-		if (Sim.EnableNonLivePaths) {
+		if (Sim.enableNonLivePaths) {
 			exclusive = new List<long>[g.players.Length];
 			player = 0;
 			for (int i = 0; i < protoExclusive.Count; i += (int)protoExclusive[i] + 1) {
@@ -181,7 +181,7 @@ public class Tile {
 			for (int tY = Math.Max (0, y - 1); tY <= Math.Min (g.tileLen () - 1, y + 1); tY++) {
 				if (tX != x || tY != y) {
 					foreach (var waypoint in g.tiles[tX, tY].waypoints) {
-						long halfMoveInterval = new FP.Vector(tX - x << FP.Precision, tY - y << FP.Precision).length() / g.units[waypoint.Key].type.speed / 2;
+						long halfMoveInterval = new FP.Vector(tX - x << FP.precision, tY - y << FP.precision).length() / g.units[waypoint.Key].type.speed / 2;
 						if (player == g.units[waypoint.Key].player && Waypoint.active (waypoint.Value.Last ())
 							&& time >= waypoint.Value.Last ().time + halfMoveInterval) {
 							g.events.add (new WaypointAddEvt(time + halfMoveInterval, g.units[waypoint.Key], this, waypoint.Value.Last (), null));
@@ -213,7 +213,7 @@ public class Tile {
 	/// the player can infer that he/she is the only player that can see this tile.
 	/// </remarks>
 	public bool calcExclusive(Player player) {
-		if (Sim.EnableNonLivePaths && player.unseenTiles != 0) {
+		if (Sim.enableNonLivePaths && player.unseenTiles != 0) {
 			// check that this player can see all nearby tiles
 			if (g.inVis(g.lastUnseenTile.x - x, g.lastUnseenTile.y - y) && !g.tiles[g.lastUnseenTile.x, g.lastUnseenTile.y].playerVisLatest(player)) return false;
 			int tXMin = Math.Max(0, x - g.tileVisRadius());
@@ -239,7 +239,7 @@ public class Tile {
 	/// returns if specified player can infer that no other player can see this tile at latest possible time
 	/// </summary>
 	public bool exclusiveLatest(Player player) {
-		if (!Sim.EnableNonLivePaths) return calcExclusive(player);
+		if (!Sim.enableNonLivePaths) return calcExclusive(player);
 		return visLatest(exclusive[player.id]);
 	}
 
@@ -247,7 +247,7 @@ public class Tile {
 	/// returns if specified player can infer that no other player can see this tile at specified time
 	/// </summary>
 	public bool exclusiveWhen(Player player, long time) {
-		if (!Sim.EnableNonLivePaths && time == g.timeSim) return calcExclusive (player);
+		if (!Sim.enableNonLivePaths && time == g.timeSim) return calcExclusive (player);
 		return visWhen(exclusive[player.id], time);
 	}
 	
@@ -272,7 +272,7 @@ public class Tile {
 	}
 	
 	public FP.Vector centerPos() {
-		return new FP.Vector((x << FP.Precision) + (1 << FP.Precision) / 2, (y << FP.Precision) + (1 << FP.Precision) / 2);
+		return new FP.Vector((x << FP.precision) + (1 << FP.precision) / 2, (y << FP.precision) + (1 << FP.precision) / 2);
 	}
 
 	/// <summary>
