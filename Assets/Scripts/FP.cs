@@ -12,7 +12,7 @@ using ProtoBuf;
 /// <summary>
 /// fixed point arithmetic
 /// </summary>
-public class FP {
+public static class FP {
 	/// <summary>
 	/// fixed point bit precision past decimal point
 	/// </summary>
