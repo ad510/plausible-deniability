@@ -204,7 +204,7 @@ public class Path {
 				}
 				// make non-live path moving along waypoints
 				waypointMoves.Insert (0, new Move(waypoint.start[0].time, waypoint.time, waypoint.start[0].path.posWhen (waypoint.start[0].time), waypointMoves[0].vecStart));
-				if (!waypoint.start[0].path.segmentWhen (waypoint.start[0].time).path.makePath (waypointMoves[0].timeStart, new List<Unit> { unit })) {
+				if (!waypoint.start[0].segment().path.makePath (waypointMoves[0].timeStart, new List<Unit> { unit })) {
 					throw new SystemException("make auto time travel path failed when moving units");
 				}
 				g.paths.Last ().moves = waypointMoves;

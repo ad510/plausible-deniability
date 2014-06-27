@@ -24,6 +24,10 @@ public class UnitSelection {
 	}
 	
 	public SegmentUnit segmentUnit() {
-		return new SegmentUnit(path.segmentWhen (time), unit);
+		return new SegmentUnit(segment(), unit);
+	}
+	
+	public Segment segment() {
+		return path.segmentWhen(time);
 	}
 }
