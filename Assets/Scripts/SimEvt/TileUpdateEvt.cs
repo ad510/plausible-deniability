@@ -102,13 +102,13 @@ public class TileUpdateEvt : SimEvt {
 					}
 					if (Sim.enableNonLivePaths) {
 						// apply PlayerVisRemoveEvts that occur immediately
-						foreach (SimEvt evt in g.events.events) {
+						foreach (SimEvt evt in g.events) {
 							if (evt.time > time) break;
 							if (evt is PlayerVisRemoveEvt) {
 								PlayerVisRemoveEvt visEvt = evt as PlayerVisRemoveEvt;
 								if (visEvt.player == path.player) {
 									visEvt.apply (g);
-									g.events.events.Remove (evt);
+									g.events.Remove (evt);
 									break;
 								}
 							}
@@ -192,6 +192,6 @@ public class TileUpdateEvt : SimEvt {
 				}
 			}
 		}
-		g.events.add (new TileUpdateEvt(time + g.tileInterval));
+		g.events.addEvt (new TileUpdateEvt(time + g.tileInterval));
 	}
 }

@@ -36,7 +36,7 @@ public class WaypointAddEvt : SimEvt {
 			for (int tX = Math.Max (0, tile.x - 1); tX <= Math.Min (g.tileLen () - 1, tile.x + 1); tX++) {
 				for (int tY = Math.Max (0, tile.y - 1); tY <= Math.Min (g.tileLen () - 1, tile.y + 1); tY++) {
 					if (tX != tile.x || tY != tile.y) {
-						g.events.add (new WaypointAddEvt(time + new FP.Vector(tX - tile.x << FP.precision, tY - tile.y << FP.precision).length() / unit.type.speed,
+						g.events.addEvt (new WaypointAddEvt(time + new FP.Vector(tX - tile.x << FP.precision, tY - tile.y << FP.precision).length() / unit.type.speed,
 							unit, g.tiles[tX, tY], waypoint, null));
 					}
 				}

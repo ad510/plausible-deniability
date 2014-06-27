@@ -233,8 +233,8 @@ public class App : MonoBehaviour {
 			// not stored in scenario file
 			selUser = user,
 			networkView = multiplayer ? networkView : null,
-			events = new SimEvtList(),
-			cmdPending = new SimEvtList(),
+			events = new List<SimEvt>(),
+			cmdPending = new List<SimEvt>(),
 			checksum = 0,
 			synced = true,
 			timeSim = 0,
@@ -274,8 +274,8 @@ public class App : MonoBehaviour {
 			units = new List<Unit>(),
 			paths = new List<Path>(),
 		};
-		if (g.updateInterval > 0) g.events.add(new UpdateEvt(0));
-		if (g.tileInterval > 0) g.events.add (new TileUpdateEvt(0));
+		if (g.updateInterval > 0) g.events.addEvt(new UpdateEvt(0));
+		if (g.tileInterval > 0) g.events.addEvt (new TileUpdateEvt(0));
 		g.camPos = jsonFPVector(json, "camPos", new FP.Vector(g.mapSize / 2, g.mapSize / 2));
 		// resources
 		jsonA = jsonArray(json, "resources");
@@ -568,7 +568,7 @@ public class App : MonoBehaviour {
 				if (makeUnitType != null) {
 					// make unit
 					FP.Vector pos = makeUnitPos();
-					if (pos.x != Sim.offMap) g.cmdPending.add(new MakeUnitCmdEvt(g.timeSim, newCmdTime(), UnitCmdEvt.argFromPathDict (curSelPaths), makeUnitType.id, pos, enableAutoTimeTravel));
+					if (pos.x != Sim.offMap) g.cmdPending.addEvt(new MakeUnitCmdEvt(g.timeSim, newCmdTime(), UnitCmdEvt.argFromPathDict (curSelPaths), makeUnitType.id, pos, enableAutoTimeTravel));
 					makeUnitType = null;
 				}
 				else {
@@ -635,15 +635,15 @@ public class App : MonoBehaviour {
 					}
 					if (attackPath >= 0) {
 						// attack clicked path
-						g.cmdPending.add (new AttackCmdEvt(g.timeSim, newCmdTime (), UnitCmdEvt.argFromPathDict (curSelPaths), attackPath));
+						g.cmdPending.addEvt (new AttackCmdEvt(g.timeSim, newCmdTime (), UnitCmdEvt.argFromPathDict (curSelPaths), attackPath));
 					}
 					else if (enableStacking && stackPath >= 0) {
 						// stack selected paths onto clicked path
-						g.cmdPending.add (new StackCmdEvt(g.timeSim, newCmdTime (), UnitCmdEvt.argFromPathDict (curSelPaths), stackPath, enableAutoTimeTravel));
+						g.cmdPending.addEvt (new StackCmdEvt(g.timeSim, newCmdTime (), UnitCmdEvt.argFromPathDict (curSelPaths), stackPath, enableAutoTimeTravel));
 					}
 					else {
 						// move selected paths
-						g.cmdPending.add(new MoveCmdEvt(g.timeSim, newCmdTime(), UnitCmdEvt.argFromPathDict (curSelPaths), drawToSimPos (Input.mousePosition), selFormation, enableAutoTimeTravel));
+						g.cmdPending.addEvt(new MoveCmdEvt(g.timeSim, newCmdTime(), UnitCmdEvt.argFromPathDict (curSelPaths), drawToSimPos (Input.mousePosition), selFormation, enableAutoTimeTravel));
 					}
 				}
 			}
@@ -722,7 +722,7 @@ public class App : MonoBehaviour {
 		}
 		if (Input.GetKeyDown (KeyCode.F3)) {
 			// toggle map hack
-			g.cmdPending.add (new MapHackCmdEvt(g.timeSim, selPlayer.id, !selPlayer.mapHack));
+			g.cmdPending.addEvt (new MapHackCmdEvt(g.timeSim, selPlayer.id, !selPlayer.mapHack));
 		}
 		if (Input.GetKeyDown (KeyCode.R) && Input.GetKey (KeyCode.LeftShift)) {
 			// instant replay
@@ -1114,7 +1114,7 @@ public class App : MonoBehaviour {
 	// ISSUE #24: add NetworkMessageInfo as last parameter to authenticate user, according to http://forum.unity3d.com/threads/141156-Determine-sender-of-RPC
 	[RPC]
 	void nextTurnWithCmds(int user, byte[] cmdData, int checksum) {
-		g.users[user].cmdReceived.events.AddRange (Serializer.Deserialize<SimEvtList>(new MemoryStream(cmdData)).events);
+		g.users[user].cmdReceived.AddRange(Serializer.Deserialize<List<SimEvt>>(new MemoryStream(cmdData)));
 		nextTurn (user, checksum);
 	}
 	
@@ -1302,7 +1302,7 @@ public class App : MonoBehaviour {
 					if (pos.y > maxY) maxY = pos.y;
 				}
 			}
-			g.cmdPending.add(new MoveCmdEvt(g.timeSim, newCmdTime(), UnitCmdEvt.argFromPathDict (curSelPaths), new FP.Vector((minX + maxX) / 2, (minY + maxY) / 2), selFormation, enableAutoTimeTravel));
+			g.cmdPending.addEvt(new MoveCmdEvt(g.timeSim, newCmdTime(), UnitCmdEvt.argFromPathDict (curSelPaths), new FP.Vector((minX + maxX) / 2, (minY + maxY) / 2), selFormation, enableAutoTimeTravel));
 		}
 	}
 	
@@ -1312,28 +1312,28 @@ public class App : MonoBehaviour {
 			foreach (KeyValuePair<Path, List<Unit>> path in curSelPaths) {
 				pos[path.Key.id] = makePathMovePos(g.timeGame, path.Key, path.Value);
 			}
-			g.cmdPending.add(new MakePathCmdEvt(g.timeSim, newCmdTime(), UnitCmdEvt.argFromPathDict(curSelPaths), pos));
+			g.cmdPending.addEvt(new MakePathCmdEvt(g.timeSim, newCmdTime(), UnitCmdEvt.argFromPathDict(curSelPaths), pos));
 		}
 	}
 	
 	private void deletePaths() {
-		if (curSelPaths.Count > 0) g.cmdPending.add(new DeletePathCmdEvt(g.timeSim, newCmdTime(), UnitCmdEvt.argFromPathDict(curSelPaths)));
+		if (curSelPaths.Count > 0) g.cmdPending.addEvt(new DeletePathCmdEvt(g.timeSim, newCmdTime(), UnitCmdEvt.argFromPathDict(curSelPaths)));
 	}
 	
 	private void deleteOtherPaths() {
-		if (curSelPaths.Count > 0) g.cmdPending.add (new DeleteOtherPathsCmdEvt(g.timeSim, newCmdTime (), UnitCmdEvt.argFromPathDict (curSelPaths)));
+		if (curSelPaths.Count > 0) g.cmdPending.addEvt (new DeleteOtherPathsCmdEvt(g.timeSim, newCmdTime (), UnitCmdEvt.argFromPathDict (curSelPaths)));
 	}
 	
 	private void sharePaths() {
 		if (!enableStacking) throw new InvalidOperationException("may not share paths when stacking is disabled");
-		if (curSelPaths.Count > 0) g.cmdPending.add (new SharePathsCmdEvt(g.timeSim, newCmdTime (), UnitCmdEvt.argFromPathDict (curSelPaths), enableAutoTimeTravel));
+		if (curSelPaths.Count > 0) g.cmdPending.addEvt (new SharePathsCmdEvt(g.timeSim, newCmdTime (), UnitCmdEvt.argFromPathDict (curSelPaths), enableAutoTimeTravel));
 	}
 	
 	private void unstack() {
 		foreach (KeyValuePair<Path, List<Unit>> path in curSelPaths) {
 			if (path.Key.canMove (g.timeGame) && path.Key.segmentWhen (g.timeGame).units.Count > 1) {
 				foreach (Unit unit in path.Value) {
-					g.cmdPending.add (new MoveCmdEvt(g.timeSim, newCmdTime (),
+					g.cmdPending.addEvt (new MoveCmdEvt(g.timeSim, newCmdTime (),
 						UnitCmdEvt.argFromPathDict (new Dictionary<Path, List<Unit>> { { path.Key, new List<Unit> { unit } } }),
 						makePathMovePos (g.timeGame, path.Key, new List<Unit> { unit }), Formation.Tight, false));
 				}
@@ -1352,7 +1352,7 @@ public class App : MonoBehaviour {
 		foreach (KeyValuePair<Path, List<Unit>> path in curSelPaths) {
 			if (type.speed > 0 && type.makeOnUnitT == null && path.Key.canMakeUnitType (g.timeGame, type)) {
 				// make unit now
-				g.cmdPending.add(new MakeUnitCmdEvt(g.timeSim, newCmdTime(),
+				g.cmdPending.addEvt(new MakeUnitCmdEvt(g.timeSim, newCmdTime(),
 					UnitCmdEvt.argFromPathDict (new Dictionary<Path, List<Unit>> { { path.Key, path.Value } }),
 					type.id, makeUnitMovePos (g.timeGame, path.Key, type), enableAutoTimeTravel));
 				break;

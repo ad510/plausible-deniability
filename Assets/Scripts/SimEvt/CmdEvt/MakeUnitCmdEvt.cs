@@ -72,7 +72,7 @@ public class MakeUnitCmdEvt : UnitCmdEvt {
 					}
 				}
 				long evtTime = Math.Max (timeCmd, movePath.moves.Last ().timeEnd);
-				g.events.add(new MakeUnitCmdEvt(evtTime, evtTime, evtPaths, type, pos, autoTimeTravel, true));
+				g.events.addEvt(new MakeUnitCmdEvt(evtTime, evtTime, evtPaths, type, pos, autoTimeTravel, true));
 			}
 		}
 	}

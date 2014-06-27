@@ -39,7 +39,7 @@ public class MoveCmdEvt : UnitCmdEvt {
 				for (i = 0; i < formationOrder.Count; i++) {
 					if (path.Key.moves.Last ().vecEnd.x == formationOrder[i][0].moves.Last ().vecEnd.x
 						&& path.Key.moves.Last ().vecEnd.y == formationOrder[i][0].moves.Last ().vecEnd.y) {
-						SimEvt evt = g.events.events.FindLast (e => e is StackEvt && (e as StackEvt).paths.Contains (path.Key)
+						SimEvt evt = g.events.FindLast (e => e is StackEvt && (e as StackEvt).paths.Contains (path.Key)
 							&& formationOrder[i].Find (p => (e as StackEvt).paths.Contains (p)) != null);
 						if (evt != null) {
 							// path is trying to stack onto another commanded path

@@ -36,7 +36,7 @@ public class UpdateEvt : SimEvt {
 			long timeSimPast = long.MaxValue;
 			if (g.timeGame < g.timeSim) {
 				timeSimPast = g.timeGame + g.updateInterval;
-				foreach (SimEvt evt in g.cmdPending.events) {
+				foreach (SimEvt evt in g.cmdPending) {
 					if (evt is UnitCmdEvt) {
 						UnitCmdEvt unitCmdEvt = evt as UnitCmdEvt;
 						if (unitCmdEvt.timeCmd > timeSimPast) timeSimPast = unitCmdEvt.timeCmd;
@@ -45,12 +45,12 @@ public class UpdateEvt : SimEvt {
 			}
 			foreach (Player player in g.players) {
 				if (player.user == g.selUser && player.hasNonLivePaths) {
-					g.cmdPending.events.Insert (0, new UpdatePastCmdEvt(time, timeSimPast, player.id));
+					g.cmdPending.Insert (0, new UpdatePastCmdEvt(time, timeSimPast, player.id));
 				}
 			}
 			// send pending commands to other users
-			if (g.cmdPending.events.Count > 0) {
-				foreach (SimEvt evt in g.cmdPending.events) {
+			if (g.cmdPending.Count > 0) {
+				foreach (SimEvt evt in g.cmdPending) {
 					evt.time = time + g.updateInterval; // set event time to when it will be applied
 				}
 				System.IO.MemoryStream stream = new System.IO.MemoryStream();
@@ -63,7 +63,7 @@ public class UpdateEvt : SimEvt {
 			// move pending commands to cmdReceived
 			g.users[g.selUser].cmdReceived = g.cmdPending;
 			g.users[g.selUser].timeSync += g.updateInterval;
-			g.cmdPending = new SimEvtList();
+			g.cmdPending = new List<SimEvt>();
 			g.users[g.selUser].checksums[time + g.updateInterval] = g.checksum;
 		}
 		// update units
@@ -100,7 +100,7 @@ public class UpdateEvt : SimEvt {
 		}
 		// add next UpdateEvt
 		g.checksum = 0;
-		g.events.add(new UpdateEvt(time + g.updateInterval));
+		g.events.addEvt(new UpdateEvt(time + g.updateInterval));
 		g.timeUpdateEvt = time;
 	}
 }

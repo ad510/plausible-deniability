@@ -108,7 +108,7 @@ public class Unit {
 						start.Add (new UnitSelection(cur.segment.path, this, cur.segment.timeStart));
 					}
 				} while (prev.g != null && prev.segment.unseen);
-				g.events.add (new WaypointAddEvt(time + (tile.centerPos() - path.posWhen(time)).length () / type.speed,
+				g.events.addEvt (new WaypointAddEvt(time + (tile.centerPos() - path.posWhen(time)).length () / type.speed,
 					this, tile, null, start));
 			}
 		}
