@@ -55,33 +55,49 @@ public class Path {
 	/// </summary>
 	public void updatePast(long curTime) {
 		while (timeSimPast <= Math.Min (curTime, g.timeSim) - g.tileInterval && segments.Last ().units.Count > 0) {
+			int tXPrev, tYPrev;
 			timeSimPast += g.tileInterval;
-			updateTilePos (timeSimPast);
+			updateTilePos (timeSimPast, out tXPrev, out tYPrev);
 			if (!g.tiles[tileX, tileY].exclusiveWhen (player, timeSimPast)) {
 				segments.Last ().removeAllUnits (true);
 			}
 		}
 	}
 	
-	public void updateTilePos(long time) {
+	public bool updateTilePos(long time, out int tXPrev, out int tYPrev) {
 		if (time % g.tileInterval != 0) throw new ArgumentException("tile update time must be divisible by tileInterval");
-		if (time >= moves[0].timeStart) {
-			if (segments.Last ().units.Count == 0) {
-				// path no longer contains units, so remove it from visibility tiles
-				tileX = Sim.offMap;
-			}
-			else {
-				FP.Vector pos = posWhen (time);
-				tileX = (int)(pos.x >> FP.precision);
-				tileY = (int)(pos.y >> FP.precision);
+		tXPrev = tileX;
+		tYPrev = tileY;
+		if (time < moves[0].timeStart) return false;
+		if (segments.Last ().units.Count == 0) {
+			// path no longer contains units, so remove it from visibility tiles
+			tileX = Sim.offMap;
+		}
+		else {
+			FP.Vector pos = posWhen (time);
+			tileX = (int)(pos.x >> FP.precision);
+			tileY = (int)(pos.y >> FP.precision);
+		}
+		if (tileX == tXPrev && tileY == tYPrev) return false;
+		// add path to visibility tiles
+		for (int tX = Math.Max (0, tileX - g.tileVisRadius()); tX <= Math.Min (g.tileLen () - 1, tileX + g.tileVisRadius()); tX++) {
+			for (int tY = Math.Max (0, tileY - g.tileVisRadius()); tY <= Math.Min (g.tileLen () - 1, tileY + g.tileVisRadius()); tY++) {
+				if (!g.inVis(tX - tXPrev, tY - tYPrev) && g.inVis(tX - tileX, tY - tileY)) {
+					if (g.tiles[tX, tY].pathVisLatest(this)) throw new InvalidOperationException("path " + id + " already sees tile (" + tX + ", " + tY + ")");
+					g.tiles[tX, tY].pathVisToggle(this, time);
+				}
 			}
 		}
-	}
-
-	public void goLive() {
-		tileX = Sim.offMap + 1;
-		tileY = Sim.offMap + 1;
-		timeSimPast = long.MaxValue;
+		// remove path from visibility tiles
+		for (int tX = Math.Max (0, tXPrev - g.tileVisRadius()); tX <= Math.Min (g.tileLen () - 1, tXPrev + g.tileVisRadius()); tX++) {
+			for (int tY = Math.Max (0, tYPrev - g.tileVisRadius()); tY <= Math.Min (g.tileLen () - 1, tYPrev + g.tileVisRadius()); tY++) {
+				if (g.inVis(tX - tXPrev, tY - tYPrev) && !g.inVis(tX - tileX, tY - tileY)) {
+					if (!g.tiles[tX, tY].pathVisLatest(this)) throw new InvalidOperationException("path " + id + " already doesn't see tile (" + tX + ", " + tY + ")");
+					g.tiles[tX, tY].pathVisToggle(this, time);
+				}
+			}
+		}
+		return true;
 	}
 
 	public bool makePath(long time, List<Unit> units, bool ignoreSeen = false) {

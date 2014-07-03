@@ -21,10 +21,8 @@ public class TileUpdateEvt : SimEvt {
 		bool anyoneMoved = false;
 		foreach (Path path in g.paths) {
 			if (path.timeSimPast == long.MaxValue && path.tileX != Sim.offMap) {
-				int tXPrev = path.tileX;
-				int tYPrev = path.tileY;
-				path.updateTilePos (time);
-				if (path.tileX != tXPrev || path.tileY != tYPrev) {
+				int tXPrev, tYPrev;
+				if (path.updateTilePos(time, out tXPrev, out tYPrev)) {
 					anyoneMoved = true;
 					int exclusiveMinX = g.tileLen() - 1;
 					int exclusiveMaxX = 0;
@@ -34,9 +32,6 @@ public class TileUpdateEvt : SimEvt {
 					for (int tX = Math.Max (0, path.tileX - g.tileVisRadius()); tX <= Math.Min (g.tileLen () - 1, path.tileX + g.tileVisRadius()); tX++) {
 						for (int tY = Math.Max (0, path.tileY - g.tileVisRadius()); tY <= Math.Min (g.tileLen () - 1, path.tileY + g.tileVisRadius()); tY++) {
 							if (!g.inVis(tX - tXPrev, tY - tYPrev) && g.inVis(tX - path.tileX, tY - path.tileY)) {
-								if (g.tiles[tX, tY].pathVisLatest(path)) throw new InvalidOperationException("path " + path.id + " already sees tile (" + tX + ", " + tY + ")");
-								// add path to path visibility tile
-								g.tiles[tX, tY].pathVisToggle(path, time);
 								if (!g.tiles[tX, tY].playerVisLatest(path.player)) {
 									// make tile visible to this player
 									g.tiles[tX, tY].playerVis[path.player.id].Add(time);
@@ -63,9 +58,6 @@ public class TileUpdateEvt : SimEvt {
 					for (int tX = Math.Max (0, tXPrev - g.tileVisRadius()); tX <= Math.Min (g.tileLen () - 1, tXPrev + g.tileVisRadius()); tX++) {
 						for (int tY = Math.Max (0, tYPrev - g.tileVisRadius()); tY <= Math.Min (g.tileLen () - 1, tYPrev + g.tileVisRadius()); tY++) {
 							if (g.inVis(tX - tXPrev, tY - tYPrev) && !g.inVis(tX - path.tileX, tY - path.tileY)) {
-								if (!g.tiles[tX, tY].pathVisLatest(path)) throw new InvalidOperationException("path " + path.id + " already doesn't see tile (" + tX + ", " + tY + ")");
-								// remove path from path visibility tile
-								g.tiles[tX, tY].pathVisToggle(path, time);
 								// check if player can't directly see this tile anymore
 								if (g.tiles[tX, tY].playerVisLatest(path.player) && !g.tiles[tX, tY].playerDirectVisLatest(path.player)) {
 									long timePlayerVis = long.MaxValue;
