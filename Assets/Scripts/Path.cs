@@ -49,15 +49,12 @@ public class Path {
 		timeSimPast = (startTime >= g.timeSim) ? long.MaxValue : startTime / g.tileInterval * g.tileInterval;
 	}
 
-	/// <summary>
-	/// ensure that if path is moving in the past, it does not move off exclusively seen areas
-	/// </summary>
-	public void updatePast(long curTime) {
+	public void updatePast(long curTime, bool validate) {
 		while (timeSimPast <= Math.Min (curTime, g.timeSim) - g.tileInterval && segments.Last ().units.Count > 0) {
 			int tXPrev, tYPrev;
 			timeSimPast += g.tileInterval;
 			updateTilePos (timeSimPast, out tXPrev, out tYPrev);
-			if (!g.tiles[tileX, tileY].exclusiveWhen (player, timeSimPast)) {
+			if (validate && !g.tiles[tileX, tileY].exclusiveWhen(player, timeSimPast)) {
 				segments.Last ().removeAllUnits (true);
 			}
 		}
@@ -241,7 +238,7 @@ public class Path {
 					throw new SystemException("make auto time travel path failed when moving units");
 				}
 				g.paths.Last ().moves = waypointMoves;
-				g.paths.Last ().timeSimPast = waypointMoves.Last ().timeStart / g.tileInterval * g.tileInterval;
+				g.paths.Last ().updatePast(time, false);
 				// add kept unit line
 				MoveLine keepLine = new MoveLine(time, player);
 				keepLine.vertices.AddRange (g.paths.Last ().moveLines (waypointMoves[0].timeStart, time));

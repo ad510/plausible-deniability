@@ -40,7 +40,7 @@ public class Player {
 	public void updatePast(long curTime) {
 		if (hasNonLivePaths) {
 			foreach (Path path in g.paths) {
-				if (this == path.player) path.updatePast(curTime);
+				if (this == path.player) path.updatePast(curTime, true);
 			}
 			if (curTime >= g.timeSim && g.timeSim >= timeGoLiveFailedAttempt + g.updateInterval) {
 				// make player's time traveling paths go live

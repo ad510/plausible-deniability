@@ -29,7 +29,7 @@ public class StackEvt : SimEvt {
 		bool[] pathsStacked = new bool[paths.Count];
 		// only stack paths that contain units at this time
 		for (int i = 0; i < paths.Count; i++) {
-			paths[i].updatePast (time);
+			paths[i].updatePast (time, true);
 			Segment segment = paths[i].segments.Last ();
 			pathsStacked[i] = (time < segment.timeStart || segment.units.Count == 0 || (time < g.timeSim && !segment.unseen));
 		}
