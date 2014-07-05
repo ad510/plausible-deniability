@@ -205,6 +205,24 @@ public class Path {
 						waypoint.time, waypoint.prev.tile.centerPos (), waypointMoves[0].vecStart));
 					waypoint = waypoint.prev;
 				}
+				waypointMoves.Insert (0, new Move(waypoint.start[0].time, waypoint.time, waypoint.start[0].path.posWhen (waypoint.start[0].time), waypointMoves[0].vecStart));
+				// do path smoothing
+				for (int i = 0; i < waypointMoves.Count; i++) {
+					int j;
+					for (j = i + 1; j < waypointMoves.Count; j++) {
+						Move move = Move.fromSpeed(waypointMoves[i].timeStart, speed, waypointMoves[i].vecStart, waypointMoves[j].vecEnd);
+						long timeMove = (waypointMoves[i].timeStart / g.tileInterval + 1) * g.tileInterval;
+						while (timeMove < waypointMoves[j].timeEnd && g.tileAt(move.posWhen(timeMove)).exclusiveWhen(player, timeMove)) {
+							timeMove += g.tileInterval;
+						}
+						if (timeMove < waypointMoves[j].timeEnd) break;
+					}
+					j--;
+					if (j > i) {
+						waypointMoves[i] = Move.fromSpeed(waypointMoves[i].timeStart, speed, waypointMoves[i].vecStart, waypointMoves[j].vecEnd);
+						waypointMoves.RemoveRange(i + 1, j - i);
+					}
+				}
 				// if unit not found on start waypoint, add it back to past segments
 				for (int i = 0; i < waypoint.start.Count - 1; i++) {
 					Segment segment = waypoint.start[i + 1].path.insertSegment (waypoint.start[i].time);
@@ -219,7 +237,6 @@ public class Path {
 					}
 				}
 				// make non-live path moving along waypoints
-				waypointMoves.Insert (0, new Move(waypoint.start[0].time, waypoint.time, waypoint.start[0].path.posWhen (waypoint.start[0].time), waypointMoves[0].vecStart));
 				if (!waypoint.start[0].segment().path.makePath (waypointMoves[0].timeStart, new List<Unit> { unit })) {
 					throw new SystemException("make auto time travel path failed when moving units");
 				}
