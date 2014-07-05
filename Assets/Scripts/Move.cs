@@ -15,10 +15,10 @@ using ProtoBuf;
 /// </summary>
 [ProtoContract]
 public class Move {
-	[ProtoMember(1)] public long timeStart; // time when starts moving
-	[ProtoMember(2)] public long timeEnd; // time when finishes moving
-	[ProtoMember(3)] public FP.Vector vecStart; // location at timeStart (if rotation is implemented, can store it in z value)
-	[ProtoMember(4)] public FP.Vector vecEnd; // location at timeEnd
+	[ProtoMember(1)] public long timeStart;
+	[ProtoMember(2)] public long timeEnd;
+	[ProtoMember(3)] public FP.Vector vecStart; // if rotation is later implemented, can store it in z value
+	[ProtoMember(4)] public FP.Vector vecEnd;
 	
 	private Move() { } // for protobuf-net use only
 
