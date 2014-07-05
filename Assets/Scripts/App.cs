@@ -416,8 +416,8 @@ public class App : MonoBehaviour {
 							}
 						}
 					}
-					g.paths.Add (new Path(g, g.paths.Count, units, (long)jsonDouble(jsonO, "startTime"),
-						jsonFPVector(jsonO, "startPos", new FP.Vector((long)(UnityEngine.Random.value * g.mapSize), (long)(UnityEngine.Random.value * g.mapSize)))));
+					FP.Vector startPos = jsonFPVector(jsonO, "startPos", new FP.Vector((long)(UnityEngine.Random.value * g.mapSize), (long)(UnityEngine.Random.value * g.mapSize)));
+					g.paths.Add (new Path(g, g.paths.Count, units, (long)jsonDouble(jsonO, "startTime"), startPos, false, int.MaxValue, g.tileAt(startPos).x, g.tileAt(startPos).y));
 				}
 			}
 		}

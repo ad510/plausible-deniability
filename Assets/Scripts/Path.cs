@@ -22,17 +22,19 @@ public class Path {
 	[ProtoMember(5, AsReference = true)] public List<Segment> segments; // composition of the path over time, more recent segments are later in list
 	[ProtoMember(6, AsReference = true)] public List<Move> moves; // how path moved over time, more recent moves are later in list
 	[ProtoMember(10)] public int nSeeUnits; // max # units that should be on this path when it's seen by another player
+	[ProtoMember(11)] public readonly int startTileX;
+	[ProtoMember(12)] public readonly int startTileY;
 	[ProtoMember(7)] public int tileX; // current position on visibility tiles
 	[ProtoMember(8)] public int tileY;
 	[ProtoMember(9)] public long timeSimPast; // time traveling simulation time if made in the past, otherwise set to long.MaxValue
 	
 	private Path() { } // for protobuf-net use only
 
-	public Path(Sim simVal, int idVal, long speedVal, Player playerVal, List<Unit> units, long startTime, FP.Vector startPos, bool startUnseen, int nSeeUnitsVal) {
+	public Path(Sim simVal, int idVal, List<Unit> units, long startTime, FP.Vector startPos, bool startUnseen, int nSeeUnitsVal, int startTileXVal, int startTileYVal) {
 		g = simVal;
 		id = idVal;
-		speed = speedVal;
-		player = playerVal;
+		speed = units[0].type.speed;
+		player = units[0].player;
 		segments = new List<Segment> {
 			new Segment(this, 0, startTime, units, startUnseen)
 		};
@@ -40,14 +42,11 @@ public class Path {
 			new Move(startTime, startPos)
 		};
 		nSeeUnits = nSeeUnitsVal;
+		startTileX = startTileXVal;
+		startTileY = startTileYVal;
 		tileX = Sim.offMap + 1;
 		tileY = Sim.offMap + 1;
 		timeSimPast = (startTime >= g.timeSim) ? long.MaxValue : startTime / g.tileInterval * g.tileInterval;
-	}
-	
-	public Path(Sim simVal, int idVal, List<Unit> units, long startTime, FP.Vector startPos)
-		: this(simVal, idVal, units[0].type.speed, units[0].player, units,
-		startTime, startPos, simVal.tileAt(startPos).exclusiveWhen(units[0].player, startTime), int.MaxValue) {
 	}
 
 	/// <summary>
@@ -68,15 +67,14 @@ public class Path {
 		if (time % g.tileInterval != 0) throw new ArgumentException("tile update time must be divisible by tileInterval");
 		tXPrev = tileX;
 		tYPrev = tileY;
-		if (time < moves[0].timeStart) return false;
 		if (segments.Last ().units.Count == 0) {
 			// path no longer contains units, so remove it from visibility tiles
 			tileX = Sim.offMap;
 		}
 		else {
-			FP.Vector pos = posWhen (time);
-			tileX = (int)(pos.x >> FP.precision);
-			tileY = (int)(pos.y >> FP.precision);
+			Tile tile = tileWhen(time);
+			tileX = tile.x;
+			tileY = tile.y;
 		}
 		if (tileX == tXPrev && tileY == tYPrev) return false;
 		// add path to visibility tiles
@@ -103,9 +101,11 @@ public class Path {
 	public bool makePath(long time, List<Unit> units, bool ignoreSeen = false) {
 		bool costsRsc;
 		if (!canMakePath (time, units, out costsRsc, ignoreSeen)) return false;
+		int tXPrev, tYPrev;
 		Segment segment = insertSegment (time);
-		FP.Vector pos = posWhen (time);
-		g.paths.Add (new Path(g, g.paths.Count, units[0].type.speed, player, units, time, pos, segment.unseen, nSeeUnits));
+		Tile tile = tileWhen(time);
+		g.paths.Add (new Path(g, g.paths.Count, units, time, posWhen(time), segment.unseen, nSeeUnits, tile.x, tile.y));
+		g.paths.Last().updateTilePos(time / g.tileInterval * g.tileInterval, out tXPrev, out tYPrev);
 		connect (time, g.paths.Last ());
 		if (timeSimPast != long.MaxValue) g.paths.Last ().timeSimPast = time / g.tileInterval * g.tileInterval;
 		if (g.paths.Last ().timeSimPast != long.MaxValue) player.hasNonLivePaths = true;
@@ -327,13 +327,8 @@ public class Path {
 	/// returns tile that path is on at specified time
 	/// </summary>
 	public Tile tileWhen(long time) {
-		if (time < moves[0].timeStart) return null;
 		long timeRounded = time / g.tileInterval * g.tileInterval;
-		if (timeRounded < moves[0].timeStart) {
-			// ideally would return tile that parent path was on at timeRounded, but this should be good enough
-			return g.tileAt(moves[0].vecStart);
-		}
-		return g.tileAt(posWhen(timeRounded));
+		return (timeRounded >= moves[0].timeStart) ? g.tileAt(posWhen(timeRounded)) : g.tiles[startTileX, startTileY];
 	}
 
 	public FP.Vector posWhen(long time) {
