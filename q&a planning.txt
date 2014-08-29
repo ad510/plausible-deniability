@@ -1,13 +1,13 @@
 NOTE: If you are not Andrew, you will probably have no clue what I'm rambling about in this file. Don't worry about it; I'm not even sure I'll use most of the stuff here anyway.
 
 not q&a but still good wording:
+- 1:1 mapping between Feynman diagrams and RTS replays!!!
 - limitations/caveats of quantum mechanics analogy
   - people don't understand quantum mechanics (so can't just explain QM analogy and expect people to understand the game)
   - it's only an analogy (so be very careful how you word comparisons to QM)
 - if anyone asks if this is related to quantum mechanics, tell them how it's not related to quantum mechanics
 - physicists wouldn't like it if I answer with "kind of" because physics is a precise science and "kind of" is an imprecise answer
-- green area in game serves similar purpose to wavefunction in physics
-  - can't call green area a wavefunction, would be like calling something a "g force" when it's really an acceleration
+- brighter yellow area in game serves similar purpose to field in quantum mechanics
 - The way Achron works is like "I reject your reality and substitute my own." Plausible Deniability lets you substitute your reality without ever rejecting anyone else's.
 - Zach describes it as RTS in which "[the other player's] reality is determined by what you see"
 - "inspired by quantum mechanics"

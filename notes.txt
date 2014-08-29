@@ -1,4 +1,11 @@
 todo:
+what exactly are you squaring to get probability (in context of feynman diagrams)
+auto time travel for making units
+shoot stack behavior
+taylor email has ui suggestions
+tile iterators
+check behavior when multiple players are superuser
+
 in "bad population b05d7ec.sav", when sniper shoots invisible guy, my guys are deselected and population incorrectly becomes 1/10
   seems related to killing unit with multiple paths when it thinks it's unseen
 sometimes still in replay mode after disconnect & reconnect
@@ -87,7 +94,7 @@ find disconnected regions
 path smoothing
 would graph be too big?
 
-levels:
+levels: (not sure I like NSA as bad guy)
 - tutorial
 - find NSA's secret (big) hovering/floating datacenter in utah desert
   - have obvious toggle in replay to switch between what NSA sees and what you see (or NSA's replay and your replay)
@@ -118,6 +125,7 @@ levels:
     - mentor says replay only shows one way it could have happened (describe feynman diagrams here or later?)
 - player gets to infiltrate another country's base, NSA style? (to introduce superuser-only commands)
   - if player fails to maintain superuser, other country's agents disappear and new one comes out of airport
+- before simplify-rsc, we always deleted other paths after building building or mine b/c if another worker path did something then could get one or the other but not both, this frustrating limitation is decoherence/entanglement
 - player's agency finds identical twin of cooperating NSA agent, use it to steal data (how exactly?)
   - mentor describes feynman diagrams (unless did so already)
   - leak says NSA is superuser by cheating, NSA has secret base at classified location that no one (not even in NSA) knows
@@ -225,6 +233,7 @@ random notes:
   - marines (generic shooting unit)
 - curved space/time manipulation (idea for new game)
   - time manipulation would be a great way to kill people by having them experience an infinite amount of time in the future (to us) in a finite amount of time (to them)
+    - think Braid super-ring
   - can also have people "born" by experiencing infinite amount of time in past (to us) in finite amount of time (to them)
   - would have to be single player only (hard to sync clocks in multiplayer when they're going at different speeds)
   - time loops (become antimatter)
@@ -240,6 +249,7 @@ guilayout reference: https://docs.unity3d.com/Documentation/ScriptReference/GUIL
 memory (includes links to later parts): http://www.gamasutra.com/blogs/WendelinReich/20131109/203841/C_Memory_Management_for_Unity_Developers_part_1_of_3.php
 use visual studio compiler: http://forum.unity3d.com/threads/120327-Video-Tutorial-How-to-use-Visual-Studio-for-all-your-Unity-development
 pdb2mdb ienumerator fix: http://forum.unity3d.com/threads/161685-How-to-build-and-debug-external-DLLs/page2
+fix monodevelop 4 tabbing: http://forum.unity3d.com/threads/191455-Tab-insanity-in-MonoDevelop-packaged-with-Unity-free#post1496147
 
 other links:
 binary serialization: https://code.google.com/p/protobuf-net/
