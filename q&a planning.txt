@@ -28,6 +28,8 @@ have visibility circle (like in menu), when hovering over Q&A box all of it beco
 after pressing continue button, nothing changes but moving mouse away shows level map/menu
 
 old descriptions on website home page:
+I'm still trying to turn <a href="https://github.com/ad510/plausible-deniability">Plausible Deniability</a> (formerly Decoherence) from a proof of concept into an actual game. Despite my best efforts to keep things simple, that codebase simply refuses to be easy to hack on.
+
 The main thing I worked on last summer was the RTS game <a href="https://github.com/ad510/decoherence">Decoherence</a>, and I finally got it to the point where you can play a basic multiplayer game. The reason it's taken so long to get to this point is that the game lets you manipulate what you did in the past, and every time you do this the game has to make sure it is in a valid state <i>at every point</i> in the past. Therefore, whenever I add a new feature, it introduces a bunch of non-trivial edge cases that I have to handle to make the game work again. So I'm glad I finally got it to the point where I can start playtesting it, and I hope to continue making progress.
 
 For the 2013 <a href="http://globalgamejam.org">Global Game Jam</a>, I made an RTS game prototype that lets you change what your units did in the past, but only where it is impossible for other players to see you doing so. You can download it from the <a href="http://globalgamejam.org/2013/decoherence">Global Game Jam</a> website or the game's <a href="https://github.com/ad510/decoherence">GitHub repository</a>.
