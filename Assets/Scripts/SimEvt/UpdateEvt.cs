@@ -28,7 +28,7 @@ public class UpdateEvt : SimEvt {
 		if (g.networkView != null) {
 			// apply received user commands (multiplayer only)
 			for (int i = 0; i < g.users.Length; i++) {
-				if (g.users[i].timeSync < time) throw new InvalidOperationException("UpdateEvt is being applied before commands were received from user " + i);
+				if (g.users[i].timeSync < time) throw new InvalidOperationException("UpdateEvt is being applied at time " + time + " when user " + i + "'s commands were last received for time " + g.users[i].timeSync);
 				if (time > 0 && g.users[i].checksums[time] != g.users[g.selUser].checksums[time]) g.synced = false;
 				while (g.users[i].cmdReceived.peekTime () == time) {
 					g.users[i].cmdReceived.pop ().apply (g);
@@ -36,6 +36,22 @@ public class UpdateEvt : SimEvt {
 				// delete old checksums
 				foreach (long k in g.users[i].checksums.Keys.ToArray ()) {
 					if (k < time) g.users[i].checksums.Remove (k);
+				}
+			}
+			// add command(s) to update non-live paths
+			long timeSimPast = long.MaxValue;
+			if (g.timeGame < g.timeSim) {
+				timeSimPast = g.timeGame + g.updateInterval;
+				foreach (SimEvt evt in g.cmdPending.events) {
+					if (evt is UnitCmdEvt) {
+						UnitCmdEvt unitCmdEvt = evt as UnitCmdEvt;
+						if (unitCmdEvt.timeCmd > timeSimPast) timeSimPast = unitCmdEvt.timeCmd;
+					}
+				}
+			}
+			foreach (Player player in g.players) {
+				if (player.user == g.selUser && player.hasNonLivePaths) {
+					g.cmdPending.events.Insert (0, new UpdatePastCmdEvt(time, timeSimPast, player.id));
 				}
 			}
 			// send pending commands to other users
@@ -60,15 +76,17 @@ public class UpdateEvt : SimEvt {
 		foreach (Path path in g.paths) {
 			Segment segment = path.activeSegment (time);
 			if (segment != null && path.timeSimPast == long.MaxValue) {
+				Tile tile = path.activeTile (time);
 				FP.Vector pos = path.calcPos (time);
 				foreach (Unit unit in segment.units) {
 					if (unit.attacks.Count == 0 || time >= unit.attacks.Last().time + unit.type.reload) {
 						// done reloading, look for closest target to potentially attack
 						Path target = null;
 						long targetDistSq = unit.type.range * unit.type.range + 1;
-						foreach (Path path2 in g.paths) {
+						foreach (int i in tile.pathVis.Keys) {
+							Path path2 = g.paths[i];
 							Segment segment2 = path2.activeSegment (time);
-							if (path != path2 && segment2 != null && path2.timeSimPast == long.MaxValue && path.player.mayAttack[path2.player.id] && g.tileAt (pos).pathVisLatest (path2.id)) {
+							if (path != path2 && segment2 != null && !segment2.unseen && path2.timeSimPast == long.MaxValue && path.player.mayAttack[path2.player.id] && tile.pathVisLatest (path2)) {
 								foreach (Unit unit2 in segment2.units) {
 									if (unit.type.damage[unit2.type.id] > 0) {
 										long distSq = (path2.calcPos (time) - pos).lengthSq ();
@@ -86,12 +104,6 @@ public class UpdateEvt : SimEvt {
 				}
 			}
 		}
-		// add events to move paths between tiles
-		// this shouldn't be done in Sim.update() because addTileMoveEvts() sometimes adds events before timeSim
-		foreach (Path path in g.paths) {
-			if (path.timeSimPast == long.MaxValue) path.addTileMoveEvts(ref g.events, time, time + g.updateInterval);
-		}
-		g.movedPaths.Clear();
 		// add next UpdateEvt
 		g.checksum = 0;
 		g.events.add(new UpdateEvt(time + g.updateInterval));

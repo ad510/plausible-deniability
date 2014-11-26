@@ -38,7 +38,7 @@ public class MoveCmdEvt : UnitCmdEvt {
 		long spacing = 0;
 		// order paths in formation
 		foreach (KeyValuePair<Path, List<Unit>> path in exPaths) {
-			if (path.Key.canMove(timeCmd)) {
+			if (path.Key.canMove(timeCmd, path.Value)) {
 				int i;
 				for (i = 0; i < formationOrder.Count; i++) {
 					if (path.Key.moves.Last ().vecEnd.x == formationOrder[i][0].moves.Last ().vecEnd.x

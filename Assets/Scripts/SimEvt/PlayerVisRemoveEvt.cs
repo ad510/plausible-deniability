@@ -29,10 +29,12 @@ public class PlayerVisRemoveEvt : SimEvt {
 	}
 
 	public override void apply(Sim g) {
+		if (g.players[player].mapHack) return;
 		// remove visibility from specified tiles
 		for (int i = 0; i < tiles.Count; i++) {
 			if (g.tiles[tiles[i].x, tiles[i].y].playerVisLatest(g.players[player]) && !g.tiles[tiles[i].x, tiles[i].y].playerDirectVisLatest(g.players[player])) {
 				g.tiles[tiles[i].x, tiles[i].y].playerVis[player].Add(time);
+				g.players[player].unseenTiles++;
 			}
 			else {
 				tiles[i] = new FP.Vector(Sim.OffMap, Sim.OffMap);

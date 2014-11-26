@@ -1,6 +1,7 @@
 {
   "mapSize": 80,
   "updateInterval": 200,
+  "tileInterval": 50,
   "visRadius": 8,
   "camSpeed": 0.02,
   "zoom": 0.01,

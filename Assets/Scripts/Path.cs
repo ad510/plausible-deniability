@@ -46,7 +46,7 @@ public class Path {
 		nSeeUnits = nSeeUnitsVal;
 		tileX = Sim.OffMap + 1;
 		tileY = Sim.OffMap + 1;
-		timeSimPast = (startTime >= g.timeSim) ? long.MaxValue : startTime;
+		timeSimPast = (startTime >= g.timeSim) ? long.MaxValue : startTime / g.tileInterval * g.tileInterval;
 	}
 	
 	public Path(Sim simVal, int idVal, List<Unit> units, long startTime, FP.Vector startPos)
@@ -58,64 +58,26 @@ public class Path {
 	/// ensure that if path is moving in the past, it does not move off exclusively seen areas
 	/// </summary>
 	public void updatePast(long curTime) {
-		if (curTime <= timeSimPast || segments.Last ().units.Count == 0) return;
-		long timeSimPastNext = Math.Min(curTime, g.timeSim);
-		SimEvtList pastEvents = new SimEvtList();
-		TileMoveEvt evt;
-		FP.Vector pos;
-		int tX, tY, exclusiveIndex;
-		// delete path if tile that path starts on stops being exclusive since timeSimPast
-		pos = calcPos(timeSimPast);
-		tX = (int)(pos.x >> FP.Precision);
-		tY = (int)(pos.y >> FP.Precision);
-		// ISSUE #26: without modifications, line below may cause syncing problems in multiplayer b/c addTileMoveEvts() sometimes adds events before timeSimPast
-		addTileMoveEvts(ref pastEvents, timeSimPast, timeSimPastNext);
-		evt = (TileMoveEvt)pastEvents.pop();
-		exclusiveIndex = g.tiles[tX, tY].exclusiveIndexWhen(player, (evt != null) ? evt.time - 1 : curTime);
-		if (!g.tiles[tX, tY].exclusiveWhen(player, (evt != null) ? evt.time - 1 : curTime)
-			|| g.tiles[tX, tY].exclusive[player.id][exclusiveIndex] > timeSimPast) {
-			segments.Last ().removeAllUnits(true);
-			return;
-		}
-		// delete path if path moves off exclusive area or tile that path moves to stops being exclusive
-		if (evt != null) {
-			do {
-				if (evt.tileX != int.MinValue) tX = evt.tileX;
-				if (evt.tileY != int.MinValue) tY = evt.tileY;
-				exclusiveIndex = g.tiles[tX, tY].exclusiveIndexWhen(player, evt.time);
-				if (!g.tiles[tX, tY].exclusiveWhen(player, evt.time)
-					|| (exclusiveIndex + 1 < g.tiles[tX, tY].exclusive[player.id].Count() && g.tiles[tX, tY].exclusive[player.id][exclusiveIndex + 1] <= Math.Min(g.events.peekTime(), timeSimPastNext))) {
-					segments.Last ().removeAllUnits(true);
-					return;
-				}
-			} while ((evt = (TileMoveEvt)pastEvents.pop()) != null);
-		}
-		// update past simulation time
-		timeSimPast = timeSimPastNext;
-	}
-
-	/// <summary>
-	/// inserts TileMoveEvt events for this path into events for the time interval from timeMin to timeMax
-	/// </summary>
-	/// <remarks>due to fixed point imprecision in lineCalcX() and lineCalcY(), this sometimes adds events outside the requested time interval</remarks>
-	public void addTileMoveEvts(ref SimEvtList events, long timeMin, long timeMax) {
-		if (timeMax < moves[0].timeStart) return;
-		int moveLast = Math.Max (0, activeMove(timeMin));
-		int move = activeMove(timeMax);
-		FP.Vector pos, posLast;
-		int dir;
-		for (int i = moveLast; i <= move; i++) {
-			posLast = (i == moveLast) ? moves[i].calcPos(Math.Max(timeMin, moves[0].timeStart)) : moves[i].vecStart;
-			pos = (i == move) ? moves[i].calcPos(timeMax) : moves[i + 1].vecStart;
-			// moving between columns (x)
-			dir = (pos.x >= posLast.x) ? 0 : -1;
-			for (int tX = (int)(Math.Min(pos.x, posLast.x) >> FP.Precision) + 1; tX <= (int)(Math.Max(pos.x, posLast.x) >> FP.Precision); tX++) {
-				events.add(new TileMoveEvt(moves[i].timeAtX(tX << FP.Precision), id, tX + dir, int.MinValue));
+		while (timeSimPast <= Math.Min (curTime, g.timeSim) - g.tileInterval && segments.Last ().units.Count > 0) {
+			timeSimPast += g.tileInterval;
+			updateTilePos (timeSimPast);
+			if (!g.tiles[tileX, tileY].exclusiveWhen (player, timeSimPast)) {
+				segments.Last ().removeAllUnits (true);
 			}
-			// moving between rows (y)
-			dir = (pos.y >= posLast.y) ? 0 : -1;
-			for (int tY = (int)(Math.Min(pos.y, posLast.y) >> FP.Precision) + 1; tY <= (int)(Math.Max(pos.y, posLast.y) >> FP.Precision); tY++) {
-				events.add(new TileMoveEvt(moves[i].timeAtY(tY << FP.Precision), id, int.MinValue, tY + dir));
+		}
+	}
+	
+	public void updateTilePos(long time) {
+		if (time % g.tileInterval != 0) throw new ArgumentException("tile update time must be divisible by tileInterval");
+		if (time >= moves[0].timeStart) {
+			if (segments.Last ().units.Count == 0) {
+				// path no longer contains units, so remove it from visibility tiles
+				tileX = Sim.OffMap;
+			}
+			else {
+				FP.Vector pos = calcPos (time);
+				tileX = (int)(pos.x >> FP.Precision);
+				tileY = (int)(pos.y >> FP.Precision);
 			}
 		}
 	}
@@ -124,87 +86,61 @@ public class Path {
 	/// let path be updated in the present (i.e., stop time traveling) starting at timeSim
 	/// </summary>
 	public void goLive() {
-		List<SegmentUnit> queue = new List<SegmentUnit>();
-		SegmentUnit nonLiveChild = new SegmentUnit();
+		tileX = Sim.OffMap + 1;
+		tileY = Sim.OffMap + 1;
 		timeSimPast = long.MaxValue;
-		foreach (Segment segment in segments) {
-			queue.AddRange (segment.segmentUnits ());
-		}
-		while (queue.Count > 0) {
-			foreach (SegmentUnit prev in queue[0].prev ()) {
-				if (prev.segment.path.timeSimPast != long.MaxValue) {
-					prev.segment.path.timeSimPast = long.MaxValue;
-					queue.Add (prev);
-				}
-			}
-			foreach (SegmentUnit parent in queue[0].parents ()) {
-				if (parent.segment.path.timeSimPast != long.MaxValue) {
-					parent.segment.path.timeSimPast = long.MaxValue;
-					queue.Add (parent);
-				}
-			}
-			if (nonLiveChild.g == null && queue[0].children().Any ()) nonLiveChild = queue[0];
-			queue.RemoveAt (0);
-		}
-		if (nonLiveChild.g != null) g.deleteOtherPaths (new SegmentUnit[] { nonLiveChild }, true, false);
-		FP.Vector pos = calcPos(g.timeSim);
-		g.events.add(new TileMoveEvt(g.timeSim, id, (int)(pos.x >> FP.Precision), (int)(pos.y >> FP.Precision)));
-		if (!g.movedPaths.Contains(id)) g.movedPaths.Add(id); // indicate to delete and recalculate later TileMoveEvts for this path
 	}
 
 	/// <summary>
 	/// makes a new path containing specified units, returns whether successful
 	/// </summary>
 	public bool makePath(long time, List<Unit> units, bool ignoreSeen = false) {
-		{ // check whether can make path
-			if (units.Count == 0) return false;
-			Segment segment = activeSegment(time);
-			if (segment == null) return false;
-			int newUnitCount = 0;
-			long[] rscCost = new long[g.rscNames.Length];
-			foreach (Unit unit in units) {
-				if (segment.units.Contains (unit)) {
-					// unit in path would be child path
-					SegmentUnit segmentUnit = new SegmentUnit(segment, unit);
-					// check parent made before (not at same time as) child, so it's unambiguous who is the parent
-					if (!segmentUnit.canBeUnambiguousParent (time)) return false;
-					// check parent unit won't be seen later
-					if (!ignoreSeen && !segmentUnit.unseenAfter (time)) return false;
-					// check parent won't make a child unit later
-					if (!segmentUnit.hasChildrenAfter ()) return false;
-				}
-				else {
-					// unit in path would be non-path child unit
-					if (!canMakeUnitType (time, unit.type)) return false;
-					if (unit.type.speed > 0) newUnitCount++;
-					for (int i = 0; i < g.rscNames.Length; i++) {
-						rscCost[i] += unit.type.rscCost[i];
-					}
-				}
-			}
-			bool newPathIsLive = (time >= g.timeSim && timeSimPast == long.MaxValue);
-			if (!newPathIsLive && !Sim.EnableNonLivePaths) return false;
-			if (player.populationLimit >= 0 && player.population (time) + newUnitCount > player.populationLimit) return false;
-			for (int i = 0; i < g.rscNames.Length; i++) {
-				if (rscCost[i] > 0 && player.resource(time, i, !newPathIsLive) < rscCost[i]) return false;
-			}
-			// if making child unit that costs resources, then delete other paths
-			// TODO: only need to delete other paths of units that made the new unit
-			if (rscCost.Where (r => r > 0).Any ()) g.deleteOtherPaths (segment.segmentUnits(), false, true);
-		}
-		{ // make path
-			Segment segment = insertSegment (time);
-			FP.Vector pos = calcPos (time);
-			g.paths.Add (new Path(g, g.paths.Count, units[0].type.speed, player, units, time, pos, segment.unseen, nSeeUnits));
-			connect (time, g.paths.Last ());
-			if (timeSimPast != long.MaxValue) g.paths.Last ().timeSimPast = time;
-			if (g.paths.Last ().timeSimPast == long.MaxValue) {
-				g.events.add(new TileMoveEvt(time, g.paths.Count - 1, (int)(pos.x >> FP.Precision), (int)(pos.y >> FP.Precision)));
+		bool costsRsc;
+		if (!canMakePath (time, units, out costsRsc, ignoreSeen)) return false;
+		Segment segment = insertSegment (time);
+		FP.Vector pos = calcPos (time);
+		g.paths.Add (new Path(g, g.paths.Count, units[0].type.speed, player, units, time, pos, segment.unseen, nSeeUnits));
+		connect (time, g.paths.Last ());
+		if (timeSimPast != long.MaxValue) g.paths.Last ().timeSimPast = time / g.tileInterval * g.tileInterval;
+		if (g.paths.Last ().timeSimPast != long.MaxValue) player.hasNonLivePaths = true;
+		if (costsRsc) g.deleteOtherPaths (g.paths.Last ().segments[0].segmentUnits (), false, true);
+		return true;
+	}
+	
+	private bool canMakePath(long time, List<Unit> units, out bool costsRsc, bool ignoreSeen = false) {
+		costsRsc = false;
+		if (units.Count == 0) return false;
+		Segment segment = activeSegment(time);
+		if (segment == null) return false;
+		int newUnitCount = 0;
+		long[] rscCost = new long[g.rscNames.Length];
+		foreach (Unit unit in units) {
+			if (segment.units.Contains (unit)) {
+				// unit in path would be child path
+				SegmentUnit segmentUnit = new SegmentUnit(segment, unit);
+				// check parent made before (not at same time as) child, so it's unambiguous who is the parent
+				if (!segmentUnit.canBeUnambiguousParent (time)) return false;
+				// check parent unit won't be seen later
+				if (!ignoreSeen && !segmentUnit.unseenAfter (time)) return false;
+				// check parent won't make a child unit later
+				if (!segmentUnit.hasChildrenAfter ()) return false;
 			}
 			else {
-				player.hasNonLivePaths = true;
+				// unit in path would be non-path child unit
+				if (!canMakeUnitType (time, unit.type)) return false;
+				if (unit.type.speed > 0) newUnitCount++;
+				for (int i = 0; i < g.rscNames.Length; i++) {
+					rscCost[i] += unit.type.rscCost[i];
+				}
 			}
 		}
+		bool newPathIsLive = (time >= g.timeSim && timeSimPast == long.MaxValue);
+		if (!newPathIsLive && !Sim.EnableNonLivePaths) return false;
+		if (player.populationLimit >= 0 && player.population (time) + newUnitCount > player.populationLimit) return false;
+		for (int i = 0; i < g.rscNames.Length; i++) {
+			if (rscCost[i] > 0 && player.resource(time, i, !newPathIsLive) < rscCost[i]) return false;
+		}
+		costsRsc = rscCost.Where (r => r > 0).Any ();
 		return true;
 	}
 	
@@ -243,8 +179,7 @@ public class Path {
 		Path path2 = this; // move this path by default
 		if (time < g.timeSim) {
 			// move non-live path if in past
-			// if this path already isn't live, a better approach is removing later segments and moves then moving this path, like pre-stacking versions
-			// ISSUE #27: this fails if moving non-live unit immediately when it's made (b/c parent is ambiguous), or moving non-live unit when resources are negative
+			// if this path already isn't live, a better approach might be removing later segments and moves then moving this path, like pre-stacking versions (see ISSUE #27)
 			if (!makePath (time, units)) throw new SystemException("make non-live path failed when moving units");
 			path2 = g.paths.Last ();
 		}
@@ -282,21 +217,22 @@ public class Path {
 		if (goalPos.y > g.mapSize) goalPos.y = g.mapSize;
 		// add move
 		moves.Add (Move.fromSpeed(time, speed, curPos, goalPos));
-		if (!g.movedPaths.Contains(id)) g.movedPaths.Add(id); // indicate to delete and recalculate later TileMoveEvts for this path
 	}
 
 	/// <summary>
 	/// returns whether allowed to move at specified time
 	/// </summary>
-	public bool canMove(long time) {
-		// ISSUE #32: moving unit is incorrectly disallowed when another unit on same segment is seen later (maybe make overloaded version that also checks units)
+	public bool canMove(long time, List<Unit> units = null) {
 		if (time < moves[0].timeStart || speed <= 0) return false;
 		if (time < g.timeSim) {
-			Segment segment = activeSegment (time);
-			if (segment == null || !Sim.EnableNonLivePaths) return false;
-			foreach (SegmentUnit segmentUnit in segment.segmentUnits ()) {
-				if (!segmentUnit.unseenAfter (time) || !segmentUnit.hasChildrenAfter ()) return false;
+			if (!Sim.EnableNonLivePaths) return false;
+			if (units == null) {
+				Segment segment = activeSegment (time);
+				if (segment == null) return false;
+				units = segment.units;
 			}
+			bool temp;
+			if (!canMakePath (time, units, out temp)) return false;
 		}
 		return true;
 	}
@@ -333,6 +269,19 @@ public class Path {
 			if (time >= segments[i].timeStart) return segments[i];
 		}
 		return null;
+	}
+	
+	/// <summary>
+	/// returns tile that path is on at specified time
+	/// </summary>
+	public Tile activeTile(long time) {
+		if (time < moves[0].timeStart) return null;
+		long timeRounded = time / g.tileInterval * g.tileInterval;
+		if (timeRounded < moves[0].timeStart) {
+			// ideally would return tile that parent path was on at timeRounded, but this should be good enough
+			return g.tileAt(moves[0].vecStart);
+		}
+		return g.tileAt(calcPos(timeRounded));
 	}
 
 	/// <summary>
