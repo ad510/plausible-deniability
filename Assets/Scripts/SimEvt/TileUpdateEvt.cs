@@ -66,8 +66,7 @@ public class TileUpdateEvt : SimEvt {
 										if ((tX2 != tX || tY2 != tY) && !g.tiles[tX2, tY2].playerVisLatest(path.player)) {
 											if (g.tiles[tX2, tY2].playerVis[path.player.id].Count == 0) {
 												timePlayerVis = long.MinValue;
-											}
-											else if (g.tiles[tX2, tY2].playerVis[path.player.id].Last () < timePlayerVis) {
+											} else if (g.tiles[tX2, tY2].playerVis[path.player.id].Last () < timePlayerVis) {
 												timePlayerVis = g.tiles[tX2, tY2].playerVis[path.player.id].Last ();
 											}
 										}
@@ -164,8 +163,7 @@ public class TileUpdateEvt : SimEvt {
 						foreach (Unit unit in segment.units) {
 							unit.addWaypoint (time, path);
 						}
-					}
-					else if (path.segments.Last ().unseen && !g.tiles[path.tileX, path.tileY].exclusiveLatest(path.player)) {
+					} else if (path.segments.Last ().unseen && !g.tiles[path.tileX, path.tileY].exclusiveLatest(path.player)) {
 						// path is now seen
 						Segment segment = path.insertSegment(time);
 						foreach (Unit unit in segment.units.OrderByDescending (u => u.type.seePrecedence)) {

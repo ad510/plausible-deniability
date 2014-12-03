@@ -64,15 +64,13 @@ public struct SegmentUnit {
 					ancestors.RemoveAt(i);
 					i--;
 				}
-			}
-			else if (ancestors[i].segment.prev ().Any ()) {
+			} else if (ancestors[i].segment.prev ().Any ()) {
 				// unit has a parent but we're deleting its first segment, so may need to check resources starting at this time
 				if (ancestors[i].unit.attacks.Count > 0) return false;
 				if (ancestors[i].segment.timeStart < timeEarliestChild && ancestors[i].unit.type.rscCollectRate.Where (r => r > 0).Any ()) {
 					timeEarliestChild = ancestors[i].segment.timeStart;
 				}
-			}
-			else {
+			} else {
 				// reached a segment with no previous segment whatsoever, so return false (we assume other players know the scenario's starting state)
 				return false;
 			}

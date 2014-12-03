@@ -38,14 +38,12 @@ public class MapHackCmdEvt : CmdEvt {
 					bool exclusiveNew = g.tiles[tX, tY].calcExclusive (g.players[player]);
 					if (!exclusiveOld && exclusiveNew) {
 						g.tiles[tX, tY].exclusiveAdd(g.players[player], time);
-					}
-					else if (exclusiveOld && !exclusiveNew) {
+					} else if (exclusiveOld && !exclusiveNew) {
 						g.tiles[tX, tY].exclusiveRemove(g.players[player], time);
 					}
 				}
 			}
-		}
-		else if (g.players[player].mapHack && !mapHack) {
+		} else if (g.players[player].mapHack && !mapHack) {
 			for (int tX = 0; tX < g.tileLen (); tX++) {
 				for (int tY = 0; tY < g.tileLen (); tY++) {
 					g.tiles[tX, tY].playerVisRemove (g.players[player], time);

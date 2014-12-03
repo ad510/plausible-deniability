@@ -508,8 +508,7 @@ public class App : MonoBehaviour {
 			if (timeDelta > g.updateInterval && g.timeGame + timeDelta >= g.timeSim) {
 				// cap time difference to a max amount
 				timeGameDelta = g.updateInterval;
-			}
-			else {
+			} else {
 				// normal speed
 				timeGameDelta = timeDelta;
 			}
@@ -519,8 +518,7 @@ public class App : MonoBehaviour {
 		if (g.networkView == null) {
 			// set new sim time (single player)
 			timeSimNext = g.timeGame;
-		}
-		else {
+		} else {
 			// set new sim time (multiplayer)
 			timeSimNext = g.timeSim + Math.Min (timeDelta, g.updateInterval);
 			// don't increment time past latest time that commands were synced across network
@@ -570,8 +568,7 @@ public class App : MonoBehaviour {
 					FP.Vector pos = makeUnitPos();
 					if (pos.x != Sim.offMap) g.cmdPending.addEvt(new MakeUnitCmdEvt(g.timeSim, newCmdTime(), UnitCmdEvt.argFromPathDict (curSelPaths), makeUnitType.id, pos, enableAutoTimeTravel));
 					makeUnitType = null;
-				}
-				else {
+				} else {
 					// select paths
 					Vector3 mouseMinPos = new Vector3(Math.Min (mouseDownPos[0].x, Input.mousePosition.x), Math.Min (mouseDownPos[0].y, Input.mousePosition.y), 0);
 					Vector3 mouseMaxPos = new Vector3(Math.Max (mouseDownPos[0].x, Input.mousePosition.x), Math.Max (mouseDownPos[0].y, Input.mousePosition.y), 0);
@@ -588,8 +585,7 @@ public class App : MonoBehaviour {
 							if (curSelPaths.ContainsKey (path) && curSelPaths[path].Count == path.segmentWhen (g.timeGame).units.Count) {
 								curSelPaths.Remove(path);
 								deselect = true;
-							}
-							else {
+							} else {
 								curSelPaths[path] = new List<Unit>(path.segmentWhen(g.timeGame).units);
 								foreach (Unit unit in curSelPaths[path]) {
 									selPaths.Add (new UnitSelection(path, unit, g.timeGame));
@@ -615,8 +611,7 @@ public class App : MonoBehaviour {
 				if (makeUnitType != null) {
 					// cancel making unit
 					makeUnitType = null;
-				}
-				else {
+				} else {
 					int attackPath = -1, stackPath = -1;
 					for (int i = 0; i < g.paths.Count; i++) {
 						if (g.timeGame >= g.paths[i].segments[0].timeStart
@@ -636,12 +631,10 @@ public class App : MonoBehaviour {
 					if (attackPath >= 0) {
 						// attack clicked path
 						g.cmdPending.addEvt (new AttackCmdEvt(g.timeSim, newCmdTime (), UnitCmdEvt.argFromPathDict (curSelPaths), attackPath));
-					}
-					else if (enableStacking && stackPath >= 0) {
+					} else if (enableStacking && stackPath >= 0) {
 						// stack selected paths onto clicked path
 						g.cmdPending.addEvt (new StackCmdEvt(g.timeSim, newCmdTime (), UnitCmdEvt.argFromPathDict (curSelPaths), stackPath, enableAutoTimeTravel));
-					}
-					else {
+					} else {
 						// move selected paths
 						g.cmdPending.addEvt(new MoveCmdEvt(g.timeSim, newCmdTime(), UnitCmdEvt.argFromPathDict (curSelPaths), drawToSimPos (Input.mousePosition), selFormation, enableAutoTimeTravel));
 					}
@@ -694,8 +687,7 @@ public class App : MonoBehaviour {
 			if (Input.GetKey (KeyCode.LeftShift) || Input.GetKey (KeyCode.RightShift)) {
 				// delete unselected paths of selected units
 				deleteOtherPaths ();
-			}
-			else {
+			} else {
 				// delete selected paths
 				deletePaths ();
 			}
@@ -842,8 +834,7 @@ public class App : MonoBehaviour {
 					}
 					if (g.paths[i].timeSimPast == long.MaxValue) {
 						sprUnits[i][j].sprite.renderer.material.color = new Color(1, 1, 1, 1);
-					}
-					else {
+					} else {
 						sprUnits[i][j].sprite.renderer.material.color = new Color(1, 1, 1, 0.5f); // ISSUE #16: make transparency amount customizable
 					}
 					sprUnits[i][j].sprite.transform.position = vec + simToDrawScl (unit.type.imgOffset);
@@ -890,15 +881,13 @@ public class App : MonoBehaviour {
 			if (pos.x != Sim.offMap) {
 				sprMakeUnit.renderer.material.color = new Color(1, 1, 1, 1);
 				sprMakeUnit.transform.position = simToDrawPos(pos + makeUnitType.imgOffset, unitDepth);
-			}
-			else {
+			} else {
 				sprMakeUnit.renderer.material.color = new Color(1, 1, 1, 0.5f); // ISSUE #16: make transparency amount customizable
 				sprMakeUnit.transform.position = new Vector3(Input.mousePosition.x, Input.mousePosition.y, unitDepth) + simToDrawScl (makeUnitType.imgOffset);
 			}
 			sprMakeUnit.transform.localScale = unitScale (makeUnitType, selPlayer);
 			sprMakeUnit.renderer.enabled = true;
-		}
-		else {
+		} else {
 			sprMakeUnit.renderer.enabled = false;
 		}
 		// health bars
@@ -930,8 +919,7 @@ public class App : MonoBehaviour {
 		if (Input.GetMouseButton (0) && makeUnitType == null && selBoxMin <= (Input.mousePosition - mouseDownPos[0]).sqrMagnitude && mouseDownPos[0].y > uiBarTop) {
 			selectBox.setRect (mouseDownPos[0], Input.mousePosition, selectBoxDepth);
 			selectBox.line.enabled = true;
-		}
-		else {
+		} else {
 			selectBox.line.enabled = false;
 		}
 	}
@@ -981,14 +969,12 @@ public class App : MonoBehaviour {
 			lblStyle.wordWrap = true;
 			if (showDeletedUnits) {
 				GUILayout.Label ("You see all paths that your units took.", lblStyle);
-			}
-			else {
+			} else {
 				GUILayout.Label ("Other players only see the final paths your units took.\nYou plausibly deny that you cheated.", lblStyle);
 			}
 			lblStyle.wordWrap = false;
 			GUILayout.EndArea ();
-		}
-		else {
+		} else {
 			// cheat menu
 			// ISSUE #21: show text or hide button if can't do any of these actions
 			string plural = (curSelPaths.Count == 1) ? "" : "s";
@@ -1024,8 +1010,7 @@ public class App : MonoBehaviour {
 						if (path.canMakeUnitType (g.timeGame, unitT)) { // ISSUE #22: sometimes canMake check should use existing selected units in path
 							if (unitT.speed > 0 && selPlayer.populationLimit >= 0 && selPlayer.population(g.timeGame) >= selPlayer.populationLimit) {
 								tooltip = "Reached population limit ";
-							}
-							else {
+							} else {
 								bool enoughRsc = true;
 								tooltip = "Costs ";
 								for (int i = 0; i < g.rscNames.Length; i++) {
@@ -1058,8 +1043,7 @@ public class App : MonoBehaviour {
 								i--;
 							}
 						}
-					}
-					else if (Event.current.button == 1) { // right button
+					} else if (Event.current.button == 1) { // right button
 						// deselect unit
 						for (int i = 0; i < selPaths.Count; i++) {
 							if (selPaths[i].unit == item.Key) {
@@ -1086,8 +1070,7 @@ public class App : MonoBehaviour {
 				Network.InitializeSecurity ();
 				Network.InitializeServer (g.users.Length - 1, serverPort, !Network.HavePublicAddress ());
 			}
-		}
-		else {
+		} else {
 			if (GUILayout.Button ("Disconnect")) {
 				Network.Disconnect (200);
 			}
@@ -1249,8 +1232,7 @@ public class App : MonoBehaviour {
 						}
 					}
 				}
-			}
-			else {
+			} else {
 				return drawToSimPos(Input.mousePosition);
 			}
 		}
@@ -1356,8 +1338,7 @@ public class App : MonoBehaviour {
 					UnitCmdEvt.argFromPathDict (new Dictionary<Path, List<Unit>> { { path.Key, path.Value } }),
 					type.id, makeUnitMovePos (g.timeGame, path.Key, type), enableAutoTimeTravel));
 				break;
-			}
-			else if (g.unitsCanMake (path.Value, type)) {
+			} else if (g.unitsCanMake (path.Value, type)) {
 				// don't make unit yet; let user pick where to place it
 				makeUnitType = type;
 				break;
@@ -1394,8 +1375,7 @@ public class App : MonoBehaviour {
 	private long newCmdTime() {
 		if (g.networkView != null) { // multiplayer
 			return Math.Min (g.timeGame, g.timeUpdateEvt) + g.updateInterval * 2;
-		}
-		else { // single player
+		} else { // single player
 			return g.timeGame;
 		}
 	}

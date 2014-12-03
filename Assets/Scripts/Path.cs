@@ -67,8 +67,7 @@ public class Path {
 		if (segments.Last ().units.Count == 0) {
 			// path no longer contains units, so remove it from visibility tiles
 			tileX = Sim.offMap;
-		}
-		else {
+		} else {
 			Tile tile = tileWhen(time);
 			tileX = tile.x;
 			tileY = tile.y;
@@ -131,8 +130,7 @@ public class Path {
 				if (!segmentUnit.canBeUnambiguousParent (time)) return false;
 				if (!ignoreSeen && !segmentUnit.unseenAfter (time)) return false;
 				if (!segmentUnit.hasChildrenAfter ()) return false;
-			}
-			else if (!(time == segment.timeStart && new SegmentUnit(segment, unit).prev ().Any ())) {
+			} else if (!(time == segment.timeStart && new SegmentUnit(segment, unit).prev ().Any ())) {
 				// unit in path would be new unit
 				if (!canMakeUnitType (time, unit.type)) return false;
 				if (unit.type.speed > 0) newUnitCount++;
@@ -250,8 +248,7 @@ public class Path {
 			player.updatePast (time);
 			if (units.Count > 1) new StackEvt(stackTime, movedPaths, nSeeUnits).apply (g);
 			movedPath = movedPaths.Find (p => p.segments.Last ().units.Count > 0);
-		}
-		else {
+		} else {
 			// move units normally (without automatic time travel)
 			movedPath = this; // move this path by default
 			if (time < g.timeSim) {
@@ -259,8 +256,7 @@ public class Path {
 				// if this path already isn't live, a better approach might be removing later segments and moves then moving this path, like pre-stacking versions (see ISSUE #27)
 				if (!makePath (time, units)) throw new SystemException("make non-live path failed when moving units");
 				movedPath = g.paths.Last ();
-			}
-			else {
+			} else {
 				foreach (Unit unit in segmentWhen(time).units) {
 					if (!units.Contains (unit)) {
 						// some units in path aren't being moved, so make a new path

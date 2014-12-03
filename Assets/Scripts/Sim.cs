@@ -206,8 +206,7 @@ public class Sim {
 		foreach (SegmentUnit prevSegment in segmentUnit.prev ()) {
 			if (segmentUnit.segment.path.timeSimPast != long.MaxValue && prevSegment.segment.path.timeSimPast == long.MaxValue) {
 				liveToNonLivePrev.Add(prevSegment);
-			}
-			else {
+			} else {
 				prev.Add (prevSegment);
 			}
 			addAncestors (prevSegment, ancestors, prev, liveToNonLivePrev);
@@ -249,13 +248,11 @@ public class Sim {
 				foreach (SegmentUnit segmentUnit2 in segmentUnitsWhen(segmentUnit.next (), time)) {
 					yield return segmentUnit2;
 				}
-			}
-			else if (time < segmentUnit.segment.timeStart) {
+			} else if (time < segmentUnit.segment.timeStart) {
 				foreach (SegmentUnit segmentUnit2 in segmentUnitsWhen(segmentUnit.prev (), time)) {
 					yield return segmentUnit2;
 				}
-			}
-			else {
+			} else {
 				yield return segmentUnit;
 			}
 		}

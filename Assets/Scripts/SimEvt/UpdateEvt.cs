@@ -56,8 +56,7 @@ public class UpdateEvt : SimEvt {
 				System.IO.MemoryStream stream = new System.IO.MemoryStream();
 				Serializer.Serialize (stream, g.cmdPending);
 				g.networkView.RPC ("nextTurnWithCmds", RPCMode.Others, g.selUser, stream.ToArray (), g.checksum);
-			}
-			else {
+			} else {
 				g.networkView.RPC ("nextTurn", RPCMode.Others, g.selUser, g.checksum);
 			}
 			// move pending commands to cmdReceived
