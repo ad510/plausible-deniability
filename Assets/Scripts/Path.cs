@@ -192,7 +192,7 @@ public class Path {
 			foreach (Unit unit in units) {
 				Waypoint waypoint = g.tileAt (goalPos).waypointWhen (unit, time);
 				// make moves list using waypoints
-				List<Move> waypointMoves = new List<Move>() {
+				List<Move> waypointMoves = new List<Move> {
 					Move.fromSpeed (waypoint.time, speed, waypoint.tile.centerPos (), goalPos)
 				};
 				while (waypoint.prev != null) {
