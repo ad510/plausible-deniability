@@ -50,15 +50,9 @@ public struct SegmentUnit {
 			if (ancestors[i].prev ().Any ()) {
 				// if this ancestor has a sibling segment that we're not currently planning to remove unit from,
 				// don't remove unit from previous segments shared by both
-				bool hasSibling = false;
-				foreach (Segment seg in ancestors[i].segment.branches) {
-					if (seg.units.Contains (unit) && !ancestors.Contains (new SegmentUnit(seg, unit))
-						&& (seg.path.timeSimPast == long.MaxValue || ancestors[i].segment.path.timeSimPast != long.MaxValue)) {
-						hasSibling = true;
-						break;
-					}
-				}
-				if (!hasSibling) {
+				Unit u = unit;
+				if (!ancestors[i].segment.branches.Where(seg => seg.units.Contains(u) && !ancestors.Contains(new SegmentUnit(seg, u))
+					&& (seg.path.timeSimPast == long.MaxValue || ancestors[i].segment.path.timeSimPast != long.MaxValue)).Any()) {
 					// indicate to remove unit from previous segments
 					ancestors.AddRange (ancestors[i].prev ());
 					ancestors.RemoveAt(i);
