@@ -9,24 +9,26 @@ using System.Linq;
 using System.Text;
 using ProtoBuf;
 
-[ProtoContract]
-public class UnitSelection {
-	[ProtoMember(1, AsReference = true)] public readonly Path path;
-	[ProtoMember(2, AsReference = true)] public readonly Unit unit;
-	[ProtoMember(3)] public readonly long time;
+[ProtoContract(AsReferenceDefault = true)] // AsReferenceDefault needed for the way this is stored in Tile
+public class Waypoint {
+	[ProtoMember(1)] public readonly long time;
+	[ProtoMember(2, AsReference = true)] public readonly Tile tile;
+	[ProtoMember(3, AsReference = true)] public readonly Waypoint prev;
+	[ProtoMember(4)] public readonly List<UnitSelection> start; // in reverse time order
 	
 	/// <summary>
 	/// empty constructor for protobuf-net use only
 	/// </summary>
-	private UnitSelection() { }
+	private Waypoint() { }
 	
-	public UnitSelection(Path pathVal, Unit unitVal, long timeVal) {
-		path = pathVal;
-		unit = unitVal;
+	public Waypoint(long timeVal, Tile tileVal, Waypoint prevVal, List<UnitSelection> startVal) {
 		time = timeVal;
+		tile = tileVal;
+		prev = prevVal;
+		start = startVal;
 	}
 	
-	public SegmentUnit segmentUnit() {
-		return new SegmentUnit(path.activeSegment (time), unit);
+	public static bool active(Waypoint waypoint) {
+		return waypoint != null && (waypoint.prev != null || waypoint.start != null);
 	}
 }

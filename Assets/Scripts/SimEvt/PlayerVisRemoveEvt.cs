@@ -14,40 +14,40 @@ using ProtoBuf;
 /// </summary>
 [ProtoContract]
 public class PlayerVisRemoveEvt : SimEvt {
-	[ProtoMember(1)] public int player;
-	[ProtoMember(2)] public List<FP.Vector> tiles;
+	[ProtoMember(1, AsReference = true)] public Player player;
+	[ProtoMember(2, AsReference = true)] public List<Tile> tiles;
 	
 	/// <summary>
 	/// empty constructor for protobuf-net use only
 	/// </summary>
 	private PlayerVisRemoveEvt() { }
 
-	public PlayerVisRemoveEvt(long timeVal, int playerVal, int tileXVal, int tileYVal) {
+	public PlayerVisRemoveEvt(long timeVal, Player playerVal, Tile tileVal) {
 		time = timeVal;
 		player = playerVal;
-		tiles = new List<FP.Vector> { new FP.Vector(tileXVal, tileYVal) };
+		tiles = new List<Tile> { tileVal };
 	}
 
 	public override void apply(Sim g) {
-		if (g.players[player].mapHack) return;
+		if (player.mapHack) return;
 		// remove visibility from specified tiles
 		for (int i = 0; i < tiles.Count; i++) {
-			if (g.tiles[tiles[i].x, tiles[i].y].playerVisLatest(g.players[player]) && !g.tiles[tiles[i].x, tiles[i].y].playerDirectVisLatest(g.players[player])) {
-				g.tiles[tiles[i].x, tiles[i].y].playerVis[player].Add(time);
-				g.players[player].unseenTiles++;
+			if (tiles[i].playerVisLatest(player) && !tiles[i].playerDirectVisLatest(player)) {
+				tiles[i].playerVis[player.id].Add(time);
+				player.unseenTiles++;
 			}
 			else {
-				tiles[i] = new FP.Vector(Sim.OffMap, Sim.OffMap);
+				tiles[i] = null;
 			}
 		}
 		// add events to remove visibility from surrounding tiles
-		foreach (FP.Vector tile in tiles) {
-			if (tile.x != Sim.OffMap) {
-				for (int tX = Math.Max(0, (int)tile.x - 1); tX <= Math.Min(g.tileLen() - 1, (int)tile.x + 1); tX++) {
-					for (int tY = Math.Max(0, (int)tile.y - 1); tY <= Math.Min(g.tileLen() - 1, (int)tile.y + 1); tY++) {
-						if ((tX != tile.x || tY != tile.y) && g.tiles[tX, tY].playerVisLatest(g.players[player])) {
+		foreach (Tile tile in tiles) {
+			if (tile != null) {
+				for (int tX = Math.Max(0, tile.x - 1); tX <= Math.Min(g.tileLen() - 1, tile.x + 1); tX++) {
+					for (int tY = Math.Max(0, tile.y - 1); tY <= Math.Min(g.tileLen() - 1, tile.y + 1); tY++) {
+						if ((tX != tile.x || tY != tile.y) && g.tiles[tX, tY].playerVisLatest(player)) {
 							// ISSUE #29: lose visibility in a circle instead of a square
-							g.tiles[tX, tY].playerVisRemove(g.players[player], time + (1 << FP.Precision) / g.maxSpeed);
+							g.tiles[tX, tY].playerVisRemove(player, time + (1 << FP.Precision) / g.maxSpeed);
 						}
 					}
 				}
@@ -55,18 +55,20 @@ public class PlayerVisRemoveEvt : SimEvt {
 		}
 		if (Sim.EnableNonLivePaths) {
 			// check if a tile stopped being exclusive to this player, or became exclusive to another player
-			FP.Vector prevTile = new FP.Vector(Sim.OffMap, Sim.OffMap);
-			foreach (FP.Vector tile in tiles) {
-				if (tile.x != Sim.OffMap) {
-					int tXMax = Math.Min(g.tileLen() - 1, (int)tile.x + g.tileVisRadius());
-					int tYMax = Math.Min(g.tileLen() - 1, (int)tile.y + g.tileVisRadius());
-					for (int tX = Math.Max(0, (int)tile.x - g.tileVisRadius()); tX <= tXMax; tX++) {
-						for (int tY = Math.Max(0, (int)tile.y - g.tileVisRadius()); tY <= tYMax; tY++) {
-							if (g.inVis(tX - tile.x, tY - tile.y) && (prevTile.x == Sim.OffMap || !g.inVis(tX - prevTile.x, tY - prevTile.y))) {
+			Tile prevTile = null;
+			foreach (Tile tile in tiles) {
+				if (tile != null) {
+					int tXMax = Math.Min(g.tileLen() - 1, tile.x + g.tileVisRadius());
+					int tYMax = Math.Min(g.tileLen() - 1, tile.y + g.tileVisRadius());
+					for (int tX = Math.Max(0, tile.x - g.tileVisRadius()); tX <= tXMax; tX++) {
+						for (int tY = Math.Max(0, tile.y - g.tileVisRadius()); tY <= tYMax; tY++) {
+							if (g.inVis(tX - tile.x, tY - tile.y) && (prevTile == null || !g.inVis(tX - prevTile.x, tY - prevTile.y))) {
 								foreach (Player player2 in g.players) {
-									if ((player2.id == player && g.tiles[tX, tY].exclusiveLatest(player2)) 
-										|| (player2.id != player && !g.tiles[tX, tY].exclusiveLatest(player2) && g.tiles[tX, tY].calcExclusive(player2))) {
-										g.tiles[tX, tY].exclusive[player2.id].Add(time);
+									if (player2 == player && g.tiles[tX, tY].exclusiveLatest(player2)) {
+										g.tiles[tX, tY].exclusiveRemove(player2, time);
+									}
+									else if (player2 != player && !g.tiles[tX, tY].exclusiveLatest(player2) && g.tiles[tX, tY].calcExclusive(player2)) {
+										g.tiles[tX, tY].exclusiveAdd(player2, time);
 									}
 								}
 							}

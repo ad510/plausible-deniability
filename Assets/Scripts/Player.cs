@@ -26,12 +26,12 @@ public class Player {
 	[ProtoMember(9)] public bool hasNonLivePaths; // whether currently might have time traveling paths (ok to sometimes incorrectly be set to true)
 	[ProtoMember(10)] public long timeGoLiveFailedAttempt; // latest time that player's time traveling paths failed to go live (resets to long.MinValue after success)
 	[ProtoMember(11)] public long timeGoLiveProblem; // time that player would be in invalid state if time traveling paths went live
-	[ProtoMember(15)] public Dictionary<int, HashSet<int>> goLiveStackPaths; // key is nSeeUnits, value is paths to stack when going live
+	[ProtoMember(15)] public Dictionary<int, HashSet<Path>> goLiveStackPaths; // key is nSeeUnits, value is paths to stack when going live
 	[ProtoMember(13)] public int unseenTiles;
 	
 	[ProtoAfterDeserialization]
 	private void afterDeserialize() {
-		if (goLiveStackPaths == null) goLiveStackPaths = new Dictionary<int, HashSet<int>>();
+		if (goLiveStackPaths == null) goLiveStackPaths = new Dictionary<int, HashSet<Path>>();
 	}
 
 	/// <summary>
@@ -97,9 +97,9 @@ public class Player {
 				timeGoLiveFailedAttempt = long.MinValue;
 				// try again to stack paths that failed to stack in the past
 				foreach (var item in goLiveStackPaths) {
-					g.addStackEvts (item.Value, item.Key);
+					g.addStackEvts (item.Value.ToList (), item.Key);
 				}
-				goLiveStackPaths = new Dictionary<int, HashSet<int>>();
+				goLiveStackPaths = new Dictionary<int, HashSet<Path>>();
 			}
 		}
 	}

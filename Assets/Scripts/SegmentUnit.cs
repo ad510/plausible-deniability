@@ -149,11 +149,11 @@ public struct SegmentUnit {
 	}
 	
 	/// <summary>
-	/// returns whether this unit is in the same path before specified time,
-	/// so if it makes a child unit, it's unambiguous who is the parent
+	/// returns whether this unit exists before specified time,
+	/// so if it makes a child unit at specified time, it's unambiguous who is the parent
 	/// </summary>
 	public bool canBeUnambiguousParent(long time) {
-		return segment.timeStart < time || (segment.prevOnPath () != null && segment.prevOnPath ().units.Contains (unit));
+		return segment.timeStart < time || prev().Any();
 	}
 	
 	/// <summary>

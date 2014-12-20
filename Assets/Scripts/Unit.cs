@@ -56,6 +56,11 @@ public class Unit {
 				where segment.units.Contains (this) && (target.path.calcPos (time) - segment.path.calcPos (time)).lengthSq () <= type.range * type.range
 				select new SegmentUnit(segment, this),
 				true, false);
+			// TODO: ideally would just remove all waypoints that are out of range, but non-live path validation is currently too dumb to handle that
+			clearWaypoints(time);
+			foreach (Segment segment in g.activeSegments (time)) {
+				if (segment.units.Contains (this)) addWaypoint(time, segment.path);
+			}
 		}
 	}
 
@@ -88,5 +93,31 @@ public class Unit {
 		int i = nTimeHealth;
 		while (i > 0 && time < timeHealth[i - 1]) i--;
 		return type.maxHealth - i;
+	}
+	
+	public void clearWaypoints(long time) {
+		foreach (Tile tile in g.tiles) {
+			tile.waypoints.Remove (id);
+		}
+	}
+	
+	public void addWaypoint (long time, Path path) {
+		if (type.speed > 0) {
+			Tile tile = path.activeTile (time);
+			if (!Waypoint.active (tile.waypointLatest (this))) {
+				List<UnitSelection> start = new List<UnitSelection> { new UnitSelection(path, this, time) };
+				SegmentUnit prev = new SegmentUnit(path.activeSegment (time), this);
+				do {
+					// remember segments that unit was previously on in case unit is later removed from them
+					SegmentUnit cur = prev;
+					prev = cur.prev ().FirstOrDefault ();
+					if (prev.g == null || prev.segment.path != cur.segment.path || !prev.segment.unseen) {
+						start.Add (new UnitSelection(cur.segment.path, this, cur.segment.timeStart));
+					}
+				} while (prev.g != null && prev.segment.unseen);
+				g.events.add (new WaypointAddEvt(time + (tile.centerPos() - path.calcPos(time)).length () / type.speed,
+					this, tile, null, start));
+			}
+		}
 	}
 }

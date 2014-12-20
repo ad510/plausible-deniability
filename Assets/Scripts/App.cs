@@ -169,6 +169,7 @@ public class App : MonoBehaviour {
 	Dictionary<Path, List<Unit>> curSelPaths;
 	Formation selFormation;
 	UnitType makeUnitType;
+	bool enableAutoTimeTravel;
 	long timeNow;
 	long timeDelta;
 	bool replay;
@@ -234,6 +235,7 @@ public class App : MonoBehaviour {
 		if (!b) return false;
 		// base scenario
 		g = new Sim {
+			// not stored in scenario file
 			selUser = user,
 			networkView = multiplayer ? networkView : null,
 			events = new SimEvtList(),
@@ -243,6 +245,10 @@ public class App : MonoBehaviour {
 			timeSim = 0,
 			timeUpdateEvt = long.MinValue,
 			maxSpeed = 0,
+			deleteLines = new List<MoveLine>(),
+			keepLines = new List<MoveLine>(),
+			alternatePaths = new List<Path>(),
+			// stored in scenario file
 			mapSize = jsonFP(json, "mapSize"),
 			updateInterval = (long)jsonDouble(json, "updateInterval"),
 			tileInterval = (long)jsonDouble (json, "tileInterval"),
@@ -262,6 +268,7 @@ public class App : MonoBehaviour {
 			playerVisCol = jsonColor(json, "playerVisCol"),
 			unitVisCol = jsonColor(json, "unitVisCol"),
 			exclusiveCol = jsonColor(json, "exclusiveCol"),
+			waypointCol = jsonColor (json, "waypointCol"),
 			pathCol = jsonColor(json, "pathCol"),
 			healthBarBackCol = jsonColor(json, "healthBarBackCol"),
 			healthBarFullCol = jsonColor(json, "healthBarFullCol"),
@@ -271,8 +278,6 @@ public class App : MonoBehaviour {
 			unitT = new UnitType[0],
 			units = new List<Unit>(),
 			paths = new List<Path>(),
-			deleteLines = new List<MoveLine>(),
-			keepLines = new List<MoveLine>(),
 		};
 		if (g.updateInterval > 0) g.events.add(new UpdateEvt(0));
 		if (g.tileInterval > 0) g.events.add (new TileUpdateEvt(0));
@@ -301,7 +306,7 @@ public class App : MonoBehaviour {
 					mapHack = jsonBool (jsonO, "mapHack"),
 					hasNonLivePaths = false,
 					timeGoLiveFailedAttempt = long.MinValue,
-					goLiveStackPaths = new Dictionary<int, HashSet<int>>(),
+					goLiveStackPaths = new Dictionary<int, HashSet<Path>>(),
 					unseenTiles = g.tileLen () * g.tileLen (),
 				};
 				for (int i = 0; i < g.rscNames.Length; i++) {
@@ -713,7 +718,7 @@ public class App : MonoBehaviour {
 						if (tileAtMovePos == null || !tileAtMovePos.playerDirectVisLatest (g.playerNamed ("Blue"))) break;
 					}
 				}*/
-				g.cmdPending.add(new MoveCmdEvt(g.timeSim, g.timeSim, argFromSegment (datacenter), movePos, Formation.Tight));
+				g.cmdPending.add(new MoveCmdEvt(g.timeSim, g.timeSim, argFromSegment (datacenter), movePos, Formation.Tight, false));
 			}
 		}
 	}
@@ -728,7 +733,7 @@ public class App : MonoBehaviour {
 			while (selPaths.Count == 0 || selPaths[0].path.moves.Count == 1) yield return null;
 			yield return new WaitForSeconds(1);
 			g.cmdPending.add (new MoveCmdEvt(g.timeSim, g.timeSim, argFromSegment (g.tourGuide.activeSegment (g.timeSim)),
-				g.paths.Find (p => p.player == g.playerNamed ("Blue")).moves.Last ().vecEnd + randInsideCircle (3), Formation.Tight));
+				g.paths.Find (p => p.player == g.playerNamed ("Blue")).moves.Last ().vecEnd + randInsideCircle (3), Formation.Tight, false));
 			yield return new WaitForSeconds(2);
 		}
 		g.pathTexts.Add (new PathText(g.timeSim, g.tourGuide, "Follow me to a mineral!"));
@@ -744,7 +749,7 @@ public class App : MonoBehaviour {
 			}
 			mineralPos = mineral.calcPos (g.timeSim) + randInsideCircle (3);
 		}
-		g.cmdPending.add (new MoveCmdEvt(g.timeSim, g.timeSim, argFromSegment (g.tourGuide.activeSegment(g.timeSim)), mineralPos, Formation.Tight));
+		g.cmdPending.add (new MoveCmdEvt(g.timeSim, g.timeSim, argFromSegment (g.tourGuide.activeSegment(g.timeSim)), mineralPos, Formation.Tight, false));
 		while (g.tourGuide.calcPos (g.timeSim) != mineralPos) yield return null;
 		if (tutorial) {
 			g.pathTexts.Add (new PathText(g.timeSim, g.tourGuide, "The purple triangle is a mineral. You can build a mine on it."));
@@ -811,6 +816,15 @@ public class App : MonoBehaviour {
 	}
 	
 	private void updateInput() {
+		// select newly made alternate paths of selected units
+		foreach (Path path in g.alternatePaths) {
+			if (path.player == selPlayer) {
+				foreach (Unit unit in path.segments[0].units) {
+					selPaths.Add (new UnitSelection(path, unit, path.segments[0].timeStart));
+				}
+			}
+		}
+		g.alternatePaths.Clear ();
 		// update current unit selection
 		curSelPaths.Clear ();
 		foreach (SegmentUnit segmentUnit in g.activeSegmentUnits (selSegmentUnits (), g.timeGame)) {
@@ -833,7 +847,7 @@ public class App : MonoBehaviour {
 				if (makeUnitType != null) {
 					// make unit
 					FP.Vector pos = makeUnitPos();
-					if (pos.x != Sim.OffMap) g.cmdPending.add(new MakeUnitCmdEvt(g.timeSim, newCmdTime(), UnitCmdEvt.argFromPathDict (curSelPaths), makeUnitType.id, pos));
+					if (pos.x != Sim.OffMap) g.cmdPending.add(new MakeUnitCmdEvt(g.timeSim, newCmdTime(), UnitCmdEvt.argFromPathDict (curSelPaths), makeUnitType.id, pos, enableAutoTimeTravel));
 					makeUnitType = null;
 				}
 				else {
@@ -904,11 +918,11 @@ public class App : MonoBehaviour {
 					}
 					else if (EnableStacking && stackPath >= 0) {
 						// stack selected paths onto clicked path
-						g.cmdPending.add (new StackCmdEvt(g.timeSim, newCmdTime (), UnitCmdEvt.argFromPathDict (curSelPaths), stackPath));
+						g.cmdPending.add (new StackCmdEvt(g.timeSim, newCmdTime (), UnitCmdEvt.argFromPathDict (curSelPaths), stackPath, enableAutoTimeTravel));
 					}
 					else {
 						// move selected paths
-						g.cmdPending.add(new MoveCmdEvt(g.timeSim, newCmdTime(), UnitCmdEvt.argFromPathDict (curSelPaths), drawToSimPos (Input.mousePosition), selFormation));
+						g.cmdPending.add(new MoveCmdEvt(g.timeSim, newCmdTime(), UnitCmdEvt.argFromPathDict (curSelPaths), drawToSimPos (Input.mousePosition), selFormation, enableAutoTimeTravel));
 					}
 				}
 			}
@@ -1042,7 +1056,17 @@ public class App : MonoBehaviour {
 				if (g.tiles[tX, tY].playerVisWhen(selPlayer, g.timeGame)) {
 					col += g.playerVisCol;
 					if (g.tiles[tX, tY].playerDirectVisWhen(selPlayer, g.timeGame, !showDeletedUnits)) col += g.unitVisCol;
-					if (Sim.EnableNonLivePaths && (!replay || showDeletedUnits) && g.tiles[tX, tY].exclusiveWhen(selPlayer, g.timeGame)) col += g.exclusiveCol;
+					if (Sim.EnableNonLivePaths && (!replay || showDeletedUnits) && g.tiles[tX, tY].exclusiveWhen(selPlayer, g.timeGame)) {
+						col += g.exclusiveCol;
+						if (enableAutoTimeTravel) {
+							foreach (UnitSelection selection in selPaths) {
+								if (Waypoint.active (g.tiles[tX, tY].waypointWhen (selection.unit, g.timeGame))) {
+									col += g.waypointCol;
+									break;
+								}
+							}
+						}
+					}
 				}
 				texTile.SetPixel (tX, tY, col);
 			}
@@ -1188,6 +1212,7 @@ public class App : MonoBehaviour {
 	void OnGUI() {
 		GUI.skin.button.fontSize = lblStyle.fontSize;
 		GUI.skin.textField.fontSize = lblStyle.fontSize;
+		GUI.skin.toggle.fontSize = lblStyle.fontSize;
 		// message
 		if (message != "") {
 			paused = true;
@@ -1280,7 +1305,7 @@ public class App : MonoBehaviour {
 		else {
 			// cheat menu
 			// ISSUE #21: show text or hide button if can't do any of these actions
-			if (curSelPaths.Count > 0 && (scnPath != "scn_welcome.json" || !tutorial || g.makeInterval == 0)) {
+			if (scnPath != "scn_welcome.json" || !tutorial || g.makeInterval == 0) {
 				string plural = (curSelPaths.Count == 1) ? "" : "s";
 				GUILayout.BeginArea (new Rect(0, Screen.height * (1 - g.uiBarHeight), Screen.width / 4, Screen.height * g.uiBarHeight), (GUIStyle)"box");
 				GUI.color = Color.yellow;
@@ -1288,10 +1313,13 @@ public class App : MonoBehaviour {
 				GUI.color = Color.white;
 				cmdsScrollPos = GUILayout.BeginScrollView (cmdsScrollPos);
 				GUI.color = Color.yellow;
-				if (GUILayout.Button ("New Path" + plural)) makePaths ();
-				if (GUILayout.Button ("Delete Path" + plural)) deletePaths ();
-				if (GUILayout.Button ("Delete Other Paths")) deleteOtherPaths ();
-				if (EnableStacking && GUILayout.Button ("Share Paths")) sharePaths ();
+				if (curSelPaths.Count > 0) {
+					if (GUILayout.Button ("New Path" + plural)) makePaths ();
+					if (GUILayout.Button ("Delete Path" + plural)) deletePaths ();
+					if (GUILayout.Button ("Delete Other Paths")) deleteOtherPaths ();
+					if (EnableStacking && GUILayout.Button ("Share Paths")) sharePaths ();
+				}
+				if (Sim.EnableNonLivePaths) enableAutoTimeTravel = GUILayout.Toggle (enableAutoTimeTravel, "Automatic Time Travel");
 				GUI.color = Color.white;
 				GUILayout.EndScrollView ();
 				GUILayout.EndArea ();
@@ -1544,8 +1572,8 @@ public class App : MonoBehaviour {
 	
 	private IEnumerable<SegmentUnit> selSegmentUnits() {
 		foreach (UnitSelection selection in selPaths) {
-			Segment segment = selection.path.activeSegment (selection.time);
-			if (segment.units.Contains (selection.unit)) yield return new SegmentUnit(segment, selection.unit);
+			SegmentUnit segmentUnit = selection.segmentUnit ();
+			if (segmentUnit.segment.units.Contains (selection.unit)) yield return segmentUnit;
 		}
 	}
 
@@ -1623,7 +1651,7 @@ public class App : MonoBehaviour {
 					if (pos.y > maxY) maxY = pos.y;
 				}
 			}
-			g.cmdPending.add(new MoveCmdEvt(g.timeSim, newCmdTime(), UnitCmdEvt.argFromPathDict (curSelPaths), new FP.Vector((minX + maxX) / 2, (minY + maxY) / 2), selFormation));
+			g.cmdPending.add(new MoveCmdEvt(g.timeSim, newCmdTime(), UnitCmdEvt.argFromPathDict (curSelPaths), new FP.Vector((minX + maxX) / 2, (minY + maxY) / 2), selFormation, enableAutoTimeTravel));
 		}
 	}
 	
@@ -1659,7 +1687,7 @@ public class App : MonoBehaviour {
 	/// </summary>
 	private void sharePaths() {
 		if (!EnableStacking) throw new InvalidOperationException("may not share paths when stacking is disabled");
-		if (curSelPaths.Count > 0) g.cmdPending.add (new SharePathsCmdEvt(g.timeSim, newCmdTime (), UnitCmdEvt.argFromPathDict (curSelPaths)));
+		if (curSelPaths.Count > 0) g.cmdPending.add (new SharePathsCmdEvt(g.timeSim, newCmdTime (), UnitCmdEvt.argFromPathDict (curSelPaths), enableAutoTimeTravel));
 	}
 	
 	/// <summary>
@@ -1671,7 +1699,7 @@ public class App : MonoBehaviour {
 				foreach (Unit unit in path.Value) {
 					g.cmdPending.add (new MoveCmdEvt(g.timeSim, newCmdTime (),
 						UnitCmdEvt.argFromPathDict (new Dictionary<Path, List<Unit>> { { path.Key, new List<Unit> { unit } } }),
-						makePathMovePos (g.timeGame, path.Key, new List<Unit> { unit }), Formation.Tight));
+						makePathMovePos (g.timeGame, path.Key, new List<Unit> { unit }), Formation.Tight, false));
 				}
 			}
 		}
@@ -1693,7 +1721,7 @@ public class App : MonoBehaviour {
 				// make unit now
 				g.cmdPending.add(new MakeUnitCmdEvt(g.timeSim, newCmdTime(),
 					UnitCmdEvt.argFromPathDict (new Dictionary<Path, List<Unit>> { { path.Key, path.Value } }),
-					type.id, makeUnitMovePos (g.timeGame, path.Key, type)));
+					type.id, makeUnitMovePos (g.timeGame, path.Key, type), enableAutoTimeTravel));
 				break;
 			}
 			else if (g.unitsCanMake (path.Value, type)) {

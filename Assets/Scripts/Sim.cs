@@ -49,6 +49,7 @@ public class Sim {
 	[ProtoMember(17)] public Color playerVisCol;
 	[ProtoMember(18)] public Color unitVisCol;
 	[ProtoMember(19)] public Color exclusiveCol;
+	[ProtoMember(46)] public Color waypointCol;
 	[ProtoMember(20)] public Color pathCol;
 	[ProtoMember(21)] public Color healthBarBackCol;
 	[ProtoMember(22)] public Color healthBarFullCol;
@@ -66,7 +67,7 @@ public class Sim {
 	[ProtoMember(30)] public int selUser;
 	public NetworkView networkView; // to do RPCs in multiplayer (set to null in single player)
 	public Tile[,] tiles; // each tile is 1 fixed-point unit (2^FP.Precision raw integer units) wide, so bit shift by FP.Precision to convert between position and tile position
-	[ProtoMember(31)] private Tile[] protoTiles;
+	[ProtoMember(31, AsReference = true)] private Tile[] protoTiles;
 	public FP.Vector lastUnseenTile;
 	[ProtoMember(32)] public SimEvtList events; // simulation events to be applied
 	[ProtoMember(33)] public SimEvtList cmdPending; // user commands to be sent to other users in the next update
@@ -74,6 +75,7 @@ public class Sim {
 	[ProtoMember(37)] public long maxSpeed; // speed of fastest unit (is max speed that players can gain or lose visibility)
 	[ProtoMember(42)] public List<MoveLine> deleteLines;
 	[ProtoMember(43)] public List<MoveLine> keepLines;
+	public List<Path> alternatePaths; // newly made alternate paths of existing units; these should be selected
 	[ProtoMember(38)] public int checksum; // sent to other users during each UpdateEvt to check for multiplayer desyncs
 	[ProtoMember(39)] public bool synced; // whether all checksums between users matched so far
 	[ProtoMember(40)] public long timeSim; // current simulation time
@@ -139,6 +141,7 @@ public class Sim {
 		}
 		if (deleteLines == null) deleteLines = new List<MoveLine>();
 		if (keepLines == null) keepLines = new List<MoveLine>();
+		alternatePaths = new List<Path>();
 		afterSerialize ();
 	}
 
@@ -229,12 +232,14 @@ public class Sim {
 	/// <summary>
 	/// adds events to stack specified paths as they arrive
 	/// </summary>
-	public void addStackEvts(IEnumerable<int> stackPaths, int nSeeUnits) {
+	public void addStackEvts(List<Path> stackPaths, int nSeeUnits) {
 		if (stackPaths.Count() > 1) {
-			foreach (int path in stackPaths) {
+			// TODO: line below is currently needed to correctly share paths with auto time travel, but wouldn't be needed if StackEvt could stack units on past segments
+			events.add (new StackEvt(timeSim, stackPaths, nSeeUnits));
+			foreach (Path path in stackPaths) {
 				// in most cases only 2 paths will stack at a time,
 				// but request to stack all paths anyway in case the path they're stacking onto moves away
-				events.add (new StackEvt(paths[path].moves.Last ().timeEnd, stackPaths.ToArray (), nSeeUnits));
+				events.add (new StackEvt(path.moves.Last ().timeEnd, stackPaths, nSeeUnits));
 			}
 		}
 	}

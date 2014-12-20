@@ -14,7 +14,7 @@ using ProtoBuf;
 /// </summary>
 [ProtoContract]
 public class StackEvt : SimEvt {
-	[ProtoMember(1)] public int[] paths;
+	[ProtoMember(1, AsReference = true)] public List<Path> paths;
 	[ProtoMember(2)] public int nSeeUnits;
 	
 	/// <summary>
@@ -22,40 +22,40 @@ public class StackEvt : SimEvt {
 	/// </summary>
 	private StackEvt() { }
 	
-	public StackEvt(long timeVal, int[] pathsVal, int nSeeUnitsVal) {
+	public StackEvt(long timeVal, List<Path> pathsVal, int nSeeUnitsVal) {
 		time = timeVal;
 		paths = pathsVal;
 		nSeeUnits = nSeeUnitsVal;
 	}
 	
 	public override void apply (Sim g) {
-		bool[] pathsStacked = new bool[paths.Length];
+		bool[] pathsStacked = new bool[paths.Count];
 		// only stack paths that contain units at this time
-		for (int i = 0; i < paths.Length; i++) {
-			g.paths[paths[i]].updatePast (time);
-			Segment segment = g.paths[paths[i]].segments.Last ();
+		for (int i = 0; i < paths.Count; i++) {
+			paths[i].updatePast (time);
+			Segment segment = paths[i].segments.Last ();
 			pathsStacked[i] = (time < segment.timeStart || segment.units.Count == 0 || (time < g.timeSim && !segment.unseen));
 		}
 		// loop through each pair of unstacked paths
-		for (int i = 0; i < paths.Length; i++) {
+		for (int i = 0; i < paths.Count; i++) {
 			if (!pathsStacked[i]) {
-				FP.Vector iPos = g.paths[paths[i]].calcPos (time);
-				Segment iSegment = g.paths[paths[i]].segments.Last ();
-				for (int j = i + 1; j < paths.Length; j++) {
-					if (!pathsStacked[j] && (g.paths[paths[i]].timeSimPast == long.MaxValue) == (g.paths[paths[j]].timeSimPast == long.MaxValue)) {
-						FP.Vector jPos = g.paths[paths[j]].calcPos (time);
-						Segment jSegment = g.paths[paths[j]].segments.Last ();
+				FP.Vector iPos = paths[i].calcPos (time);
+				Segment iSegment = paths[i].segments.Last ();
+				for (int j = i + 1; j < paths.Count; j++) {
+					if (!pathsStacked[j] && (paths[i].timeSimPast == long.MaxValue) == (paths[j].timeSimPast == long.MaxValue)) {
+						FP.Vector jPos = paths[j].calcPos (time);
+						Segment jSegment = paths[j].segments.Last ();
 						// check that paths are at same position
 						if (iPos.x == jPos.x && iPos.y == jPos.y) {
 							// check whether allowed to stack the paths' units together
 							List<Unit> stackUnits = iSegment.units.Union (jSegment.units).ToList ();
-							if (g.stackAllowed (stackUnits, g.paths[paths[i]].speed, g.paths[paths[i]].player)) {
+							if (g.stackAllowed (stackUnits, paths[i].speed, paths[i].player)) {
 								// merge the paths onto path i
-								iSegment = g.paths[paths[i]].connect (time, g.paths[paths[j]]);
-								jSegment = g.paths[paths[j]].activeSegment (time);
+								iSegment = paths[i].connect (time, paths[j]);
+								jSegment = paths[j].activeSegment (time);
 								iSegment.units = stackUnits;
 								jSegment.removeAllUnits ();
-								g.paths[paths[i]].nSeeUnits = nSeeUnits;
+								paths[i].nSeeUnits = nSeeUnits;
 								pathsStacked[i] = true;
 								pathsStacked[j] = true;
 							}
@@ -66,9 +66,9 @@ public class StackEvt : SimEvt {
 		}
 		// if in past, try again to stack paths that failed to stack after going live
 		if (time < g.timeSim && pathsStacked.Where (b => !b).Any ()) {
-			var goLiveStackPaths = g.paths[paths[0]].player.goLiveStackPaths;
-			if (!goLiveStackPaths.ContainsKey (nSeeUnits)) goLiveStackPaths[nSeeUnits] = new HashSet<int>();
-			foreach (int path in paths) {
+			var goLiveStackPaths = paths[0].player.goLiveStackPaths;
+			if (!goLiveStackPaths.ContainsKey (nSeeUnits)) goLiveStackPaths[nSeeUnits] = new HashSet<Path>();
+			foreach (Path path in paths) {
 				goLiveStackPaths[nSeeUnits].Add (path);
 			}
 		}

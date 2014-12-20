@@ -31,6 +31,11 @@ public class Tile {
 	/// </summary>
 	public List<long>[] exclusive;
 	[ProtoMember(6)] private List<long> protoExclusive;
+	/// <summary>
+	/// stores where each unit can come from to get to this tile at any given time,
+	/// in format waypoints[unit][waypoint index]
+	/// </summary>
+	[ProtoMember(7)] public Dictionary<int, List<Waypoint>> waypoints;
 	
 	/// <summary>
 	/// empty constructor for protobuf-net use only
@@ -44,6 +49,7 @@ public class Tile {
 		pathVis = new Dictionary<int,List<long>>();
 		playerVis = new List<long>[g.players.Length];
 		if (Sim.EnableNonLivePaths) exclusive = new List<long>[g.players.Length];
+		waypoints = new Dictionary<int, List<Waypoint>>();
 		for (int i = 0; i < g.players.Length; i++) {
 			playerVis[i] = new List<long>();
 			if (Sim.EnableNonLivePaths) exclusive[i] = new List<long>();
@@ -77,6 +83,7 @@ public class Tile {
 	/// </summary>
 	public void afterSimDeserialize() {
 		if (pathVis == null) pathVis = new Dictionary<int, List<long>>();
+		if (waypoints == null) waypoints = new Dictionary<int, List<Waypoint>>();
 		playerVis = new List<long>[g.players.Length];
 		int player = 0;
 		for (int i = 0; i < protoPlayerVis.Count; i += (int)protoPlayerVis[i] + 1) {
@@ -126,19 +133,19 @@ public class Tile {
 		foreach (SimEvt evt in g.events.events) {
 			if (evt is PlayerVisRemoveEvt) {
 				PlayerVisRemoveEvt visEvt = evt as PlayerVisRemoveEvt;
-				if (player.id == visEvt.player && time == visEvt.time) {
+				if (player == visEvt.player && time == visEvt.time) {
 					// check that tile pos isn't a duplicate (recently added tiles are more likely to be duplicates)
 					for (int i = visEvt.tiles.Count - 1; i >= Math.Max(0, visEvt.tiles.Count - 20); i--) {
-						if (x == visEvt.tiles[i].x && y == visEvt.tiles[i].y) return;
+						if (visEvt.tiles[i] == this) return;
 					}
 					// ok to add tile to existing event
-					visEvt.tiles.Add (new FP.Vector(x, y));
+					visEvt.tiles.Add (this);
 					return;
 				}
 			}
 		}
 		// if no such PlayerVisRemoveEvt exists, add a new one
-		g.events.add(new PlayerVisRemoveEvt(time, player.id, x, y));
+		g.events.add(new PlayerVisRemoveEvt(time, player, this));
 	}
 
 	/// <summary>
@@ -174,18 +181,41 @@ public class Tile {
 	}
 
 	/// <summary>
-	/// returns playerVis gain/lose visibility index associated with specified time for specified player
-	/// </summary>
-	public int playerVisIndexWhen(Player player, long time) {
-		return visIndexWhen(playerVis[player.id], time);
-	}
-
-	/// <summary>
 	/// returns if this tile is either in the direct line of sight for specified player at specified time,
 	/// or if player can infer that other players' units aren't in specified tile at specified time
 	/// </summary>
 	public bool playerVisWhen(Player player, long time) {
 		return visWhen(playerVis[player.id], time);
+	}
+	
+	public void exclusiveAdd(Player player, long time) {
+		if (exclusiveLatest (player)) throw new InvalidOperationException("tile is already exclusive");
+		exclusive[player.id].Add (time);
+		// add waypoints to let units that can move to adjacent tile (using automatic time travel) move to this tile
+		for (int tX = Math.Max (0, x - 1); tX <= Math.Min (g.tileLen () - 1, x + 1); tX++) {
+			for (int tY = Math.Max (0, y - 1); tY <= Math.Min (g.tileLen () - 1, y + 1); tY++) {
+				if (tX != x || tY != y) {
+					foreach (var waypoint in g.tiles[tX, tY].waypoints) {
+						long halfMoveInterval = new FP.Vector(tX - x << FP.Precision, tY - y << FP.Precision).length() / g.units[waypoint.Key].type.speed / 2;
+						if (player == g.units[waypoint.Key].player && Waypoint.active (waypoint.Value.Last ())
+							&& time >= waypoint.Value.Last ().time + halfMoveInterval) {
+							g.events.add (new WaypointAddEvt(time + halfMoveInterval, g.units[waypoint.Key], this, waypoint.Value.Last (), null));
+						}
+					}
+				}
+			}
+		}
+	}
+	
+	public void exclusiveRemove(Player player, long time) {
+		if (!exclusiveLatest(player)) throw new InvalidOperationException("tile is already not exclusive");
+		exclusive[player.id].Add (time);
+		// clear waypoints on this tile
+		foreach (var waypoint in waypoints) {
+			if (player == g.units[waypoint.Key].player && Waypoint.active (waypoint.Value.Last ())) {
+				waypointAdd (g.units[waypoint.Key], time, null, null);
+			}
+		}
 	}
 
 	/// <summary>
@@ -229,18 +259,35 @@ public class Tile {
 	}
 
 	/// <summary>
-	/// returns gain/lose exclusivity index associated with specified time for specified player
-	/// </summary>
-	public int exclusiveIndexWhen(Player player, long time) {
-		return visIndexWhen(exclusive[player.id], time);
-	}
-
-	/// <summary>
 	/// returns if specified player can infer that no other player can see this tile at specified time
 	/// </summary>
 	public bool exclusiveWhen(Player player, long time) {
 		if (!Sim.EnableNonLivePaths && time == g.timeSim) return calcExclusive (player);
 		return visWhen(exclusive[player.id], time);
+	}
+	
+	public Waypoint waypointAdd(Unit unit, long time, Waypoint prev, List<UnitSelection> start) {
+		if (!waypoints.ContainsKey (unit.id)) waypoints[unit.id] = new List<Waypoint>();
+		Waypoint waypoint = new Waypoint(time, this, prev, start);
+		waypoints[unit.id].Add (waypoint);
+		return waypoint;
+	}
+	
+	public Waypoint waypointLatest(Unit unit) {
+		return waypoints.ContainsKey (unit.id) ? waypoints[unit.id].LastOrDefault () : null;
+	}
+	
+	public Waypoint waypointWhen(Unit unit, long time) {
+		if (waypoints.ContainsKey (unit.id)) {
+			for (int i = waypoints[unit.id].Count - 1; i >= 0; i--) {
+				if (time >= waypoints[unit.id][i].time) return waypoints[unit.id][i];
+			}
+		}
+		return null;
+	}
+	
+	public FP.Vector centerPos() {
+		return new FP.Vector((x << FP.Precision) + (1 << FP.Precision) / 2, (y << FP.Precision) + (1 << FP.Precision) / 2);
 	}
 
 	/// <summary>

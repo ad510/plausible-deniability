@@ -10,40 +10,39 @@ using System.Text;
 using ProtoBuf;
 
 [ProtoContract]
-public class SharePathsCmdEvt : UnitCmdEvt {
-	[ProtoMember(1)] bool autoTimeTravel;
+public class WaypointAddEvt : SimEvt {
+	[ProtoMember(1, AsReference = true)] public Unit unit;
+	[ProtoMember(2, AsReference = true)] public Tile tile;
+	[ProtoMember(3, AsReference = true)] public Waypoint prev;
+	[ProtoMember(4)] public List<UnitSelection> start;
 	
 	/// <summary>
 	/// empty constructor for protobuf-net use only
 	/// </summary>
-	private SharePathsCmdEvt() { }
+	private WaypointAddEvt() { }
 	
-	public SharePathsCmdEvt(long timeVal, long timeCmdVal, Dictionary<int, int[]> pathsVal, bool autoTimeTravelVal)
-		: base(timeVal, timeCmdVal, pathsVal) {
-		autoTimeTravel = autoTimeTravelVal;
+	public WaypointAddEvt(long timeVal, Unit unitVal, Tile tileVal, Waypoint prevVal, List<UnitSelection> startVal) {
+		time = timeVal;
+		unit = unitVal;
+		tile = tileVal;
+		prev = prevVal;
+		start = startVal;
 	}
 	
 	public override void apply (Sim g) {
-		Dictionary<Path, List<Unit>> exPaths = existingPaths (g);
-		Dictionary<Path, List<Unit>> sharedUnits = new Dictionary<Path, List<Unit>>();
-		int nSeeUnits = int.MaxValue;
-		foreach (Path path in exPaths.Keys) {
-			Segment segment = path.activeSegment (timeCmd);
-			if (segment.units.Count < nSeeUnits) nSeeUnits = segment.units.Count;
-			sharedUnits[path] = new List<Unit>(segment.units);
-		}
-		foreach (Path path in exPaths.Keys) {
-			Dictionary<Path, List<Unit>> movePaths = new Dictionary<Path, List<Unit>>();
-			foreach (KeyValuePair<Path, List<Unit>> path2 in exPaths) {
-				if (path2.Key.speed == path.speed && path2.Key.canMove (timeCmd)) {
-					List<Unit> moveUnits = path2.Value.FindAll (u => !sharedUnits[path].Contains (u));
-					if (path2.Key.makePath (timeCmd, moveUnits)) {
-						movePaths[g.paths.Last ()] = moveUnits;
-						sharedUnits[path].AddRange (moveUnits);
+		if (tile.exclusiveLatest (unit.player) && !Waypoint.active (tile.waypointLatest (unit))
+		    && ((prev != null && prev == prev.tile.waypointLatest (unit)) || (start != null && start[0].segmentUnit ().unseenAfter (start[0].time)))) {
+			// add waypoint to specified tile
+			Waypoint waypoint = tile.waypointAdd (unit, time, prev, start);
+			// add events to add waypoints to surrounding tiles
+			for (int tX = Math.Max (0, tile.x - 1); tX <= Math.Min (g.tileLen () - 1, tile.x + 1); tX++) {
+				for (int tY = Math.Max (0, tile.y - 1); tY <= Math.Min (g.tileLen () - 1, tile.y + 1); tY++) {
+					if (tX != tile.x || tY != tile.y) {
+						g.events.add (new WaypointAddEvt(time + new FP.Vector(tX - tile.x << FP.Precision, tY - tile.y << FP.Precision).length() / unit.type.speed,
+							unit, g.tiles[tX, tY], waypoint, null));
 					}
 				}
 			}
-			new StackCmdEvt(time, timeCmd, argFromPathDict (movePaths), path.id, autoTimeTravel, nSeeUnits).apply (g);
 		}
 	}
 }

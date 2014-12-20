@@ -10,3 +10,4 @@
 # added by Andrew
 *.pidb
 *.userprefs
+.DS_Store
