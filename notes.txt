@@ -1,13 +1,10 @@
 todo:
-what exactly are you squaring to get probability (in context of feynman diagrams)
 auto time travel for making units
 shoot stack behavior
 taylor email has ui suggestions
 tile iterators
 check behavior when multiple players are superuser
 
-in "bad population b05d7ec.sav", when sniper shoots invisible guy, my guys are deselected and population incorrectly becomes 1/10
-  seems related to killing unit with multiple paths when it thinks it's unseen
 sometimes still in replay mode after disconnect & reconnect
 make auto aiming code smarter
 
@@ -54,8 +51,6 @@ github issue tracker
 redundant may attack & take health code on sniper branch
 different sniper units (not just paths) may have shot the unit
 allow non-live sniper paths before they shoot (must change unseenAfter() and delete())
-update tiles at fixed intervals instead of calculating time when moves between tiles?
-license 80 character line wrap?
 don't necessarily decouple UnitSprite from paths
 click & drag line
 queue multiple commands to make buildings
@@ -80,19 +75,12 @@ allow selecting only 1 building at a time, and no units in addition?
 sound
 keep non-live paths in yellow areas w/o user help
 darker gray tiles should act more conventionally
-change website link in readme?
 post to tigsource.com or unity forums?
 unity 4.2
   quad primitive
     quad primitive doesn't display in player mode (output_log.txt says "The resource Quad.fbx could not be loaded from the resource file!")
   "Texture importer now has "Alpha is Transparency" setting, which does color dilation to fix edge artifacts on semitransparent textures. It is enabled by default for GUI textures."
   "fullscreen at native resolution" player setting"
-
-pathfinding:
-tile-based fog of war good?
-find disconnected regions
-path smoothing
-would graph be too big?
 
 levels: (not sure I like NSA as bad guy)
 - tutorial
@@ -118,7 +106,7 @@ levels: (not sure I like NSA as bad guy)
   - on completion, get access to changing the past knowledge
 - player's assignment changes to home country of spy agency, so can correct past mistakes
 - introduce time travel (how exactly?)
-  - mentor describes wavefunctions
+  - mentor describes field/wavefunctions
 - explore potentially infiltrated base, but there's no one hiding there and player becomes superuser
   - mentor says how nature controls/sees everything (1 player game) & how we measure it, describes path integral & wavefunction equivalence (or maybe save that for later)
   - email from US press secretary says US does not and will not infiltrate another countrys' bases, and as of today we can confirm that US has never infiltrated another country either! as part of president's transparency initiative, we are declassifying attached replay
@@ -170,6 +158,19 @@ old paths levels: (find better synonym for "part 2" such as redux?)
 - snipers
 
 alternate path implementation:
+- if not concerned about performance (thanks to Benjamin, * are probably hardest)
+  - storing history as actions might prevent state-space explosion
+  - state: (set of units, map of player resources)
+  - actions
+  - step: (state, action) -> state
+  - knowledge: (unit, owner, position)
+  - assertion: (knowledge, state) -> bool
+  - implies: action -> knowledge
+  - multistate: set of [state] (i.e. full game state)
+  - multiaction: (action, time)
+  - *multistep: (multiaction, multistate) -> multistate
+  - multiknowledge: (knowledge, time)
+  - *prune: (set of multiknowledge, multistate) -> multistate
 - features that require storing history
   - replays of what "they see" (most important)
     - making then deleting nested paths in various orders seems to at least require tree, stacking requires graph
@@ -209,12 +210,8 @@ random notes:
   - pass identical checking methods as delegates to List.Find()
   - deleting other paths with indistinguishable units is tricky
 - someone recommends binary space partitioning as general graphics optimizing technique
-- population limit? (or just make units expensive enough that you can't make too many)
 - company of heroes makes positioning important b/c resource gathering slow, low unit cap, controlling resource locations is important
 - a goal of game can be stealing intelligence
-- introduce paths 1st, then introduce wavefunctions as paths going everywhere in a region? (skipping manual time travel)
-  - but manual time travel is nice though
-  - keep in mind hard to force using time travel in levels if can use paths
 - Matthew says have story or something to make game interesting for people not interested in "physics" q&a's
   - set story in future so can suspend disbelief less
 - unit type ideas
