@@ -251,10 +251,10 @@ fix monodevelop 4 tabbing: http://forum.unity3d.com/threads/191455-Tab-insanity-
 other links:
 binary serialization: https://code.google.com/p/protobuf-net/
 protobuf-net unofficial manual: http://www.codeproject.com/Articles/642677/Protobuf-net-the-unofficial-manual
-serialize at stream position: http://stackoverflow.com/questions/2441608/deserializing-a-type-at-the-current-stream-position-with-protobuf-net
+serialize at stream position: https://stackoverflow.com/questions/2441608/deserializing-a-type-at-the-current-stream-position-with-protobuf-net
 age of empires multiplayer: http://www.gamasutra.com/view/feature/3094/1500_archers_on_a_288_network_.php
 ai war optimization (including multiplayer): http://christophermpark.blogspot.com/2009/06/optimizing-30000-ships-in-realtime-in-c.html
 multiplayer debugging: http://gafferongames.com/networking-for-game-programmers/debugging-multiplayer-games/
 braid rewind: http://gdcvault.com/play/1012210/The-Implementation-of-Rewind-in
-managing copyright info: http://softwarefreedom.org/resources/2012/ManagingCopyrightInformation.html
+managing copyright info: https://softwarefreedom.org/resources/2012/ManagingCopyrightInformation.html
 functional retrogames: http://prog21.dadgum.com/23.html
