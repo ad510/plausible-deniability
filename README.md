@@ -32,7 +32,7 @@ Controls
 - e = ring formation
 - u = unstack
 - n = create new paths that selected units could take
-- delete/d = delete selected paths
+- delete = delete selected paths
 - shift + delete/shift + d = delete unselected paths of selected units
 - s = share selected paths
 - f2 = change selected player
