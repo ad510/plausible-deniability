@@ -611,7 +611,7 @@ public class App : MonoBehaviour {
 						else {
 							type = UnityEngine.Random.Range (0, g.unitT.Length);
 						}
-						g.cmdPending.add (new MakeUnitCmdEvt(g.timeSim, g.timeSim, argFromSegment (worker),
+						g.cmdPending.addEvt(new MakeUnitCmdEvt(g.timeSim, g.timeSim, argFromSegment (worker),
 							type, worker.path.posWhen (g.timeSim) + randInsideCircle (), false));
 					}
 				}
@@ -634,7 +634,7 @@ public class App : MonoBehaviour {
 			if (datacenters.Count < g.numDatacenters) {
 				// if number of paths is less than the max, make some more paths
 				Segment datacenter = datacenters[UnityEngine.Random.Range (0, datacenters.Count)];
-				g.cmdPending.add(new MakePathCmdEvt(g.timeSim, g.timeSim, argFromSegment (datacenter),
+				g.cmdPending.addEvt(new MakePathCmdEvt(g.timeSim, g.timeSim, argFromSegment (datacenter),
 							new Dictionary<int, FP.Vector> {
 								{
 									datacenter.path.id,
@@ -670,7 +670,7 @@ public class App : MonoBehaviour {
 				foreach (Segment segment in g.segmentsWhen(g.timeSim)) {
 					if (segment.path.player == g.playerNamed("Blue")
 							&& (segment.path.posWhen(g.timeSim) - datacenter.path.posWhen(g.timeSim)).lengthSq() < (g.visRadius + (5 << FP.precision)) * (g.visRadius + (5 << FP.precision))) {
-						g.cmdPending.add(new DeletePathCmdEvt(g.timeSim, g.timeSim, argFromSegment (datacenter)));
+						g.cmdPending.addEvt(new DeletePathCmdEvt(g.timeSim, g.timeSim, argFromSegment (datacenter)));
 						datacentersCount--;
 						break;
 					}
@@ -718,7 +718,7 @@ public class App : MonoBehaviour {
 						if (tileAtMovePos == null || !tileAtMovePos.playerDirectVisLatest (g.playerNamed ("Blue"))) break;
 					}
 				}*/
-				g.cmdPending.add(new MoveCmdEvt(g.timeSim, g.timeSim, argFromSegment (datacenter), movePos, Formation.Tight, false));
+				g.cmdPending.addEvt(new MoveCmdEvt(g.timeSim, g.timeSim, argFromSegment (datacenter), movePos, Formation.Tight, false));
 			}
 		}
 	}
@@ -732,7 +732,7 @@ public class App : MonoBehaviour {
 			g.pathTexts.Add (new PathText(g.timeSim, g.tourGuide, "You can right click on the map to move your worker around."));
 			while (selPaths.Count == 0 || selPaths[0].path.moves.Count == 1) yield return null;
 			yield return new WaitForSeconds(1);
-			g.cmdPending.add (new MoveCmdEvt(g.timeSim, g.timeSim, argFromSegment (g.tourGuide.segmentWhen (g.timeSim)),
+			g.cmdPending.addEvt(new MoveCmdEvt(g.timeSim, g.timeSim, argFromSegment (g.tourGuide.segmentWhen (g.timeSim)),
 				g.paths.Find (p => p.player == g.playerNamed ("Blue")).moves.Last ().vecEnd + randInsideCircle (3), Formation.Tight, false));
 			yield return new WaitForSeconds(2);
 		}
@@ -749,7 +749,7 @@ public class App : MonoBehaviour {
 			}
 			mineralPos = mineral.posWhen (g.timeSim) + randInsideCircle (3);
 		}
-		g.cmdPending.add (new MoveCmdEvt(g.timeSim, g.timeSim, argFromSegment (g.tourGuide.segmentWhen(g.timeSim)), mineralPos, Formation.Tight, false));
+		g.cmdPending.addEvt(new MoveCmdEvt(g.timeSim, g.timeSim, argFromSegment (g.tourGuide.segmentWhen(g.timeSim)), mineralPos, Formation.Tight, false));
 		while (g.tourGuide.posWhen (g.timeSim) != mineralPos) yield return null;
 		if (tutorial) {
 			g.pathTexts.Add (new PathText(g.timeSim, g.tourGuide, "The purple triangle is a mineral. You can build a mine on it."));
