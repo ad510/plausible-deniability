@@ -16,9 +16,9 @@ public class FP {
 	/// <summary>
 	/// fixed point bit precision past decimal point
 	/// </summary>
-	public const int Precision = 16;
-	public const long Sqrt2 = 92681;
-	public const long Pi = 205887;
+	public const int precision = 16;
+	public const long sqrt2 = 92681;
+	public const long pi = 205887;
 
 	/// <summary>
 	/// fixed point 3D vector
@@ -124,7 +124,7 @@ public class FP {
 	/// but there was too much of a performance hit so I reverted it in commit 7d01306
 	/// </remarks>
 	public static long mul(long left, long right) {
-		return (left * right) >> Precision;
+		return (left * right) >> precision;
 	}
 	
 	/// <summary>
@@ -135,7 +135,7 @@ public class FP {
 	/// but there was too much of a performance hit so I reverted it in commit 7d01306
 	/// </remarks>
 	public static long div(long left, long right) {
-		return (left << Precision) / right;
+		return (left << precision) / right;
 	}
 
 	/// <summary>
@@ -156,12 +156,12 @@ public class FP {
 	/// </summary>
 	public static long cos(long x) {
 		// ensure -Pi/2 <= x <= Pi/2
-		x = Math.Abs(x % (2 * Pi));
-		if (x > Pi) x = 2 * Pi - x;
-		bool flip = (x > Pi / 2);
-		if (flip) x = Pi - x;
+		x = Math.Abs(x % (2 * pi));
+		if (x > pi) x = 2 * pi - x;
+		bool flip = (x > pi / 2);
+		if (flip) x = pi - x;
 		// use 4th order Taylor series
-		x = (1 << Precision) - mul(x, x) / 2 + mul(mul(x, x), mul(x, x)) / 24;
+		x = (1 << precision) - mul(x, x) / 2 + mul(mul(x, x), mul(x, x)) / 24;
 		return flip ? -x : x;
 	}
 
@@ -169,21 +169,21 @@ public class FP {
 	/// fixed point sine
 	/// </summary>
 	public static long sin(long x) {
-		return cos(x - Pi / 2);
+		return cos(x - pi / 2);
 	}
 
 	/// <summary>
 	/// returns fixed point value equivalent to specified double (except for rounding errors)
 	/// </summary>
 	public static long fromDouble(double from) {
-		return (long)(from * Math.Pow(2, Precision));
+		return (long)(from * Math.Pow(2, precision));
 	}
 
 	/// <summary>
 	/// returns double value equivalent to specified fixed point number (except for rounding errors)
 	/// </summary>
 	public static double toDouble(long from) {
-		return (double)from / Math.Pow(2, Precision);
+		return (double)from / Math.Pow(2, precision);
 	}
 	
 	/// <summary>

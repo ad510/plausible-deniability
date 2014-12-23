@@ -128,17 +128,17 @@ public class App : MonoBehaviour {
 		}
 	}
 	
-	const bool EnableStacking = false;
-	const double SelBoxMin = 100;
-	const float FntSize = 1f / 40;
-	const float TileDepth = 8;
-	const float BorderDepth = 7;
-	const float MoveLineDepth = 6;
-	const float PathLineDepth = 5;
-	const float UnitDepth = 4;
-	const float LaserDepth = 3;
-	const float HealthBarDepth = 2;
-	const float SelectBoxDepth = 1;
+	const bool enableStacking = false;
+	const double selBoxMin = 100;
+	const float fontSize = 1f / 40;
+	const float tileDepth = 8;
+	const float borderDepth = 7;
+	const float moveLineDepth = 6;
+	const float pathLineDepth = 5;
+	const float unitDepth = 4;
+	const float laserDepth = 3;
+	const float healthBarDepth = 2;
+	const float selectBoxDepth = 1;
 	
 	public GameObject quadPrefab;
 	
@@ -213,7 +213,7 @@ public class App : MonoBehaviour {
 		selectBox.line.SetWidth (2, 2);
 		// ISSUE #16: make font, size, and color customizable by mod
 		lblStyle = GUIStyle.none;
-		lblStyle.fontSize = (int)(Screen.height * FntSize);
+		lblStyle.fontSize = (int)(Screen.height * fontSize);
 		lblStyle.normal.textColor = Color.white;
 		lblErrStyle = new GUIStyle(lblStyle);
 		lblErrStyle.normal.textColor = Color.red;
@@ -316,16 +316,16 @@ public class App : MonoBehaviour {
 				g.players[g.players.Length - 1] = player;
 			}
 			foreach (Hashtable jsonO in jsonA) {
-				ArrayList jsonA2 = jsonArray(jsonO, "mayAttack");
+				ArrayList jsonA2 = jsonArray(jsonO, "canAttack");
 				Player player = g.playerNamed(jsonString(jsonO, "name"));
-				player.mayAttack = new bool[g.players.Length];
+				player.canAttack = new bool[g.players.Length];
 				for (int i = 0; i < g.players.Length; i++) {
-					player.mayAttack[i] = false;
+					player.canAttack[i] = false;
 				}
 				if (jsonA2 != null) {
 					foreach (string s in jsonA2) {
 						if (g.playerNamed(s) != null) {
-							player.mayAttack[g.playerNamed(s).id] = true;
+							player.canAttack[g.playerNamed(s).id] = true;
 						}
 					}
 				}
@@ -426,7 +426,7 @@ public class App : MonoBehaviour {
 					Move move = g.paths.Last ().moves[0];
 					// prevent datacenters from spawning in sight of player
 					while (scnPath == "scn_nsa.json" && g.paths.Last ().player == g.playerNamed ("Red")
-						&& (move.vecStart - new FP.Vector(g.mapSize / 2, g.mapSize / 2)).lengthSq () < (g.visRadius + (5 << FP.Precision)) * (g.visRadius + (5 << FP.Precision))) {
+						&& (move.vecStart - new FP.Vector(g.mapSize / 2, g.mapSize / 2)).lengthSq () < (g.visRadius + (5 << FP.precision)) * (g.visRadius + (5 << FP.precision))) {
 						move = new Move(0, new FP.Vector((long)(UnityEngine.Random.value * g.mapSize), (long)(UnityEngine.Random.value * g.mapSize)));
 						g.paths.Last ().moves[0] = move;
 					}
@@ -669,7 +669,7 @@ public class App : MonoBehaviour {
 				}
 				foreach (Segment segment in g.segmentsWhen(g.timeSim)) {
 					if (segment.path.player == g.playerNamed("Blue")
-							&& (segment.path.posWhen(g.timeSim) - datacenter.path.posWhen(g.timeSim)).lengthSq() < (g.visRadius + (5 << FP.Precision)) * (g.visRadius + (5 << FP.Precision))) {
+							&& (segment.path.posWhen(g.timeSim) - datacenter.path.posWhen(g.timeSim)).lengthSq() < (g.visRadius + (5 << FP.precision)) * (g.visRadius + (5 << FP.precision))) {
 						g.cmdPending.add(new DeletePathCmdEvt(g.timeSim, g.timeSim, argFromSegment (datacenter)));
 						datacentersCount--;
 						break;
@@ -847,7 +847,7 @@ public class App : MonoBehaviour {
 				if (makeUnitType != null) {
 					// make unit
 					FP.Vector pos = makeUnitPos();
-					if (pos.x != Sim.OffMap) g.cmdPending.add(new MakeUnitCmdEvt(g.timeSim, newCmdTime(), UnitCmdEvt.argFromPathDict (curSelPaths), makeUnitType.id, pos, enableAutoTimeTravel));
+					if (pos.x != Sim.offMap) g.cmdPending.add(new MakeUnitCmdEvt(g.timeSim, newCmdTime(), UnitCmdEvt.argFromPathDict (curSelPaths), makeUnitType.id, pos, enableAutoTimeTravel));
 					makeUnitType = null;
 				}
 				else {
@@ -874,7 +874,7 @@ public class App : MonoBehaviour {
 									selPaths.Add (new UnitSelection(path, unit, g.timeGame));
 								}
 							}
-							if (SelBoxMin > (Input.mousePosition - mouseDownPos[0]).sqrMagnitude) break;
+							if (selBoxMin > (Input.mousePosition - mouseDownPos[0]).sqrMagnitude) break;
 						}
 					}
 					if (deselect) {
@@ -901,7 +901,7 @@ public class App : MonoBehaviour {
 						if (g.timeGame >= g.paths[i].segments[0].timeStart
 							&& FP.rectContains (g.paths[i].selMinPos(g.timeGame), g.paths[i].selMaxPos(g.timeGame), drawToSimPos (Input.mousePosition))) {
 							if (g.timeGame >= g.timeSim && g.paths[i].tileWhen (g.timeGame).playerDirectVisWhen (selPlayer, g.timeGame)
-								&& selPlayer.mayAttack[g.paths[i].player.id]
+								&& selPlayer.canAttack[g.paths[i].player.id]
 								&& g.paths[i].segmentWhen (g.timeGame).units.Where (u2 => curSelPaths.Values.Where (units => units.Where (u => u.type.damage[u2.type.id] > 0).Any ()).Any ()).Any ()) {
 								attackPath = i;
 								break;
@@ -916,7 +916,7 @@ public class App : MonoBehaviour {
 						// attack clicked path
 						g.cmdPending.add (new AttackCmdEvt(g.timeSim, newCmdTime (), UnitCmdEvt.argFromPathDict (curSelPaths), attackPath));
 					}
-					else if (EnableStacking && stackPath >= 0) {
+					else if (enableStacking && stackPath >= 0) {
 						// stack selected paths onto clicked path
 						g.cmdPending.add (new StackCmdEvt(g.timeSim, newCmdTime (), UnitCmdEvt.argFromPathDict (curSelPaths), stackPath, enableAutoTimeTravel));
 					}
@@ -979,7 +979,7 @@ public class App : MonoBehaviour {
 				deletePaths ();
 			}
 		}
-		if (EnableStacking && Input.GetKeyDown (KeyCode.S) && !Input.GetKey (KeyCode.LeftShift)) {
+		if (enableStacking && Input.GetKeyDown (KeyCode.S) && !Input.GetKey (KeyCode.LeftShift)) {
 			// share selected paths
 			sharePaths ();
 		}
@@ -1056,7 +1056,7 @@ public class App : MonoBehaviour {
 				if (g.tiles[tX, tY].playerVisWhen(selPlayer, g.timeGame)) {
 					col += g.playerVisCol;
 					if (g.tiles[tX, tY].playerDirectVisWhen(selPlayer, g.timeGame, !showDeletedUnits)) col += g.unitVisCol;
-					if (Sim.EnableNonLivePaths && (!replay || showDeletedUnits) && g.tiles[tX, tY].exclusiveWhen(selPlayer, g.timeGame)) {
+					if (Sim.enableNonLivePaths && (!replay || showDeletedUnits) && g.tiles[tX, tY].exclusiveWhen(selPlayer, g.timeGame)) {
 						col += g.exclusiveCol;
 						if (enableAutoTimeTravel) {
 							foreach (UnitSelection selection in selPaths) {
@@ -1074,16 +1074,16 @@ public class App : MonoBehaviour {
 		texTile.Apply ();
 		texTile.filterMode = FilterMode.Point;
 		sprTile.renderer.material.mainTexture = texTile;
-		sprTile.transform.position = simToDrawPos (new FP.Vector((g.tileLen () << FP.Precision) / 2, (g.tileLen () << FP.Precision) / 2), TileDepth);
-		sprTile.transform.localScale = simToDrawScl (new FP.Vector((g.tileLen () << FP.Precision) / 2, (g.tileLen () << FP.Precision) / 2));
+		sprTile.transform.position = simToDrawPos (new FP.Vector((g.tileLen () << FP.precision) / 2, (g.tileLen () << FP.precision) / 2), tileDepth);
+		sprTile.transform.localScale = simToDrawScl (new FP.Vector((g.tileLen () << FP.precision) / 2, (g.tileLen () << FP.precision) / 2));
 		// map border
-		border.setRect (simToDrawPos (new FP.Vector()), simToDrawPos(new FP.Vector(g.mapSize, g.mapSize)), BorderDepth);
+		border.setRect (simToDrawPos (new FP.Vector()), simToDrawPos(new FP.Vector(g.mapSize, g.mapSize)), borderDepth);
 		// unit move lines
 		deleteLines.mesh.Clear ();
 		keepLines.mesh.Clear ();
 		if (!replay || showDeletedUnits) {
-			deleteLines.draw (g.deleteLines, this, g.timeGame, MoveLineDepth);
-			keepLines.draw (g.keepLines, this, g.timeGame, MoveLineDepth);
+			deleteLines.draw (g.deleteLines, this, g.timeGame, moveLineDepth);
+			keepLines.draw (g.keepLines, this, g.timeGame, moveLineDepth);
 		}
 		// units
 		for (int i = 0; i < g.paths.Count; i++) {
@@ -1127,8 +1127,8 @@ public class App : MonoBehaviour {
 						if (segment2 != null && g.paths[i].speed == g.paths[k].speed && g.paths[i].player == g.paths[k].player
 							&& (segment2.units.Contains (unit) || (showPathDeletedUnits && segment2.deletedUnits.Contains (unit)))) {
 							// unit path line
-							sprUnits[i][j].pathLine.SetPosition (0, new Vector3(vec.x, vec.y, PathLineDepth));
-							sprUnits[i][j].pathLine.SetPosition (1, simToDrawPos (g.paths[k].posWhen(g.timeGame), PathLineDepth));
+							sprUnits[i][j].pathLine.SetPosition (0, new Vector3(vec.x, vec.y, pathLineDepth));
+							sprUnits[i][j].pathLine.SetPosition (1, simToDrawPos (g.paths[k].posWhen(g.timeGame), pathLineDepth));
 							sprUnits[i][j].pathLine.enabled = true;
 							break;
 						}
@@ -1138,10 +1138,10 @@ public class App : MonoBehaviour {
 					foreach (Attack attack in unit.attacks) {
 						if (g.timeGame - attack.time >= 0 && g.timeGame - attack.time < 500 && attack.target.tileWhen(g.timeGame).playerVisWhen(selPlayer, g.timeGame)) {
 							Vector3 posEmit = vec + simToDrawScl (unit.type.laserPos);
-							posEmit.z = LaserDepth;
+							posEmit.z = laserDepth;
 							sprUnits[i][j].laser.SetWidth(4 * (1 - (g.timeGame - attack.time) / 500f), 4 * (1 - (g.timeGame - attack.time) / 500f));
 							sprUnits[i][j].laser.SetPosition(0, posEmit);
-							sprUnits[i][j].laser.SetPosition(1, simToDrawPos((attack.target.selMinPos (g.timeGame) + attack.target.selMaxPos (g.timeGame)) / (2 << FP.Precision), LaserDepth));
+							sprUnits[i][j].laser.SetPosition(1, simToDrawPos((attack.target.selMinPos (g.timeGame) + attack.target.selMaxPos (g.timeGame)) / (2 << FP.precision), laserDepth));
 							sprUnits[i][j].laser.enabled = true;
 							break;
 						}
@@ -1149,7 +1149,7 @@ public class App : MonoBehaviour {
 					if (Input.GetKey (KeyCode.LeftShift) && curSelPaths.ContainsKey(g.paths[i])) {
 						// show final position if holding shift
 						sprUnits[i][j].preview.renderer.material.color = sprUnits[i][j].sprite.renderer.material.color;
-						sprUnits[i][j].preview.transform.position = simToDrawPos(g.paths[i].moves.Last ().vecEnd + unit.type.imgOffset, UnitDepth);
+						sprUnits[i][j].preview.transform.position = simToDrawPos(g.paths[i].moves.Last ().vecEnd + unit.type.imgOffset, unitDepth);
 						sprUnits[i][j].preview.transform.localScale = sprUnits[i][j].sprite.transform.localScale;
 						sprUnits[i][j].preview.renderer.enabled = true;
 					}
@@ -1160,13 +1160,13 @@ public class App : MonoBehaviour {
 		if (makeUnitType != null) {
 			FP.Vector pos = makeUnitPos();
 			sprMakeUnit.renderer.material.mainTexture = texUnits[makeUnitType.id, selPlayer.id];
-			if (pos.x != Sim.OffMap) {
+			if (pos.x != Sim.offMap) {
 				sprMakeUnit.renderer.material.color = new Color(1, 1, 1, 1);
-				sprMakeUnit.transform.position = simToDrawPos(pos + makeUnitType.imgOffset, UnitDepth);
+				sprMakeUnit.transform.position = simToDrawPos(pos + makeUnitType.imgOffset, unitDepth);
 			}
 			else {
 				sprMakeUnit.renderer.material.color = new Color(1, 1, 1, 0.5f); // ISSUE #16: make transparency amount customizable
-				sprMakeUnit.transform.position = new Vector3(Input.mousePosition.x, Input.mousePosition.y, UnitDepth) + simToDrawScl (makeUnitType.imgOffset);
+				sprMakeUnit.transform.position = new Vector3(Input.mousePosition.x, Input.mousePosition.y, unitDepth) + simToDrawScl (makeUnitType.imgOffset);
 			}
 			sprMakeUnit.transform.localScale = unitScale (makeUnitType, selPlayer);
 			sprMakeUnit.renderer.enabled = true;
@@ -1186,13 +1186,13 @@ public class App : MonoBehaviour {
 						// background
 						if (unit.healthWhen(g.timeGame) > 0) {
 							sprUnits[path.id][j].healthBarBack.renderer.material.color = g.healthBarBackCol;
-							sprUnits[path.id][j].healthBarBack.transform.position = new Vector3(vec.x + g.healthBarSize.x * winDiag * f / 2, f2, HealthBarDepth);
+							sprUnits[path.id][j].healthBarBack.transform.position = new Vector3(vec.x + g.healthBarSize.x * winDiag * f / 2, f2, healthBarDepth);
 							sprUnits[path.id][j].healthBarBack.transform.localScale = new Vector3(g.healthBarSize.x * winDiag * (1 - f) / 2, g.healthBarSize.y * winDiag / 2, 1);
 							sprUnits[path.id][j].healthBarBack.renderer.enabled = true;
 						}
 						// foreground
 						sprUnits[path.id][j].healthBarFore.renderer.material.color = g.healthBarEmptyCol + (g.healthBarFullCol - g.healthBarEmptyCol) * f;
-						sprUnits[path.id][j].healthBarFore.transform.position = new Vector3(vec.x + g.healthBarSize.x * winDiag * (f - 1) / 2, f2, HealthBarDepth);
+						sprUnits[path.id][j].healthBarFore.transform.position = new Vector3(vec.x + g.healthBarSize.x * winDiag * (f - 1) / 2, f2, healthBarDepth);
 						sprUnits[path.id][j].healthBarFore.transform.localScale = new Vector3(g.healthBarSize.x * winDiag * f / 2, g.healthBarSize.y * winDiag / 2, 1);
 						sprUnits[path.id][j].healthBarFore.renderer.enabled = true;
 					}
@@ -1200,8 +1200,8 @@ public class App : MonoBehaviour {
 			}
 		}
 		// select box (if needed)
-		if (Input.GetMouseButton (0) && makeUnitType == null && SelBoxMin <= (Input.mousePosition - mouseDownPos[0]).sqrMagnitude && mouseDownPos[0].y > uiBarTop) {
-			selectBox.setRect (mouseDownPos[0], Input.mousePosition, SelectBoxDepth);
+		if (Input.GetMouseButton (0) && makeUnitType == null && selBoxMin <= (Input.mousePosition - mouseDownPos[0]).sqrMagnitude && mouseDownPos[0].y > uiBarTop) {
+			selectBox.setRect (mouseDownPos[0], Input.mousePosition, selectBoxDepth);
 			selectBox.line.enabled = true;
 		}
 		else {
@@ -1283,7 +1283,7 @@ public class App : MonoBehaviour {
 			int population = selPlayer.population (g.timeGame);
 			GUILayout.Label ("Population: " + population + "/" + selPlayer.populationLimit, (population <= selPlayer.populationLimit) ? lblStyle : lblErrStyle);
 		}
-		if (Sim.EnableNonLivePaths || replay) {
+		if (Sim.enableNonLivePaths || replay) {
 			g.timeGame = (long)GUILayout.HorizontalSlider (g.timeGame, 0, g.timeSim);
 			uiBarTop = Screen.height - GUILayoutUtility.GetLastRect ().y;
 		}
@@ -1317,9 +1317,9 @@ public class App : MonoBehaviour {
 					if (GUILayout.Button ("New Path" + plural)) makePaths ();
 					if (GUILayout.Button ("Delete Path" + plural)) deletePaths ();
 					if (GUILayout.Button ("Delete Other Paths")) deleteOtherPaths ();
-					if (EnableStacking && GUILayout.Button ("Share Paths")) sharePaths ();
+					if (enableStacking && GUILayout.Button ("Share Paths")) sharePaths ();
 				}
-				if (Sim.EnableNonLivePaths) enableAutoTimeTravel = GUILayout.Toggle (enableAutoTimeTravel, "Automatic Time Travel");
+				if (Sim.enableNonLivePaths) enableAutoTimeTravel = GUILayout.Toggle (enableAutoTimeTravel, "Automatic Time Travel");
 				GUI.color = Color.white;
 				GUILayout.EndScrollView ();
 				GUILayout.EndArea ();
@@ -1602,7 +1602,7 @@ public class App : MonoBehaviour {
 				return drawToSimPos(Input.mousePosition);
 			}
 		}
-		return new FP.Vector(Sim.OffMap, 0);
+		return new FP.Vector(Sim.offMap, 0);
 	}
 
 	/// <summary>
@@ -1673,7 +1673,7 @@ public class App : MonoBehaviour {
 	}
 	
 	private void sharePaths() {
-		if (!EnableStacking) throw new InvalidOperationException("may not share paths when stacking is disabled");
+		if (!enableStacking) throw new InvalidOperationException("may not share paths when stacking is disabled");
 		if (curSelPaths.Count > 0) g.cmdPending.add (new SharePathsCmdEvt(g.timeSim, newCmdTime (), UnitCmdEvt.argFromPathDict (curSelPaths), enableAutoTimeTravel));
 	}
 	
@@ -1724,7 +1724,7 @@ public class App : MonoBehaviour {
 			if (path.timeSimPast != long.MaxValue) return false;
 			if (!path.tileWhen (g.timeGame).playerVisWhen(selPlayer, g.timeGame)) return false;
 		}
-		pos = simToDrawPos(path.posWhen(g.timeGame), UnitDepth);
+		pos = simToDrawPos(path.posWhen(g.timeGame), unitDepth);
 		return true;
 	}
 	

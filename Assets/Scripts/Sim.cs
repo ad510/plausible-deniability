@@ -18,9 +18,9 @@ public enum AIState { Welcome, Hide, Attack };
 [ProtoContract]
 public class Sim {
 	// constants
-	public const bool EnableNonLivePaths = false;
-	public const int OffMap = -10000; // don't set to int.MinValue so doesn't overflow in inVis()
-	public const int CompUser = -1;
+	public const bool enableNonLivePaths = false;
+	public const int offMap = -10000; // don't set to int.MinValue so doesn't overflow in inVis()
+	public const int compUser = -1;
 
 	// general simulation parameters
 	[ProtoMember(1)] public long mapSize;
@@ -285,19 +285,19 @@ public class Sim {
 	/// </summary>
 	public bool inVis(long tX, long tY) {
 		//return Math.Max(Math.Abs(tX), Math.Abs(tY)) <= (int)(g.visRadius >> FP.Precision);
-		return (tX << FP.Precision) * (tX << FP.Precision) + (tY << FP.Precision) * (tY << FP.Precision) <= visRadius * visRadius;
+		return (tX << FP.precision) * (tX << FP.precision) + (tY << FP.precision) * (tY << FP.precision) <= visRadius * visRadius;
 	}
 
 	public int tileVisRadius() {
-		return (int)(visRadius >> FP.Precision); // adding "+ 1" to this actually doesn't make a difference
+		return (int)(visRadius >> FP.precision); // adding "+ 1" to this actually doesn't make a difference
 	}
 
 	public Tile tileAt(FP.Vector pos) {
-		return tiles[pos.x >> FP.Precision, pos.y >> FP.Precision];
+		return tiles[pos.x >> FP.precision, pos.y >> FP.precision];
 	}
 
 	public int tileLen() { // when fixing ISSUE #31, use tiles.GetUpperBound instead of this function
-		return (int)((mapSize >> FP.Precision) + 1);
+		return (int)((mapSize >> FP.precision) + 1);
 	}
 
 	public int resourceNamed(string name) {

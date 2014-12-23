@@ -35,13 +35,13 @@
       {
         "Minerals": 20
       },
-      "mayAttack": ["Red"]
+      "canAttack": ["Red"]
     },
     {
       "name": "Red",
       "isUser": true,
       "user": 0,
-      "mayAttack": ["Blue"]
+      "canAttack": ["Blue"]
     },
     {
       "name": "Resources",

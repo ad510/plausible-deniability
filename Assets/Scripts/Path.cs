@@ -40,8 +40,8 @@ public class Path {
 			new Move(startTime, startPos)
 		};
 		nSeeUnits = nSeeUnitsVal;
-		tileX = Sim.OffMap + 1;
-		tileY = Sim.OffMap + 1;
+		tileX = Sim.offMap + 1;
+		tileY = Sim.offMap + 1;
 		timeSimPast = (startTime >= g.timeSim) ? long.MaxValue : startTime / g.tileInterval * g.tileInterval;
 	}
 	
@@ -68,19 +68,19 @@ public class Path {
 		if (time >= moves[0].timeStart) {
 			if (segments.Last ().units.Count == 0) {
 				// path no longer contains units, so remove it from visibility tiles
-				tileX = Sim.OffMap;
+				tileX = Sim.offMap;
 			}
 			else {
 				FP.Vector pos = posWhen (time);
-				tileX = (int)(pos.x >> FP.Precision);
-				tileY = (int)(pos.y >> FP.Precision);
+				tileX = (int)(pos.x >> FP.precision);
+				tileY = (int)(pos.y >> FP.precision);
 			}
 		}
 	}
 
 	public void goLive() {
-		tileX = Sim.OffMap + 1;
-		tileY = Sim.OffMap + 1;
+		tileX = Sim.offMap + 1;
+		tileY = Sim.offMap + 1;
 		timeSimPast = long.MaxValue;
 	}
 
@@ -129,7 +129,7 @@ public class Path {
 			}
 		}
 		bool newPathIsLive = (time >= g.timeSim && timeSimPast == long.MaxValue);
-		if (!newPathIsLive && !Sim.EnableNonLivePaths) return false;
+		if (!newPathIsLive && !Sim.enableNonLivePaths) return false;
 		if (player.populationLimit >= 0 && player.population (time) + newUnitCount > player.populationLimit) return false;
 		for (int i = 0; i < g.rscNames.Length; i++) {
 			if (rscCost[i] > 0 && player.resource(time, i, !newPathIsLive) < rscCost[i]) return false;
@@ -267,7 +267,7 @@ public class Path {
 	public bool canMove(long time, List<Unit> units = null) {
 		if (time < moves[0].timeStart || speed <= 0) return false;
 		if (time < g.timeSim) {
-			if (!Sim.EnableNonLivePaths) return false;
+			if (!Sim.enableNonLivePaths) return false;
 			if (units == null) {
 				Segment segment = segmentWhen (time);
 				if (segment == null) return false;

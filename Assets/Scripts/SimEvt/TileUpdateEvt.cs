@@ -20,7 +20,7 @@ public class TileUpdateEvt : SimEvt {
 	public override void apply (Sim g) {
 		bool anyoneMoved = false;
 		foreach (Path path in g.paths) {
-			if (path.timeSimPast == long.MaxValue && path.tileX != Sim.OffMap) {
+			if (path.timeSimPast == long.MaxValue && path.tileX != Sim.offMap) {
 				int tXPrev = path.tileX;
 				int tYPrev = path.tileY;
 				path.updateTilePos (time);
@@ -41,7 +41,7 @@ public class TileUpdateEvt : SimEvt {
 									// make tile visible to this player
 									g.tiles[tX, tY].playerVis[path.player.id].Add(time);
 									path.player.unseenTiles--;
-									if (Sim.EnableNonLivePaths) {
+									if (Sim.enableNonLivePaths) {
 										if (tX < exclusiveMinX) exclusiveMinX = tX;
 										if (tX > exclusiveMaxX) exclusiveMaxX = tX;
 										if (tY < exclusiveMinY) exclusiveMinY = tY;
@@ -49,7 +49,7 @@ public class TileUpdateEvt : SimEvt {
 									}
 								}
 								// check if this tile stopped being exclusive to another player
-								if (Sim.EnableNonLivePaths && !path.player.immutable) {
+								if (Sim.enableNonLivePaths && !path.player.immutable) {
 									foreach (Player player in g.players) {
 										if (player != path.player && g.tiles[tX, tY].exclusiveLatest(player)) {
 											g.tiles[tX, tY].exclusiveRemove(player, time);
@@ -85,12 +85,12 @@ public class TileUpdateEvt : SimEvt {
 									// if player can't see all neighboring tiles, they won't be able to tell if another player's unit moves into this tile
 									// so remove this tile's visibility for this player
 									if (timePlayerVis != long.MaxValue) {
-										timePlayerVis = Math.Max(time, timePlayerVis + (1 << FP.Precision) / g.maxSpeed); // ISSUE #29: lose visibility in a circle instead of a square
+										timePlayerVis = Math.Max(time, timePlayerVis + (1 << FP.precision) / g.maxSpeed); // ISSUE #29: lose visibility in a circle instead of a square
 										g.tiles[tX, tY].playerVisRemove(path.player, timePlayerVis);
 									}
 								}
 								// check if this tile became exclusive to a player using map hack
-								if (Sim.EnableNonLivePaths && !path.player.immutable) {
+								if (Sim.enableNonLivePaths && !path.player.immutable) {
 									foreach (Player player in g.players) {
 										if (player != path.player && player.mapHack && !g.tiles[tX, tY].exclusiveLatest (player) && g.tiles[tX, tY].calcExclusive (player)) {
 											g.tiles[tX, tY].exclusiveAdd(player, time);
@@ -100,7 +100,7 @@ public class TileUpdateEvt : SimEvt {
 							}
 						}
 					}
-					if (Sim.EnableNonLivePaths) {
+					if (Sim.enableNonLivePaths) {
 						// apply PlayerVisRemoveEvts that occur immediately
 						foreach (SimEvt evt in g.events.events) {
 							if (evt.time > time) break;

@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2013-2014 Andrew Downing
+// Copyright (c) 2013-2014 Andrew Downing
 // Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 // The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
@@ -42,13 +42,13 @@ public class PlayerVisRemoveEvt : SimEvt {
 					for (int tY = Math.Max(0, tile.y - 1); tY <= Math.Min(g.tileLen() - 1, tile.y + 1); tY++) {
 						if ((tX != tile.x || tY != tile.y) && g.tiles[tX, tY].playerVisLatest(player)) {
 							// ISSUE #29: lose visibility in a circle instead of a square
-							g.tiles[tX, tY].playerVisRemove(player, time + (1 << FP.Precision) / g.maxSpeed);
+							g.tiles[tX, tY].playerVisRemove(player, time + (1 << FP.precision) / g.maxSpeed);
 						}
 					}
 				}
 			}
 		}
-		if (Sim.EnableNonLivePaths) {
+		if (Sim.enableNonLivePaths) {
 			// check if a tile stopped being exclusive to this player, or became exclusive to another player
 			Tile prevTile = null;
 			foreach (Tile tile in tiles) {

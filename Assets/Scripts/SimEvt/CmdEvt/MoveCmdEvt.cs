@@ -67,10 +67,10 @@ public class MoveCmdEvt : UnitCmdEvt {
 		// (if tight formation, then spacing was already calculated above)
 		// ISSUE #28: loose formation should be triangular
 		if (formation == Formation.Loose) {
-			spacing = FP.mul(g.visRadius, FP.Sqrt2) >> FP.Precision << FP.Precision;
+			spacing = FP.mul(g.visRadius, FP.sqrt2) >> FP.precision << FP.precision;
 		}
 		else if (formation == Formation.Ring) {
-			spacing = (g.visRadius * 2 >> FP.Precision) - 1 << FP.Precision;
+			spacing = (g.visRadius * 2 >> FP.precision) - 1 << FP.precision;
 		}
 		if (formation == Formation.Tight || formation == Formation.Loose) {
 			rows.x = FP.sqrt(formationOrder.Count);
@@ -78,7 +78,7 @@ public class MoveCmdEvt : UnitCmdEvt {
 			offset = (rows - new FP.Vector(1, 1)) * spacing / 2;
 		}
 		else if (formation == Formation.Ring) {
-			offset.x = (formationOrder.Count == 1) ? 0 : FP.div(spacing / 2, FP.sin(FP.Pi / formationOrder.Count));
+			offset.x = (formationOrder.Count == 1) ? 0 : FP.div(spacing / 2, FP.sin(FP.pi / formationOrder.Count));
 			offset.y = offset.x;
 		}
 		else {
@@ -96,7 +96,7 @@ public class MoveCmdEvt : UnitCmdEvt {
 					goal = pos + new FP.Vector((i % rows.x) * spacing - offset.x, i / rows.x * spacing - offset.y);
 				}
 				else if (formation == Formation.Ring) {
-					goal = pos + offset.x * new FP.Vector(FP.cos(2 * FP.Pi * i / formationOrder.Count), FP.sin(2 * FP.Pi * i / formationOrder.Count));
+					goal = pos + offset.x * new FP.Vector(FP.cos(2 * FP.pi * i / formationOrder.Count), FP.sin(2 * FP.pi * i / formationOrder.Count));
 				}
 				else {
 					throw new NotImplementedException("requested formation is not implemented");
