@@ -1,24 +1,38 @@
 NOTE: If you are not Andrew, you will probably have no clue what I'm rambling about in this file. Don't worry about it; I'm not even sure I'll use most of the stuff here anyway.
 
 not q&a but still good wording:
-- Now we know that by any reasonable set of rules I won't be able to complete this level in X seconds. But does my opponent know that?
-- amplitude (rename to path?): the moment another player sees one, that's the one that happens
-- physicists wouldn't like it if I answer with "kind of" because physics is a precise science and "kind of" is an imprecise answer
-- green area in game serves similar purpose to wavefunction in physics
-  - can't call green area a wavefunction, would be like calling something a "g force" when it's really an acceleration
-- alternate catch phrase: Think like a quantum computer.
+- 1:1 mapping between Feynman diagrams and RTS replays!!!
 - limitations/caveats of quantum mechanics analogy
   - people don't understand quantum mechanics (so can't just explain QM analogy and expect people to understand the game)
   - it's only an analogy (so be very careful how you word comparisons to QM)
-- The way Achron works is like "I reject your reality and substitute my own." Decoherence lets you substitute your reality without ever rejecting anyone else's.
+- if anyone asks if this is related to quantum mechanics, tell them how it's not related to quantum mechanics
+- physicists wouldn't like it if I answer with "kind of" because physics is a precise science and "kind of" is an imprecise answer
+- brighter yellow area in game serves similar purpose to field in quantum mechanics
+- The way Achron works is like "I reject your reality and substitute my own." Plausible Deniability lets you substitute your reality without ever rejecting anyone else's.
 - Zach describes it as RTS in which "[the other player's] reality is determined by what you see"
 - "inspired by quantum mechanics"
 - these should be memos/letters from The Mentor
 - you can't cheat w/o anyone knowing that you did, right? http://www.colbertnation.com/the-colbert-report-videos/430139/october-31-2013/the-word---see-no-evil
+- cheat with plausible deniability
+- is it safe to rename share paths to entangle?
+  - sharing paths seems to be a way of doing entanglement
+  - the way entanglement seems to usually happen in QM is 2 particles come together and interact in some way, but they collectively don't have to decide how they interacted until they're measured later
+- when I read that quantum mechanics is fundamentally different from classical mechanics because in quantum mechanics you can do X but in classical mechanics you can't, I try to understand what X means by trying to figure out what it means to do X in an RTS game
+  - so far my experience with [insert X here] has been that other RTS games don't let you do X, but if you did X anyway you could plausibly deny to the other player that you did it (even in the replay)
+  - surprisingly often I already added X to the game or was already thinking of adding it
+  - in fact the way the game started out is I was thinking about all the cool things I read happens in QM, and wondering if it's possible to do them in a game
+  - I think there's a connection between what you can do in physics and what you can do in games that hasn't been sufficiently exploited yet
 
 UI:
 have visibility circle (like in menu), when hovering over Q&A box all of it becomes visible
 after pressing continue button, nothing changes but moving mouse away shows level map/menu
+
+old descriptions on website home page:
+I'm still trying to turn <a href="https://github.com/ad510/plausible-deniability">Plausible Deniability</a> (formerly Decoherence) from a proof of concept into an actual game. Despite my best efforts to keep things simple, that codebase simply refuses to be easy to hack on.
+
+The main thing I worked on last summer was the RTS game <a href="https://github.com/ad510/decoherence">Decoherence</a>, and I finally got it to the point where you can play a basic multiplayer game. The reason it's taken so long to get to this point is that the game lets you manipulate what you did in the past, and every time you do this the game has to make sure it is in a valid state <i>at every point</i> in the past. Therefore, whenever I add a new feature, it introduces a bunch of non-trivial edge cases that I have to handle to make the game work again. So I'm glad I finally got it to the point where I can start playtesting it, and I hope to continue making progress.
+
+For the 2013 <a href="http://globalgamejam.org">Global Game Jam</a>, I made an RTS game prototype that lets you change what your units did in the past, but only where it is impossible for other players to see you doing so. You can download it from the <a href="http://globalgamejam.org/2013/decoherence">Global Game Jam</a> website or the game's <a href="https://github.com/ad510/decoherence">GitHub repository</a>.
 
 after 1st paths level:
 ...That means that even when watching the replay, your opponents will never see your units taking multiple paths, and in fact the most suspicious evidence they'll see will be seemingly "lucky" coincidences in which your units were in the right place at the right time. But taken together, these carefully chosen "lucky" coincidences may well make the difference between winning and losing the game.
@@ -67,9 +81,16 @@ Notice you could do that without ever seeing the other player time travel. But t
 (note: after infiltration but before following potential traitors, have obvious initial conclusion of don't trust anyone and can't make any assumptions about unseen areas, a lot of free space between particles we're made out of (nucleus vs atom size analogy), at every point in that "empty space", there may or may not be... usually don't measure things carefully enough so impossible to tell whether they're there, but look a little closer and they influence everything that is happening in our lives)
 
 (note: after sniper level, say how finding electron at 1 location decreases chance to find another nearby, emphasizing they don't make up their mind about where they are until you see them, and how this "exclusion principle" creates chemical properties of atoms (from QED))
+(note: snipers actually pretty similar to bell's theorem example, if enemy has some marines and some snipers you'd expect to see snipers some of the time but actually you see all the marines first, if enemy switches precedence then you see all snipers first instead, to be similar to bell's theorem example have 2 marines and 1 sniper and switch precedence after 1st measurement, if you try to use this to communicate with 3rd player then you learn the enemy's precedence rule but can't communicate anything to 3rd player, also units don't teleport in replay)
+  - einstein's perspective: you can explain away uncertainty by saying it's caused by imprecise measurements, but here's a situation where the unit must either be a marine or a sniper and measuring it affects another unit very far away, but quantum mechanics doesn't say which one it is, so the theory must be incomplete
 
 (note: after level where NSA never infiltrated another country, like http://www.whitehouse.gov/the-press-office/2013/10/23/readout-president-s-phone-call-chancellor-merkel-germany, say that replay only shows one way it could have happened and impossible to ever know what "actually" happened, in real world there's these "replays" called Feynman diagrams)
 
 (note: after identical twins level, say philosophical implications of never having to make up your mind about what your units do and that replay just shows 1 way opponent could have done that, and how distinguish radio waves from 1 source vs 2 close sources when can't tell which star the photon came from (from QED))
 
 (note: after seeing the entire map level, say that nature is like superuser, show how paths/amplitudes and wavefunctions are equivalent in 1 player game/nature with option to explain how decoherence really works)
+
+according to https://www.youtube.com/watch?v=dEaecUuEqfc entanglement = measurement:
+- sharing paths implies that either one thing or another is going to happen when the path is seen, so it's the same thing as measurement
+- picking where a unit is seen means picking between the mutually exclusive outcomes (from a 3rd player's perspective) of what would happen if the unit is seen at each of those places, so until the 3rd player sees what happens it looks like sharing paths
+- quantum eraser: if it's possible to undo the effects of the "measurement" (e.g. share paths of healthy & unhealthy marine, then attack the healthy marine until it has same health as unhealthy one, or do this in opposite order) then from 3rd player's perspective the outcomes are identical and can mess with them for longer (in practice this rarely happens)

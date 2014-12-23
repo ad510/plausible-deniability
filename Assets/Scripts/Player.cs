@@ -40,7 +40,7 @@ public class Player {
 	public void updatePast(long curTime) {
 		if (hasNonLivePaths) {
 			foreach (Path path in g.paths) {
-				if (this == path.player) path.updatePast(curTime);
+				if (this == path.player) path.updatePast(curTime, true);
 			}
 			if (curTime >= g.timeSim && g.timeSim >= timeGoLiveFailedAttempt + g.updateInterval) {
 				// make player's time traveling paths go live
@@ -67,20 +67,20 @@ public class Player {
 						if (this == path.player && path.timeSimPast != long.MaxValue) {
 							List<SegmentUnit> queue = new List<SegmentUnit>();
 							SegmentUnit nonLiveChild = new SegmentUnit();
-							path.goLive ();
+							path.timeSimPast = long.MaxValue;
 							foreach (Segment segment in path.segments) {
 								queue.AddRange (segment.segmentUnits ());
 							}
 							while (queue.Count > 0) {
 								foreach (SegmentUnit prev in queue[0].prev ()) {
 									if (prev.segment.path.timeSimPast != long.MaxValue) {
-										prev.segment.path.goLive ();
+										prev.segment.path.timeSimPast = long.MaxValue;
 										queue.Add (prev);
 									}
 								}
 								foreach (SegmentUnit parent in queue[0].parents ()) {
 									if (parent.segment.path.timeSimPast != long.MaxValue) {
-										parent.segment.path.goLive ();
+										parent.segment.path.timeSimPast = long.MaxValue;
 										queue.Add (parent);
 									}
 								}

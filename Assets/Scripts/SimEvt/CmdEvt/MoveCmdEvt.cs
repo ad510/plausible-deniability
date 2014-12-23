@@ -39,7 +39,7 @@ public class MoveCmdEvt : UnitCmdEvt {
 				for (i = 0; i < formationOrder.Count; i++) {
 					if (path.Key.moves.Last ().vecEnd.x == formationOrder[i][0].moves.Last ().vecEnd.x
 						&& path.Key.moves.Last ().vecEnd.y == formationOrder[i][0].moves.Last ().vecEnd.y) {
-						SimEvt evt = g.events.events.FindLast (e => e is StackEvt && (e as StackEvt).paths.Contains (path.Key)
+						SimEvt evt = g.events.FindLast (e => e is StackEvt && (e as StackEvt).paths.Contains (path.Key)
 							&& formationOrder[i].Find (p => (e as StackEvt).paths.Contains (p)) != null);
 						if (evt != null) {
 							// path is trying to stack onto another commanded path
@@ -68,20 +68,17 @@ public class MoveCmdEvt : UnitCmdEvt {
 		// ISSUE #28: loose formation should be triangular
 		if (formation == Formation.Loose) {
 			spacing = FP.mul(g.visRadius, FP.sqrt2) >> FP.precision << FP.precision;
-		}
-		else if (formation == Formation.Ring) {
+		} else if (formation == Formation.Ring) {
 			spacing = (g.visRadius * 2 >> FP.precision) - 1 << FP.precision;
 		}
 		if (formation == Formation.Tight || formation == Formation.Loose) {
 			rows.x = FP.sqrt(formationOrder.Count);
 			rows.y = (formationOrder.Count - 1) / rows.x + 1;
 			offset = (rows - new FP.Vector(1, 1)) * spacing / 2;
-		}
-		else if (formation == Formation.Ring) {
+		} else if (formation == Formation.Ring) {
 			offset.x = (formationOrder.Count == 1) ? 0 : FP.div(spacing / 2, FP.sin(FP.pi / formationOrder.Count));
 			offset.y = offset.x;
-		}
-		else {
+		} else {
 			throw new NotImplementedException("requested formation is not implemented");
 		}
 		if (pos.x < Math.Min(offset.x, g.mapSize / 2)) pos.x = Math.Min(offset.x, g.mapSize / 2);
@@ -94,11 +91,9 @@ public class MoveCmdEvt : UnitCmdEvt {
 			foreach (Path path in formationOrder[i]) {
 				if (formation == Formation.Tight || formation == Formation.Loose) {
 					goal = pos + new FP.Vector((i % rows.x) * spacing - offset.x, i / rows.x * spacing - offset.y);
-				}
-				else if (formation == Formation.Ring) {
+				} else if (formation == Formation.Ring) {
 					goal = pos + offset.x * new FP.Vector(FP.cos(2 * FP.pi * i / formationOrder.Count), FP.sin(2 * FP.pi * i / formationOrder.Count));
-				}
-				else {
+				} else {
 					throw new NotImplementedException("requested formation is not implemented");
 				}
 				movedPaths.Add (path.moveTo(timeCmd, new List<Unit>(exPaths[path]), goal, autoTimeTravel));

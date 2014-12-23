@@ -28,14 +28,15 @@ public class WaypointAddEvt : SimEvt {
 	
 	public override void apply (Sim g) {
 		if (tile.exclusiveLatest (unit.player) && !Waypoint.active (tile.waypointLatest (unit))
-		    && ((prev != null && prev == prev.tile.waypointLatest (unit)) || (start != null && start[0].segmentUnit ().unseenAfter (start[0].time)))) {
+		    && ((prev != null && prev == prev.tile.waypointLatest (unit))
+		        || (start != null && start.Last().segment().units.Contains(unit) && start.Last().segmentUnit().unseenAfter(start.Last().time)))) {
 			// add waypoint to specified tile
 			Waypoint waypoint = tile.waypointAdd (unit, time, prev, start);
 			// add events to add waypoints to surrounding tiles
 			for (int tX = Math.Max (0, tile.x - 1); tX <= Math.Min (g.tileLen () - 1, tile.x + 1); tX++) {
 				for (int tY = Math.Max (0, tile.y - 1); tY <= Math.Min (g.tileLen () - 1, tile.y + 1); tY++) {
 					if (tX != tile.x || tY != tile.y) {
-						g.events.add (new WaypointAddEvt(time + new FP.Vector(tX - tile.x << FP.precision, tY - tile.y << FP.precision).length() / unit.type.speed,
+						g.events.addEvt (new WaypointAddEvt(time + new FP.Vector(tX - tile.x << FP.precision, tY - tile.y << FP.precision).length() / unit.type.speed,
 							unit, g.tiles[tX, tY], waypoint, null));
 					}
 				}

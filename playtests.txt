@@ -1,15 +1,26 @@
+3/2/2014, commit ebda5a8
+- camera controls
+- tour guide text sometimes off screen
+- some people don't figure out that new paths are selectable (solution is automatically select the new paths)
+- hard to notice when tour guide dies
+- he beat the infiltration by brute force :(
+- is ring formation useful?
+- resource calculation bug still exists
+
 1/26/2014, commit f030824
 - more complete tutorial (mine on mineral to collect rsc different from usual)
-- don't show path buttons in tutorial (though wasn't an issue with this player)
+- initially keep tour guide in sight of player's unit
+x cost tooltips
+x don't show path buttons in tutorial (though wasn't an issue with this player)
 - find the datacenter
-  - might not be obvious what objective is (I told him explicitly)
+  x might not be obvious what objective is (I told him explicitly)
   - hint to press "new path"
-  - formation buttons
-  - not clear relationship between "they see" & "you see"
+  x formation buttons
+  x not clear relationship between "they see" & "you see"
     - who is they?
     - he suggests showing side by side instead of buttons
     - didn't figure out seen one is one they see
-  - show objective text all throughout replay, not just when directly seen
+  x show objective text all throughout replay, not just when directly seen
   - didn't see time slider
-  - previously had bug where sometimes all datacenters would be deleted (but last one not from history)
+  x previously had bug where sometimes all datacenters would be deleted (but last one not from history)
 - he didn't suspect anything :)

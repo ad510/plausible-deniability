@@ -115,7 +115,7 @@ public class Tile {
 
 	public void playerVisRemove(Player player, long time) {
 		// try adding tile to existing PlayerVisRemoveEvt with same player and time
-		foreach (SimEvt evt in g.events.events) {
+		foreach (SimEvt evt in g.events) {
 			if (evt is PlayerVisRemoveEvt) {
 				PlayerVisRemoveEvt visEvt = evt as PlayerVisRemoveEvt;
 				if (player == visEvt.player && time == visEvt.time) {
@@ -130,7 +130,7 @@ public class Tile {
 			}
 		}
 		// if no such PlayerVisRemoveEvt exists, add a new one
-		g.events.add(new PlayerVisRemoveEvt(time, player, this));
+		g.events.addEvt(new PlayerVisRemoveEvt(time, player, this));
 	}
 
 	/// <summary>
@@ -184,7 +184,7 @@ public class Tile {
 						long halfMoveInterval = new FP.Vector(tX - x << FP.precision, tY - y << FP.precision).length() / g.units[waypoint.Key].type.speed / 2;
 						if (player == g.units[waypoint.Key].player && Waypoint.active (waypoint.Value.Last ())
 							&& time >= waypoint.Value.Last ().time + halfMoveInterval) {
-							g.events.add (new WaypointAddEvt(time + halfMoveInterval, g.units[waypoint.Key], this, waypoint.Value.Last (), null));
+							g.events.addEvt (new WaypointAddEvt(time + halfMoveInterval, g.units[waypoint.Key], this, waypoint.Value.Last (), null));
 						}
 					}
 				}

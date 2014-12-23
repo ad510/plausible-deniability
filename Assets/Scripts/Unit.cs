@@ -95,10 +95,11 @@ public class Unit {
 	
 	public void addWaypoint (long time, Path path) {
 		if (type.speed > 0) {
+			if (!new SegmentUnit(path.segmentWhen(time), this).canBeUnambiguousParent(time)) time++;
 			Tile tile = path.tileWhen (time);
 			if (!Waypoint.active (tile.waypointLatest (this))) {
 				List<UnitSelection> start = new List<UnitSelection> { new UnitSelection(path, this, time) };
-				SegmentUnit prev = new SegmentUnit(path.segmentWhen (time), this);
+				SegmentUnit prev = start[0].segmentUnit();
 				do {
 					// remember segments that unit was previously on in case unit is later removed from them
 					SegmentUnit cur = prev;
@@ -107,7 +108,7 @@ public class Unit {
 						start.Add (new UnitSelection(cur.segment.path, this, cur.segment.timeStart));
 					}
 				} while (prev.g != null && prev.segment.unseen);
-				g.events.add (new WaypointAddEvt(time + (tile.centerPos() - path.posWhen(time)).length () / type.speed,
+				g.events.addEvt (new WaypointAddEvt(time + (tile.centerPos() - path.posWhen(time)).length () / type.speed,
 					this, tile, null, start));
 			}
 		}

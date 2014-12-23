@@ -35,17 +35,11 @@ public struct SegmentUnit {
 		// *****************
 		// BEGIN DANGER ZONE
 		// *****************
-		// It is VERY easy to accidentally break something in this function.
-		// There are many non-trivial cases it needs to handle, so only modify it if you know what you are doing.
-		// Even if you think you know what you're doing, you will likely break a corner case anyway but not notice until a week or two later.
+		// There are many non-trivial cases this function needs to handle, so only modify it if you know what you are doing.
+		// Even then, you will likely break a corner case anyway but not notice until a week or two later.
 		//
 		// If what you want to do is actually some sort of postprocessing using the deleted SegmentUnits,
 		// it's best to do it at the end of the function (after the "danger zone") by iterating over the "removed" variable.
-		//
-		// If you do need to modify something in the "danger zone",
-		// the basic algorithm is to start at this SegmentUnit, traverse over ancestor SegmentUnits until reaching ones with alternate next segments,
-		// then call deleteAfter() to remove units from descendent SegmentUnits until reaching ones with alternate previous segments.
-		// However, there are many game-specific gotchas to be aware of...
 		if (!segment.units.Contains (unit)) return true; // if this segment already doesn't contain this unit, return true
 		List<SegmentUnit> ancestors = new List<SegmentUnit> { this };
 		Dictionary<Segment, List<Unit>> removed = new Dictionary<Segment, List<Unit>>();
@@ -56,29 +50,21 @@ public struct SegmentUnit {
 			if (ancestors[i].prev ().Any ()) {
 				// if this ancestor has a sibling segment that we're not currently planning to remove unit from,
 				// don't remove unit from previous segments shared by both
-				bool hasSibling = false;
-				foreach (Segment seg in ancestors[i].segment.branches) {
-					if (seg.units.Contains (unit) && !ancestors.Contains (new SegmentUnit(seg, unit))
-						&& (seg.path.timeSimPast == long.MaxValue || ancestors[i].segment.path.timeSimPast != long.MaxValue)) {
-						hasSibling = true;
-						break;
-					}
-				}
-				if (!hasSibling) {
+				Unit u = unit;
+				if (!ancestors[i].segment.branches.Where(seg => seg.units.Contains(u) && !ancestors.Contains(new SegmentUnit(seg, u))
+					&& (seg.path.timeSimPast == long.MaxValue || ancestors[i].segment.path.timeSimPast != long.MaxValue)).Any()) {
 					// indicate to remove unit from previous segments
 					ancestors.AddRange (ancestors[i].prev ());
 					ancestors.RemoveAt(i);
 					i--;
 				}
-			}
-			else if (ancestors[i].segment.prev ().Any ()) {
+			} else if (ancestors[i].segment.prev ().Any ()) {
 				// unit has a parent but we're deleting its first segment, so may need to check resources starting at this time
 				if (ancestors[i].unit.attacks.Count > 0) return false;
 				if (ancestors[i].segment.timeStart < timeEarliestChild && ancestors[i].unit.type.rscCollectRate.Where (r => r > 0).Any ()) {
 					timeEarliestChild = ancestors[i].segment.timeStart;
 				}
-			}
-			else {
+			} else {
 				// reached a segment with no previous segment whatsoever, so return false (we assume other players know the scenario's starting state)
 				return false;
 			}

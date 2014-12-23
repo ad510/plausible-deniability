@@ -69,8 +69,8 @@ public class Sim {
 	public Tile[,] tiles; // each tile is 1 fixed-point unit (2^FP.Precision raw integer units) wide, so bit shift by FP.Precision to convert between position and tile position
 	[ProtoMember(31, AsReference = true)] private Tile[] protoTiles;
 	public FP.Vector lastUnseenTile;
-	[ProtoMember(32)] public SimEvtList events; // simulation events to be applied
-	[ProtoMember(33)] public SimEvtList cmdPending; // user commands to be sent to other users in the next update
+	[ProtoMember(32)] public List<SimEvt> events; // simulation events to be applied
+	[ProtoMember(33)] public List<SimEvt> cmdPending; // user commands to be sent to other users in the next update
 	[ProtoMember(36)] public int nRootPaths; // number of paths that don't have a parent (because they were defined in scenario file); these are all at beginning of paths list
 	[ProtoMember(37)] public long maxSpeed; // speed of fastest unit (is max speed that players can gain or lose visibility)
 	[ProtoMember(42)] public List<MoveLine> deleteLines;
@@ -139,6 +139,8 @@ public class Sim {
 			protoTiles[i].afterSimDeserialize ();
 			tiles[i / tileLen (), i % tileLen ()] = protoTiles[i];
 		}
+		if (events == null) events = new List<SimEvt>();
+		if (cmdPending == null) cmdPending = new List<SimEvt>();
 		if (deleteLines == null) deleteLines = new List<MoveLine>();
 		if (keepLines == null) keepLines = new List<MoveLine>();
 		alternatePaths = new List<Path>();
@@ -155,7 +157,7 @@ public class Sim {
 		if (networkView == null) {
 			// move pending user commands to event list (single player only)
 			while ((evt = cmdPending.pop ()) != null) {
-				events.add (evt);
+				events.addEvt (evt);
 			}
 		}
 		// apply simulation events
@@ -218,8 +220,7 @@ public class Sim {
 		foreach (SegmentUnit prevSegment in segmentUnit.prev ()) {
 			if (segmentUnit.segment.path.timeSimPast != long.MaxValue && prevSegment.segment.path.timeSimPast == long.MaxValue) {
 				liveToNonLivePrev.Add(prevSegment);
-			}
-			else {
+			} else {
 				prev.Add (prevSegment);
 			}
 			addAncestors (prevSegment, ancestors, prev, liveToNonLivePrev);
@@ -235,11 +236,11 @@ public class Sim {
 	public void addStackEvts(List<Path> stackPaths, int nSeeUnits) {
 		if (stackPaths.Count() > 1) {
 			// TODO: line below is currently needed to correctly share paths with auto time travel, but wouldn't be needed if StackEvt could stack units on past segments
-			events.add (new StackEvt(timeSim, stackPaths, nSeeUnits));
+			events.addEvt (new StackEvt(timeSim, stackPaths, nSeeUnits));
 			foreach (Path path in stackPaths) {
 				// in most cases only 2 paths will stack at a time,
 				// but request to stack all paths anyway in case the path they're stacking onto moves away
-				events.add (new StackEvt(path.moves.Last ().timeEnd, stackPaths, nSeeUnits));
+				events.addEvt (new StackEvt(path.moves.Last ().timeEnd, stackPaths, nSeeUnits));
 			}
 		}
 	}
@@ -261,13 +262,11 @@ public class Sim {
 				foreach (SegmentUnit segmentUnit2 in segmentUnitsWhen(segmentUnit.next (), time)) {
 					yield return segmentUnit2;
 				}
-			}
-			else if (time < segmentUnit.segment.timeStart) {
+			} else if (time < segmentUnit.segment.timeStart) {
 				foreach (SegmentUnit segmentUnit2 in segmentUnitsWhen(segmentUnit.prev (), time)) {
 					yield return segmentUnit2;
 				}
-			}
-			else {
+			} else {
 				yield return segmentUnit;
 			}
 		}

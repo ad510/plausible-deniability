@@ -39,8 +39,7 @@ public class MakeUnitCmdEvt : UnitCmdEvt {
 					if (g.paths.Last ().canMove (timeCmd + 1)) { // move at timeCmd + 1 to avoid failing canBeAmbiguousParent() for non-live paths
 						g.paths.Last ().moveToDirect (timeCmd + 1, pos); // move new unit out of the way
 					}
-				}
-				else {
+				} else {
 					g.units.RemoveAt (g.units.Count - 1);
 				}
 				return;
@@ -72,7 +71,7 @@ public class MakeUnitCmdEvt : UnitCmdEvt {
 					}
 				}
 				long evtTime = Math.Max (timeCmd, movePath.moves.Last ().timeEnd);
-				g.events.add(new MakeUnitCmdEvt(evtTime, evtTime, evtPaths, type, pos, autoTimeTravel, true));
+				g.events.addEvt(new MakeUnitCmdEvt(evtTime, evtTime, evtPaths, type, pos, autoTimeTravel, true));
 			}
 		}
 	}

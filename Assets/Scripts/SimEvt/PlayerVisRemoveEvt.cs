@@ -30,8 +30,7 @@ public class PlayerVisRemoveEvt : SimEvt {
 			if (tiles[i].playerVisLatest(player) && !tiles[i].playerDirectVisLatest(player)) {
 				tiles[i].playerVis[player.id].Add(time);
 				player.unseenTiles++;
-			}
-			else {
+			} else {
 				tiles[i] = null;
 			}
 		}
@@ -61,8 +60,7 @@ public class PlayerVisRemoveEvt : SimEvt {
 								foreach (Player player2 in g.players) {
 									if (player2 == player && g.tiles[tX, tY].exclusiveLatest(player2)) {
 										g.tiles[tX, tY].exclusiveRemove(player2, time);
-									}
-									else if (player2 != player && !g.tiles[tX, tY].exclusiveLatest(player2) && g.tiles[tX, tY].calcExclusive(player2)) {
+									} else if (player2 != player && !g.tiles[tX, tY].exclusiveLatest(player2) && g.tiles[tX, tY].calcExclusive(player2)) {
 										g.tiles[tX, tY].exclusiveAdd(player2, time);
 									}
 								}

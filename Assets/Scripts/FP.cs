@@ -12,7 +12,7 @@ using ProtoBuf;
 /// <summary>
 /// fixed point arithmetic
 /// </summary>
-public class FP {
+public static class FP {
 	/// <summary>
 	/// fixed point bit precision past decimal point
 	/// </summary>
@@ -79,7 +79,7 @@ public class FP {
 		}
 
 		public override int GetHashCode() {
-			// this algorithm suggested at http://stackoverflow.com/questions/263400/what-is-the-best-algorithm-for-an-overridden-system-object-gethashcode
+			// this algorithm suggested at https://stackoverflow.com/questions/263400/what-is-the-best-algorithm-for-an-overridden-system-object-gethashcode
 			return unchecked((x.GetHashCode () * 31 + y.GetHashCode ()) * 31 + z.GetHashCode ());
 		}
 
