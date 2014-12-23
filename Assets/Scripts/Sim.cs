@@ -252,19 +252,6 @@ public class Sim {
 	}
 	
 	/// <summary>
-	/// returns whether the specified units are allowed to be on the same path
-	/// </summary>
-	public bool stackAllowed(List<Unit> stackUnits, long speed, Player player) {
-		if (stackUnits.Count == 0) return true;
-		foreach (Unit unit in stackUnits) {
-			if (unit.type.speed != speed || unit.player != player) {
-				return false;
-			}
-		}
-		return true;
-	}
-	
-	/// <summary>
 	/// iterates over all SegmentUnits active at specified time that are
 	/// past, present, or future versions of specified SegmentUnits
 	/// </summary>
@@ -286,9 +273,6 @@ public class Sim {
 		}
 	}
 	
-	/// <summary>
-	/// iterates over all path segments that are active at specified time
-	/// </summary>
 	public IEnumerable<Segment> segmentsWhen(long time) {
 		foreach (Path path in paths) {
 			Segment segment = path.segmentWhen (time);
@@ -316,9 +300,6 @@ public class Sim {
 		return (int)((mapSize >> FP.Precision) + 1);
 	}
 
-	/// <summary>
-	/// returns index of resource with specified name, or -1 if no such resource
-	/// </summary>
 	public int resourceNamed(string name) {
 		for (int i = 0; i < rscNames.Length; i++) {
 			if (name == rscNames[i]) return i;
@@ -326,9 +307,6 @@ public class Sim {
 		return -1;
 	}
 
-	/// <summary>
-	/// returns player with specified name, or null if no such player
-	/// </summary>
 	public Player playerNamed(string name) {
 		foreach (Player player in players) {
 			if (name == player.name) return player;
@@ -336,9 +314,6 @@ public class Sim {
 		return null;
 	}
 
-	/// <summary>
-	/// returns unit type with specified name, or null if no such unit type
-	/// </summary>
 	public UnitType unitTypeNamed(string name) {
 		foreach (UnitType type in unitT) {
 			if (name == type.name) return type;

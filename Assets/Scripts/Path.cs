@@ -26,17 +26,13 @@ public class Path {
 	[ProtoMember(8)] public int tileY;
 	[ProtoMember(9)] public long timeSimPast; // time traveling simulation time if made in the past, otherwise set to long.MaxValue
 	
-	/// <summary>
-	/// empty constructor for protobuf-net use only
-	/// </summary>
-	private Path() { }
+	private Path() { } // for protobuf-net use only
 
 	public Path(Sim simVal, int idVal, long speedVal, Player playerVal, List<Unit> units, long startTime, FP.Vector startPos, bool startUnseen, int nSeeUnitsVal) {
 		g = simVal;
 		id = idVal;
 		speed = speedVal;
 		player = playerVal;
-		if (!g.stackAllowed (units, speed, player)) throw new ArgumentException("specified units may not be on the same path");
 		segments = new List<Segment> {
 			new Segment(this, 0, startTime, units, startUnseen)
 		};
@@ -82,18 +78,12 @@ public class Path {
 		}
 	}
 
-	/// <summary>
-	/// let path be updated in the present (i.e., stop time traveling) starting at timeSim
-	/// </summary>
 	public void goLive() {
 		tileX = Sim.OffMap + 1;
 		tileY = Sim.OffMap + 1;
 		timeSimPast = long.MaxValue;
 	}
 
-	/// <summary>
-	/// makes a new path containing specified units, returns whether successful
-	/// </summary>
 	public bool makePath(long time, List<Unit> units, bool ignoreSeen = false) {
 		bool costsRsc;
 		if (!canMakePath (time, units, out costsRsc, ignoreSeen)) return false;
@@ -161,10 +151,7 @@ public class Path {
 		return false;
 	}
 
-	/// <summary>
-	/// connects this path to specified path at specified time,
-	/// returns this path's segment where the paths were connected
-	/// </summary>
+	/// <returns>this path's segment where the paths were connected</returns>
 	public Segment connect(long time, Path path) {
 		Segment segment = insertSegment (time);
 		Segment segment2 = path.insertSegment (time);
@@ -175,10 +162,7 @@ public class Path {
 		return segment;
 	}
 	
-	/// <summary>
-	/// move towards specified location starting at specified time or earlier,
-	/// return moved path (in case moving a subset of units in path)
-	/// </summary>
+	/// <returns>path that was moved (might not be original path)</returns>
 	public Path moveTo(long time, List<Unit> units, FP.Vector pos, bool autoTimeTravel) {
 		Path movedPath;
 		FP.Vector goalPos = pos;
@@ -268,9 +252,6 @@ public class Path {
 		return movedPath;
 	}
 
-	/// <summary>
-	/// move towards specified location starting at specified time
-	/// </summary>
 	public void moveToDirect(long time, FP.Vector pos) {
 		FP.Vector curPos = posWhen(time);
 		FP.Vector goalPos = pos;
@@ -283,9 +264,6 @@ public class Path {
 		moves.Add (Move.fromSpeed(time, speed, curPos, goalPos));
 	}
 
-	/// <summary>
-	/// returns whether allowed to move at specified time
-	/// </summary>
 	public bool canMove(long time, List<Unit> units = null) {
 		if (time < moves[0].timeStart || speed <= 0) return false;
 		if (time < g.timeSim) {
@@ -310,10 +288,6 @@ public class Path {
 		yield return posWhen (timeEnd);
 	}
 	
-	/// <summary>
-	/// inserts a segment starting at specified time if no segment already starts at that time,
-	/// returns that segment
-	/// </summary>
 	public Segment insertSegment(long time) {
 		Segment segment = segmentWhen (time);
 		if (segment != null && segment.timeStart == time) return segment;
@@ -325,9 +299,6 @@ public class Path {
 		return segments[segment.id + 1];
 	}
 	
-	/// <summary>
-	/// returns segment that is active at specified time
-	/// </summary>
 	public Segment segmentWhen(long time) {
 		for (int i = segments.Count - 1; i >= 0; i--) {
 			if (time >= segments[i].timeStart) return segments[i];
@@ -348,16 +319,10 @@ public class Path {
 		return g.tileAt(posWhen(timeRounded));
 	}
 
-	/// <summary>
-	/// returns location at specified time
-	/// </summary>
 	public FP.Vector posWhen(long time) {
 		return moves[moveIndexWhen(time)].posWhen(time);
 	}
 
-	/// <summary>
-	/// returns index of move that is occurring at specified time
-	/// </summary>
 	public int moveIndexWhen(long time) {
 		int ret = moves.Count - 1;
 		while (ret >= 0 && time < moves[ret].timeStart) ret--;

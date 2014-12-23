@@ -11,10 +11,7 @@ using ProtoBuf;
 
 [ProtoContract]
 public class TileUpdateEvt : SimEvt {
-	/// <summary>
-	/// empty constructor for protobuf-net use only
-	/// </summary>
-	private TileUpdateEvt() { }
+	private TileUpdateEvt() { } // for protobuf-net use only
 	
 	public TileUpdateEvt(long timeVal) {
 		time = timeVal;

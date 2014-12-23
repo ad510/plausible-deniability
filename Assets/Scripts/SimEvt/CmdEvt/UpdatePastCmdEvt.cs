@@ -14,10 +14,7 @@ public class UpdatePastCmdEvt : CmdEvt {
 	[ProtoMember(1)] public long timeSimPast;
 	[ProtoMember(2)] public int player;
 	
-	/// <summary>
-	/// empty constructor for protobuf-net use only
-	/// </summary>
-	private UpdatePastCmdEvt() { }
+	private UpdatePastCmdEvt() { } // for protobuf-net use only
 	
 	public UpdatePastCmdEvt(long timeVal, long timeSimPastVal, int playerVal) {
 		time = timeVal;

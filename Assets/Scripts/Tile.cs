@@ -37,10 +37,7 @@ public class Tile {
 	/// </summary>
 	[ProtoMember(7)] public Dictionary<int, List<Waypoint>> waypoints;
 	
-	/// <summary>
-	/// empty constructor for protobuf-net use only
-	/// </summary>
-	private Tile() { }
+	private Tile() { } // for protobuf-net use only
 
 	public Tile(Sim simVal, int xVal, int yVal) {
 		g = simVal;
@@ -102,32 +99,20 @@ public class Tile {
 		protoExclusive = null;
 	}
 
-	/// <summary>
-	/// toggles the visibility of this tile for specified path at specified time, without affecting player visibility
-	/// (should only be called by TileUpdateEvt.apply())
-	/// </summary>
+	/// <remarks>should only be called from TileUpdateEvt.apply()</remarks>
 	public void pathVisToggle(Path path, long time) {
 		if (!pathVis.ContainsKey(path.id)) pathVis.Add(path.id, new List<long>());
 		pathVis[path.id].Add(time);
 	}
 
-	/// <summary>
-	/// returns if specified path can see this tile at latest possible time
-	/// </summary>
 	public bool pathVisLatest(Path path) {
 		return pathVis.ContainsKey(path.id) && visLatest(pathVis[path.id]);
 	}
 
-	/// <summary>
-	/// returns if specified path can see this tile at specified time
-	/// </summary>
 	public bool pathVisWhen(Path path, long time) {
 		return pathVis.ContainsKey(path.id) && visWhen(pathVis[path.id], time);
 	}
 
-	/// <summary>
-	/// makes this tile not visible to specified player starting at specified time, including effects on surrounding tiles
-	/// </summary>
 	public void playerVisRemove(Player player, long time) {
 		// try adding tile to existing PlayerVisRemoveEvt with same player and time
 		foreach (SimEvt evt in g.events.events) {

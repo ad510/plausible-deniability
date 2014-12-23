@@ -9,18 +9,12 @@ using System.Linq;
 using System.Text;
 using ProtoBuf;
 
-/// <summary>
-/// command to attack a path
-/// </summary>
 /// <remarks>this event always takes place in the present (time == timeCmd)</remarks>
 [ProtoContract]
 public class AttackCmdEvt : UnitCmdEvt {
 	[ProtoMember(1)] int target; // path to attack
 	
-	/// <summary>
-	/// empty constructor for protobuf-net use only
-	/// </summary>
-	private AttackCmdEvt() { }
+	private AttackCmdEvt() { } // for protobuf-net use only
 	
 	public AttackCmdEvt(long timeVal, long timeCmdVal, Dictionary<int, int[]> pathsVal, int targetVal)
 		: base(timeVal, timeCmdVal, pathsVal) {

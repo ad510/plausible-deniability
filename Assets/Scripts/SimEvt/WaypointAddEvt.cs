@@ -16,10 +16,7 @@ public class WaypointAddEvt : SimEvt {
 	[ProtoMember(3, AsReference = true)] public Waypoint prev;
 	[ProtoMember(4)] public List<UnitSelection> start;
 	
-	/// <summary>
-	/// empty constructor for protobuf-net use only
-	/// </summary>
-	private WaypointAddEvt() { }
+	private WaypointAddEvt() { } // for protobuf-net use only
 	
 	public WaypointAddEvt(long timeVal, Unit unitVal, Tile tileVal, Waypoint prevVal, List<UnitSelection> startVal) {
 		time = timeVal;

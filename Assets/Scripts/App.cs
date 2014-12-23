@@ -1635,9 +1635,8 @@ public class App : MonoBehaviour {
 		return ret + path.posWhen(time);
 	}
 	
-	/// <summary>
-	/// applies specified formation to selected paths
-	/// </summary>
+	// methods below involve commanding selected units
+	
 	private void setFormation(Formation formation) {
 		selFormation = formation;
 		if (curSelPaths.Count > 0) {
@@ -1655,9 +1654,6 @@ public class App : MonoBehaviour {
 		}
 	}
 	
-	/// <summary>
-	/// creates new paths that selected units could take
-	/// </summary>
 	private void makePaths() {
 		if (curSelPaths.Count > 0) {
 			Dictionary<int, FP.Vector> pos = new Dictionary<int, FP.Vector>();
@@ -1668,31 +1664,19 @@ public class App : MonoBehaviour {
 		}
 	}
 	
-	/// <summary>
-	/// deletes selected paths
-	/// </summary>
 	private void deletePaths() {
 		if (curSelPaths.Count > 0) g.cmdPending.add(new DeletePathCmdEvt(g.timeSim, newCmdTime(), UnitCmdEvt.argFromPathDict(curSelPaths)));
 	}
 	
-	/// <summary>
-	/// deletes unselected paths of selected units
-	/// </summary>
 	private void deleteOtherPaths() {
 		if (curSelPaths.Count > 0) g.cmdPending.add (new DeleteOtherPathsCmdEvt(g.timeSim, newCmdTime (), UnitCmdEvt.argFromPathDict (curSelPaths)));
 	}
 	
-	/// <summary>
-	/// shares selected paths
-	/// </summary>
 	private void sharePaths() {
 		if (!EnableStacking) throw new InvalidOperationException("may not share paths when stacking is disabled");
 		if (curSelPaths.Count > 0) g.cmdPending.add (new SharePathsCmdEvt(g.timeSim, newCmdTime (), UnitCmdEvt.argFromPathDict (curSelPaths), enableAutoTimeTravel));
 	}
 	
-	/// <summary>
-	/// unstacks selected paths
-	/// </summary>
 	private void unstack() {
 		foreach (KeyValuePair<Path, List<Unit>> path in curSelPaths) {
 			if (path.Key.canMove (g.timeGame) && path.Key.segmentWhen (g.timeGame).units.Count > 1) {
@@ -1712,9 +1696,6 @@ public class App : MonoBehaviour {
 		return false;
 	}
 	
-	/// <summary>
-	/// makes a new unit using selected units
-	/// </summary>
 	private void makeUnit(UnitType type) {
 		foreach (KeyValuePair<Path, List<Unit>> path in curSelPaths) {
 			if (type.speed > 0 && type.makeOnUnitT == null && path.Key.canMakeUnitType (g.timeGame, type)) {
@@ -1731,6 +1712,8 @@ public class App : MonoBehaviour {
 			}
 		}
 	}
+	
+	// methods above involve commanding selected units
 
 	/// <summary>
 	/// sets pos to where base of path should be drawn at, and returns whether it should be drawn

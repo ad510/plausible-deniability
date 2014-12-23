@@ -10,15 +10,9 @@ using System.Linq;
 using System.Text;
 using ProtoBuf;
 
-/// <summary>
-/// event to update various things at regular intervals
-/// </summary>
 [ProtoContract]
 public class UpdateEvt : SimEvt {
-	/// <summary>
-	/// empty constructor for protobuf-net use only
-	/// </summary>
-	private UpdateEvt() { }
+	private UpdateEvt() { } // for protobuf-net use only
 	
 	public UpdateEvt(long timeVal) {
 		time = timeVal;

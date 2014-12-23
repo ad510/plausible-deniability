@@ -52,10 +52,9 @@ public class Player {
 					}
 				}
 				if (timeTravelStart != long.MaxValue) { // skip if player has no time traveling paths
-					// check if going live would lead to player ever having negative resources
+					// check if going live would lead to player ever having negative resources or going over population limit
 					timeGoLiveProblem = checkNegRsc(timeTravelStart, true);
 					if (timeGoLiveProblem < 0 && populationLimit >= 0) {
-						// check if going live would lead to player ever going over population limit
 						timeGoLiveProblem = checkPopulation(timeTravelStart);
 					}
 					if (timeGoLiveProblem >= 0) {
@@ -104,9 +103,6 @@ public class Player {
 		}
 	}
 
-	/// <summary>
-	/// returns amount of specified resource that player has at specified time
-	/// </summary>
 	public long resource(long time, int rscType, bool nonLive) {
 		long ret = startRsc[rscType];
 		foreach (SegmentUnit segmentUnit in newUnitSegments (nonLive)) {
