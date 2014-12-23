@@ -52,13 +52,13 @@ public class Unit {
 		}
 		if (tookHealth) {
 			attacks.Add(new Attack(time, target.path));
-			g.deleteOtherPaths (from segment in g.activeSegments (time)
-				where segment.units.Contains (this) && (target.path.calcPos (time) - segment.path.calcPos (time)).lengthSq () <= type.range * type.range
+			g.deleteOtherPaths (from segment in g.segmentsWhen (time)
+				where segment.units.Contains (this) && (target.path.posWhen (time) - segment.path.posWhen (time)).lengthSq () <= type.range * type.range
 				select new SegmentUnit(segment, this),
 				true, false);
 			// TODO: ideally would just remove all waypoints that are out of range, but non-live path validation is currently too dumb to handle that
 			clearWaypoints(time);
-			foreach (Segment segment in g.activeSegments (time)) {
+			foreach (Segment segment in g.segmentsWhen (time)) {
 				if (segment.units.Contains (this)) addWaypoint(time, segment.path);
 			}
 		}
@@ -103,10 +103,10 @@ public class Unit {
 	
 	public void addWaypoint (long time, Path path) {
 		if (type.speed > 0) {
-			Tile tile = path.activeTile (time);
+			Tile tile = path.tileWhen (time);
 			if (!Waypoint.active (tile.waypointLatest (this))) {
 				List<UnitSelection> start = new List<UnitSelection> { new UnitSelection(path, this, time) };
-				SegmentUnit prev = new SegmentUnit(path.activeSegment (time), this);
+				SegmentUnit prev = new SegmentUnit(path.segmentWhen (time), this);
 				do {
 					// remember segments that unit was previously on in case unit is later removed from them
 					SegmentUnit cur = prev;
@@ -115,7 +115,7 @@ public class Unit {
 						start.Add (new UnitSelection(cur.segment.path, this, cur.segment.timeStart));
 					}
 				} while (prev.g != null && prev.segment.unseen);
-				g.events.add (new WaypointAddEvt(time + (tile.centerPos() - path.calcPos(time)).length () / type.speed,
+				g.events.add (new WaypointAddEvt(time + (tile.centerPos() - path.posWhen(time)).length () / type.speed,
 					this, tile, null, start));
 			}
 		}

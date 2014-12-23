@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2014 Andrew Downing
+// Copyright (c) 2014 Andrew Downing
 // Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 // The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
@@ -30,14 +30,14 @@ public class AttackCmdEvt : UnitCmdEvt {
 	public override void apply (Sim g) {
 		if (time != timeCmd) throw new InvalidOperationException("AttackCmdEvt must take place in the present (time == timeCmd)");
 		Dictionary<Path, List<Unit>> exPaths = existingPaths(g);
-		Segment targetSegment = g.paths[target].activeSegment (timeCmd);
+		Segment targetSegment = g.paths[target].segmentWhen (timeCmd);
 		if (targetSegment == null || targetSegment.unseen || g.paths[target].timeSimPast != long.MaxValue) return;
-		Tile targetTile = g.paths[target].activeTile (timeCmd);
-		FP.Vector targetPos = g.paths[target].calcPos (timeCmd);
+		Tile targetTile = g.paths[target].tileWhen (timeCmd);
+		FP.Vector targetPos = g.paths[target].posWhen (timeCmd);
 		foreach (KeyValuePair<Path, List<Unit>> path in exPaths) {
 			if (path.Key.timeSimPast == long.MaxValue && path.Key.id != target && path.Key.player.mayAttack[g.paths[target].player.id]
 				&& targetTile.playerDirectVisLatest (path.Key.player)) {
-				long distSq = (targetPos - path.Key.calcPos(timeCmd)).lengthSq ();
+				long distSq = (targetPos - path.Key.posWhen(timeCmd)).lengthSq ();
 				foreach (Unit unit in path.Value) {
 					if ((unit.attacks.Count == 0 || timeCmd >= unit.attacks.Last().time + unit.type.reload) && distSq <= unit.type.range * unit.type.range) {
 						unit.attack (timeCmd, targetSegment);

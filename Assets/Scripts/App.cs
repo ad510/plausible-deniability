@@ -551,7 +551,7 @@ public class App : MonoBehaviour {
 		if (g.timeGame <= g.timeSim || g.aiState == AIState.Welcome) return;
 		
 		// find our units
-		List<Segment> datacenters = g.activeSegments (g.timeSim).Where (s => s.path.player == g.playerNamed ("Red")).ToList ();
+		List<Segment> datacenters = g.segmentsWhen (g.timeSim).Where (s => s.path.player == g.playerNamed ("Red")).ToList ();
 		List<Segment> workers = datacenters.Where (s => (s.units[0].type == g.unitTypeNamed ("Quantum Worker")
 			|| s.units[0].type == g.unitTypeNamed ("Quantum Building")) && s.unseen).ToList ();
 		
@@ -564,13 +564,13 @@ public class App : MonoBehaviour {
 					}
 				}
 		
-				if (g.tourGuide != null && g.tourGuide.activeSegment (g.timeSim).units.Count > 0 && !g.tourGuide.activeSegment (g.timeSim).unseen) {
+				if (g.tourGuide != null && g.tourGuide.segmentWhen (g.timeSim).units.Count > 0 && !g.tourGuide.segmentWhen (g.timeSim).unseen) {
 					// tour guide is being watched
 					if (workers.Count == 0) {
 						g.guideSeenTime += timeDelta;
 						if (g.guideSeenTime >= 25000) {
-							while (g.tourGuide.activeSegment (g.timeSim).units.Count > 0 && g.tourGuide.activeSegment (g.timeSim).units[0].healthLatest () > 0) {
-								g.tourGuide.activeSegment (g.timeSim).units[0].takeHealth (g.timeSim, g.tourGuide);
+							while (g.tourGuide.segmentWhen (g.timeSim).units.Count > 0 && g.tourGuide.segmentWhen (g.timeSim).units[0].healthLatest () > 0) {
+								g.tourGuide.segmentWhen (g.timeSim).units[0].takeHealth (g.timeSim, g.tourGuide);
 							}
 						}
 						else if (g.guideSeenTime >= 20000) {
@@ -612,7 +612,7 @@ public class App : MonoBehaviour {
 							type = UnityEngine.Random.Range (0, g.unitT.Length);
 						}
 						g.cmdPending.add (new MakeUnitCmdEvt(g.timeSim, g.timeSim, argFromSegment (worker),
-							type, worker.path.calcPos (g.timeSim) + randInsideCircle (), false));
+							type, worker.path.posWhen (g.timeSim) + randInsideCircle (), false));
 					}
 				}
 			}
@@ -626,7 +626,7 @@ public class App : MonoBehaviour {
 			}
 			
 			// if no player units left, player loses
-			if (!g.gameOver && !g.activeSegments (g.timeSim).Where(s => s.path.player == g.playerNamed ("Blue")).Any()) {
+			if (!g.gameOver && !g.segmentsWhen (g.timeSim).Where(s => s.path.player == g.playerNamed ("Blue")).Any()) {
 				g.gameOver = true;
 			}
 		}
@@ -638,7 +638,7 @@ public class App : MonoBehaviour {
 							new Dictionary<int, FP.Vector> {
 								{
 									datacenter.path.id,
-									datacenter.path.calcPos (g.timeSim) + randInsideCircle()
+									datacenter.path.posWhen (g.timeSim) + randInsideCircle()
 								}
 							}
 						));
@@ -667,9 +667,9 @@ public class App : MonoBehaviour {
 					attack = true;
 					break;
 				}
-				foreach (Segment segment in g.activeSegments(g.timeSim)) {
+				foreach (Segment segment in g.segmentsWhen(g.timeSim)) {
 					if (segment.path.player == g.playerNamed("Blue")
-							&& (segment.path.calcPos(g.timeSim) - datacenter.path.calcPos(g.timeSim)).lengthSq() < (g.visRadius + (5 << FP.Precision)) * (g.visRadius + (5 << FP.Precision))) {
+							&& (segment.path.posWhen(g.timeSim) - datacenter.path.posWhen(g.timeSim)).lengthSq() < (g.visRadius + (5 << FP.Precision)) * (g.visRadius + (5 << FP.Precision))) {
 						g.cmdPending.add(new DeletePathCmdEvt(g.timeSim, g.timeSim, argFromSegment (datacenter)));
 						datacentersCount--;
 						break;
@@ -694,13 +694,13 @@ public class App : MonoBehaviour {
 			g.lastMoveTime = g.timeSim;
 
 			foreach (Segment datacenter in datacenters) {
-				FP.Vector movePos = datacenter.path.calcPos (g.timeSim) + randInsideCircle ();
+				FP.Vector movePos = datacenter.path.posWhen (g.timeSim) + randInsideCircle ();
 				if (g.aiState == AIState.Attack && datacenter.units.Count > 0 && datacenter.units[0].type == g.unitTypeNamed ("Quantum Marine")) {
 					movePos.x = -g.mapSize * 2;
-					foreach (Segment segment in g.activeSegments (g.timeSim)) {
+					foreach (Segment segment in g.segmentsWhen (g.timeSim)) {
 						if (segment.path.player == g.playerNamed ("Blue")
-							&& (segment.path.calcPos (g.timeSim) - datacenter.path.calcPos (g.timeSim)).lengthSq () < (movePos - datacenter.path.calcPos (g.timeSim)).lengthSq()) {
-							movePos = segment.path.calcPos (g.timeSim);
+							&& (segment.path.posWhen (g.timeSim) - datacenter.path.posWhen (g.timeSim)).lengthSq () < (movePos - datacenter.path.posWhen (g.timeSim)).lengthSq()) {
+							movePos = segment.path.posWhen (g.timeSim);
 						}
 					}
 					movePos += randInsideCircle (4);
@@ -732,7 +732,7 @@ public class App : MonoBehaviour {
 			g.pathTexts.Add (new PathText(g.timeSim, g.tourGuide, "You can right click on the map to move your worker around."));
 			while (selPaths.Count == 0 || selPaths[0].path.moves.Count == 1) yield return null;
 			yield return new WaitForSeconds(1);
-			g.cmdPending.add (new MoveCmdEvt(g.timeSim, g.timeSim, argFromSegment (g.tourGuide.activeSegment (g.timeSim)),
+			g.cmdPending.add (new MoveCmdEvt(g.timeSim, g.timeSim, argFromSegment (g.tourGuide.segmentWhen (g.timeSim)),
 				g.paths.Find (p => p.player == g.playerNamed ("Blue")).moves.Last ().vecEnd + randInsideCircle (3), Formation.Tight, false));
 			yield return new WaitForSeconds(2);
 		}
@@ -743,14 +743,14 @@ public class App : MonoBehaviour {
 			Path mineral = null;
 			foreach (Path path in g.paths) {
 				if (path.player == g.playerNamed ("Resources")
-					&& (mineral == null || (path.calcPos (g.timeSim) - g.tourGuide.calcPos (g.timeSim)).lengthSq () < (mineral.calcPos (g.timeSim) - g.tourGuide.calcPos (g.timeSim)).lengthSq())) {
+					&& (mineral == null || (path.posWhen (g.timeSim) - g.tourGuide.posWhen (g.timeSim)).lengthSq () < (mineral.posWhen (g.timeSim) - g.tourGuide.posWhen (g.timeSim)).lengthSq())) {
 					mineral = path;
 				}
 			}
-			mineralPos = mineral.calcPos (g.timeSim) + randInsideCircle (3);
+			mineralPos = mineral.posWhen (g.timeSim) + randInsideCircle (3);
 		}
-		g.cmdPending.add (new MoveCmdEvt(g.timeSim, g.timeSim, argFromSegment (g.tourGuide.activeSegment(g.timeSim)), mineralPos, Formation.Tight, false));
-		while (g.tourGuide.calcPos (g.timeSim) != mineralPos) yield return null;
+		g.cmdPending.add (new MoveCmdEvt(g.timeSim, g.timeSim, argFromSegment (g.tourGuide.segmentWhen(g.timeSim)), mineralPos, Formation.Tight, false));
+		while (g.tourGuide.posWhen (g.timeSim) != mineralPos) yield return null;
 		if (tutorial) {
 			g.pathTexts.Add (new PathText(g.timeSim, g.tourGuide, "The purple triangle is a mineral. You can build a mine on it."));
 			while (g.units.Find (u => u.type == g.unitTypeNamed ("Mine")) == null) yield return null;
@@ -827,7 +827,7 @@ public class App : MonoBehaviour {
 		g.alternatePaths.Clear ();
 		// update current unit selection
 		curSelPaths.Clear ();
-		foreach (SegmentUnit segmentUnit in g.activeSegmentUnits (selSegmentUnits (), g.timeGame)) {
+		foreach (SegmentUnit segmentUnit in g.segmentUnitsWhen (selSegmentUnits (), g.timeGame)) {
 			if (!curSelPaths.ContainsKey (segmentUnit.segment.path)) curSelPaths[segmentUnit.segment.path] = new List<Unit>();
 			if (!curSelPaths[segmentUnit.segment.path].Contains (segmentUnit.unit)) curSelPaths[segmentUnit.segment.path].Add (segmentUnit.unit);
 		}
@@ -864,12 +864,12 @@ public class App : MonoBehaviour {
 						if (selPlayer == path.player && g.timeGame >= path.moves[0].timeStart
 							&& FP.rectIntersects (drawToSimPos (mouseMinPos), drawToSimPos (mouseMaxPos),
 							path.selMinPos(g.timeGame), path.selMaxPos(g.timeGame))) {
-							if (curSelPaths.ContainsKey (path) && curSelPaths[path].Count == path.activeSegment (g.timeGame).units.Count) {
+							if (curSelPaths.ContainsKey (path) && curSelPaths[path].Count == path.segmentWhen (g.timeGame).units.Count) {
 								curSelPaths.Remove(path);
 								deselect = true;
 							}
 							else {
-								curSelPaths[path] = new List<Unit>(path.activeSegment(g.timeGame).units);
+								curSelPaths[path] = new List<Unit>(path.segmentWhen(g.timeGame).units);
 								foreach (Unit unit in curSelPaths[path]) {
 									selPaths.Add (new UnitSelection(path, unit, g.timeGame));
 								}
@@ -900,9 +900,9 @@ public class App : MonoBehaviour {
 					for (int i = 0; i < g.paths.Count; i++) {
 						if (g.timeGame >= g.paths[i].segments[0].timeStart
 							&& FP.rectContains (g.paths[i].selMinPos(g.timeGame), g.paths[i].selMaxPos(g.timeGame), drawToSimPos (Input.mousePosition))) {
-							if (g.timeGame >= g.timeSim && g.paths[i].activeTile (g.timeGame).playerDirectVisWhen (selPlayer, g.timeGame)
+							if (g.timeGame >= g.timeSim && g.paths[i].tileWhen (g.timeGame).playerDirectVisWhen (selPlayer, g.timeGame)
 								&& selPlayer.mayAttack[g.paths[i].player.id]
-								&& g.paths[i].activeSegment (g.timeGame).units.Where (u2 => curSelPaths.Values.Where (units => units.Where (u => u.type.damage[u2.type.id] > 0).Any ()).Any ()).Any ()) {
+								&& g.paths[i].segmentWhen (g.timeGame).units.Where (u2 => curSelPaths.Values.Where (units => units.Where (u => u.type.damage[u2.type.id] > 0).Any ()).Any ()).Any ()) {
 								attackPath = i;
 								break;
 							}
@@ -1087,7 +1087,7 @@ public class App : MonoBehaviour {
 		}
 		// units
 		for (int i = 0; i < g.paths.Count; i++) {
-			Segment segment = g.paths[i].activeSegment (g.timeGame);
+			Segment segment = g.paths[i].segmentWhen (g.timeGame);
 			bool showPathDeletedUnits = showDeletedUnits && selPlayer == g.paths[i].player;
 			if (i == sprUnits.Count) sprUnits.Add (new List<UnitSprite>());
 			if (segment != null) {
@@ -1123,12 +1123,12 @@ public class App : MonoBehaviour {
 					sprUnits[i][j].sprite.transform.localScale = unitScale (unit.type, unit.player);
 					sprUnits[i][j].sprite.renderer.enabled = true;
 					for (int k = i + 1; k < g.paths.Count; k++) {
-						Segment segment2 = g.paths[k].activeSegment (g.timeGame);
+						Segment segment2 = g.paths[k].segmentWhen (g.timeGame);
 						if (segment2 != null && g.paths[i].speed == g.paths[k].speed && g.paths[i].player == g.paths[k].player
 							&& (segment2.units.Contains (unit) || (showPathDeletedUnits && segment2.deletedUnits.Contains (unit)))) {
 							// unit path line
 							sprUnits[i][j].pathLine.SetPosition (0, new Vector3(vec.x, vec.y, PathLineDepth));
-							sprUnits[i][j].pathLine.SetPosition (1, simToDrawPos (g.paths[k].calcPos(g.timeGame), PathLineDepth));
+							sprUnits[i][j].pathLine.SetPosition (1, simToDrawPos (g.paths[k].posWhen(g.timeGame), PathLineDepth));
 							sprUnits[i][j].pathLine.enabled = true;
 							break;
 						}
@@ -1136,7 +1136,7 @@ public class App : MonoBehaviour {
 					// lasers
 					// ISSUE #16: make width, fade interval, color customizable by mod
 					foreach (Attack attack in unit.attacks) {
-						if (g.timeGame - attack.time >= 0 && g.timeGame - attack.time < 500 && attack.target.activeTile(g.timeGame).playerVisWhen(selPlayer, g.timeGame)) {
+						if (g.timeGame - attack.time >= 0 && g.timeGame - attack.time < 500 && attack.target.tileWhen(g.timeGame).playerVisWhen(selPlayer, g.timeGame)) {
 							Vector3 posEmit = vec + simToDrawScl (unit.type.laserPos);
 							posEmit.z = LaserDepth;
 							sprUnits[i][j].laser.SetWidth(4 * (1 - (g.timeGame - attack.time) / 500f), 4 * (1 - (g.timeGame - attack.time) / 500f));
@@ -1177,7 +1177,7 @@ public class App : MonoBehaviour {
 		// health bars
 		foreach (Path path in curSelPaths.Keys) {
 			if (pathDrawPos(path, ref vec)) {
-				Segment segment = path.activeSegment (g.timeGame);
+				Segment segment = path.segmentWhen (g.timeGame);
 				for (int j = 0; j < segment.units.Count; j++) {
 					Unit unit = segment.units[j];
 					if (curSelPaths[path].Contains (unit)) {
@@ -1242,9 +1242,9 @@ public class App : MonoBehaviour {
 				}
 			}
 			if (activePathText != null && activePathText.path != null) {
-				Segment segment = activePathText.path.activeSegment (g.timeGame);
+				Segment segment = activePathText.path.segmentWhen (g.timeGame);
 				if (segment != null && segment.units.Count > 0) {
-					FP.Vector simPos = activePathText.path.calcPos (g.timeGame);
+					FP.Vector simPos = activePathText.path.posWhen (g.timeGame);
 					if (g.tileAt (simPos).playerVisWhen (selPlayer, g.timeGame)) {
 						Vector3 drawPos = simToDrawPos (simPos);
 						drawPos.y = Screen.height - drawPos.y;
@@ -1587,11 +1587,11 @@ public class App : MonoBehaviour {
 				// ISSUE #25: prevent putting multiple units on same unit (unless on different paths of same unit and maybe some other cases)
 				foreach (Path path in g.paths) {
 					if (g.timeGame >= path.segments[0].timeStart) {
-						if (path.activeTile (g.timeGame).playerVisWhen (selPlayer, g.timeGame)
+						if (path.tileWhen (g.timeGame).playerVisWhen (selPlayer, g.timeGame)
 							&& FP.rectContains (path.selMinPos (g.timeGame), path.selMaxPos (g.timeGame), drawToSimPos (Input.mousePosition))) {
-							foreach (Unit unit in path.activeSegment (g.timeGame).units) {
+							foreach (Unit unit in path.segmentWhen (g.timeGame).units) {
 								if (unit.type == makeUnitType.makeOnUnitT) {
-									return path.calcPos(g.timeGame);
+									return path.posWhen(g.timeGame);
 								}
 							}
 						}
@@ -1616,7 +1616,7 @@ public class App : MonoBehaviour {
 				(long)((UnityEngine.Random.value - 0.5) * type.makeUnitMaxDist * 2));
 		} while (ret.lengthSq() < type.makeUnitMinDist * type.makeUnitMinDist
 			|| ret.lengthSq() > type.makeUnitMaxDist * type.makeUnitMaxDist);
-		return ret + path.calcPos(time);
+		return ret + path.posWhen(time);
 	}
 
 	/// <summary>
@@ -1632,7 +1632,7 @@ public class App : MonoBehaviour {
 				(long)((UnityEngine.Random.value - 0.5) * makePathMaxDist * 2));
 		} while (ret.lengthSq() < makePathMinDist * makePathMinDist
 			|| ret.lengthSq() > makePathMaxDist * makePathMaxDist);
-		return ret + path.calcPos(time);
+		return ret + path.posWhen(time);
 	}
 	
 	/// <summary>
@@ -1644,7 +1644,7 @@ public class App : MonoBehaviour {
 			long minX = g.mapSize, maxX = 0, minY = g.mapSize, maxY = 0;
 			foreach (KeyValuePair<Path, List<Unit>> path in curSelPaths) {
 				if (path.Key.canMove (g.timeGame)) {
-					FP.Vector pos = path.Key.calcPos(g.timeGame);
+					FP.Vector pos = path.Key.posWhen(g.timeGame);
 					if (pos.x < minX) minX = pos.x;
 					if (pos.x > maxX) maxX = pos.x;
 					if (pos.y < minY) minY = pos.y;
@@ -1695,7 +1695,7 @@ public class App : MonoBehaviour {
 	/// </summary>
 	private void unstack() {
 		foreach (KeyValuePair<Path, List<Unit>> path in curSelPaths) {
-			if (path.Key.canMove (g.timeGame) && path.Key.activeSegment (g.timeGame).units.Count > 1) {
+			if (path.Key.canMove (g.timeGame) && path.Key.segmentWhen (g.timeGame).units.Count > 1) {
 				foreach (Unit unit in path.Value) {
 					g.cmdPending.add (new MoveCmdEvt(g.timeSim, newCmdTime (),
 						UnitCmdEvt.argFromPathDict (new Dictionary<Path, List<Unit>> { { path.Key, new List<Unit> { unit } } }),
@@ -1707,7 +1707,7 @@ public class App : MonoBehaviour {
 	
 	private bool canUnstack() {
 		foreach (Path path in curSelPaths.Keys) {
-			if (path.canMove (g.timeGame) && path.activeSegment (g.timeGame).units.Count > 1) return true;
+			if (path.canMove (g.timeGame) && path.segmentWhen (g.timeGame).units.Count > 1) return true;
 		}
 		return false;
 	}
@@ -1739,9 +1739,9 @@ public class App : MonoBehaviour {
 		if (g.timeGame < path.moves[0].timeStart) return false;
 		if (selPlayer != path.player) {
 			if (path.timeSimPast != long.MaxValue) return false;
-			if (!path.activeTile (g.timeGame).playerVisWhen(selPlayer, g.timeGame)) return false;
+			if (!path.tileWhen (g.timeGame).playerVisWhen(selPlayer, g.timeGame)) return false;
 		}
-		pos = simToDrawPos(path.calcPos(g.timeGame), UnitDepth);
+		pos = simToDrawPos(path.posWhen(g.timeGame), UnitDepth);
 		return true;
 	}
 	
