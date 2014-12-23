@@ -455,8 +455,7 @@ public class App : MonoBehaviour {
 		using (FileStream file = File.OpenRead (path)) {
 			try {
 				g = Serializer.Deserialize<Sim>(file);
-			}
-			catch (ProtoException) {
+			} catch (ProtoException) {
 				return false;
 			}
 		}
@@ -549,12 +548,10 @@ public class App : MonoBehaviour {
 
 	private void updateAI() {
 		if (g.timeGame <= g.timeSim || g.aiState == AIState.Welcome) return;
-		
 		// find our units
 		List<Segment> datacenters = g.segmentsWhen (g.timeSim).Where (s => s.path.player == g.playerNamed ("Red")).ToList ();
 		List<Segment> workers = datacenters.Where (s => (s.units[0].type == g.unitTypeNamed ("Quantum Worker")
 			|| s.units[0].type == g.unitTypeNamed ("Quantum Building")) && s.unseen).ToList ();
-		
 		if (scnPath == "scn_welcome.json") {
 			if (g.aiState == AIState.Hide) {
 				// disband units that existed for too long
@@ -563,7 +560,6 @@ public class App : MonoBehaviour {
 						while (datacenter.units.Count > 0 && datacenter.units[0].healthLatest () > 0) datacenter.units[0].takeHealth (g.timeSim, datacenter.path);
 					}
 				}
-		
 				if (g.tourGuide != null && g.tourGuide.segmentWhen (g.timeSim).units.Count > 0 && !g.tourGuide.segmentWhen (g.timeSim).unseen) {
 					// tour guide is being watched
 					if (workers.Count == 0) {
@@ -572,51 +568,42 @@ public class App : MonoBehaviour {
 							while (g.tourGuide.segmentWhen (g.timeSim).units.Count > 0 && g.tourGuide.segmentWhen (g.timeSim).units[0].healthLatest () > 0) {
 								g.tourGuide.segmentWhen (g.timeSim).units[0].takeHealth (g.timeSim, g.tourGuide);
 							}
-						}
-						else if (g.guideSeenTime >= 20000) {
+						} else if (g.guideSeenTime >= 20000) {
 							if (g.pathTexts.Last().text != "Looks like you don't need my help anymore. Goodbye!") {
 								g.pathTexts.Add (new PathText(g.timeSim, g.tourGuide, "Looks like you don't need my help anymore. Goodbye!"));
 							}
-						}
-						else if (g.guideSeenTime >= 10000) {
+						} else if (g.guideSeenTime >= 10000) {
 							if (g.pathTexts.Last ().text != "Why are you following me?") {
 								g.pathTexts.Add (new PathText(g.timeSim, g.tourGuide, "Why are you following me?"));
 							}
 						}
-					}
-					else if (g.pathTexts.Last ().text != "See you later!" && g.pathTexts.Last ().text != "Hello again! How's it going?") {
+					} else if (g.pathTexts.Last ().text != "See you later!" && g.pathTexts.Last ().text != "Hello again! How's it going?") {
 						g.pathTexts.Add (new PathText(g.timeSim, g.tourGuide, "Hello again! How's it going?"));
 					}
 				}
 			}
-			
 			if (datacenters.Count < g.numDatacenters) {
 				if (g.timeSim - g.lastMakeTime > g.makeInterval) {
 					// make units every second
 					g.lastMakeTime = g.timeSim;
-					
 					foreach (Segment worker in workers) {
 						int type;
 						if (g.aiState == AIState.Attack) {
 							if (UnityEngine.Random.value <= 0.8) {
 								type = g.unitTypeNamed ("Quantum Marine").id; // 80% chance
-							}
-							else if (UnityEngine.Random.value <= 0.5) {
+							} else if (UnityEngine.Random.value <= 0.5) {
 								type = g.unitTypeNamed ("Quantum Worker").id; // 10% chance
-							}
-							else {
+							} else {
 								type = g.unitTypeNamed ("Quantum Building").id; // 10% chance
 							}
-						}
-						else {
+						} else {
 							type = UnityEngine.Random.Range (0, g.unitT.Length);
 						}
 						g.cmdPending.addEvt(new MakeUnitCmdEvt(g.timeSim, g.timeSim, argFromSegment (worker),
 							type, worker.path.posWhen (g.timeSim) + randInsideCircle (), false));
 					}
 				}
-			}
-			else if (g.makeInterval != 0) {
+			} else if (g.makeInterval != 0) {
 				// we reached unit cap, be aggressive about keeping it
 				g.makeInterval = 0;
 				if (tutorial) {
@@ -624,13 +611,11 @@ public class App : MonoBehaviour {
 						+ "It's time you learned how.";
 				}
 			}
-			
 			// if no player units left, player loses
 			if (!g.gameOver && !g.segmentsWhen (g.timeSim).Where(s => s.path.player == g.playerNamed ("Blue")).Any()) {
 				g.gameOver = true;
 			}
-		}
-		else if (scnPath == "scn_nsa.json") {
+		} else if (scnPath == "scn_nsa.json") {
 			if (datacenters.Count < g.numDatacenters) {
 				// if number of paths is less than the max, make some more paths
 				Segment datacenter = datacenters[UnityEngine.Random.Range (0, datacenters.Count)];
@@ -643,7 +628,6 @@ public class App : MonoBehaviour {
 							}
 						));
 			}
-			
 			// if an AI unit is seen, player wins
 			if ((!g.gameOver || g.pathTexts.Last ().path.segments.Last ().units.Count == 0) && datacenters.Find (s => !s.unseen) != null) {
 				g.gameOver = true;
@@ -657,7 +641,6 @@ public class App : MonoBehaviour {
 				}
 			}
 		}
-
 		if (g.aiState == AIState.Hide) {
 			// delete units that get too close to player's paths
 			int datacentersCount = datacenters.Count;
@@ -683,16 +666,13 @@ public class App : MonoBehaviour {
 					g.pathTexts.Add (new PathText(g.timeSim, null, null));
 					Invoke ("allYourMatter", 1);
 				}
-			}
-			else {
+			} else {
 				g.attackCounter = 0;
 			}
 		}
-
 		// move units every few seconds
 		if (g.timeSim - g.lastMoveTime > 5000) {
 			g.lastMoveTime = g.timeSim;
-
 			foreach (Segment datacenter in datacenters) {
 				FP.Vector movePos = datacenter.path.posWhen (g.timeSim) + randInsideCircle ();
 				if (g.aiState == AIState.Attack && datacenter.units.Count > 0 && datacenter.units[0].type == g.unitTypeNamed ("Quantum Marine")) {
@@ -704,15 +684,13 @@ public class App : MonoBehaviour {
 						}
 					}
 					movePos += randInsideCircle (4);
-				}
-				/*else if (scnPath == "scn_welcome.json") {
+				} /*else if (scnPath == "scn_welcome.json") {
 					Tile tileAtMovePos;
 					for (int i = 0; i < 5; i++) {
 						movePos = datacenter.path.calcPos (g.timeSim) + randInsideCircle (10);
 						try {
 							tileAtMovePos = g.tileAt (movePos);
-						}
-						catch (IndexOutOfRangeException ex) {
+						} catch (IndexOutOfRangeException ex) {
 							tileAtMovePos = null;
 						}
 						if (tileAtMovePos == null || !tileAtMovePos.playerDirectVisLatest (g.playerNamed ("Blue"))) break;
@@ -755,8 +733,7 @@ public class App : MonoBehaviour {
 			g.pathTexts.Add (new PathText(g.timeSim, g.tourGuide, "The purple triangle is a mineral. You can build a mine on it."));
 			while (g.units.Find (u => u.type == g.unitTypeNamed ("Mine")) == null) yield return null;
 			g.pathTexts.Add (new PathText(g.timeSim, g.tourGuide, "You can also make buildings to make other types of units."));
-		}
-		else {
+		} else {
 			g.pathTexts.Add (new PathText(g.timeSim, g.tourGuide, "You can start your base here."));
 		}
 		yield return new WaitForSeconds(5);
@@ -1398,8 +1375,7 @@ public class App : MonoBehaviour {
 			if (replay) {
 				if (scnPath == "scn_welcome.json") {
 					continueText = "Start New Base";
-				}
-				else if (scnPath == "scn_nsa.json") {
+				} else if (scnPath == "scn_nsa.json") {
 					continueText = "Return to Base";
 				}
 			}
@@ -1408,18 +1384,15 @@ public class App : MonoBehaviour {
 					if (scnPath == "scn_welcome.json") {
 						tutorial = false;
 						scnOpen (appPath + modPath + scnPath, 0, false);
-					}
-					else if (scnPath == "scn_nsa.json") {
+					} else if (scnPath == "scn_nsa.json") {
 						scnPath = "scn_welcome.json";
 						if (gameOpen (appPath + modPath + "scn_welcome.sav")) {
 							g.makeInterval = 0; // TODO: no clue why I have to set this explicitly
 						}
-					}
-					else {
+					} else {
 						Application.LoadLevel ("MenuScene");
 					}
-				}
-				else {
+				} else {
 					instantReplay ();
 				}
 			}
