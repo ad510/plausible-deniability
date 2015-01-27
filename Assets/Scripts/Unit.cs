@@ -88,13 +88,13 @@ public class Unit {
 	}
 	
 	public void clearWaypoints(long time) {
-		foreach (Tile tile in g.tiles) {
-			tile.waypoints.Remove (id);
+		if (Sim.enableNonLivePaths) {
+			foreach (Tile tile in g.tiles) tile.waypoints.Remove(id);
 		}
 	}
 	
-	public void addWaypoint (long time, Path path) {
-		if (type.speed > 0) {
+	public void addWaypoint(long time, Path path) {
+		if (Sim.enableNonLivePaths && type.speed > 0) {
 			if (!new SegmentUnit(path.segmentWhen(time), this).canBeUnambiguousParent(time)) time++;
 			Tile tile = path.tileWhen (time);
 			if (!Waypoint.active (tile.waypointLatest (this))) {
