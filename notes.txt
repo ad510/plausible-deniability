@@ -87,6 +87,7 @@ levels: (not sure I like NSA as bad guy)
 - find NSA's secret (big) hovering/floating datacenter in utah desert
   - have obvious toggle in replay to switch between what NSA sees and what you see (or NSA's replay and your replay)
   - mentor introduces quantum computers
+- monty hall game with sharing paths?
 - that was just a decoy, use sharing paths to find real, much bigger datacenter
   - datacenters mention successful missions to infiltrate each country, last one is the player's
 - discover infiltration
