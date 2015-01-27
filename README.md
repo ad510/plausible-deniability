@@ -11,8 +11,6 @@ Some Ways to Cheat
 
 The key aspect to these features is that anything you don't do is wiped from history, so in replays (press shift + R to view an instant replay), your opponents won't see you doing anything beyond what is allowed in a normal RTS game. This works because you don't *really* have to make up your mind about what your units do until another player sees them.
 
-One thing I find especially cool is that these cheats are analogues to tricks that quantum mechanics plays on us in real life, demonstrating a correspondence between RTS games and [Feynman diagrams](https://en.wikipedia.org/wiki/Feynman_diagram).
-
 Status
 ------
 From a purely technical perspective, this is a fleshed out proof of concept that incorporates most ways of cheating with plausible deniability that I've thought of apart from exploiting identical units, which would practically require a rewrite to implement. But after I reached this point in summer 2014, I pretty much hit a brick wall because I have no clue how to turn this into an actual game, and neither does anyone I showed it to. That said, if I figure out a way to get unstuck (and simultaneously manage the necessarily complex codebase), I'd still love to turn this into a full multiplayer game. If you want to help, feel free to submit issues or pull requests to the [GitHub repository](https://github.com/ad510/plausible-deniability), or email questions or comments to me using the link at http://andrewd.50webs.com/.
