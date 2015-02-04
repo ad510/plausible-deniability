@@ -1,4 +1,4 @@
-// Copyright (c) 2013-2014 Andrew Downing
+// Copyright (c) 2013-2015 Andrew Downing
 // Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 // The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
@@ -646,16 +646,20 @@ public class App : MonoBehaviour {
 			int datacentersCount = datacenters.Count;
 			bool attack = false;
 			foreach (Segment datacenter in datacenters) {
-				if (g.makeInterval == 0 && datacentersCount < g.numDatacenters / 2) {
+				if (g.makeInterval == 0 && datacentersCount < g.numDatacenters * 0.8) {
 					attack = true;
 					break;
 				}
 				foreach (Segment segment in g.segmentsWhen(g.timeSim)) {
-					if (segment.path.player == g.playerNamed("Blue")
-							&& (segment.path.posWhen(g.timeSim) - datacenter.path.posWhen(g.timeSim)).lengthSq() < (g.visRadius + (5 << FP.precision)) * (g.visRadius + (5 << FP.precision))) {
-						g.cmdPending.addEvt(new DeletePathCmdEvt(g.timeSim, g.timeSim, argFromSegment (datacenter)));
-						datacentersCount--;
-						break;
+					if (segment.path.player == g.playerNamed("Blue")) {
+						if ((segment.path.posWhen(g.timeSim) - datacenter.path.posWhen(g.timeSim)).lengthSq() < (g.visRadius + (5 << FP.precision)) * (g.visRadius + (5 << FP.precision))) {
+							g.cmdPending.addEvt(new DeletePathCmdEvt(g.timeSim, g.timeSim, argFromSegment (datacenter)));
+							datacentersCount--;
+							break;
+						} else if ((segment.path.posWhen(g.timeSim + 300) - datacenter.path.posWhen(g.timeSim + 300)).lengthSq() < (g.visRadius + (5 << FP.precision)) * (g.visRadius + (5 << FP.precision))) {
+							g.cmdPending.addEvt(new MoveCmdEvt(g.timeSim, g.timeSim, argFromSegment(datacenter),
+								datacenter.path.posWhen(g.timeSim) + randInsideCircle(), Formation.Tight, false));
+						}
 					}
 				}
 			}
@@ -684,18 +688,7 @@ public class App : MonoBehaviour {
 						}
 					}
 					movePos += randInsideCircle (4);
-				} /*else if (scnPath == "scn_welcome.json") {
-					Tile tileAtMovePos;
-					for (int i = 0; i < 5; i++) {
-						movePos = datacenter.path.calcPos (g.timeSim) + randInsideCircle (10);
-						try {
-							tileAtMovePos = g.tileAt (movePos);
-						} catch (IndexOutOfRangeException ex) {
-							tileAtMovePos = null;
-						}
-						if (tileAtMovePos == null || !tileAtMovePos.playerDirectVisLatest (g.playerNamed ("Blue"))) break;
-					}
-				}*/
+				}
 				g.cmdPending.addEvt(new MoveCmdEvt(g.timeSim, g.timeSim, argFromSegment (datacenter), movePos, Formation.Tight, false));
 			}
 		}
