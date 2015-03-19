@@ -128,7 +128,13 @@ levels: (not sure I like NSA as bad guy)
   - mentor says something like quantum mechanics infiltrates every aspect of our lives (list some applications), so better get used to it
   - suggest donating :)
   - go to multiplayer lobby
-- add somewhere: teaming up with other players to mess around with 3rd player (atfunction never really collapses)
+- add somewhere
+  - measure other player by mining mineral to depletion, or use trick in reverse to find other player
+    - show counter of how minerals collected there
+    - mentor describes how particle accelerators infer existence of particles they can't directly measure
+  - allow negative min resources in 1 level to demonstrate decoherence
+  - 0 vis radius to ask how we can measure anything
+  - embed feynman qed videos somewhere?
 
 old changing the past and wavefunctions levels:
 - what they didn't see
@@ -220,6 +226,7 @@ random notes:
   - can have ranged units with visible laser paths
     - except can only see own snipers' laser paths (from all possible snipers)
     - other units' range is less than vis radius, so would be seen by the time they shoot (so ok for anyone to see laser path)
+    - or use "bulleton" carrier particle?
   - healer? (not necessary to support switching units if disallow seeing health of other players' units)
   - can't have mines (they'd have to be visible to the opponent when in seeing range)
   - sniper unit that shoots further than visibility range (but can shoot units that other units see)
