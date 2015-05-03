@@ -128,13 +128,15 @@ levels: (not sure I like NSA as bad guy)
   - mentor says something like quantum mechanics infiltrates every aspect of our lives (list some applications), so better get used to it
   - suggest donating :)
   - go to multiplayer lobby
-- add somewhere
-  - measure other player by mining mineral to depletion, or use trick in reverse to find other player
-    - show counter of how minerals collected there
-    - mentor describes how particle accelerators infer existence of particles they can't directly measure
+- more ideas
+  - teaming up with other players to mess around with 3rd player (field never really collapses)
   - allow negative min resources in 1 level to demonstrate decoherence
   - 0 vis radius to ask how we can measure anything
-  - embed feynman qed videos somewhere?
+  - embed feynman qed videos somewhere
+  - need more minerals (plausibility) by deadline but not enough, so modify past
+    - what do we expect from the places we can't see?
+  - standard model free build with feynman diagrams in background
+    - mentor: correspondence btwn feynman diagrams and rts games
 
 old changing the past and wavefunctions levels:
 - what they didn't see
@@ -164,7 +166,7 @@ old paths levels: (find better synonym for "part 2" such as redux?)
 - can introduce sharing paths between different unit types by having several hired guards of different nationalities/abilities
 - snipers
 
-alternate path implementation:
+alternate path implementations:
 - if not concerned about performance (thanks to Benjamin, * are probably hardest)
   - storing history as actions might prevent state-space explosion
   - state: (set of units, map of player resources)
@@ -178,6 +180,9 @@ alternate path implementation:
   - *multistep: (multiaction, multistate) -> multistate
   - multiknowledge: (knowledge, time)
   - *prune: (set of multiknowledge, multistate) -> multistate
+- since I need graph for good performance
+  - graph traversal always imperative b/c nodes are fundamentally places
+  - so make imperative global checker/pruner backed by functional local relations/assertions
 - features that require storing history
   - replays of what "they see" (most important)
     - making then deleting nested paths in various orders seems to at least require tree, stacking requires graph
@@ -236,6 +241,7 @@ random notes:
   - workers/miners with low/0 attack (use as "helpers" in levels)
     - make more interesting name for them?
   - marines (generic shooting unit)
+- light comes in packets if zoom in enough
 - curved space/time manipulation (idea for new game)
   - time manipulation would be a great way to kill people by having them experience an infinite amount of time in the future (to us) in a finite amount of time (to them)
     - think Braid super-ring
