@@ -254,6 +254,9 @@ student discount: https://www.studica.com/unity
 external version control: https://docs.unity3d.com/Documentation/Manual/ExternalVersionControlSystemSupport.html
 multiplayer tutorial: http://docs.unity3d.ru/Tutorials/M2H_Networking_Tutorial/M2H_Networking_Tutorial_Original.pdf
 multiplayer project files: http://docs.unity3d.ru/Tutorials/M2H_Networking_Tutorial/M2H_Networking_Tutorial_Files.zip
+binary serialization: https://code.google.com/p/protobuf-net/
+protobuf-net unofficial manual: http://www.codeproject.com/Articles/642677/Protobuf-net-the-unofficial-manual
+serialize at stream position: https://stackoverflow.com/questions/2441608/deserializing-a-type-at-the-current-stream-position-with-protobuf-net
 2d: http://gamasutra.com/blogs/JoshSutphin/20130519/192539/Making_2D_Games_With_Unity.php
 gui guide: https://docs.unity3d.com/Documentation/Components/GUIScriptingGuide.html
 guilayout reference: https://docs.unity3d.com/Documentation/ScriptReference/GUILayout.html
@@ -261,14 +264,3 @@ memory (includes links to later parts): http://www.gamasutra.com/blogs/WendelinR
 use visual studio compiler: http://forum.unity3d.com/threads/120327-Video-Tutorial-How-to-use-Visual-Studio-for-all-your-Unity-development
 pdb2mdb ienumerator fix: http://forum.unity3d.com/threads/161685-How-to-build-and-debug-external-DLLs/page2
 fix monodevelop 4 tabbing: http://forum.unity3d.com/threads/191455-Tab-insanity-in-MonoDevelop-packaged-with-Unity-free#post1496147
-
-other links:
-binary serialization: https://code.google.com/p/protobuf-net/
-protobuf-net unofficial manual: http://www.codeproject.com/Articles/642677/Protobuf-net-the-unofficial-manual
-serialize at stream position: https://stackoverflow.com/questions/2441608/deserializing-a-type-at-the-current-stream-position-with-protobuf-net
-age of empires multiplayer: http://www.gamasutra.com/view/feature/3094/1500_archers_on_a_288_network_.php
-ai war optimization (including multiplayer): http://christophermpark.blogspot.com/2009/06/optimizing-30000-ships-in-realtime-in-c.html
-multiplayer debugging: http://gafferongames.com/networking-for-game-programmers/debugging-multiplayer-games/
-braid rewind: http://gdcvault.com/play/1012210/The-Implementation-of-Rewind-in
-managing copyright info: https://softwarefreedom.org/resources/2012/ManagingCopyrightInformation.html
-functional retrogames: http://prog21.dadgum.com/23.html
