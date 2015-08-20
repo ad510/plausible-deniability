@@ -11,8 +11,6 @@ Some Ways to Cheat
 
 The key aspect to these features is that anything you don't do is wiped from history, so in replays (press shift + R to view an instant replay), your opponents won't see you doing anything beyond what is allowed in a normal RTS game. This works because you don't *really* have to make up your mind about what your units do until another player sees them.
 
-One thing I find especially cool is that these cheats are analogues to tricks that quantum mechanics plays on us in real life, demonstrating a correspondence between RTS games and [Feynman diagrams](https://en.wikipedia.org/wiki/Feynman_diagram).
-
 Status
 ------
 From a purely technical perspective, this is a fleshed out proof of concept that incorporates most ways of cheating with plausible deniability that I've thought of apart from exploiting identical units, which would practically require a rewrite to implement. But after I reached this point in summer 2014, I pretty much hit a brick wall because I have no clue how to turn this into an actual game, and neither does anyone I showed it to. That said, if I figure out a way to get unstuck (and simultaneously manage the necessarily complex codebase), I'd still love to turn this into a full multiplayer game. If you want to help, feel free to submit issues or pull requests to the [GitHub repository](https://github.com/ad510/plausible-deniability), or email questions or comments to me using the link at http://andrewd.50webs.com/.
@@ -49,8 +47,12 @@ Controls
 - shift + o = load game
 - shift + s = save game
 
-License
+Copying
 -------
-Plausible Deniability is licensed under the MIT License. You can view the license in copying.txt.
+Written in 2013-2015 by Andrew Downing
+
+To the extent possible under law, the author(s) have dedicated all copyright and related and neighboring rights to this software to the public domain worldwide. This software is distributed without any warranty. You can view the [CC0 Public Domain Dedication](https://creativecommons.org/publicdomain/zero/1.0/) in copying.txt.
+
+Plausible Deniability's JSON parser (Assets/Scripts/JSON.cs) was downloaded from the [Procurios TechBlog](http://techblog.procurios.nl/k/618/news/view/14605/14863/How-do-I-write-my-own-parser-for-JSON.html) and is licensed under the MIT license. You can view the license in copying-json.txt.
 
 Plausible Deniability uses the [protobuf-net](https://code.google.com/p/protobuf-net/) r640 library (Assets/protobuf-net.dll), which is licensed under the Apache License 2.0. You can view the license in copying-protobuf-net.txt.

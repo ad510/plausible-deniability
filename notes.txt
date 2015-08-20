@@ -128,7 +128,15 @@ levels: (not sure I like NSA as bad guy)
   - mentor says something like quantum mechanics infiltrates every aspect of our lives (list some applications), so better get used to it
   - suggest donating :)
   - go to multiplayer lobby
-- add somewhere: teaming up with other players to mess around with 3rd player (atfunction never really collapses)
+- more ideas
+  - teaming up with other players to mess around with 3rd player (field never really collapses)
+  - allow negative min resources in 1 level to demonstrate decoherence
+  - 0 vis radius to ask how we can measure anything
+  - embed feynman qed videos somewhere
+  - need more minerals (plausibility) by deadline but not enough, so modify past
+    - what do we expect from the places we can't see?
+  - standard model free build with feynman diagrams in background
+    - mentor: correspondence btwn feynman diagrams and rts games
 
 old changing the past and wavefunctions levels:
 - what they didn't see
@@ -158,7 +166,7 @@ old paths levels: (find better synonym for "part 2" such as redux?)
 - can introduce sharing paths between different unit types by having several hired guards of different nationalities/abilities
 - snipers
 
-alternate path implementation:
+alternate path implementations:
 - if not concerned about performance (thanks to Benjamin, * are probably hardest)
   - storing history as actions might prevent state-space explosion
   - state: (set of units, map of player resources)
@@ -172,6 +180,9 @@ alternate path implementation:
   - *multistep: (multiaction, multistate) -> multistate
   - multiknowledge: (knowledge, time)
   - *prune: (set of multiknowledge, multistate) -> multistate
+- since I need graph for good performance
+  - graph traversal always imperative b/c nodes are fundamentally places
+  - so make imperative global checker/pruner backed by functional local relations/assertions
 - features that require storing history
   - replays of what "they see" (most important)
     - making then deleting nested paths in various orders seems to at least require tree, stacking requires graph
@@ -220,6 +231,7 @@ random notes:
   - can have ranged units with visible laser paths
     - except can only see own snipers' laser paths (from all possible snipers)
     - other units' range is less than vis radius, so would be seen by the time they shoot (so ok for anyone to see laser path)
+    - or use "bulleton" carrier particle?
   - healer? (not necessary to support switching units if disallow seeing health of other players' units)
   - can't have mines (they'd have to be visible to the opponent when in seeing range)
   - sniper unit that shoots further than visibility range (but can shoot units that other units see)
@@ -229,6 +241,7 @@ random notes:
   - workers/miners with low/0 attack (use as "helpers" in levels)
     - make more interesting name for them?
   - marines (generic shooting unit)
+- light comes in packets if zoom in enough
 - curved space/time manipulation (idea for new game)
   - time manipulation would be a great way to kill people by having them experience an infinite amount of time in the future (to us) in a finite amount of time (to them)
     - think Braid super-ring
@@ -241,6 +254,9 @@ student discount: https://www.studica.com/unity
 external version control: https://docs.unity3d.com/Documentation/Manual/ExternalVersionControlSystemSupport.html
 multiplayer tutorial: http://docs.unity3d.ru/Tutorials/M2H_Networking_Tutorial/M2H_Networking_Tutorial_Original.pdf
 multiplayer project files: http://docs.unity3d.ru/Tutorials/M2H_Networking_Tutorial/M2H_Networking_Tutorial_Files.zip
+binary serialization: https://code.google.com/p/protobuf-net/
+protobuf-net unofficial manual: http://www.codeproject.com/Articles/642677/Protobuf-net-the-unofficial-manual
+serialize at stream position: https://stackoverflow.com/questions/2441608/deserializing-a-type-at-the-current-stream-position-with-protobuf-net
 2d: http://gamasutra.com/blogs/JoshSutphin/20130519/192539/Making_2D_Games_With_Unity.php
 gui guide: https://docs.unity3d.com/Documentation/Components/GUIScriptingGuide.html
 guilayout reference: https://docs.unity3d.com/Documentation/ScriptReference/GUILayout.html
@@ -248,14 +264,3 @@ memory (includes links to later parts): http://www.gamasutra.com/blogs/WendelinR
 use visual studio compiler: http://forum.unity3d.com/threads/120327-Video-Tutorial-How-to-use-Visual-Studio-for-all-your-Unity-development
 pdb2mdb ienumerator fix: http://forum.unity3d.com/threads/161685-How-to-build-and-debug-external-DLLs/page2
 fix monodevelop 4 tabbing: http://forum.unity3d.com/threads/191455-Tab-insanity-in-MonoDevelop-packaged-with-Unity-free#post1496147
-
-other links:
-binary serialization: https://code.google.com/p/protobuf-net/
-protobuf-net unofficial manual: http://www.codeproject.com/Articles/642677/Protobuf-net-the-unofficial-manual
-serialize at stream position: https://stackoverflow.com/questions/2441608/deserializing-a-type-at-the-current-stream-position-with-protobuf-net
-age of empires multiplayer: http://www.gamasutra.com/view/feature/3094/1500_archers_on_a_288_network_.php
-ai war optimization (including multiplayer): http://christophermpark.blogspot.com/2009/06/optimizing-30000-ships-in-realtime-in-c.html
-multiplayer debugging: http://gafferongames.com/networking-for-game-programmers/debugging-multiplayer-games/
-braid rewind: http://gdcvault.com/play/1012210/The-Implementation-of-Rewind-in
-managing copyright info: https://softwarefreedom.org/resources/2012/ManagingCopyrightInformation.html
-functional retrogames: http://prog21.dadgum.com/23.html
