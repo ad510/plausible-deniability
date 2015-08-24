@@ -34,10 +34,6 @@ public static class FP {
 			z = zVal;
 		}
 
-		public Vector(Vector vec) {
-			this = vec;
-		}
-
 		/// <summary>
 		/// returns the 2-dimensional (x and y) squared length of the vector, left shifted by Precision bits
 		/// </summary>

@@ -22,10 +22,6 @@ public struct SegmentUnit {
 		g = segment.g;
 	}
 	
-	public SegmentUnit(SegmentUnit segmentUnit) {
-		this = segmentUnit;
-	}
-
 	/// <summary>
 	/// removes unit from this segment and fewest possible unseen segments such that all remaining possibilities are valid,
 	/// returns whether successful
