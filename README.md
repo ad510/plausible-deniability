@@ -17,7 +17,7 @@ From a purely technical perspective, this is a fleshed out proof of concept that
 
 System Requirements
 -------------------
-The game is made using the free version of [Unity](https://unity3d.com/).
+The game is made using the free version of [Unity](https://unity3d.com/) 4.3.4.
 
 Controls
 --------
