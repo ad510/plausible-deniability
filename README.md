@@ -47,12 +47,8 @@ Controls
 - shift + o = load game
 - shift + s = save game
 
-Copying
+License
 -------
-Written in 2013-2015 by Andrew Downing
+Plausible Deniability is licensed under the MIT License. You can view the license in copying.txt.
 
-To the extent possible under law, the author(s) have dedicated all copyright and related and neighboring rights to this software to the public domain worldwide. This software is distributed without any warranty. You can view the [CC0 Public Domain Dedication](https://creativecommons.org/publicdomain/zero/1.0/) in copying.txt.
-
-Assets/Scripts/JSON.cs was downloaded from the [Procurios TechBlog](http://techblog.procurios.nl/k/618/news/view/14605/14863/How-do-I-write-my-own-parser-for-JSON.html) and is licensed under the [MIT license](https://opensource.org/licenses/mit-license.php).
-
-The [protobuf-net](https://code.google.com/p/protobuf-net/) r640 library (Assets/protobuf-net.dll) is licensed under the Apache License 2.0. You can view the license in copying-protobuf-net.txt.
+Plausible Deniability uses the [protobuf-net](https://code.google.com/p/protobuf-net/) r640 library (Assets/protobuf-net.dll), which is licensed under the Apache License 2.0. You can view the license in copying-protobuf-net.txt.
