@@ -56,7 +56,7 @@ public struct SegmentUnit {
 				}
 			} else if (ancestors[i].segment.prev ().Any ()) {
 				// unit has a parent but we're deleting its first segment, so may need to check resources starting at this time
-				if (ancestors[i].unit.attacks.Count > 0) return false;
+				//if (ancestors[i].unit.attacks.Count > 0) return false;
 				if (ancestors[i].segment.timeStart < timeEarliestChild && ancestors[i].unit.type.rscCollectRate.Where (r => r > 0).Any ()) {
 					timeEarliestChild = ancestors[i].segment.timeStart;
 				}
@@ -105,7 +105,7 @@ public struct SegmentUnit {
 		// BEGIN DANGER ZONE - see comment in delete()
 		// *****************
 		if (segment.units.Contains (unit)) {
-			if (!segment.unseen && segment.timeStart < g.timeSim) return false;
+			//if (!segment.unseen && segment.timeStart < g.timeSim) return false;
 			// only remove units from next segments if this is their only previous segment
 			if (segment.nextOnPath () == null || new SegmentUnit(segment.nextOnPath (), unit).prev ().Count () == 1) {
 				// remove unit from next segments
@@ -116,7 +116,7 @@ public struct SegmentUnit {
 				foreach (SegmentUnit child in children ().ToArray ()) {
 					// TODO: if has alternate non-live parent, do we need to recursively make children non-live?
 					if (child.parents ().Count () == 1) {
-						if (child.unit.attacks.Count > 0) return false;
+						//if (child.unit.attacks.Count > 0) return false;
 						if (!child.deleteAfter (ref removed, ref timeEarliestChild)) return false;
 						if (child.segment.timeStart < timeEarliestChild && child.unit.type.rscCollectRate.Where (r => r > 0).Any ()) {
 							timeEarliestChild = child.segment.timeStart;

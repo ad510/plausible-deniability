@@ -269,13 +269,13 @@ public class Path {
 			movedPath.moveToDirect (time, pos);
 			if (movedPath != this) g.alternatePaths.Add (movedPath);
 		}
-		if (movedPath != this && (movedPath.timeSimPast == long.MaxValue || timeSimPast != long.MaxValue)) {
+		/*if (movedPath != this && (movedPath.timeSimPast == long.MaxValue || timeSimPast != long.MaxValue)) {
 			// new path was moved, so try to remove units that moved from current path
 			Segment segment = segmentWhen (time);
 			foreach (Unit unit in units) {
 				new SegmentUnit(segment, unit).delete ();
 			}
-		}
+		}*/
 		return movedPath;
 	}
 

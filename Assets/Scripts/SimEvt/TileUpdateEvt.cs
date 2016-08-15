@@ -166,10 +166,10 @@ public class TileUpdateEvt : SimEvt {
 					} else if (path.segments.Last ().unseen && !g.tiles[path.tileX, path.tileY].exclusiveLatest(path.player)) {
 						// path is now seen
 						Segment segment = path.insertSegment(time);
-						foreach (Unit unit in segment.units.OrderByDescending (u => u.type.seePrecedence)) {
+						/*foreach (Unit unit in segment.units.OrderByDescending (u => u.type.seePrecedence)) {
 							if (segment.units.Count <= path.nSeeUnits) break;
 							new SegmentUnit(segment, unit).delete ();
-						}
+						}*/
 						path.nSeeUnits = int.MaxValue;
 						if (!g.deleteOtherPaths (segment.segmentUnits(), false, true)) throw new SystemException("failed to delete other paths of seen path");
 						segment.unseen = false;

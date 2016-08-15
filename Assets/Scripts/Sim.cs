@@ -163,7 +163,8 @@ public class Sim {
 	/// removes units from all other paths that, if seen, could cause specified units to be removed from specified segments;
 	/// returns whether successful
 	/// </summary>
-	public bool deleteOtherPaths(IEnumerable<SegmentUnit> segmentUnits, bool addDeleteLines, bool addKeepLines) {
+	public bool deleteOtherPaths(IEnumerable<SegmentUnit> segmentUnits, bool addDeleteLines, bool addKeepLines, bool really = false) {
+		if (!really) return true;
 		HashSet<SegmentUnit> ancestors = new HashSet<SegmentUnit>();
 		HashSet<SegmentUnit> prev = new HashSet<SegmentUnit>();
 		HashSet<SegmentUnit> liveToNonLivePrev = new HashSet<SegmentUnit>(); // live prev segments whose next ancestor is not live
