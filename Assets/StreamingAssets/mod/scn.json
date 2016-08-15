@@ -43,7 +43,7 @@
     {
       "name": "Red",
       "isUser": true,
-      "user": 1,
+      "user": 0,
       "populationLimit": 10,
       "startRsc":
       {
