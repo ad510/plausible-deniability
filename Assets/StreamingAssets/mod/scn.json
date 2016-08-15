@@ -12,6 +12,8 @@
   "uiBarHeight": 0.25,
   "healthBarSize": {"x": 0.017, "y": 0.005},
   "healthBarYOffset": 0.005,
+  "stackRadius": 0.5,
+  "stackRotSpeed": 0.0005,
   "backCol": {"r": 0, "g": 0, "b": 0},
   "borderCol": {"r": 1, "g": 0.5, "b": 0},
   "noVisCol": {"r": 0, "g": 0, "b": 0},

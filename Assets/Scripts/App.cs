@@ -1,4 +1,4 @@
-// Copyright (c) 2013-2014 Andrew Downing
+// Copyright (c) 2013-2016 Andrew Downing
 // Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 // The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
@@ -257,6 +257,8 @@ public class App : MonoBehaviour {
 			uiBarHeight = (float)jsonDouble (json, "uiBarHeight"),
 			healthBarSize = jsonVector2(json, "healthBarSize"),
 			healthBarYOffset = (float)jsonDouble(json, "healthBarYOffset"),
+			stackRadius = jsonFP(json, "stackRadius"),
+			stackRotSpeed = (float)jsonDouble(json, "stackRotSpeed"),
 			backCol = jsonColor(json, "backCol"),
 			borderCol = jsonColor(json, "borderCol"),
 			noVisCol = jsonColor(json, "noVisCol"),
@@ -825,7 +827,8 @@ public class App : MonoBehaviour {
 				sprUnits[i][j].laser.enabled = false;
 			}
 			if (pathDrawPos(g.paths[i], ref vec)) {
-				for (int j = 0; j < segment.units.Count + (showPathDeletedUnits ? segment.deletedUnits.Count : 0); j++) {
+				int n = segment.units.Count + (showPathDeletedUnits ? segment.deletedUnits.Count : 0);
+				for (int j = 0; j < n; j++) {
 					bool deleted = j >= segment.units.Count;
 					Unit unit = deleted ? segment.deletedUnits[j - segment.units.Count] : segment.units[j];
 					if (sprUnits[i][j].type != unit.type || sprUnits[i][j].player != unit.player) {
@@ -841,7 +844,7 @@ public class App : MonoBehaviour {
 					} else {
 						sprUnits[i][j].sprite.renderer.material.color = new Color(1, 1, 1, 0.5f); // ISSUE #16: make transparency amount customizable
 					}
-					sprUnits[i][j].sprite.transform.position = vec + simToDrawScl (unit.type.imgOffset);
+					sprUnits[i][j].sprite.transform.position = vec + simToDrawScl (unit.type.imgOffset) + pathDrawOffset(j, n);
 					sprUnits[i][j].sprite.transform.localScale = unitScale (unit.type, unit.player);
 					sprUnits[i][j].sprite.renderer.enabled = true;
 					for (int k = i + 1; k < g.paths.Count; k++) {
@@ -859,7 +862,7 @@ public class App : MonoBehaviour {
 					// ISSUE #16: make width, fade interval, color customizable by mod
 					foreach (Attack attack in unit.attacks) {
 						if (g.timeGame - attack.time >= 0 && g.timeGame - attack.time < 500 && attack.target.tileWhen(g.timeGame).playerVisWhen(selPlayer, g.timeGame)) {
-							Vector3 posEmit = vec + simToDrawScl (unit.type.laserPos);
+							Vector3 posEmit = vec + simToDrawScl (unit.type.laserPos) + pathDrawOffset(j, n);
 							posEmit.z = laserDepth;
 							sprUnits[i][j].laser.SetWidth(4 * (1 - (g.timeGame - attack.time) / 500f), 4 * (1 - (g.timeGame - attack.time) / 500f));
 							sprUnits[i][j].laser.SetPosition(0, posEmit);
@@ -871,7 +874,7 @@ public class App : MonoBehaviour {
 					if (Input.GetKey (KeyCode.LeftShift) && curSelPaths.ContainsKey(g.paths[i])) {
 						// show final position if holding shift
 						sprUnits[i][j].preview.renderer.material.color = sprUnits[i][j].sprite.renderer.material.color;
-						sprUnits[i][j].preview.transform.position = simToDrawPos(g.paths[i].moves.Last ().vecEnd + unit.type.imgOffset, unitDepth);
+						sprUnits[i][j].preview.transform.position = simToDrawPos(g.paths[i].moves.Last ().vecEnd + unit.type.imgOffset, unitDepth) + pathDrawOffset(j, n);
 						sprUnits[i][j].preview.transform.localScale = sprUnits[i][j].sprite.transform.localScale;
 						sprUnits[i][j].preview.renderer.enabled = true;
 					}
@@ -898,6 +901,7 @@ public class App : MonoBehaviour {
 		foreach (Path path in curSelPaths.Keys) {
 			if (pathDrawPos(path, ref vec)) {
 				Segment segment = path.segmentWhen (g.timeGame);
+				int n = segment.units.Count + (showDeletedUnits ? segment.deletedUnits.Count : 0);
 				for (int j = 0; j < segment.units.Count; j++) {
 					Unit unit = segment.units[j];
 					if (curSelPaths[path].Contains (unit)) {
@@ -906,13 +910,13 @@ public class App : MonoBehaviour {
 						// background
 						if (unit.healthWhen(g.timeGame) > 0) {
 							sprUnits[path.id][j].healthBarBack.renderer.material.color = g.healthBarBackCol;
-							sprUnits[path.id][j].healthBarBack.transform.position = new Vector3(vec.x + g.healthBarSize.x * winDiag * f / 2, f2, healthBarDepth);
+							sprUnits[path.id][j].healthBarBack.transform.position = new Vector3(vec.x + g.healthBarSize.x * winDiag * f / 2, f2, healthBarDepth) + pathDrawOffset(j, n);
 							sprUnits[path.id][j].healthBarBack.transform.localScale = new Vector3(g.healthBarSize.x * winDiag * (1 - f) / 2, g.healthBarSize.y * winDiag / 2, 1);
 							sprUnits[path.id][j].healthBarBack.renderer.enabled = true;
 						}
 						// foreground
 						sprUnits[path.id][j].healthBarFore.renderer.material.color = g.healthBarEmptyCol + (g.healthBarFullCol - g.healthBarEmptyCol) * f;
-						sprUnits[path.id][j].healthBarFore.transform.position = new Vector3(vec.x + g.healthBarSize.x * winDiag * (f - 1) / 2, f2, healthBarDepth);
+						sprUnits[path.id][j].healthBarFore.transform.position = new Vector3(vec.x + g.healthBarSize.x * winDiag * (f - 1) / 2, f2, healthBarDepth) + pathDrawOffset(j, n);
 						sprUnits[path.id][j].healthBarFore.transform.localScale = new Vector3(g.healthBarSize.x * winDiag * f / 2, g.healthBarSize.y * winDiag / 2, 1);
 						sprUnits[path.id][j].healthBarFore.renderer.enabled = true;
 					}
@@ -1363,6 +1367,11 @@ public class App : MonoBehaviour {
 		}
 		pos = simToDrawPos(path.posWhen(g.timeGame), unitDepth);
 		return true;
+	}
+
+	private Vector3 pathDrawOffset(int i, int n) {
+		float angle = (i / (float)n + g.timeGame * g.stackRotSpeed) * 2 * Mathf.PI;
+		return new Vector3(Mathf.Cos(angle), Mathf.Sin(angle), 0) * Mathf.Sqrt(n - 1) * simToDrawScl(g.stackRadius);
 	}
 	
 	/// <summary>
