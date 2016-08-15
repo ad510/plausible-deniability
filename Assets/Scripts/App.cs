@@ -861,7 +861,8 @@ public class App : MonoBehaviour {
 					// lasers
 					// ISSUE #16: make width, fade interval, color customizable by mod
 					foreach (Attack attack in unit.attacks) {
-						if (g.timeGame - attack.time >= 0 && g.timeGame - attack.time < 500 && attack.target.tileWhen(g.timeGame).playerVisWhen(selPlayer, g.timeGame)) {
+						if (g.timeGame - attack.time >= 0 && g.timeGame - attack.time < 500 && attack.target.tileWhen(g.timeGame).playerVisWhen(selPlayer, g.timeGame)
+								&& (attack.target.posWhen (attack.time) - g.paths[i].posWhen (g.timeGame)).lengthSq () <= unit.type.range * unit.type.range) {
 							Vector3 posEmit = vec + simToDrawScl (unit.type.laserPos) + pathDrawOffset(j, n);
 							posEmit.z = laserDepth;
 							sprUnits[i][j].laser.SetWidth(4 * (1 - (g.timeGame - attack.time) / 500f), 4 * (1 - (g.timeGame - attack.time) / 500f));
